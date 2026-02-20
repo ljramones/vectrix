@@ -13,6 +13,7 @@ Ship rendering math features aggressively while preventing hidden regressions wi
 1. Compare current run against a baseline via `scripts/bench-compare.sh`.
 2. Regression thresholds:
    - copy paths (`matrix4f_getByteBuffer`, `matrix4f_getFloatBuffer`): fail if slower by more than 5%
+   - SIMD SoA paths (`transformBatchSoAScalar`, `transformBatchSoAVector`): fail if slower by more than 4%
    - core math paths: fail if slower by more than 3%
    - new benchmarks: add explicit category thresholds when they become release gates
 

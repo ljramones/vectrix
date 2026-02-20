@@ -1,0 +1,7 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: size"
+"org.vectrix.bench.BatchMatrixBenchmark.transformBatchSoAScalar","avgt",1,5,107.637493,2.146451,"ns/op",64
+"org.vectrix.bench.BatchMatrixBenchmark.transformBatchSoAScalar","avgt",1,5,435.355081,2.424789,"ns/op",256
+"org.vectrix.bench.BatchMatrixBenchmark.transformBatchSoAScalar","avgt",1,5,7034.924680,55.983137,"ns/op",4096
+"org.vectrix.bench.BatchMatrixBenchmark.transformBatchSoAVector","avgt",1,5,17.367868,0.049400,"ns/op",64
+"org.vectrix.bench.BatchMatrixBenchmark.transformBatchSoAVector","avgt",1,5,71.362690,0.178073,"ns/op",256
+"org.vectrix.bench.BatchMatrixBenchmark.transformBatchSoAVector","avgt",1,5,1073.176214,3.235852,"ns/op",4096

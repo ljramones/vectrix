@@ -19,9 +19,14 @@ scripts/bench-save-baseline.sh target/benchmarks/latest.csv
 ```bash
 scripts/bench-compare.sh benchmarks/baselines/<baseline>.csv target/benchmarks/latest.csv
 ```
+Optional thresholds:
+```bash
+scripts/bench-compare.sh <baseline> <current> <core_pct> <copy_pct> <simd_pct>
+```
 
 ## Default Regression Thresholds
 - `matrix4f_getByteBuffer`, `matrix4f_getFloatBuffer`: +5% max slowdown
+- `transformBatchSoAScalar`, `transformBatchSoAVector`: +4% max slowdown
 - all other benchmarks: +3% max slowdown
 
 ## Baseline Naming

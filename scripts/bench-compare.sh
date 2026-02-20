@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -lt 2 ]]; then
-  echo "Usage: $0 <baseline.csv> <current.csv> [core_threshold_pct] [copy_threshold_pct]" >&2
+  echo "Usage: $0 <baseline.csv> <current.csv> [core_threshold_pct] [copy_threshold_pct] [simd_threshold_pct]" >&2
   exit 1
 fi
 
@@ -10,6 +10,7 @@ BASE="$1"
 CURR="$2"
 CORE_THRESHOLD="${3:-3}"
 COPY_THRESHOLD="${4:-5}"
+SIMD_THRESHOLD="${5:-4}"
 
 if [[ ! -f "$BASE" ]]; then
   echo "Missing baseline CSV: $BASE" >&2
@@ -25,15 +26,47 @@ TMP_CURR="$(mktemp)"
 trap 'rm -f "$TMP_BASE" "$TMP_CURR"' EXIT
 
 awk -F, '
-NR>1 {
-  key=$1;
-  for (i=8; i<=NF; i++) key=key "|" $i;
+function clean(s) {
+  gsub(/\r/, "", s);
+  gsub(/^"|"$/, "", s);
+  return s;
+}
+NR==1 {
+  for (i=8; i<=NF; i++) {
+    header[i]=clean($i);
+    sub(/^Param: /, "", header[i]);
+  }
+  next;
+}
+{
+  key=clean($1);
+  for (i=8; i<=NF; i++) {
+    value=clean($i);
+    if (value != "")
+      key=key "|" header[i] "=" value;
+  }
   print key "," $5;
 }' "$BASE" | sort > "$TMP_BASE"
 awk -F, '
-NR>1 {
-  key=$1;
-  for (i=8; i<=NF; i++) key=key "|" $i;
+function clean(s) {
+  gsub(/\r/, "", s);
+  gsub(/^"|"$/, "", s);
+  return s;
+}
+NR==1 {
+  for (i=8; i<=NF; i++) {
+    header[i]=clean($i);
+    sub(/^Param: /, "", header[i]);
+  }
+  next;
+}
+{
+  key=clean($1);
+  for (i=8; i<=NF; i++) {
+    value=clean($i);
+    if (value != "")
+      key=key "|" header[i] "=" value;
+  }
   print key "," $5;
 }' "$CURR" | sort > "$TMP_CURR"
 
@@ -50,6 +83,8 @@ join -t, -1 1 -2 1 "$TMP_BASE" "$TMP_CURR" | while IFS=, read -r key base curr; 
 
   if [[ "$name" == *"matrix4f_getByteBuffer"* || "$name" == *"matrix4f_getFloatBuffer"* ]]; then
     threshold="$COPY_THRESHOLD"
+  elif [[ "$name" == *"transformBatchSoA"* ]]; then
+    threshold="$SIMD_THRESHOLD"
   else
     threshold="$CORE_THRESHOLD"
   fi
@@ -65,7 +100,7 @@ join -t, -1 1 -2 1 "$TMP_BASE" "$TMP_CURR" | while IFS=, read -r key base curr; 
 done
 
 # Recompute fail deterministically outside subshell
-FAIL_COUNT=$(join -t, -1 1 -2 1 "$TMP_BASE" "$TMP_CURR" | awk -F, -v ct="$CORE_THRESHOLD" -v cpt="$COPY_THRESHOLD" '
+FAIL_COUNT=$(join -t, -1 1 -2 1 "$TMP_BASE" "$TMP_CURR" | awk -F, -v ct="$CORE_THRESHOLD" -v cpt="$COPY_THRESHOLD" -v st="$SIMD_THRESHOLD" '
 {
   key=$1; base=$2; curr=$3;
   split(key, parts, "|");
@@ -73,6 +108,7 @@ FAIL_COUNT=$(join -t, -1 1 -2 1 "$TMP_BASE" "$TMP_CURR" | awk -F, -v ct="$CORE_T
   delta=((curr-base)/base)*100.0;
   threshold=ct;
   if (index(name,"matrix4f_getByteBuffer")>0 || index(name,"matrix4f_getFloatBuffer")>0) threshold=cpt;
+  else if (index(name,"transformBatchSoA")>0) threshold=st;
   if (delta>threshold) fail++;
 }
 END{print fail+0}
