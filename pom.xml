@@ -1,0 +1,630 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.vectrix</groupId>
+    <artifactId>vectrix</artifactId>
+    <version>1.10.9-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>Vectrix</name>
+    <description>Java rendering math library</description>
+    <url>https://github.com/larrymitchell/vectrix</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://www.opensource.org/licenses/mit-license.php</url>
+        </license>
+    </licenses>
+
+    <organization>
+        <name>Vectrix</name>
+        <url>https://github.com/larrymitchell/vectrix</url>
+    </organization>
+
+    <developers>
+        <developer>
+            <id>kburjack</id>
+            <name>Kai Burjack</name>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/JOML-CI/JOML</url>
+        <connection>scm:git:https://github.com/JOML-CI/JOML.git</connection>
+        <developerConnection>scm:git:https://github.com/JOML-CI/JOML.git</developerConnection>
+    </scm>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <asm.version>9.7</asm.version>
+        <junit.version>5.10.3</junit.version>
+        <jcp.version>7.3.0</jcp.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>24.1.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- JCP Preprocessor -->
+            <plugin>
+                <groupId>com.igormaznitsa</groupId>
+                <artifactId>jcp</artifactId>
+                <version>${jcp.version}</version>
+                <executions>
+                    <execution>
+                        <id>preprocess-sources</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>preprocess</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <unknownVarAsFalse>true</unknownVarAsFalse>
+                    <replaceSources>true</replaceSources>
+                    <keepComments>KEEP_ALL</keepComments>
+                    <keepLines>true</keepLines>
+                    <extensions>
+                        <extension>java</extension>
+                    </extensions>
+                </configuration>
+            </plugin>
+
+            <!-- Java Compiler -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <encoding>UTF-8</encoding>
+                    <testExcludes>
+                        <testExclude>**/experimental/**</testExclude>
+                    </testExcludes>
+                </configuration>
+            </plugin>
+
+            <!-- Surefire (JUnit 5) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+            </plugin>
+
+            <!-- Git Commit ID -->
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>9.0.2</version>
+                <executions>
+                    <execution>
+                        <id>get-git-info</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <skip>true</skip>
+                    <generateGitPropertiesFile>false</generateGitPropertiesFile>
+                    <failOnNoGitDirectory>false</failOnNoGitDirectory>
+                    <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
+                </configuration>
+            </plugin>
+
+            <!-- JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Implementation-Title>JOML</Implementation-Title>
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                            <Implementation-Vendor>JOML</Implementation-Vendor>
+                            <Implementation-Build>${git.commit.id.full}</Implementation-Build>
+                            <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
+                            <Bundle-Name>JOML</Bundle-Name>
+                            <Bundle-SymbolicName>org.vectrix</Bundle-SymbolicName>
+                            <Bundle-Version>${project.version}</Bundle-Version>
+                            <Export-Package>org.vectrix,org.vectrix.sampling</Export-Package>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- Source JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Javadoc JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.11.2</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <doclint>none</doclint>
+                </configuration>
+            </plugin>
+
+            <!-- Checkstyle -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <id>validate-checkstyle</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <configLocation>${project.basedir}/config/checkstyle.xml</configLocation>
+                    <propertyExpansion>config_loc=${project.basedir}/config</propertyExpansion>
+                    <sourceDirectories>
+                        <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
+                    </sourceDirectories>
+                    <excludes>**/module-info.java</excludes>
+                    <includeTestSourceRoots>false</includeTestSourceRoots>
+                </configuration>
+            </plugin>
+
+            <!-- Nexus Staging for Sonatype deployment -->
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.7.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!-- Default profile: Java 1.8 target with bytecode downgrading -->
+        <profile>
+            <id>default</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.vectrix.internal</groupId>
+                    <artifactId>jre-stubs</artifactId>
+                    <version>1.0</version>
+                    <scope>system</scope>
+                    <systemPath>${project.basedir}/libs/jre-stubs.jar</systemPath>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <!-- JCP vars for default profile -->
+                    <plugin>
+                        <groupId>com.igormaznitsa</groupId>
+                        <artifactId>jcp</artifactId>
+                        <configuration>
+                            <vars>
+                                <__HAS_NIO__>true</__HAS_NIO__>
+                                <__HAS_UNSAFE__>true</__HAS_UNSAFE__>
+                            </vars>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Copy ASM jar for buildhelper compilation -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>3.8.1</version>
+                        <executions>
+                            <execution>
+                                <id>copy-asm</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>org.ow2.asm</groupId>
+                                            <artifactId>asm</artifactId>
+                                            <version>${asm.version}</version>
+                                            <outputDirectory>${project.build.directory}/buildhelper-lib</outputDirectory>
+                                        </artifactItem>
+                                    </artifactItems>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Compile and run buildhelper tools (Java6to2, ModuleInfoGenerator) -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.5.0</version>
+                        <executions>
+                            <!-- Compile buildhelper sources -->
+                            <execution>
+                                <id>compile-buildhelper</id>
+                                <phase>process-classes</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>javac</executable>
+                                    <arguments>
+                                        <argument>-cp</argument>
+                                        <argument>${project.build.directory}/buildhelper-lib/asm-${asm.version}.jar</argument>
+                                        <argument>-d</argument>
+                                        <argument>${project.build.directory}/buildhelper-classes</argument>
+                                        <argument>${project.basedir}/buildhelper/Java6to2.java</argument>
+                                        <argument>${project.basedir}/buildhelper/ModuleInfoGenerator.java</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <!-- Run Java6to2 bytecode downgrader -->
+                            <execution>
+                                <id>run-java6to2</id>
+                                <phase>process-classes</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>java</executable>
+                                    <arguments>
+                                        <argument>-cp</argument>
+                                        <argument>${project.build.directory}/buildhelper-classes${path.separator}${project.build.directory}/buildhelper-lib/asm-${asm.version}.jar</argument>
+                                        <argument>Java6to2</argument>
+                                        <argument>${project.build.directory}/classes</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <!-- Run ModuleInfoGenerator -->
+                            <execution>
+                                <id>run-module-info-generator</id>
+                                <phase>process-classes</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>java</executable>
+                                    <arguments>
+                                        <argument>-cp</argument>
+                                        <argument>${project.build.directory}/buildhelper-classes${path.separator}${project.build.directory}/buildhelper-lib/asm-${asm.version}.jar</argument>
+                                        <argument>ModuleInfoGenerator</argument>
+                                        <argument>${project.build.directory}/classes</argument>
+                                        <argument>${project.version}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Experimental profile: current JDK, Vector API, JVMCI, Foreign Memory -->
+        <profile>
+            <id>experimental</id>
+            <properties>
+                <maven.compiler.source>${java.specification.version}</maven.compiler.source>
+                <maven.compiler.target>${java.specification.version}</maven.compiler.target>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.openjdk.jmh</groupId>
+                    <artifactId>jmh-core</artifactId>
+                    <version>1.37</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.openjdk.jmh</groupId>
+                    <artifactId>jmh-generator-annprocess</artifactId>
+                    <version>1.37</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <!-- JCP vars for experimental profile -->
+                    <plugin>
+                        <groupId>com.igormaznitsa</groupId>
+                        <artifactId>jcp</artifactId>
+                        <configuration>
+                            <vars>
+                                <__HAS_NIO__>true</__HAS_NIO__>
+                                <__HAS_UNSAFE__>true</__HAS_UNSAFE__>
+                                <__HAS_FFM__>true</__HAS_FFM__>
+                                <__HAS_JVMCI__>true</__HAS_JVMCI__>
+                                <__HAS_VECTOR_API__>true</__HAS_VECTOR_API__>
+                                <__HAS_FOREIGN_MEMORY_ACCESS_API__>true</__HAS_FOREIGN_MEMORY_ACCESS_API__>
+                            </vars>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Java compiler args for experimental features -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <compilerArgs>
+                                <arg>--enable-preview</arg>
+                                <arg>--add-modules</arg>
+                                <arg>jdk.internal.vm.ci,jdk.incubator.vector</arg>
+                                <arg>--add-exports</arg>
+                                <arg>jdk.internal.vm.ci/jdk.vm.ci.code=ALL-UNNAMED</arg>
+                                <arg>--add-exports</arg>
+                                <arg>jdk.internal.vm.ci/jdk.vm.ci.code.site=ALL-UNNAMED</arg>
+                                <arg>--add-exports</arg>
+                                <arg>jdk.internal.vm.ci/jdk.vm.ci.hotspot=ALL-UNNAMED</arg>
+                                <arg>--add-exports</arg>
+                                <arg>jdk.internal.vm.ci/jdk.vm.ci.meta=ALL-UNNAMED</arg>
+                                <arg>--add-exports</arg>
+                                <arg>jdk.internal.vm.ci/jdk.vm.ci.runtime=ALL-UNNAMED</arg>
+                                <arg>--add-exports</arg>
+                                <arg>jdk.internal.vm.ci/jdk.vm.ci.amd64=ALL-UNNAMED</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Surefire JVM args for experimental features -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <argLine>
+                                -XX:+UnlockExperimentalVMOptions
+                                -XX:+EnableJVMCI
+                                --enable-preview
+                                --enable-native-access=ALL-UNNAMED
+                                --add-modules jdk.internal.vm.ci
+                                --add-modules jdk.incubator.vector
+                                --add-exports jdk.internal.vm.ci/jdk.vm.ci.code=ALL-UNNAMED
+                                --add-exports jdk.internal.vm.ci/jdk.vm.ci.code.site=ALL-UNNAMED
+                                --add-exports jdk.internal.vm.ci/jdk.vm.ci.hotspot=ALL-UNNAMED
+                                --add-exports jdk.internal.vm.ci/jdk.vm.ci.meta=ALL-UNNAMED
+                                --add-exports jdk.internal.vm.ci/jdk.vm.ci.runtime=ALL-UNNAMED
+                                --add-exports jdk.internal.vm.ci/jdk.vm.ci.amd64=ALL-UNNAMED
+                                -Djdk.incubator.vector.VECTOR_ACCESS_OOB_CHECK=0
+                            </argLine>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Add JMH benchmark sources as test sources -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>3.6.0</version>
+                        <executions>
+                            <execution>
+                                <id>add-jmh-sources</id>
+                                <phase>generate-test-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/jmh/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Experimental JAR classifier -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <configuration>
+                            <classifier>experimental</classifier>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Bench profile: JMH benchmarks on current JDK -->
+        <profile>
+            <id>bench</id>
+            <properties>
+                <maven.compiler.source>${java.specification.version}</maven.compiler.source>
+                <maven.compiler.target>${java.specification.version}</maven.compiler.target>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.vectrix.internal</groupId>
+                    <artifactId>jre-stubs</artifactId>
+                    <version>1.0</version>
+                    <scope>system</scope>
+                    <systemPath>${project.basedir}/libs/jre-stubs.jar</systemPath>
+                </dependency>
+                <dependency>
+                    <groupId>org.openjdk.jmh</groupId>
+                    <artifactId>jmh-core</artifactId>
+                    <version>1.37</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.openjdk.jmh</groupId>
+                    <artifactId>jmh-generator-annprocess</artifactId>
+                    <version>1.37</version>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <!-- JCP vars for bench profile -->
+                    <plugin>
+                        <groupId>com.igormaznitsa</groupId>
+                        <artifactId>jcp</artifactId>
+                        <configuration>
+                            <vars>
+                                <__HAS_NIO__>true</__HAS_NIO__>
+                                <__HAS_UNSAFE__>true</__HAS_UNSAFE__>
+                                <__HAS_FFM__>true</__HAS_FFM__>
+                            </vars>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Compiler: explicit annotation processor for JMH -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>org.openjdk.jmh</groupId>
+                                    <artifactId>jmh-generator-annprocess</artifactId>
+                                    <version>1.37</version>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Add benchmark sources as main sources (required for shade) -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>3.6.0</version>
+                        <executions>
+                            <execution>
+                                <id>add-bench-sources</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/bench/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Build benchmarks.jar uber-jar -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <version>3.6.0</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>shade</goal>
+                                </goals>
+                                <configuration>
+                                    <finalName>benchmarks</finalName>
+                                    <minimizeJar>false</minimizeJar>
+                                    <transformers>
+                                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                            <mainClass>org.openjdk.jmh.Main</mainClass>
+                                        </transformer>
+                                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                    </transformers>
+                                    <filters>
+                                        <filter>
+                                            <artifact>*:*</artifact>
+                                            <excludes>
+                                                <exclude>META-INF/*.SF</exclude>
+                                                <exclude>META-INF/*.DSA</exclude>
+                                                <exclude>META-INF/*.RSA</exclude>
+                                            </excludes>
+                                        </filter>
+                                    </filters>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Sign profile: GPG signing for releases -->
+        <profile>
+            <id>sign</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.7</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
