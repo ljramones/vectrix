@@ -96,7 +96,7 @@ public class Affine4fBenchmark {
     @Benchmark
     public Matrix4x3f[] mulMatrix4x3Chain() {
         for (int i = 1; i < size; i++) {
-            matrixOut[i].set(matrix[i - 1]).mul(matrix[i], matrixOut[i]);
+            matrix[i - 1].mul(matrix[i], matrixOut[i]);
         }
         return matrixOut;
     }

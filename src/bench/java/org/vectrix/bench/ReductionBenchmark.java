@@ -16,8 +16,6 @@ import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
-import org.vectrix.experimental.KernelConfig;
-import org.vectrix.experimental.MathMode;
 import org.vectrix.experimental.Reduction;
 
 @State(Scope.Benchmark)
@@ -43,25 +41,21 @@ public class ReductionBenchmark {
 
     @Benchmark
     public float sumFast() {
-        KernelConfig.setMathMode(MathMode.FAST);
-        return Reduction.sum(a);
+        return Reduction.sumFast(a);
     }
 
     @Benchmark
     public float sumStrict() {
-        KernelConfig.setMathMode(MathMode.STRICT);
-        return Reduction.sum(a);
+        return Reduction.sumStrict(a);
     }
 
     @Benchmark
     public float dotFast() {
-        KernelConfig.setMathMode(MathMode.FAST);
-        return Reduction.dot(a, b);
+        return Reduction.dotFast(a, b);
     }
 
     @Benchmark
     public float dotStrict() {
-        KernelConfig.setMathMode(MathMode.STRICT);
-        return Reduction.dot(a, b);
+        return Reduction.dotStrict(a, b);
     }
 }

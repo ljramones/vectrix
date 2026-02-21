@@ -881,12 +881,46 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
     public Matrix4x3f mul(Matrix4x3fc right, Matrix4x3f dest) {
         if ((properties & PROPERTY_IDENTITY) != 0)
             return dest.set(right);
-        else if ((right.properties() & PROPERTY_IDENTITY) != 0)
+        if (right instanceof Matrix4x3f) {
+            Matrix4x3f rightf = (Matrix4x3f) right;
+            int rightProps = rightf.properties;
+            if ((rightProps & PROPERTY_IDENTITY) != 0)
+                return dest.set(this);
+            if ((properties & PROPERTY_TRANSLATION) != 0)
+                return mulTranslation(rightf, dest);
+            return mulGeneric(rightf, dest);
+        }
+        if ((right.properties() & PROPERTY_IDENTITY) != 0)
             return dest.set(this);
-        else if ((properties & PROPERTY_TRANSLATION) != 0)
+        if ((properties & PROPERTY_TRANSLATION) != 0)
             return mulTranslation(right, dest);
         return mulGeneric(right, dest);
     }
+
+    private Matrix4x3f mulGeneric(Matrix4x3f right, Matrix4x3f dest) {
+        float m00 = this.m00, m01 = this.m01, m02 = this.m02;
+        float m10 = this.m10, m11 = this.m11, m12 = this.m12;
+        float m20 = this.m20, m21 = this.m21, m22 = this.m22;
+        float rm00 = right.m00, rm01 = right.m01, rm02 = right.m02;
+        float rm10 = right.m10, rm11 = right.m11, rm12 = right.m12;
+        float rm20 = right.m20, rm21 = right.m21, rm22 = right.m22;
+        float rm30 = right.m30, rm31 = right.m31, rm32 = right.m32;
+        dest.m00 = Math.fma(m00, rm00, Math.fma(m10, rm01, m20 * rm02));
+        dest.m01 = Math.fma(m01, rm00, Math.fma(m11, rm01, m21 * rm02));
+        dest.m02 = Math.fma(m02, rm00, Math.fma(m12, rm01, m22 * rm02));
+        dest.m10 = Math.fma(m00, rm10, Math.fma(m10, rm11, m20 * rm12));
+        dest.m11 = Math.fma(m01, rm10, Math.fma(m11, rm11, m21 * rm12));
+        dest.m12 = Math.fma(m02, rm10, Math.fma(m12, rm11, m22 * rm12));
+        dest.m20 = Math.fma(m00, rm20, Math.fma(m10, rm21, m20 * rm22));
+        dest.m21 = Math.fma(m01, rm20, Math.fma(m11, rm21, m21 * rm22));
+        dest.m22 = Math.fma(m02, rm20, Math.fma(m12, rm21, m22 * rm22));
+        dest.m30 = Math.fma(m00, rm30, Math.fma(m10, rm31, Math.fma(m20, rm32, m30)));
+        dest.m31 = Math.fma(m01, rm30, Math.fma(m11, rm31, Math.fma(m21, rm32, m31)));
+        dest.m32 = Math.fma(m02, rm30, Math.fma(m12, rm31, Math.fma(m22, rm32, m32)));
+        dest.properties = properties & right.properties & PROPERTY_ORTHONORMAL;
+        return dest;
+    }
+
     private Matrix4x3f mulGeneric(Matrix4x3fc right, Matrix4x3f dest) {
         float m00 = this.m00, m01 = this.m01, m02 = this.m02;
         float m10 = this.m10, m11 = this.m11, m12 = this.m12;
@@ -895,37 +929,54 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         float rm10 = right.m10(), rm11 = right.m11(), rm12 = right.m12();
         float rm20 = right.m20(), rm21 = right.m21(), rm22 = right.m22();
         float rm30 = right.m30(), rm31 = right.m31(), rm32 = right.m32();
-        return dest
-        ._m00(Math.fma(m00, rm00, Math.fma(m10, rm01, m20 * rm02)))
-        ._m01(Math.fma(m01, rm00, Math.fma(m11, rm01, m21 * rm02)))
-        ._m02(Math.fma(m02, rm00, Math.fma(m12, rm01, m22 * rm02)))
-        ._m10(Math.fma(m00, rm10, Math.fma(m10, rm11, m20 * rm12)))
-        ._m11(Math.fma(m01, rm10, Math.fma(m11, rm11, m21 * rm12)))
-        ._m12(Math.fma(m02, rm10, Math.fma(m12, rm11, m22 * rm12)))
-        ._m20(Math.fma(m00, rm20, Math.fma(m10, rm21, m20 * rm22)))
-        ._m21(Math.fma(m01, rm20, Math.fma(m11, rm21, m21 * rm22)))
-        ._m22(Math.fma(m02, rm20, Math.fma(m12, rm21, m22 * rm22)))
-        ._m30(Math.fma(m00, rm30, Math.fma(m10, rm31, Math.fma(m20, rm32, m30))))
-        ._m31(Math.fma(m01, rm30, Math.fma(m11, rm31, Math.fma(m21, rm32, m31))))
-        ._m32(Math.fma(m02, rm30, Math.fma(m12, rm31, Math.fma(m22, rm32, m32))))
-        ._properties(properties & right.properties() & PROPERTY_ORTHONORMAL);
+        dest.m00 = Math.fma(m00, rm00, Math.fma(m10, rm01, m20 * rm02));
+        dest.m01 = Math.fma(m01, rm00, Math.fma(m11, rm01, m21 * rm02));
+        dest.m02 = Math.fma(m02, rm00, Math.fma(m12, rm01, m22 * rm02));
+        dest.m10 = Math.fma(m00, rm10, Math.fma(m10, rm11, m20 * rm12));
+        dest.m11 = Math.fma(m01, rm10, Math.fma(m11, rm11, m21 * rm12));
+        dest.m12 = Math.fma(m02, rm10, Math.fma(m12, rm11, m22 * rm12));
+        dest.m20 = Math.fma(m00, rm20, Math.fma(m10, rm21, m20 * rm22));
+        dest.m21 = Math.fma(m01, rm20, Math.fma(m11, rm21, m21 * rm22));
+        dest.m22 = Math.fma(m02, rm20, Math.fma(m12, rm21, m22 * rm22));
+        dest.m30 = Math.fma(m00, rm30, Math.fma(m10, rm31, Math.fma(m20, rm32, m30)));
+        dest.m31 = Math.fma(m01, rm30, Math.fma(m11, rm31, Math.fma(m21, rm32, m31)));
+        dest.m32 = Math.fma(m02, rm30, Math.fma(m12, rm31, Math.fma(m22, rm32, m32)));
+        dest.properties = properties & right.properties() & PROPERTY_ORTHONORMAL;
+        return dest;
     }
 
     public Matrix4x3f mulTranslation(Matrix4x3fc right, Matrix4x3f dest) {
-        return dest
-        ._m00(right.m00())
-        ._m01(right.m01())
-        ._m02(right.m02())
-        ._m10(right.m10())
-        ._m11(right.m11())
-        ._m12(right.m12())
-        ._m20(right.m20())
-        ._m21(right.m21())
-        ._m22(right.m22())
-        ._m30(right.m30() + m30)
-        ._m31(right.m31() + m31)
-        ._m32(right.m32() + m32)
-        ._properties(right.properties() & PROPERTY_ORTHONORMAL);
+        dest.m00 = right.m00();
+        dest.m01 = right.m01();
+        dest.m02 = right.m02();
+        dest.m10 = right.m10();
+        dest.m11 = right.m11();
+        dest.m12 = right.m12();
+        dest.m20 = right.m20();
+        dest.m21 = right.m21();
+        dest.m22 = right.m22();
+        dest.m30 = right.m30() + m30;
+        dest.m31 = right.m31() + m31;
+        dest.m32 = right.m32() + m32;
+        dest.properties = right.properties() & PROPERTY_ORTHONORMAL;
+        return dest;
+    }
+
+    private Matrix4x3f mulTranslation(Matrix4x3f right, Matrix4x3f dest) {
+        dest.m00 = right.m00;
+        dest.m01 = right.m01;
+        dest.m02 = right.m02;
+        dest.m10 = right.m10;
+        dest.m11 = right.m11;
+        dest.m12 = right.m12;
+        dest.m20 = right.m20;
+        dest.m21 = right.m21;
+        dest.m22 = right.m22;
+        dest.m30 = right.m30 + m30;
+        dest.m31 = right.m31 + m31;
+        dest.m32 = right.m32 + m32;
+        dest.properties = right.properties & PROPERTY_ORTHONORMAL;
+        return dest;
     }
 
     /**
