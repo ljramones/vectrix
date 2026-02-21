@@ -26,9 +26,9 @@
 - [x] Unit tests for new math and layout primitives
 - [x] JMH microbenchmarks for transform/culling/packing/skinning and new mesh/layout helpers
 - [x] CI smoke benchmark run + optional baseline regression gate
-- [ ] Long-run benchmark profile for nightly performance drift tracking
+- [x] Long-run benchmark profile for nightly performance drift tracking
 
 ## Operational
-- [ ] Publish versioning policy and migration notes
+- [x] Publish API policy and internal marker guidance
 - [ ] Add artifact/module split plan for external consumers
 - [ ] Add architecture decision records for SIMD/FFM dispatch strategy

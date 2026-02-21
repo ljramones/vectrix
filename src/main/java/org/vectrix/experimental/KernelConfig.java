@@ -23,9 +23,12 @@
  */
 package org.vectrix.experimental;
 
+import org.vectrix.core.Internal;
+
 /**
  * Global runtime configuration for kernel dispatch.
  */
+@Internal("Internal runtime dispatch control surface; may change between releases.")
 public final class KernelConfig {
     public static final String PROP_MATH_MODE = "vectrix.math.mode";
     public static final String PROP_SIMD_ENABLED = "vectrix.simd.enabled";

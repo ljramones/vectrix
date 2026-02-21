@@ -26,11 +26,13 @@ package org.vectrix.simd;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
+import org.vectrix.core.Internal;
 import org.vectrix.experimental.KernelConfig;
 
 /**
  * Runtime SIMD capability probing without a static Vector API dependency.
  */
+@Internal("Internal backend probing; not a stable public API.")
 public final class SimdSupport {
     public enum Backend {
         SCALAR,

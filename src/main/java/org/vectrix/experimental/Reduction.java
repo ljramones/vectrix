@@ -23,9 +23,12 @@
  */
 package org.vectrix.experimental;
 
+import org.vectrix.core.Internal;
+
 /**
  * Deterministic-aware reduction helpers used by batch kernels.
  */
+@Internal("Internal reduction utilities for kernel backends.")
 public final class Reduction {
     private Reduction() {
     }
