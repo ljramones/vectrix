@@ -88,7 +88,7 @@ public class Affine4fBenchmark {
     @Benchmark
     public Affine4f[] mulAffineChain() {
         for (int i = 1; i < size; i++) {
-            affineOut[i].set(affine[i - 1]).mul(affine[i], affineOut[i]);
+            affine[i - 1].mul(affine[i], affineOut[i]);
         }
         return affineOut;
     }
