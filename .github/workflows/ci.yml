@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+
+jobs:
+  test:
+    name: Unit Tests (JDK 25)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Run Maven tests
+        run: mvn -B -q test
+
+  bench-smoke:
+    name: JMH Smoke (JDK 25)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Build benchmark uber-jar
+        run: mvn -B -q clean package -Pbench -DskipTests
+
+      - name: Run benchmark smoke suite
+        run: |
+          java --add-modules jdk.incubator.vector -jar target/benchmarks.jar ".*(TransformComposeBenchmark|Affine4fBenchmark|FrustumCullingBenchmark|GpuPackingBenchmark|QuatCompressionBenchmark|GpuLayoutBenchmark|SkinningKernelBenchmark).*" \
+            -f 1 -wi 1 -i 1 -w 150ms -r 150ms -t 1 \
+            -rf csv -rff target/jmh-smoke.csv
+
+      - name: Benchmark regression check (if baseline exists)
+        run: |
+          if [ -f benchmarks/baselines/ci-jdk25-smoke.csv ]; then
+            ./scripts/bench-compare.sh benchmarks/baselines/ci-jdk25-smoke.csv target/jmh-smoke.csv 12 20 20
+          else
+            echo "No CI baseline found at benchmarks/baselines/ci-jdk25-smoke.csv; skipping regression gate."
+          fi
+
+      - name: Upload JMH smoke result
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmh-smoke-csv
+          path: target/jmh-smoke.csv

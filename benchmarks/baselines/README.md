@@ -7,3 +7,6 @@ Recommended naming:
 
 Example:
 `m4pro-jdk25-2026-02-20.csv`
+
+Reserved CI baseline path:
+`benchmarks/baselines/ci-jdk25-smoke.csv`

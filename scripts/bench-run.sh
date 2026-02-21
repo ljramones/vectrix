@@ -14,25 +14,26 @@ MEASURE_ITERS="${MEASURE_ITERS:-8}"
 THREADS="${THREADS:-1}"
 TIME_UNIT="${TIME_UNIT:-ns}"
 JMH_EXTRA="${JMH_EXTRA:-}"
+JMH_FORMAT="${JMH_FORMAT:-csv}"
 
 STAMP="$(date +%Y%m%d-%H%M%S)"
-CSV_FILE="$OUT_DIR/jmh-$STAMP.csv"
 TXT_FILE="$OUT_DIR/jmh-$STAMP.txt"
+RESULT_FILE="$OUT_DIR/jmh-$STAMP.$JMH_FORMAT"
 
-java -jar target/benchmarks.jar "$BENCH_REGEX" \
+java --add-modules jdk.incubator.vector -jar target/benchmarks.jar "$BENCH_REGEX" \
   -f "$FORKS" \
   -wi "$WARMUP_ITERS" \
   -i "$MEASURE_ITERS" \
   -t "$THREADS" \
   -tu "$TIME_UNIT" \
-  -rf csv \
-  -rff "$CSV_FILE" \
+  -rf "$JMH_FORMAT" \
+  -rff "$RESULT_FILE" \
   $JMH_EXTRA | tee "$TXT_FILE"
 
-cp "$CSV_FILE" "$OUT_DIR/latest.csv"
 cp "$TXT_FILE" "$OUT_DIR/latest.txt"
+cp "$RESULT_FILE" "$OUT_DIR/latest.$JMH_FORMAT"
 
-echo "Wrote: $CSV_FILE"
+echo "Wrote: $RESULT_FILE"
 echo "Wrote: $TXT_FILE"
-echo "Updated: $OUT_DIR/latest.csv"
+echo "Updated: $OUT_DIR/latest.$JMH_FORMAT"
 echo "Updated: $OUT_DIR/latest.txt"
