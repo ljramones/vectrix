@@ -520,6 +520,7 @@
                                 <__HAS_NIO__>true</__HAS_NIO__>
                                 <__HAS_UNSAFE__>true</__HAS_UNSAFE__>
                                 <__HAS_FFM__>true</__HAS_FFM__>
+                                <__HAS_VECTOR_API__>true</__HAS_VECTOR_API__>
                             </vars>
                         </configuration>
                     </plugin>
