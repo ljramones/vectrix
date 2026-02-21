@@ -46,7 +46,7 @@ jobs:
 
       - name: Run benchmark smoke suite
         run: |
-          java --add-modules jdk.incubator.vector -jar target/benchmarks.jar ".*(TransformComposeBenchmark|Affine4fBenchmark|FrustumCullingBenchmark|GpuPackingBenchmark|QuatCompressionBenchmark|GpuLayoutBenchmark|SkinningKernelBenchmark).*" \
+          java --add-modules jdk.incubator.vector -jar target/benchmarks.jar ".*(TransformComposeBenchmark|Affine4fBenchmark|FrustumCullingBenchmark|GpuPackingBenchmark|QuatCompressionBenchmark|GpuLayoutBenchmark|SkinningKernelBenchmark|MeshMathBenchmark|StdLayoutBenchmark|ReductionBenchmark).*" \
             -f 1 -wi 1 -i 1 -w 150ms -r 150ms -t 1 \
             -rf csv -rff target/jmh-smoke.csv
 
