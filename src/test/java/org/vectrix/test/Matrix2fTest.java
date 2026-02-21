@@ -23,8 +23,8 @@
  */
 package org.vectrix.test;
 
-import org.vectrix.Matrix2f;
-import org.vectrix.Vector2f;
+import org.vectrix.core.Matrix2f;
+import org.vectrix.core.Vector2f;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

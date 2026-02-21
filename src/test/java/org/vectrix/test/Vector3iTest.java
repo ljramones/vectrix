@@ -23,13 +23,13 @@
  */
 package org.vectrix.test;
 
-import org.vectrix.RoundingMode;
-import org.vectrix.Vector2d;
-import org.vectrix.Vector2f;
-import org.vectrix.Vector3d;
-import org.vectrix.Vector3f;
-import org.vectrix.Vector3i;
-import org.vectrix.Vector3ic;
+import org.vectrix.core.RoundingMode;
+import org.vectrix.core.Vector2d;
+import org.vectrix.core.Vector2f;
+import org.vectrix.core.Vector3d;
+import org.vectrix.core.Vector3f;
+import org.vectrix.core.Vector3i;
+import org.vectrix.core.Vector3ic;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

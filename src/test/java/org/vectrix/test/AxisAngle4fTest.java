@@ -23,9 +23,9 @@
  */
 package org.vectrix.test;
 
-import org.vectrix.AxisAngle4f;
-import org.vectrix.Math;
-import org.vectrix.Quaternionf;
+import org.vectrix.core.AxisAngle4f;
+import org.vectrix.core.Math;
+import org.vectrix.core.Quaternionf;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

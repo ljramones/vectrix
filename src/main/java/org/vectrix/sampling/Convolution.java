@@ -27,7 +27,7 @@ package org.vectrix.sampling;
 import java.nio.FloatBuffer;
 //#endif
 
-import org.vectrix.Math;
+import org.vectrix.core.Math;
 
 /**
  * Generates various convolution kernels.

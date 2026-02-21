@@ -28,9 +28,9 @@ import java.nio.FloatBuffer;
 //#endif
 import java.util.ArrayList;
 
-import org.vectrix.Random;
-import org.vectrix.Vector2f;
-import org.vectrix.Vector3f;
+import org.vectrix.core.Random;
+import org.vectrix.core.Vector2f;
+import org.vectrix.core.Vector3f;
 
 /**
  * Creates samples using the "Best Candidate" algorithm.

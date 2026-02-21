@@ -23,7 +23,7 @@
  */
 package org.vectrix.test;
 
-import org.vectrix.RayAabIntersection;
+import org.vectrix.geometry.RayAabIntersection;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

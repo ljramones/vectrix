@@ -23,7 +23,7 @@
  */
 package org.vectrix.sampling;
 
-import org.vectrix.Random;
+import org.vectrix.core.Random;
 
 /**
  * Generates uniform samples.

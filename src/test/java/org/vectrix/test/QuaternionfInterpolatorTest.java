@@ -23,10 +23,10 @@
  */
 package org.vectrix.test;
 
-import org.vectrix.Quaternionf;
-import org.vectrix.QuaternionfInterpolator;
-import org.vectrix.Vector3f;
-import org.vectrix.Math;
+import org.vectrix.core.Quaternionf;
+import org.vectrix.core.QuaternionfInterpolator;
+import org.vectrix.core.Vector3f;
+import org.vectrix.core.Math;
 import org.junit.jupiter.api.Test;
 
 import static org.vectrix.test.TestUtil.*;

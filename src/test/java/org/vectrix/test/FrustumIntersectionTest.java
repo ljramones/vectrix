@@ -23,10 +23,10 @@
  */
 package org.vectrix.test;
 
-import org.vectrix.FrustumIntersection;
-import org.vectrix.Matrix4f;
-import org.vectrix.Matrix4fc;
-import org.vectrix.Math;
+import org.vectrix.geometry.FrustumIntersection;
+import org.vectrix.core.Matrix4f;
+import org.vectrix.core.Matrix4fc;
+import org.vectrix.core.Math;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

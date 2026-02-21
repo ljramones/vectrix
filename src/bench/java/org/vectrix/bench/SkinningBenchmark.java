@@ -5,9 +5,9 @@
  */
 package org.vectrix.bench;
 
-import org.vectrix.Matrix4f;
-import org.vectrix.Quaternionf;
-import org.vectrix.Vector3f;
+import org.vectrix.core.Matrix4f;
+import org.vectrix.core.Quaternionf;
+import org.vectrix.core.Vector3f;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.concurrent.TimeUnit;

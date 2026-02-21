@@ -23,7 +23,8 @@
  */
 package org.vectrix.test;
 
-import org.vectrix.*;
+import org.vectrix.core.*;
+import org.vectrix.geometry.*;
 import org.junit.jupiter.api.Test;
 
 import static org.vectrix.test.TestUtil.*;

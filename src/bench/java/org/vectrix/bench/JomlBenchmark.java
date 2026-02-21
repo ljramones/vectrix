@@ -23,9 +23,9 @@
  */
 package org.vectrix.bench;
 
-import org.vectrix.Matrix4f;
-import org.vectrix.Vector3f;
-import org.vectrix.Vector4f;
+import org.vectrix.core.Matrix4f;
+import org.vectrix.core.Vector3f;
+import org.vectrix.core.Vector4f;
 import org.openjdk.jmh.annotations.*;
 
 import java.nio.ByteBuffer;
@@ -174,11 +174,11 @@ public class JomlBenchmark {
 
     @Benchmark
     public float math_sin() {
-        return org.vectrix.Math.sin(angle);
+        return org.vectrix.core.Math.sin(angle);
     }
 
     @Benchmark
     public float math_cos() {
-        return org.vectrix.Math.cos(angle);
+        return org.vectrix.core.Math.cos(angle);
     }
 }

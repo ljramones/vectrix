@@ -28,7 +28,7 @@ package org.vectrix.sampling;
  * 
  * @author Kai Burjack
  */
-class Math extends org.vectrix.Math {
+class Math extends org.vectrix.core.Math {
 
     static final double PI = java.lang.Math.PI;
     static final double PI2 = PI * 2.0;

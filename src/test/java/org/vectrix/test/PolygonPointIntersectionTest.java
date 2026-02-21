@@ -23,8 +23,8 @@
  */
 package org.vectrix.test;
 
-import org.vectrix.PolygonsIntersection;
-import org.vectrix.Math;
+import org.vectrix.geometry.PolygonsIntersection;
+import org.vectrix.core.Math;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

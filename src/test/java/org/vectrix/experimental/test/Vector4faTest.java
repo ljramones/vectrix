@@ -24,7 +24,7 @@
 //#ifdef __HAS_VECTOR_API__
 package org.vectrix.experimental.test;
 
-import org.vectrix.experimental.Vector4fa;
+import org.vectrix.simd.Vector4fa;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

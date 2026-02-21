@@ -28,7 +28,8 @@ import org.openjdk.jmh.annotations.*;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
-import org.vectrix.*;
+import org.vectrix.core.*;
+import org.vectrix.geometry.*;
 
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.nativeOrder;
@@ -59,9 +60,9 @@ import static org.openjdk.jmh.annotations.Scope.Benchmark;
         "-Djdk.incubator.vector.VECTOR_ACCESS_OOB_CHECK=0",
         "--enable-native-access=ALL-UNNAMED"})
 public class Bench {
-    private final org.vectrix.Matrix4f m4a = new org.vectrix.Matrix4f();
-    private final org.vectrix.Matrix4f m4b = new org.vectrix.Matrix4f();
-    private final org.vectrix.Matrix4f m4c = new org.vectrix.Matrix4f();
+    private final org.vectrix.core.Matrix4f m4a = new org.vectrix.core.Matrix4f();
+    private final org.vectrix.core.Matrix4f m4b = new org.vectrix.core.Matrix4f();
+    private final org.vectrix.core.Matrix4f m4c = new org.vectrix.core.Matrix4f();
     private final Matrix4fvBB m4vbb = new Matrix4fvBB();
     private final Matrix4fvArr m4varr = new Matrix4fvArr();
     private final ByteBuffer bb = allocateDirect(16<<2).order(nativeOrder());

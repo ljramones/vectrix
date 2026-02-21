@@ -25,8 +25,8 @@ package org.vectrix.sampling;
 
 import java.util.ArrayList;
 
-import org.vectrix.Random;
-import org.vectrix.Vector2f;
+import org.vectrix.core.Random;
+import org.vectrix.core.Vector2f;
 
 /**
  * Generates Poisson samples.

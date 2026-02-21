@@ -5,7 +5,7 @@
  */
 package org.vectrix.bench;
 
-import org.vectrix.Matrix4f;
+import org.vectrix.core.Matrix4f;
 import org.openjdk.jmh.annotations.*;
 
 import java.nio.ByteBuffer;

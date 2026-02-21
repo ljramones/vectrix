@@ -23,12 +23,12 @@
  */
 package org.vectrix.test;
 
-import org.vectrix.Matrix3f;
-import org.vectrix.Matrix4f;
-import org.vectrix.Matrix4fc;
-import org.vectrix.Vector3f;
-import org.vectrix.Vector4f;
-import org.vectrix.Math;
+import org.vectrix.core.Matrix3f;
+import org.vectrix.core.Matrix4f;
+import org.vectrix.core.Matrix4fc;
+import org.vectrix.core.Vector3f;
+import org.vectrix.core.Vector4f;
+import org.vectrix.core.Math;
 import org.junit.jupiter.api.Test;
 
 import static org.vectrix.test.TestUtil.*;
