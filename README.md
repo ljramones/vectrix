@@ -83,6 +83,45 @@ Compare runs against a baseline:
   12 20 20
 ```
 
+### Benchmark Snapshot (2026-02-21)
+
+Latest focused run (`target/benchmarks/manual-perf-after-fix4.csv`), JDK 25.0.1, Apple M4 Pro, JMH non-forked (`-f 0`), 3 warmup / 5 measurement iterations, `1s` each. Values are `ns/op`.
+
+| Benchmark | 64 | 256 | 4096 |
+|---|---:|---:|---:|
+| `Affine4fBenchmark.mulAffineChain` | 308.770 | 1241.781 | 28092.499 |
+| `Affine4fBenchmark.mulMatrix4x3Chain` | 310.097 | 1255.272 | 24076.744 |
+| `Affine4fBenchmark.trsToAffine` | 164.866 | 650.433 | 13847.967 |
+| `Affine4fBenchmark.trsToMatrix4x3` | 171.147 | 683.317 | 14066.039 |
+
+| Benchmark | 1024 | 16384 | 65536 |
+|---|---:|---:|---:|
+| `ReductionBenchmark.dotFast` | 176.956 | 2930.368 | 11850.559 |
+| `ReductionBenchmark.dotStrict` | 666.641 | 10851.425 | 43281.417 |
+| `ReductionBenchmark.sumFast` | 136.997 | 2513.919 | 10126.466 |
+| `ReductionBenchmark.sumStrict` | 593.291 | 9802.571 | 39872.787 |
+
+Normalized per-individual-call cost (derived from the batched methods):
+- `mulAffineChain` / `mulMatrix4x3Chain`: divided by `(size - 1)` matrix multiplies.
+- `trsToAffine` / `trsToMatrix4x3`: divided by `size` conversions.
+- `sum*` / `dot*`: divided by `size` processed elements.
+
+| Affine/Transform Benchmark | 64 | 256 | 4096 |
+|---|---:|---:|---:|
+| `mulAffineChain` | 4.901 | 4.870 | 6.860 |
+| `mulMatrix4x3Chain` | 4.922 | 4.923 | 5.880 |
+| `trsToAffine` | 2.576 | 2.541 | 3.381 |
+| `trsToMatrix4x3` | 2.674 | 2.669 | 3.434 |
+
+| Reduction Benchmark | 1024 | 16384 | 65536 |
+|---|---:|---:|---:|
+| `dotFast` | 0.173 | 0.179 | 0.181 |
+| `dotStrict` | 0.651 | 0.662 | 0.660 |
+| `sumFast` | 0.134 | 0.153 | 0.155 |
+| `sumStrict` | 0.579 | 0.598 | 0.608 |
+
+Note: keep fork count and JVM flags consistent when comparing runs. This repo currently uses non-forked JMH in constrained environments; use forked runs on a quiet machine for release-grade baselines.
+
 ## Repository Layout
 
 - `src/main/java/org/vectrix/core` – scalar-safe baseline math types.
