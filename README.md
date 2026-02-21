@@ -85,7 +85,9 @@ Compare runs against a baseline:
 
 ### Benchmark Snapshot (2026-02-21)
 
-Latest focused run (`target/benchmarks/manual-perf-after-fix4.csv`), JDK 25.0.1, Apple M4 Pro, JMH non-forked (`-f 0`), 3 warmup / 5 measurement iterations, `1s` each. Values are `ns/op`.
+Latest focused run (`target/benchmarks/manual-perf-after-fix4.csv`), JDK 25.0.1, Apple M4 Pro, JMH non-forked (`-f 0`), 3 warmup / 5 measurement iterations, `1s` each.
+
+Raw JMH scores (unit: `ns/op`, i.e., nanoseconds per benchmark method invocation):
 
 | Benchmark | 64 | 256 | 4096 |
 |---|---:|---:|---:|
@@ -106,12 +108,16 @@ Normalized per-individual-call cost (derived from the batched methods):
 - `trsToAffine` / `trsToMatrix4x3`: divided by `size` conversions.
 - `sum*` / `dot*`: divided by `size` processed elements.
 
+Affine/transform normalized scores (unit: `ns per individual call`):
+
 | Affine/Transform Benchmark | 64 | 256 | 4096 |
 |---|---:|---:|---:|
 | `mulAffineChain` | 4.901 | 4.870 | 6.860 |
 | `mulMatrix4x3Chain` | 4.922 | 4.923 | 5.880 |
 | `trsToAffine` | 2.576 | 2.541 | 3.381 |
 | `trsToMatrix4x3` | 2.674 | 2.669 | 3.434 |
+
+Reduction normalized scores (unit: `ns per element`):
 
 | Reduction Benchmark | 1024 | 16384 | 65536 |
 |---|---:|---:|---:|
