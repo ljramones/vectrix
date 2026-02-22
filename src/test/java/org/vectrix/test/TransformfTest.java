@@ -31,7 +31,7 @@ import java.util.SplittableRandom;
 
 import org.junit.jupiter.api.Test;
 import org.vectrix.experimental.KernelConfig;
-import org.vectrix.experimental.MathMode;
+import org.vectrix.core.MathMode;
 import org.vectrix.affine.TransformKernels;
 import org.vectrix.affine.Transformf;
 import org.vectrix.core.Matrix4x3f;
@@ -142,6 +142,23 @@ class TransformfTest {
         float rotLen2 = out.rotation.x * out.rotation.x + out.rotation.y * out.rotation.y
                 + out.rotation.z * out.rotation.z + out.rotation.w * out.rotation.w;
         assertTrue(java.lang.Math.abs(rotLen2 - 1.0f) < 1E-4f);
+    }
+
+    @Test
+    void interpolateUsesSlerpForRotation() {
+        Transformf a = new Transformf(
+                new Vector3f(0.0f, 0.0f, 0.0f),
+                new org.vectrix.core.Quaternionf().rotateY(0.0f),
+                new Vector3f(1.0f, 1.0f, 1.0f));
+        Transformf b = new Transformf(
+                new Vector3f(10.0f, -4.0f, 2.0f),
+                new org.vectrix.core.Quaternionf().rotateY((float) java.lang.Math.PI * 0.5f),
+                new Vector3f(3.0f, 5.0f, 7.0f));
+        Transformf out = a.interpolate(b, 0.5f, new Transformf());
+        Vector3f v = new Vector3f(1.0f, 0.0f, 0.0f);
+        out.rotation.transform(v);
+        assertEquals(java.lang.Math.sqrt(0.5), v.x, 1E-5);
+        assertEquals(-java.lang.Math.sqrt(0.5), v.z, 1E-5);
     }
 
     @Test

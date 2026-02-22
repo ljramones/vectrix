@@ -24,6 +24,7 @@
 package org.vectrix.experimental;
 
 import org.vectrix.core.Internal;
+import org.vectrix.core.MathMode;
 
 /**
  * Deterministic-aware reduction helpers used by batch kernels.

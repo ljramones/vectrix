@@ -25,7 +25,7 @@ package org.vectrix.geometry;
 
 import org.vectrix.core.Matrix4fc;
 import org.vectrix.experimental.KernelConfig;
-import org.vectrix.experimental.MathMode;
+import org.vectrix.core.MathMode;
 import org.vectrix.simd.SimdSupport;
 import org.vectrix.soa.AABBSoA;
 //#ifdef __HAS_VECTOR_API__

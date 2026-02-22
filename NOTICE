@@ -1,0 +1,39 @@
+Vectrix Attribution Notice
+==========================
+
+Vectrix is an MIT-licensed rendering-first math library.
+
+This codebase contains:
+
+1) Work derived from JOML
+-------------------------
+Portions of the library are derived from, adapted from, or based on JOML
+(Java OpenGL Math Library), also licensed under MIT.
+
+Primary derived areas include:
+- Core vector/matrix/quaternion primitives and related interfaces in `org.vectrix.core`
+- Legacy/compatibility sampling components in `org.vectrix.sampling`
+- Various geometry/intersection utilities and tests that retain JOML lineage
+
+Original JOML copyright notices are preserved in file headers where applicable.
+
+JOML project:
+- https://github.com/JOML-CI/JOML
+
+2) Original Vectrix work
+------------------------
+Substantial portions are original Vectrix implementations, including but not limited to:
+- Curve framework (`org.vectrix.curve`)
+- FFT and convolution (`org.vectrix.fft`)
+- Optics/material math (`org.vectrix.optics`)
+- Spherical harmonics (`org.vectrix.sh`)
+- LTC evaluation (`org.vectrix.ltc`)
+- Rendering math LUT builders (`org.vectrix.renderingmath`)
+- GPU packing/compression utilities (`org.vectrix.gpu`)
+- SoA and affine kernels (`org.vectrix.soa`, `org.vectrix.affine`)
+- Hash, easing, SDF, and release-oriented infrastructure additions
+
+3) Licensing
+------------
+Both JOML-derived and original Vectrix code are distributed under the MIT License.
+See `LICENSE` for full terms.

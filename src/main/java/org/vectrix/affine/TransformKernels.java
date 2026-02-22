@@ -24,7 +24,7 @@
 package org.vectrix.affine;
 
 import org.vectrix.experimental.KernelConfig;
-import org.vectrix.experimental.MathMode;
+import org.vectrix.core.MathMode;
 import org.vectrix.simd.SimdSupport;
 import org.vectrix.soa.TransformSoA;
 

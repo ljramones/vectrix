@@ -43,6 +43,8 @@ import java.text.NumberFormat;
 public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
 
     private static final long serialVersionUID = 1L;
+    private static final float STRICT_TOLERANCE = 1E-6f;
+    private static final float ZERO_TOLERANCE = 1E-8f;
 
     /**
      * The number of bytes used to represent a {@code Quaternionf} value.
@@ -2128,6 +2130,242 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         dest.z = Math.fma(scale0, z, scale1 * target.z());
         dest.w = Math.fma(scale0, w, scale1 * target.w());
         return dest;
+    }
+
+    /**
+     * Compute the logarithm of this unit quaternion and store the result in <code>this</code>.
+     *
+     * @return this
+     */
+    public Quaternionf log() {
+        return log(this);
+    }
+
+    public Quaternionf log(Quaternionf dest) {
+        if (CoreConfig.mathMode() == MathMode.STRICT && Math.abs(lengthSquared() - 1.0f) > STRICT_TOLERANCE) {
+            throw new IllegalArgumentException("Quaternion logarithm requires unit input");
+        }
+        float vLen = Math.sqrt(Math.fma(x, x, Math.fma(y, y, z * z)));
+        if (vLen < ZERO_TOLERANCE) {
+            dest.x = 0.0f;
+            dest.y = 0.0f;
+            dest.z = 0.0f;
+            dest.w = 0.0f;
+            return dest;
+        }
+        float cw = Math.max(-1.0f, Math.min(1.0f, w));
+        float angle = (float) java.lang.Math.acos(cw);
+        float scale = angle / vLen;
+        dest.x = x * scale;
+        dest.y = y * scale;
+        dest.z = z * scale;
+        dest.w = 0.0f;
+        return dest;
+    }
+
+    /**
+     * Compute the exponential of this pure quaternion and store the result in <code>this</code>.
+     *
+     * @return this
+     */
+    public Quaternionf exp() {
+        return exp(this);
+    }
+
+    public Quaternionf exp(Quaternionf dest) {
+        if (CoreConfig.mathMode() == MathMode.STRICT && Math.abs(w) > STRICT_TOLERANCE) {
+            throw new IllegalArgumentException("Quaternion exponential requires pure input");
+        }
+        float vLen = Math.sqrt(Math.fma(x, x, Math.fma(y, y, z * z)));
+        if (vLen < ZERO_TOLERANCE) {
+            dest.x = 0.0f;
+            dest.y = 0.0f;
+            dest.z = 0.0f;
+            dest.w = 1.0f;
+            return dest;
+        }
+        float sin = Math.sin(vLen);
+        float scale = sin / vLen;
+        dest.x = x * scale;
+        dest.y = y * scale;
+        dest.z = z * scale;
+        dest.w = Math.cosFromSin(sin, vLen);
+        return dest;
+    }
+
+    public Quaternionf squadControlPoint(Quaternionfc prev, Quaternionfc next, Quaternionf dest) {
+        float prevX = prev.x(), prevY = prev.y(), prevZ = prev.z(), prevW = prev.w();
+        if (Math.fma(x, prevX, Math.fma(y, prevY, Math.fma(z, prevZ, w * prevW))) < 0.0f) {
+            prevX = -prevX;
+            prevY = -prevY;
+            prevZ = -prevZ;
+            prevW = -prevW;
+        }
+        float nextX = next.x(), nextY = next.y(), nextZ = next.z(), nextW = next.w();
+        if (Math.fma(x, nextX, Math.fma(y, nextY, Math.fma(z, nextZ, w * nextW))) < 0.0f) {
+            nextX = -nextX;
+            nextY = -nextY;
+            nextZ = -nextZ;
+            nextW = -nextW;
+        }
+        Quaternionf invThis = invert(new Quaternionf());
+        Quaternionf relPrev = invThis.mul(new Quaternionf(prevX, prevY, prevZ, prevW), new Quaternionf());
+        Quaternionf relNext = invThis.mul(new Quaternionf(nextX, nextY, nextZ, nextW), new Quaternionf());
+        Quaternionf logPrev = relPrev.log(new Quaternionf());
+        Quaternionf logNext = relNext.log(new Quaternionf());
+        Quaternionf tangent = new Quaternionf(
+                (logPrev.x + logNext.x) * -0.25f,
+                (logPrev.y + logNext.y) * -0.25f,
+                (logPrev.z + logNext.z) * -0.25f,
+                0.0f);
+        Quaternionf expTangent = tangent.exp(new Quaternionf());
+        return mul(expTangent, dest).normalize();
+    }
+
+    public Quaternionf squad(Quaternionfc q1, Quaternionfc s0, Quaternionfc s1, float t, Quaternionf dest) {
+        Quaternionf endpointBlend = slerp(q1, t, new Quaternionf());
+        Quaternionf controlBlend = new Quaternionf(s0).slerp(s1, t, new Quaternionf());
+        float k = 2.0f * t * (1.0f - t);
+        return endpointBlend.slerp(controlBlend, k, dest);
+    }
+
+    public Quaternionf swingTwist(Vector3fc twistAxis, Quaternionf swing, Quaternionf twist) {
+        if (CoreConfig.mathMode() == MathMode.STRICT && Math.abs(lengthSquared() - 1.0f) > STRICT_TOLERANCE) {
+            throw new IllegalArgumentException("Swing-twist requires unit quaternion input");
+        }
+        float ax = twistAxis.x(), ay = twistAxis.y(), az = twistAxis.z();
+        float axisLenSq = Math.fma(ax, ax, Math.fma(ay, ay, az * az));
+        if (CoreConfig.mathMode() == MathMode.STRICT && Math.abs(axisLenSq - 1.0f) > STRICT_TOLERANCE) {
+            throw new IllegalArgumentException("Swing-twist requires unit twist axis");
+        }
+        if (axisLenSq < ZERO_TOLERANCE) {
+            if (CoreConfig.mathMode() == MathMode.STRICT) {
+                throw new IllegalArgumentException("Swing-twist requires non-zero twist axis");
+            }
+            swing.set(this);
+            twist.identity();
+            return swing;
+        }
+        float invAxisLen = Math.invsqrt(axisLenSq);
+        ax *= invAxisLen;
+        ay *= invAxisLen;
+        az *= invAxisLen;
+
+        float proj = Math.fma(x, ax, Math.fma(y, ay, z * az));
+        twist.x = ax * proj;
+        twist.y = ay * proj;
+        twist.z = az * proj;
+        twist.w = w;
+
+        float twistLenSq = Math.fma(twist.x, twist.x, Math.fma(twist.y, twist.y, Math.fma(twist.z, twist.z, twist.w * twist.w)));
+        if (twistLenSq < ZERO_TOLERANCE) {
+            twist.identity();
+            swing.set(this);
+            return swing;
+        }
+        float invTwistLen = Math.invsqrt(twistLenSq);
+        twist.x *= invTwistLen;
+        twist.y *= invTwistLen;
+        twist.z *= invTwistLen;
+        twist.w *= invTwistLen;
+
+        float tx = -twist.x;
+        float ty = -twist.y;
+        float tz = -twist.z;
+        float tw = twist.w;
+        swing.set(
+                Math.fma(w, tx, Math.fma(x, tw, Math.fma(y, tz, -z * ty))),
+                Math.fma(w, ty, Math.fma(-x, tz, Math.fma(y, tw, z * tx))),
+                Math.fma(w, tz, Math.fma(x, ty, Math.fma(-y, tx, z * tw))),
+                Math.fma(w, tw, Math.fma(-x, tx, Math.fma(-y, ty, -z * tz))));
+        return swing;
+    }
+
+    public Vector3f angularVelocity(Quaternionfc next, float dt, Vector3f dest) {
+        if (dt == 0.0f) {
+            throw new IllegalArgumentException("dt");
+        }
+        if (CoreConfig.mathMode() == MathMode.STRICT
+                && (Math.abs(lengthSquared() - 1.0f) > STRICT_TOLERANCE
+                || Math.abs(next.lengthSquared() - 1.0f) > STRICT_TOLERANCE)) {
+            throw new IllegalArgumentException("Angular velocity requires unit quaternions");
+        }
+        float nx = next.x(), ny = next.y(), nz = next.z(), nw = next.w();
+        float dot = Math.fma(x, nx, Math.fma(y, ny, Math.fma(z, nz, w * nw)));
+        if (dot < 0.0f) {
+            nx = -nx;
+            ny = -ny;
+            nz = -nz;
+            nw = -nw;
+        }
+        float cx = -x, cy = -y, cz = -z, cw = w;
+        float dqX = Math.fma(nw, cx, Math.fma(nx, cw, Math.fma(ny, cz, -nz * cy)));
+        float dqY = Math.fma(nw, cy, Math.fma(-nx, cz, Math.fma(ny, cw, nz * cx)));
+        float dqZ = Math.fma(nw, cz, Math.fma(nx, cy, Math.fma(-ny, cx, nz * cw)));
+        float dqW = Math.fma(nw, cw, Math.fma(-nx, cx, Math.fma(-ny, cy, -nz * cz)));
+        if (dqW < 0.0f) {
+            dqX = -dqX;
+            dqY = -dqY;
+            dqZ = -dqZ;
+            dqW = -dqW;
+        }
+        float cwClamped = Math.max(-1.0f, Math.min(1.0f, dqW));
+        float angle = 2.0f * (float) java.lang.Math.acos(cwClamped);
+        float sinHalfSq = Math.max(0.0f, 1.0f - cwClamped * cwClamped);
+        float sinHalf = Math.sqrt(sinHalfSq);
+        if (sinHalf < ZERO_TOLERANCE || angle < ZERO_TOLERANCE) {
+            return dest.set(0.0f, 0.0f, 0.0f);
+        }
+        float invSinHalf = 1.0f / sinHalf;
+        float scale = (angle / dt) * invSinHalf;
+        return dest.set(dqX * scale, dqY * scale, dqZ * scale);
+    }
+
+    public static Quaternionf integrateAngularVelocity(Vector3fc omega, float dt, Quaternionf dest) {
+        float ox = omega.x(), oy = omega.y(), oz = omega.z();
+        float omegaLenSq = Math.fma(ox, ox, Math.fma(oy, oy, oz * oz));
+        if (omegaLenSq < ZERO_TOLERANCE || dt == 0.0f) {
+            return dest.identity();
+        }
+        float omegaLen = Math.sqrt(omegaLenSq);
+        float angle = omegaLen * dt;
+        float halfAngle = 0.5f * angle;
+        float sinHalf = Math.sin(halfAngle);
+        float cosHalf = Math.cosFromSin(sinHalf, halfAngle);
+        float invOmegaLen = 1.0f / omegaLen;
+        return dest.set(ox * invOmegaLen * sinHalf,
+                oy * invOmegaLen * sinHalf,
+                oz * invOmegaLen * sinHalf,
+                cosHalf);
+    }
+
+    public static void ensureConsistentHemisphere(Quaternionf[] sequence) {
+        ensureConsistentHemisphere(sequence, 0, sequence.length);
+    }
+
+    public static void ensureConsistentHemisphere(Quaternionf[] sequence, int offset, int length) {
+        if (offset < 0 || length < 0 || offset + length > sequence.length) {
+            throw new IllegalArgumentException("offset/length");
+        }
+        int end = offset + length;
+        if (CoreConfig.mathMode() == MathMode.STRICT) {
+            for (int i = offset; i < end; i++) {
+                if (Math.abs(sequence[i].lengthSquared() - 1.0f) > STRICT_TOLERANCE) {
+                    throw new IllegalArgumentException("Sequence contains non-unit quaternion");
+                }
+            }
+        }
+        for (int i = offset + 1; i < end; i++) {
+            Quaternionf prev = sequence[i - 1];
+            Quaternionf curr = sequence[i];
+            float dot = Math.fma(prev.x, curr.x, Math.fma(prev.y, curr.y, Math.fma(prev.z, curr.z, prev.w * curr.w)));
+            if (dot < 0.0f) {
+                curr.x = -curr.x;
+                curr.y = -curr.y;
+                curr.z = -curr.z;
+                curr.w = -curr.w;
+            }
+        }
     }
 
     /**

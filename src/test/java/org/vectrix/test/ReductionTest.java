@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.vectrix.experimental.KernelConfig;
-import org.vectrix.experimental.MathMode;
+import org.vectrix.core.MathMode;
 import org.vectrix.experimental.Reduction;
 
 class ReductionTest {

@@ -24,7 +24,7 @@
 package org.vectrix.soa;
 
 import org.vectrix.experimental.KernelConfig;
-import org.vectrix.experimental.MathMode;
+import org.vectrix.core.MathMode;
 import org.vectrix.simd.SimdSupport;
 //#ifdef __HAS_VECTOR_API__
 import jdk.incubator.vector.FloatVector;

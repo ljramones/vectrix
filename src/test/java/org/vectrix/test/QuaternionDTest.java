@@ -26,6 +26,7 @@ package org.vectrix.test;
 import org.vectrix.core.*;
 import org.vectrix.geometry.*;
 import org.vectrix.core.Math;
+import org.vectrix.experimental.KernelConfig;
 import org.junit.jupiter.api.Test;
 
 import static org.vectrix.test.TestUtil.*;
@@ -36,6 +37,22 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Sebastian Fellner
  */
 class QuaternionDTest {
+    private static Quaterniond unitQuat(double x, double y, double z, double w) {
+        return new Quaterniond(x, y, z, w).normalize();
+    }
+
+    private static boolean approxEqualOrNegated(Quaterniond a, Quaterniond b, double eps) {
+        boolean direct = Math.abs(a.x - b.x) < eps
+                && Math.abs(a.y - b.y) < eps
+                && Math.abs(a.z - b.z) < eps
+                && Math.abs(a.w - b.w) < eps;
+        boolean negated = Math.abs(a.x + b.x) < eps
+                && Math.abs(a.y + b.y) < eps
+                && Math.abs(a.z + b.z) < eps
+                && Math.abs(a.w + b.w) < eps;
+        return direct || negated;
+    }
+
     @Test
     void testMulQuaternionDQuaternionDQuaternionD() {
         // Multiplication with the identity quaternion should change nothing
@@ -124,6 +141,150 @@ class QuaternionDTest {
         Quaterniondc fromDeg = new Quaterniond().fromAxisAngleDeg(axis, angleDeg);
         assertEquals(fromRad1, fromRad2);
         assertEquals(fromRad2, fromDeg);
+    }
+
+    @Test
+    void logIdentityQuaternionReturnsZeroTangent() {
+        Quaterniond result = new Quaterniond().log(new Quaterniond());
+        assertEquals(0.0, result.x, 1E-12);
+        assertEquals(0.0, result.y, 1E-12);
+        assertEquals(0.0, result.z, 1E-12);
+        assertEquals(0.0, result.w, 1E-12);
+    }
+
+    @Test
+    void expZeroTangentReturnsIdentity() {
+        Quaterniond zero = new Quaterniond(0.0, 0.0, 0.0, 0.0);
+        Quaterniond result = zero.exp(new Quaterniond());
+        assertEquals(0.0, result.x, 1E-12);
+        assertEquals(0.0, result.y, 1E-12);
+        assertEquals(0.0, result.z, 1E-12);
+        assertEquals(1.0, result.w, 1E-12);
+    }
+
+    @Test
+    void expLogRoundtripArbitraryUnitQuaternions() {
+        Quaterniond[] quats = {
+                unitQuat(1.0, 0.0, 0.0, 1.0),
+                unitQuat(0.0, 1.0, 0.0, 1.0),
+                unitQuat(1.0, 1.0, 0.0, 1.0),
+                unitQuat(1.0, 1.0, 1.0, 1.0),
+                unitQuat(0.1, 0.2, 0.3, 0.9),
+                unitQuat(-0.5, 0.5, -0.5, 0.5)
+        };
+        for (Quaterniond q : quats) {
+            Quaterniond roundTrip = q.log(new Quaterniond()).exp(new Quaterniond());
+            assertTrue(approxEqualOrNegated(q, roundTrip, 1E-12));
+        }
+    }
+
+    @Test
+    void logAxisAngleTangentMagnitudeEqualsHalfAngle() {
+        double angle = java.lang.Math.PI * 0.5;
+        Quaterniond q = new Quaterniond().rotationY(angle);
+        Quaterniond logQ = q.log(new Quaterniond());
+        double tangentMag = java.lang.Math.sqrt(Math.fma(logQ.x, logQ.x, Math.fma(logQ.y, logQ.y, logQ.z * logQ.z)));
+        assertEquals(angle * 0.5, tangentMag, 1E-12);
+        assertEquals(0.0, logQ.w, 1E-12);
+    }
+
+    @Test
+    void squadDegeneratesToSlerpWhenControlsAreEndpoints() {
+        Quaterniond q0 = unitQuat(1.0, 0.0, 0.0, 1.0);
+        Quaterniond q1 = unitQuat(0.0, 1.0, 0.0, 1.0);
+        double[] ts = {0.0, 0.25, 0.5, 0.75, 1.0};
+        for (double t : ts) {
+            Quaterniond slerp = q0.slerp(q1, t, new Quaterniond());
+            Quaterniond squad = q0.squad(q1, q0, q1, t, new Quaterniond());
+            assertTrue(approxEqualOrNegated(slerp, squad, 1E-12));
+        }
+    }
+
+    @Test
+    void squadAtEndpointsReturnsStartAndEnd() {
+        Quaterniond q0 = unitQuat(1.0, 0.0, 0.0, 1.0);
+        Quaterniond q1 = unitQuat(0.0, 1.0, 0.0, 1.0);
+        Quaterniond s0 = q0.squadControlPoint(q0, q1, new Quaterniond());
+        Quaterniond s1 = q1.squadControlPoint(q0, q1, new Quaterniond());
+        Quaterniond atZero = q0.squad(q1, s0, s1, 0.0, new Quaterniond());
+        Quaterniond atOne = q0.squad(q1, s0, s1, 1.0, new Quaterniond());
+        assertTrue(approxEqualOrNegated(q0, atZero, 1E-12));
+        assertTrue(approxEqualOrNegated(q1, atOne, 1E-12));
+    }
+
+    @Test
+    void squadControlPointContinuityAtSegmentJoin() {
+        Quaterniond q0 = unitQuat(1.0, 0.0, 0.0, 1.0);
+        Quaterniond q1 = unitQuat(0.0, 1.0, 0.0, 1.0);
+        Quaterniond q2 = unitQuat(0.0, 0.0, 1.0, 1.0);
+        Quaterniond q3 = unitQuat(1.0, 1.0, 0.0, 1.0);
+
+        Quaterniond s0 = q0.squadControlPoint(q0, q1, new Quaterniond());
+        Quaterniond s1 = q1.squadControlPoint(q0, q2, new Quaterniond());
+        Quaterniond s1b = q1.squadControlPoint(q0, q2, new Quaterniond());
+        Quaterniond s2 = q2.squadControlPoint(q1, q3, new Quaterniond());
+
+        double h = 1E-3;
+        Quaterniond fwdA = q0.squad(q1, s0, s1, 1.0 - h, new Quaterniond());
+        Quaterniond fwdB = q0.squad(q1, s0, s1, 1.0, new Quaterniond());
+        Quaterniond bwdA = q1.squad(q2, s1b, s2, 0.0, new Quaterniond());
+        Quaterniond bwdB = q1.squad(q2, s1b, s2, h, new Quaterniond());
+
+        double dxRight = (fwdB.x - fwdA.x) / h;
+        double dyRight = (fwdB.y - fwdA.y) / h;
+        double dzRight = (fwdB.z - fwdA.z) / h;
+        double dwRight = (fwdB.w - fwdA.w) / h;
+        double dxLeft = (bwdB.x - bwdA.x) / h;
+        double dyLeft = (bwdB.y - bwdA.y) / h;
+        double dzLeft = (bwdB.z - bwdA.z) / h;
+        double dwLeft = (bwdB.w - bwdA.w) / h;
+
+        assertEquals(dxRight, dxLeft, 1E-2);
+        assertEquals(dyRight, dyLeft, 1E-2);
+        assertEquals(dzRight, dzLeft, 1E-2);
+        assertEquals(dwRight, dwLeft, 1E-2);
+    }
+
+    @Test
+    void logNearlyIdentityQuaternionNoNanOrInf() {
+        Quaterniond nearIdentity = new Quaterniond(1E-12, 0.0, 0.0, 1.0).normalize();
+        Quaterniond result = nearIdentity.log(new Quaterniond());
+        assertFalse(Double.isNaN(result.x) || Double.isNaN(result.y) || Double.isNaN(result.z) || Double.isNaN(result.w));
+        assertFalse(Double.isInfinite(result.x) || Double.isInfinite(result.y) || Double.isInfinite(result.z) || Double.isInfinite(result.w));
+    }
+
+    @Test
+    void squadControlPointNearlyOppositeNeighborsNoNanOrInf() {
+        Quaterniond curr = unitQuat(0.0, 0.0, 0.0, 1.0);
+        Quaterniond prev = unitQuat(0.0, 1E-9, 0.0, -1.0);
+        Quaterniond next = unitQuat(1E-9, 0.0, 0.0, -1.0);
+        Quaterniond result = curr.squadControlPoint(prev, next, new Quaterniond());
+        assertFalse(Double.isNaN(result.x) || Double.isNaN(result.y) || Double.isNaN(result.z) || Double.isNaN(result.w));
+        assertFalse(Double.isInfinite(result.x) || Double.isInfinite(result.y) || Double.isInfinite(result.z) || Double.isInfinite(result.w));
+    }
+
+    @Test
+    void logStrictModeThrowsOnNonUnitInput() {
+        MathMode prev = KernelConfig.mathMode();
+        try {
+            KernelConfig.setMathMode(MathMode.STRICT);
+            Quaterniond nonUnit = new Quaterniond(1.0, 1.0, 1.0, 1.0);
+            assertThrows(IllegalArgumentException.class, () -> nonUnit.log(new Quaterniond()));
+        } finally {
+            KernelConfig.setMathMode(prev);
+        }
+    }
+
+    @Test
+    void expStrictModeThrowsOnNonPureInput() {
+        MathMode prev = KernelConfig.mathMode();
+        try {
+            KernelConfig.setMathMode(MathMode.STRICT);
+            Quaterniond nonPure = new Quaterniond(1.0, 0.0, 0.0, 1.0);
+            assertThrows(IllegalArgumentException.class, () -> nonPure.exp(new Quaterniond()));
+        } finally {
+            KernelConfig.setMathMode(prev);
+        }
     }
 
     @Test

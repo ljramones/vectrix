@@ -116,4 +116,21 @@ public class Transformf {
         rotation.nlerp(target.rotation, alpha, dest.rotation);
         return dest;
     }
+
+    /**
+     * Higher quality TRS interpolation using SLERP for rotation.
+     */
+    public Transformf interpolate(Transformf target, float alpha, Transformf dest) {
+        float invAlpha = 1.0f - alpha;
+        dest.translation.set(
+                translation.x * invAlpha + target.translation.x * alpha,
+                translation.y * invAlpha + target.translation.y * alpha,
+                translation.z * invAlpha + target.translation.z * alpha);
+        dest.scale.set(
+                scale.x * invAlpha + target.scale.x * alpha,
+                scale.y * invAlpha + target.scale.y * alpha,
+                scale.z * invAlpha + target.scale.z * alpha);
+        rotation.slerp(target.rotation, alpha, dest.rotation);
+        return dest;
+    }
 }

@@ -1688,6 +1688,86 @@ public interface Quaternionfc {
     Quaternionf slerp(Quaternionfc target, float alpha, Quaternionf dest);
 
     /**
+     * Compute the logarithm of this unit quaternion and store the result in <code>dest</code>.
+     * <p>
+     * The result is a pure quaternion with <code>w = 0</code>.
+     *
+     * @param dest
+     *          will hold the result
+     * @return dest
+     */
+    Quaternionf log(Quaternionf dest);
+
+    /**
+     * Compute the exponential of this pure quaternion and store the result in <code>dest</code>.
+     * <p>
+     * The result is a unit quaternion.
+     *
+     * @param dest
+     *          will hold the result
+     * @return dest
+     */
+    Quaternionf exp(Quaternionf dest);
+
+    /**
+     * Compute the SQUAD inner control point for this quaternion and store the result in <code>dest</code>.
+     *
+     * @param prev
+     *          the previous quaternion
+     * @param next
+     *          the next quaternion
+     * @param dest
+     *          will hold the result
+     * @return dest
+     */
+    Quaternionf squadControlPoint(Quaternionfc prev, Quaternionfc next, Quaternionf dest);
+
+    /**
+     * Compute the SQUAD interpolation between this quaternion and <code>q1</code>, and store the result in <code>dest</code>.
+     *
+     * @param q1
+     *          the end quaternion
+     * @param s0
+     *          the control point at this quaternion
+     * @param s1
+     *          the control point at <code>q1</code>
+     * @param t
+     *          interpolation factor in <code>[0..1]</code>
+     * @param dest
+     *          will hold the result
+     * @return dest
+     */
+    Quaternionf squad(Quaternionfc q1, Quaternionfc s0, Quaternionfc s1, float t, Quaternionf dest);
+
+    /**
+     * Decompose this unit quaternion into swing and twist relative to the given twist axis.
+     * <p>
+     * The result satisfies: <code>this = swing * twist</code>.
+     *
+     * @param twistAxis
+     *          the twist axis
+     * @param swing
+     *          will hold the swing component
+     * @param twist
+     *          will hold the twist component
+     * @return swing
+     */
+    Quaternionf swingTwist(Vector3fc twistAxis, Quaternionf swing, Quaternionf twist);
+
+    /**
+     * Compute angular velocity that rotates this quaternion to <code>next</code> over <code>dt</code> seconds.
+     *
+     * @param next
+     *          target orientation
+     * @param dt
+     *          time step in seconds
+     * @param dest
+     *          will hold angular velocity in radians/second
+     * @return dest
+     */
+    Vector3f angularVelocity(Quaternionfc next, float dt, Vector3f dest);
+
+    /**
      * Apply scaling to this quaternion, which results in any vector transformed by the quaternion to change
      * its length by the given <code>factor</code>, and store the result in <code>dest</code>.
      * 

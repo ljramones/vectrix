@@ -23,7 +23,9 @@
  */
 package org.vectrix.experimental;
 
+import org.vectrix.core.CoreConfig;
 import org.vectrix.core.Internal;
+import org.vectrix.core.MathMode;
 
 /**
  * Global runtime configuration for kernel dispatch.
@@ -33,21 +35,24 @@ public final class KernelConfig {
     public static final String PROP_MATH_MODE = "vectrix.math.mode";
     public static final String PROP_SIMD_ENABLED = "vectrix.simd.enabled";
 
-    private static volatile MathMode mathMode = parseMathMode(System.getProperty(PROP_MATH_MODE));
     private static volatile boolean simdEnabled = parseBoolean(System.getProperty(PROP_SIMD_ENABLED), true);
+
+    static {
+        CoreConfig.setMathMode(parseMathMode(System.getProperty(PROP_MATH_MODE)));
+    }
 
     private KernelConfig() {
     }
 
     public static MathMode mathMode() {
-        return mathMode;
+        return CoreConfig.mathMode();
     }
 
     public static void setMathMode(MathMode mode) {
         if (mode == null) {
             throw new IllegalArgumentException("mode");
         }
-        mathMode = mode;
+        CoreConfig.setMathMode(mode);
     }
 
     public static boolean simdEnabled() {
@@ -62,7 +67,7 @@ public final class KernelConfig {
      * Reload config values from system properties.
      */
     public static void resetFromProperties() {
-        mathMode = parseMathMode(System.getProperty(PROP_MATH_MODE));
+        CoreConfig.setMathMode(parseMathMode(System.getProperty(PROP_MATH_MODE)));
         simdEnabled = parseBoolean(System.getProperty(PROP_SIMD_ENABLED), true);
     }
 

@@ -21,18 +21,41 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.vectrix.experimental;
+package org.vectrix.optics;
 
 /**
- * Execution mode for math kernels.
+ * Refractive-index utility helpers (single-precision).
  */
-public enum MathMode {
+public final class Iorf {
+    private Iorf() {
+    }
+
+    public static float etaRatio(float etaI, float etaT) {
+        if (etaI <= 0.0f || etaT <= 0.0f) {
+            throw new IllegalArgumentException("eta");
+        }
+        return etaI / etaT;
+    }
+
     /**
-     * Prioritize throughput; may use relaxed numerics in specialized kernels.
+     * Schlick F0 from incident and transmitted IORs.
      */
-    FAST,
+    public static float schlickF0(float etaI, float etaT) {
+        if (etaI <= 0.0f || etaT <= 0.0f) {
+            throw new IllegalArgumentException("eta");
+        }
+        float r = (etaI - etaT) / (etaI + etaT);
+        return r * r;
+    }
+
     /**
-     * Prioritize deterministic/reproducible numerics.
+     * Schlick F0 from eta ratio (etaI/etaT).
      */
-    STRICT
+    public static float schlickF0FromEtaRatio(float etaRatio) {
+        if (etaRatio <= 0.0f) {
+            throw new IllegalArgumentException("etaRatio");
+        }
+        float r = (etaRatio - 1.0f) / (etaRatio + 1.0f);
+        return r * r;
+    }
 }

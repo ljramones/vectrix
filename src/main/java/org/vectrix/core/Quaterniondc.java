@@ -1423,6 +1423,86 @@ public interface Quaterniondc {
     Quaterniond slerp(Quaterniondc target, double alpha, Quaterniond dest);
 
     /**
+     * Compute the logarithm of this unit quaternion and store the result in <code>dest</code>.
+     * <p>
+     * The result is a pure quaternion with <code>w = 0</code>.
+     *
+     * @param dest
+     *          will hold the result
+     * @return dest
+     */
+    Quaterniond log(Quaterniond dest);
+
+    /**
+     * Compute the exponential of this pure quaternion and store the result in <code>dest</code>.
+     * <p>
+     * The result is a unit quaternion.
+     *
+     * @param dest
+     *          will hold the result
+     * @return dest
+     */
+    Quaterniond exp(Quaterniond dest);
+
+    /**
+     * Compute the SQUAD inner control point for this quaternion and store the result in <code>dest</code>.
+     *
+     * @param prev
+     *          the previous quaternion
+     * @param next
+     *          the next quaternion
+     * @param dest
+     *          will hold the result
+     * @return dest
+     */
+    Quaterniond squadControlPoint(Quaterniondc prev, Quaterniondc next, Quaterniond dest);
+
+    /**
+     * Compute the SQUAD interpolation between this quaternion and <code>q1</code>, and store the result in <code>dest</code>.
+     *
+     * @param q1
+     *          the end quaternion
+     * @param s0
+     *          the control point at this quaternion
+     * @param s1
+     *          the control point at <code>q1</code>
+     * @param t
+     *          interpolation factor in <code>[0..1]</code>
+     * @param dest
+     *          will hold the result
+     * @return dest
+     */
+    Quaterniond squad(Quaterniondc q1, Quaterniondc s0, Quaterniondc s1, double t, Quaterniond dest);
+
+    /**
+     * Decompose this unit quaternion into swing and twist relative to the given twist axis.
+     * <p>
+     * The result satisfies: <code>this = swing * twist</code>.
+     *
+     * @param twistAxis
+     *          the twist axis
+     * @param swing
+     *          will hold the swing component
+     * @param twist
+     *          will hold the twist component
+     * @return swing
+     */
+    Quaterniond swingTwist(Vector3dc twistAxis, Quaterniond swing, Quaterniond twist);
+
+    /**
+     * Compute angular velocity that rotates this quaternion to <code>next</code> over <code>dt</code> seconds.
+     *
+     * @param next
+     *          target orientation
+     * @param dt
+     *          time step in seconds
+     * @param dest
+     *          will hold angular velocity in radians/second
+     * @return dest
+     */
+    Vector3d angularVelocity(Quaterniondc next, double dt, Vector3d dest);
+
+    /**
      * Apply scaling to this quaternion, which results in any vector transformed by the quaternion to change
      * its length by the given <code>factor</code>, and store the result in <code>dest</code>.
      * 

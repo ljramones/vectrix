@@ -103,6 +103,45 @@ class SkinningKernelsTest {
     }
 
     @Test
+    void dualQuatBlendIsAntipodalityInvariant() {
+        RigidTransformf a = new RigidTransformf(
+                new Vector3f(0.1f, -0.3f, 0.7f),
+                new Quaternionf().rotateXYZ(0.25f, -0.4f, 0.15f));
+        RigidTransformf b = new RigidTransformf(
+                new Vector3f(-0.8f, 0.5f, -0.2f),
+                new Quaternionf().rotateXYZ(-0.55f, 0.2f, 0.45f));
+
+        DualQuatTransformf dqa = new DualQuatTransformf().setFromRigid(a);
+        DualQuatTransformf dqb = new DualQuatTransformf().setFromRigid(b);
+        DualQuatTransformf dqbNeg = new DualQuatTransformf().set(dqb);
+        dqbNeg.real.mul(-1.0f);
+        dqbNeg.dual.mul(-1.0f);
+
+        DualQuatSoA base = new DualQuatSoA(2);
+        base.set(0, dqa);
+        base.set(1, dqb);
+        DualQuatSoA flipped = new DualQuatSoA(2);
+        flipped.set(0, dqa);
+        flipped.set(1, dqbNeg);
+
+        int[] ji = {0, 1, 0, 0};
+        float[] jw = {0.5f, 0.5f, 0.0f, 0.0f};
+        float[] inX = {0.35f};
+        float[] inY = {-0.2f};
+        float[] inZ = {0.9f};
+
+        float[] outBaseX = {0.0f}, outBaseY = {0.0f}, outBaseZ = {0.0f};
+        float[] outFlipX = {0.0f}, outFlipY = {0.0f}, outFlipZ = {0.0f};
+
+        SkinningKernels.skinDualQuat4(base, ji, jw, inX, inY, inZ, outBaseX, outBaseY, outBaseZ, 1);
+        SkinningKernels.skinDualQuat4(flipped, ji, jw, inX, inY, inZ, outFlipX, outFlipY, outFlipZ, 1);
+
+        assertEquals(outBaseX[0], outFlipX[0], 1E-6f);
+        assertEquals(outBaseY[0], outFlipY[0], 1E-6f);
+        assertEquals(outBaseZ[0], outFlipZ[0], 1E-6f);
+    }
+
+    @Test
     void lbsSoAScalarAndSimdForcedMatch() {
         Fixture f = Fixture.create(129, 991);
         float[] sx = new float[f.vertices];
