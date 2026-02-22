@@ -122,6 +122,39 @@ Representative new benchmark families (AverageTime, ns/op):
 - `LowDiscrepancyBenchmark.sobolScrambledBatch2DLoop(count=4096)` = `67525.768`
 - `SkinningKernelBenchmark.skinDualQuat4(vertices=4096)` = `45042.917`
 
+Normalized per-op costs from `target/benchmarks/jmh-20260222-153429.csv`
+(`ns/call = ns/op ÷ N`):
+
+| Benchmark | N=256 | N=4096 | N=16384 |
+|---|---:|---:|---:|
+| `bezierEvaluateLoop` | 1.837 | 1.835 | 1.841 |
+| `mapArcLengthLoop` | 4.392 | 4.054 | 3.735 |
+| `fresnelDielectricLoop` | 1.791 | 1.767 | 1.767 |
+| `thinFilmRgbLoop` | 16.747 | 23.986 | 24.570 |
+| `evaluateL3` | 9.299 | 9.448 | 9.376 |
+| `projectL3` | 13.431 | 12.959 | 11.724 |
+| `swingTwistLoop` | 6.584 | 6.565 | 6.692 |
+| `angularVelocityLoop` | 9.529 | 9.739 | 9.618 |
+| `integrateAngularVelocityLoop` | 4.892 | 4.646 | 4.349 |
+| `projectSampleZeroAllocLoop` | 7.666 | 7.649 | 7.780 |
+| `evaluateIrradianceZeroAllocLoop` | 4.575 | 4.564 | 4.569 |
+| `ltcTableSampleLoop` | 8.597 | 9.710 | 9.786 |
+| `ltcFormFactorRectClippedLoop` | 46.199 | 45.706 | 46.174 |
+| `sobolScrambledLoop` | 6.095 | 14.333 | 35.635 |
+| `sobolScrambledBatch2DLoop` | 6.666 | 16.486 | 35.610 |
+| `skinLbs4` | 9.803 | 9.798 | 9.773 |
+| `skinDualQuat4` | 10.986 | 10.997 | 10.968 |
+| `skinLbs4SoAAuto` | 9.925 | 9.803 | 9.822 |
+| `skinLbs4SoAScalarForced` | 9.819 | 9.818 | 9.844 |
+| `skinLbs4SoASimdForced` | 10.008 | 10.024 | 10.012 |
+
+FFT benchmarks use `complexCount` (1024 mid-point):
+
+| Benchmark | N=256 | N=1024 | N=4096 |
+|---|---:|---:|---:|
+| `circularConvolution` | 20.171 | 24.369 | 29.212 |
+| `forwardInverse` | 13.160 | 15.917 | 19.238 |
+
 ## Notes
 - Baselines should be compared only across matching hardware/JVM settings.
 - Use longer runs and isolated machine conditions for release-grade publication.
