@@ -1696,6 +1696,15 @@ public interface Quaternionfc {
      *          will hold the result
      * @return dest
      */
+    /**
+     * Compute the quaternion logarithm of this unit quaternion.
+     * <p>
+     * Input must be unit-length. Output is a pure quaternion ({@code w=0}) in tangent space.
+     *
+     * @param dest will receive the logarithm result
+     * @return dest
+     * @since 1.0.0
+     */
     Quaternionf log(Quaternionf dest);
 
     /**
@@ -1706,6 +1715,15 @@ public interface Quaternionfc {
      * @param dest
      *          will hold the result
      * @return dest
+     */
+    /**
+     * Compute the quaternion exponential of this pure quaternion.
+     * <p>
+     * Input is expected to be pure ({@code w=0}). Output is unit-length.
+     *
+     * @param dest will receive the exponential result
+     * @return dest
+     * @since 1.0.0
      */
     Quaternionf exp(Quaternionf dest);
 
@@ -1719,6 +1737,16 @@ public interface Quaternionfc {
      * @param dest
      *          will hold the result
      * @return dest
+     */
+    /**
+     * Compute the inner SQUAD control point for this key quaternion {@code q_i} using neighbors
+     * {@code q_{i-1}} and {@code q_{i+1}}.
+     *
+     * @param prev previous key quaternion ({@code q_{i-1}})
+     * @param next next key quaternion ({@code q_{i+1}})
+     * @param dest will receive the control point
+     * @return dest
+     * @since 1.0.0
      */
     Quaternionf squadControlPoint(Quaternionfc prev, Quaternionfc next, Quaternionf dest);
 
@@ -1736,6 +1764,18 @@ public interface Quaternionfc {
      * @param dest
      *          will hold the result
      * @return dest
+     */
+    /**
+     * Evaluate SQUAD interpolation from this start quaternion {@code q0} to {@code q1}
+     * using control points {@code s0} and {@code s1}.
+     *
+     * @param q1 end quaternion
+     * @param s0 control quaternion at start
+     * @param s1 control quaternion at end
+     * @param t interpolation parameter in [0,1]
+     * @param dest will receive the interpolated quaternion
+     * @return dest
+     * @since 1.0.0
      */
     Quaternionf squad(Quaternionfc q1, Quaternionfc s0, Quaternionfc s1, float t, Quaternionf dest);
 

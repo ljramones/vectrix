@@ -1790,6 +1790,16 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
         return log(this);
     }
 
+    /**
+     * Compute the quaternion logarithm of this unit quaternion.
+     * <p>
+     * In {@link MathMode#STRICT}, non-unit inputs throw {@link IllegalArgumentException}.
+     * In {@link MathMode#FAST}, caller is responsible for unit inputs.
+     *
+     * @param dest receives the pure-quaternion tangent-space result ({@code w=0})
+     * @return dest
+     * @since 1.0.0
+     */
     public Quaterniond log(Quaterniond dest) {
         if (CoreConfig.mathMode() == MathMode.STRICT && Math.abs(lengthSquared() - 1.0) > STRICT_TOLERANCE) {
             throw new IllegalArgumentException("Quaternion logarithm requires unit input");
@@ -1821,6 +1831,15 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
         return exp(this);
     }
 
+    /**
+     * Compute the quaternion exponential of this pure quaternion.
+     * <p>
+     * In {@link MathMode#STRICT}, non-pure inputs throw {@link IllegalArgumentException}.
+     *
+     * @param dest receives the unit-quaternion result
+     * @return dest
+     * @since 1.0.0
+     */
     public Quaterniond exp(Quaterniond dest) {
         if (CoreConfig.mathMode() == MathMode.STRICT && Math.abs(w) > STRICT_TOLERANCE) {
             throw new IllegalArgumentException("Quaternion exponential requires pure input");
@@ -1842,6 +1861,17 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
         return dest;
     }
 
+    /**
+     * Compute the inner SQUAD control point for this key quaternion {@code q_i}
+     * given neighbors {@code q_{i-1}} and {@code q_{i+1}}.
+     * Neighbor hemisphere correction is applied internally.
+     *
+     * @param prev previous key quaternion
+     * @param next next key quaternion
+     * @param dest receives the computed control point
+     * @return dest
+     * @since 1.0.0
+     */
     public Quaterniond squadControlPoint(Quaterniondc prev, Quaterniondc next, Quaterniond dest) {
         double prevX = prev.x(), prevY = prev.y(), prevZ = prev.z(), prevW = prev.w();
         if (Math.fma(x, prevX, Math.fma(y, prevY, Math.fma(z, prevZ, w * prevW))) < 0.0) {
@@ -1871,6 +1901,17 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
         return mul(expTangent, dest).normalize();
     }
 
+    /**
+     * Evaluate spherical quadrangle interpolation from this start quaternion to {@code q1}.
+     *
+     * @param q1 end quaternion
+     * @param s0 control point at start
+     * @param s1 control point at end
+     * @param t interpolation parameter in [0,1]
+     * @param dest receives the interpolated quaternion
+     * @return dest
+     * @since 1.0.0
+     */
     public Quaterniond squad(Quaterniondc q1, Quaterniondc s0, Quaterniondc s1, double t, Quaterniond dest) {
         Quaterniond endpointBlend = slerp(q1, t, new Quaterniond());
         Quaterniond controlBlend = new Quaterniond(s0).slerp(s1, t, new Quaterniond());

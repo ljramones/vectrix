@@ -28,6 +28,10 @@ import org.vectrix.core.Vector3fc;
 
 /**
  * LTC evaluation helpers for area-light form factors.
+ * <p>
+ * Inputs are expected in the local LTC shading frame (typically normal-aligned space).
+ * Polygon and rectangle form-factor routines expect unit direction vectors from shading
+ * point to light-shape vertices.
  */
 public final class LtcEvalf {
     private static final float INV_TWO_PI = (float) (1.0 / (2.0 * java.lang.Math.PI));
@@ -70,10 +74,23 @@ public final class LtcEvalf {
         return clamp01(sum.z * INV_TWO_PI);
     }
 
+    /**
+     * Rectangle form factor with horizon clipping applied to vertex directions before integration.
+     *
+     * @since 1.0.0
+     */
     public static float formFactorRectClipped(Vector3fc v0, Vector3fc v1, Vector3fc v2, Vector3fc v3) {
         return formFactorPolygonClipped(new Vector3fc[] {v0, v1, v2, v3}, 4);
     }
 
+    /**
+     * Polygon form factor with simple horizon clipping in local space.
+     *
+     * @param vertices unit or near-unit direction vectors to polygon vertices
+     * @param count number of vertices to integrate (>=3)
+     * @return clipped form factor in [0,1]
+     * @since 1.0.0
+     */
     public static float formFactorPolygonClipped(Vector3fc[] vertices, int count) {
         if (vertices == null || count < 3 || count > vertices.length) {
             throw new IllegalArgumentException("vertices/count");

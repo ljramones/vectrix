@@ -31,9 +31,24 @@ import org.vectrix.curve.vec3.CatmullRom3f;
 import org.vectrix.curve.vec3.Hermite3f;
 import org.vectrix.curve.vec3.UniformBSpline3f;
 
+/**
+ * Arc-length table builders and lookup helpers for vec3 curve segments.
+ * <p>
+ * Typical usage:
+ * <ol>
+ *   <li>Build a normalized cumulative arc-length table with fixed sample count.</li>
+ *   <li>Map desired normalized arc length {@code s in [0,1]} to parametric {@code t}.</li>
+ *   <li>Evaluate the original curve at mapped {@code t}.</li>
+ * </ol>
+ */
 public final class CurveReparameterizer3f {
     private CurveReparameterizer3f() {}
 
+    /**
+     * Build a normalized cumulative arc-length table for one cubic Bezier segment.
+     *
+     * @since 1.0.0
+     */
     public static float[] buildArcLengthTableForBezier(Vector3fc p0, Vector3fc p1, Vector3fc p2, Vector3fc p3, int samples, float[] dest) {
         checkSamples(samples);
         if (dest.length < samples + 1) throw new IllegalArgumentException("dest");
@@ -68,6 +83,11 @@ public final class CurveReparameterizer3f {
         return dest;
     }
 
+    /**
+     * Build a normalized cumulative arc-length table for one cubic Hermite segment.
+     *
+     * @since 1.0.0
+     */
     public static float[] buildArcLengthTableForHermite(Vector3fc p0, Vector3fc m0, Vector3fc p1, Vector3fc m1, int samples, float[] dest) {
         checkSamples(samples);
         if (dest.length < samples + 1) throw new IllegalArgumentException("dest");
@@ -85,6 +105,11 @@ public final class CurveReparameterizer3f {
         return dest;
     }
 
+    /**
+     * Build a normalized cumulative arc-length table for one Catmull-Rom segment.
+     *
+     * @since 1.0.0
+     */
     public static float[] buildArcLengthTableForCatmullRom(Vector3fc p0, Vector3fc p1, Vector3fc p2, Vector3fc p3, float tension,
         int samples, float[] dest) {
         checkSamples(samples);
@@ -103,6 +128,11 @@ public final class CurveReparameterizer3f {
         return dest;
     }
 
+    /**
+     * Map normalized arc length to parametric curve value via table lookup and linear interpolation.
+     *
+     * @since 1.0.0
+     */
     public static float mapArcLengthToT(float s01, float[] arcLengthTable) {
         if (s01 <= 0.0f) return 0.0f;
         if (s01 >= 1.0f) return 1.0f;

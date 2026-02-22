@@ -26,6 +26,12 @@ package org.vectrix.sh;
 import org.vectrix.core.Vector3dc;
 import org.vectrix.core.Vector3fc;
 
+/**
+ * Projection of directional RGB radiance samples into real SH coefficients.
+ * <p>
+ * Uses the Y-up basis ordering defined by {@link ShBasis}. Callers should provide
+ * unit directions and solid-angle weights (for example from environment sampling).
+ */
 public final class ShProjection {
     private ShProjection() {
     }
@@ -84,6 +90,20 @@ public final class ShProjection {
         projectSampleL3(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, new float[16], dest);
     }
 
+    /**
+     * Zero-allocation hot path for projecting one RGB sample into L3 SH coefficients.
+     *
+     * @param dirX direction x
+     * @param dirY direction y
+     * @param dirZ direction z
+     * @param r red radiance
+     * @param g green radiance
+     * @param b blue radiance
+     * @param solidAngle sample solid-angle weight
+     * @param scratchBasis caller-provided basis scratch array of length at least 16
+     * @param dest destination coefficients
+     * @since 1.0.0
+     */
     public static void projectSampleL3(float dirX, float dirY, float dirZ, float r, float g, float b, float solidAngle,
         float[] scratchBasis, ShCoeffs16f dest) {
         if (scratchBasis.length < 16) {
@@ -106,6 +126,20 @@ public final class ShProjection {
         projectSampleL3(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, new double[16], dest);
     }
 
+    /**
+     * Zero-allocation hot path for projecting one RGB sample into L3 SH coefficients.
+     *
+     * @param dirX direction x
+     * @param dirY direction y
+     * @param dirZ direction z
+     * @param r red radiance
+     * @param g green radiance
+     * @param b blue radiance
+     * @param solidAngle sample solid-angle weight
+     * @param scratchBasis caller-provided basis scratch array of length at least 16
+     * @param dest destination coefficients
+     * @since 1.0.0
+     */
     public static void projectSampleL3(double dirX, double dirY, double dirZ, double r, double g, double b, double solidAngle,
         double[] scratchBasis, ShCoeffs16d dest) {
         if (scratchBasis.length < 16) {

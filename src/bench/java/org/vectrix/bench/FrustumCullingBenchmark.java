@@ -36,7 +36,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.vectrix.core.Matrix4f;
 import org.vectrix.experimental.KernelConfig;
-import org.vectrix.experimental.MathMode;
+import org.vectrix.core.MathMode;
 import org.vectrix.geometry.CullingKernels;
 import org.vectrix.geometry.FrustumIntersection;
 import org.vectrix.geometry.FrustumPlanes;
