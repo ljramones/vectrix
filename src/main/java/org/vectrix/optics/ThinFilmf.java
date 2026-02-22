@@ -43,10 +43,32 @@ public final class ThinFilmf {
      * @param cosThetaI cosine of incident angle in [0,1]
      */
     public static Vector3f reflectanceRgb(float etaI, float etaFilm, float etaSub, float thicknessNm, float cosThetaI, Vector3f dest) {
-        return dest.set(
-            reflectance(etaI, etaFilm, etaSub, thicknessNm, cosThetaI, SpectralRGBf.LAMBDA_R_NM),
-            reflectance(etaI, etaFilm, etaSub, thicknessNm, cosThetaI, SpectralRGBf.LAMBDA_G_NM),
-            reflectance(etaI, etaFilm, etaSub, thicknessNm, cosThetaI, SpectralRGBf.LAMBDA_B_NM));
+        if (etaI <= 0.0f || etaFilm <= 0.0f || etaSub <= 0.0f || thicknessNm < 0.0f) {
+            throw new IllegalArgumentException("params");
+        }
+        float c0 = Fresnelf.clamp01(cosThetaI);
+
+        float etaIOverFilm = etaI / etaFilm;
+        float sin2Theta1 = etaIOverFilm * etaIOverFilm * (1.0f - c0 * c0);
+        if (sin2Theta1 >= 1.0f) {
+            return dest.set(1.0f, 1.0f, 1.0f);
+        }
+        float c1 = (float) java.lang.Math.sqrt(1.0f - sin2Theta1);
+
+        float etaFilmOverSub = etaFilm / etaSub;
+        float sin2Theta2 = etaFilmOverSub * etaFilmOverSub * (1.0f - c1 * c1);
+        float c2 = sin2Theta2 >= 1.0f ? 0.0f : (float) java.lang.Math.sqrt(1.0f - sin2Theta2);
+
+        float r01s = Fresnelf.amplitudeS(c0, etaI, etaFilm, c1);
+        float r12s = Fresnelf.amplitudeS(c1, etaFilm, etaSub, c2);
+        float r01p = Fresnelf.amplitudeP(c0, etaI, etaFilm, c1);
+        float r12p = Fresnelf.amplitudeP(c1, etaFilm, etaSub, c2);
+
+        float phaseScale = (float) (4.0 * java.lang.Math.PI * etaFilm * thicknessNm * c1);
+        float r = channelReflectance(phaseScale, SpectralRGBf.LAMBDA_R_NM, r01s, r12s, r01p, r12p);
+        float g = channelReflectance(phaseScale, SpectralRGBf.LAMBDA_G_NM, r01s, r12s, r01p, r12p);
+        float b = channelReflectance(phaseScale, SpectralRGBf.LAMBDA_B_NM, r01s, r12s, r01p, r12p);
+        return dest.set(r, g, b);
     }
 
     /**
@@ -85,5 +107,12 @@ public final class ThinFilmf {
         float num = r01 * r01 + r12 * r12 + 2.0f * r01r12 * cosDelta;
         float den = 1.0f + r01r12 * r01r12 + 2.0f * r01r12 * cosDelta;
         return num / den;
+    }
+
+    private static float channelReflectance(float phaseScale, float wavelengthNm, float r01s, float r12s, float r01p, float r12p) {
+        float cd = (float) java.lang.Math.cos(phaseScale / wavelengthNm);
+        float rs = combineAmplitude(r01s, r12s, cd);
+        float rp = combineAmplitude(r01p, r12p, cd);
+        return 0.5f * (rs + rp);
     }
 }

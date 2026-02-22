@@ -43,10 +43,32 @@ public final class ThinFilmd {
      * @param cosThetaI cosine of incident angle in [0,1]
      */
     public static Vector3d reflectanceRgb(double etaI, double etaFilm, double etaSub, double thicknessNm, double cosThetaI, Vector3d dest) {
-        return dest.set(
-            reflectance(etaI, etaFilm, etaSub, thicknessNm, cosThetaI, SpectralRGBd.LAMBDA_R_NM),
-            reflectance(etaI, etaFilm, etaSub, thicknessNm, cosThetaI, SpectralRGBd.LAMBDA_G_NM),
-            reflectance(etaI, etaFilm, etaSub, thicknessNm, cosThetaI, SpectralRGBd.LAMBDA_B_NM));
+        if (etaI <= 0.0 || etaFilm <= 0.0 || etaSub <= 0.0 || thicknessNm < 0.0) {
+            throw new IllegalArgumentException("params");
+        }
+        double c0 = Fresneld.clamp01(cosThetaI);
+
+        double etaIOverFilm = etaI / etaFilm;
+        double sin2Theta1 = etaIOverFilm * etaIOverFilm * (1.0 - c0 * c0);
+        if (sin2Theta1 >= 1.0) {
+            return dest.set(1.0, 1.0, 1.0);
+        }
+        double c1 = java.lang.Math.sqrt(1.0 - sin2Theta1);
+
+        double etaFilmOverSub = etaFilm / etaSub;
+        double sin2Theta2 = etaFilmOverSub * etaFilmOverSub * (1.0 - c1 * c1);
+        double c2 = sin2Theta2 >= 1.0 ? 0.0 : java.lang.Math.sqrt(1.0 - sin2Theta2);
+
+        double r01s = Fresneld.amplitudeS(c0, etaI, etaFilm, c1);
+        double r12s = Fresneld.amplitudeS(c1, etaFilm, etaSub, c2);
+        double r01p = Fresneld.amplitudeP(c0, etaI, etaFilm, c1);
+        double r12p = Fresneld.amplitudeP(c1, etaFilm, etaSub, c2);
+
+        double phaseScale = 4.0 * java.lang.Math.PI * etaFilm * thicknessNm * c1;
+        double r = channelReflectance(phaseScale, SpectralRGBd.LAMBDA_R_NM, r01s, r12s, r01p, r12p);
+        double g = channelReflectance(phaseScale, SpectralRGBd.LAMBDA_G_NM, r01s, r12s, r01p, r12p);
+        double b = channelReflectance(phaseScale, SpectralRGBd.LAMBDA_B_NM, r01s, r12s, r01p, r12p);
+        return dest.set(r, g, b);
     }
 
     /**
@@ -85,5 +107,12 @@ public final class ThinFilmd {
         double num = r01 * r01 + r12 * r12 + 2.0 * r01r12 * cosDelta;
         double den = 1.0 + r01r12 * r01r12 + 2.0 * r01r12 * cosDelta;
         return num / den;
+    }
+
+    private static double channelReflectance(double phaseScale, double wavelengthNm, double r01s, double r12s, double r01p, double r12p) {
+        double cd = java.lang.Math.cos(phaseScale / wavelengthNm);
+        double rs = combineAmplitude(r01s, r12s, cd);
+        double rp = combineAmplitude(r01p, r12p, cd);
+        return 0.5 * (rs + rp);
     }
 }

@@ -27,6 +27,11 @@ This document defines the benchmark methodology and records current baseline res
   - spherical harmonics (`ShBenchmark`)
   - FFT/convolution (`FftBenchmark`)
   - optics (`OpticsBenchmark`)
+  - quaternion rotation hot paths (`QuaternionRotationBenchmark`)
+  - SH zero-allocation paths (`ShHotPathBenchmark`)
+  - LTC table/evaluation (`LtcBenchmark`)
+  - low-discrepancy scrambled Sobol (`LowDiscrepancyBenchmark`)
+  - SoA skinning parity (`SkinningKernelBenchmark`)
 
 ## Current Baseline
 Baseline capture profile used:
@@ -87,9 +92,35 @@ Normalized per-call costs (`ns/op-per-call = ns/op ÷ count`):
 | `projectL3` | 13.436 | 12.968 | 11.794 |
 
 Interpretation notes:
-- `thinFilmRgbLoop` shows a clear size-dependent rise in per-call cost (17.672 -> 26.461 ns/call), which is the main scaling outlier and worth profiling before broader publication.
+- `thinFilmRgbLoop` shows a size-dependent rise in per-call cost; this was optimized by sharing interface/Fresnel terms across RGB channels.
 - FFT paths (`forwardInverse`, `circularConvolution`) also rise with problem size as expected for increasing memory/compute pressure.
 - `mapArcLengthLoop` and `projectL3` do not regress with larger counts; both trend slightly cheaper per call at scale.
+
+## Full Coverage Pass (Latest)
+Latest end-to-end capture profile:
+- `BENCH_REGEX='org.vectrix.bench.(CurveBenchmark|FftBenchmark|OpticsBenchmark|ShBenchmark|QuaternionRotationBenchmark|ShHotPathBenchmark|LtcBenchmark|LowDiscrepancyBenchmark|SkinningKernelBenchmark).*'`
+- `FORKS=1 WARMUP_ITERS=1 MEASURE_ITERS=1 THREADS=1 TIME_UNIT=ns`
+
+Result artifacts:
+- `target/benchmarks/jmh-20260222-153429.csv`
+- `target/benchmarks/jmh-20260222-153429.txt`
+
+Thin-film scaling after optimization (`thinFilmRgbLoop`):
+- `count=256`: `4287.360 ns/op` (`16.748 ns/call`)
+- `count=4096`: `98247.842 ns/op` (`23.986 ns/call`)
+- `count=16384`: `402556.168 ns/op` (`24.570 ns/call`)
+
+Representative new benchmark families (AverageTime, ns/op):
+- `QuaternionRotationBenchmark.swingTwistLoop(count=4096)` = `26891.263`
+- `QuaternionRotationBenchmark.angularVelocityLoop(count=4096)` = `39889.576`
+- `QuaternionRotationBenchmark.integrateAngularVelocityLoop(count=4096)` = `19030.103`
+- `ShHotPathBenchmark.projectSampleZeroAllocLoop(count=4096)` = `31328.699`
+- `ShHotPathBenchmark.evaluateIrradianceZeroAllocLoop(count=4096)` = `18695.931`
+- `LtcBenchmark.ltcTableSampleLoop(count=4096)` = `39771.203`
+- `LtcBenchmark.ltcFormFactorRectClippedLoop(count=4096)` = `187210.109`
+- `LowDiscrepancyBenchmark.sobolScrambledLoop(count=4096)` = `58707.729`
+- `LowDiscrepancyBenchmark.sobolScrambledBatch2DLoop(count=4096)` = `67525.768`
+- `SkinningKernelBenchmark.skinDualQuat4(vertices=4096)` = `45042.917`
 
 ## Notes
 - Baselines should be compared only across matching hardware/JVM settings.
