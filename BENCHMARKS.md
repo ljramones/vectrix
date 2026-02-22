@@ -73,6 +73,24 @@ Representative results (AverageTime, ns/op):
   - `projectL3(count=4096)` = 53115.972
   - `projectL3(count=16384)` = 193231.278
 
+Normalized per-call costs (`ns/op-per-call = ns/op ÷ count`):
+
+| Benchmark | 256 | 4096 | 16384 |
+|---|---:|---:|---:|
+| `bezierEvaluateLoop` | 1.809 | 1.820 | 1.840 |
+| `mapArcLengthLoop` | 4.468 | 4.102 | 3.734 |
+| `circularConvolution` | 20.190 | 24.435 | 29.188 |
+| `forwardInverse` | 13.096 | 15.793 | 18.971 |
+| `fresnelDielectricLoop` | 1.762 | 1.761 | 1.776 |
+| `thinFilmRgbLoop` | 17.672 | 23.401 | 26.461 |
+| `evaluateL3` | 9.300 | 9.387 | 9.401 |
+| `projectL3` | 13.436 | 12.968 | 11.794 |
+
+Interpretation notes:
+- `thinFilmRgbLoop` shows a clear size-dependent rise in per-call cost (17.672 -> 26.461 ns/call), which is the main scaling outlier and worth profiling before broader publication.
+- FFT paths (`forwardInverse`, `circularConvolution`) also rise with problem size as expected for increasing memory/compute pressure.
+- `mapArcLengthLoop` and `projectL3` do not regress with larger counts; both trend slightly cheaper per call at scale.
+
 ## Notes
 - Baselines should be compared only across matching hardware/JVM settings.
 - Use longer runs and isolated machine conditions for release-grade publication.
