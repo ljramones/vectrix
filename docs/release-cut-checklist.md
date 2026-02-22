@@ -14,9 +14,9 @@ This checklist is the canonical release process for Vectrix.
 
 ## 3. Benchmark Baseline
 - Run focused release baseline:
-  - `BENCH_REGEX='org.vectrix.bench.(CurveBenchmark|ShBenchmark|FftBenchmark|OpticsBenchmark).*' FORKS=1 WARMUP_ITERS=1 MEASURE_ITERS=1 THREADS=1 TIME_UNIT=ns ./scripts/bench-run.sh`
+  - `BENCH_REGEX='org.vectrix.bench.(CurveBenchmark|FftBenchmark|OpticsBenchmark|ShBenchmark|QuaternionRotationBenchmark|ShHotPathBenchmark|LtcBenchmark|LowDiscrepancyBenchmark|SkinningKernelBenchmark).*' FORKS=1 WARMUP_ITERS=1 MEASURE_ITERS=1 THREADS=1 TIME_UNIT=ns ./scripts/bench-run.sh`
 - Ensure artifacts exist in `target/benchmarks/` (`latest.csv`, `latest.txt`).
-- Update `BENCHMARKS.md` with date, hardware/JVM, and representative results.
+- Update `BENCHMARKS.md` with date, hardware/JVM, representative results, and normalized per-op tables.
 
 ## 4. Documentation
 - Update `CHANGELOG.md` for the release date and highlights.

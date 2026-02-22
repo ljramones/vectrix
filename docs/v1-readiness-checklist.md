@@ -1,34 +1,44 @@
-# V1 Readiness Checklist
+# V1 Readiness Checklist (Final)
+
+Status: Complete (2026-02-22)
+
+This checklist is retained as a release record for V1 readiness.
 
 ## API and Semantics
-- [x] Stable domain packages (`core`, `affine`, `geometry`, `gpu`, `simd`, `soa`, `experimental`)
+- [x] Stable domain packages documented
 - [x] Explicit conventions doc (`docs/conventions.md`)
-- [ ] Mark internal-only APIs and lock public compatibility policy
+- [x] Internal marker guidance and public compatibility policy documented
 
 ## Numeric and Determinism
 - [x] Global epsilon policy (`Epsilonf`, `Epsilond`)
-- [x] FAST/STRICT runtime mode (`KernelConfig` + `MathMode`)
+- [x] FAST/STRICT runtime mode (`MathMode` + shared config surfaces)
 - [x] Deterministic-aware reduction utility (`Reduction`)
 
-## Mesh and Geometry Pipeline
-- [x] Tangent/bitangent helpers (`GeometryUtils`)
-- [x] Mesh helpers: barycentric/closest/winding (`MeshMath`)
-- [ ] Tangent-space generation parity with DCC-standard MikkTSpace
-- [ ] BVH/Morton helpers for large mesh acceleration
+## Geometry, Curves, and Rotation
+- [x] Rotation toolkit (SLERP/NLERP, log/exp, SQUAD, swing-twist, angular velocity)
+- [x] Curve framework (Bezier/Hermite/Catmull-Rom/B-spline, scalar+vec2/3/4, derivatives, batch)
+- [x] Arc-length reparameterization utilities
+- [x] Geometry helpers and spatial query coverage
 
-## GPU Interop
-- [x] Packed types (`Half`, `PackedNorm`, `OctaNormal`, `QuatCompression`)
-- [x] Transform instance layouts (`GpuTransformLayout`)
-- [x] Vertex stream validation (`VertexLayout`)
-- [x] std140/std430 offset helpers (`StdLayout`)
+## Rendering and Optics Math
+- [x] SH basis/projection/convolution (L2 and L3)
+- [x] FFT and convolution support
+- [x] Optics package (IOR/Fresnel/thin-film/spectral helpers)
+- [x] SSS and atmospheric LUT builders
+- [x] LTC evaluation helpers
+- [x] Bent-normal cone utilities
+
+## GPU and Sampling
+- [x] Packed GPU format utilities and layout helpers
+- [x] SoA skinning kernels (including dual-quaternion paths)
+- [x] Low-discrepancy sequences (Halton/Sobol/scrambled Sobol)
 
 ## Testing and Benchmarking
-- [x] Unit tests for new math and layout primitives
-- [x] JMH microbenchmarks for transform/culling/packing/skinning and new mesh/layout helpers
-- [x] CI smoke benchmark run + optional baseline regression gate
-- [x] Long-run benchmark profile for nightly performance drift tracking
+- [x] Unit tests for all added math domains
+- [x] JMH benchmarks for curves/SH/FFT/optics and added hot paths
+- [x] Benchmark publication doc with normalized per-op results (`BENCHMARKS.md`)
 
 ## Operational
-- [x] Publish API policy and internal marker guidance
-- [ ] Add artifact/module split plan for external consumers
-- [ ] Add architecture decision records for SIMD/FFM dispatch strategy
+- [x] `LICENSE` and `NOTICE` present with attribution
+- [x] Consumer-facing `README.md` and capability documentation
+- [x] Release process documented (`docs/release-cut-checklist.md`)

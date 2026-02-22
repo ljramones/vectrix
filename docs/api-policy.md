@@ -13,8 +13,11 @@
 
 ## Package Guidance
 
-- Primary stable packages: `org.vectrix.core`, `org.vectrix.affine`, `org.vectrix.geometry`, `org.vectrix.gpu`, `org.vectrix.soa`.
-- Experimental/perf-control surfaces (`org.vectrix.experimental`, backend probing in `org.vectrix.simd`) should be treated as unstable unless explicitly documented otherwise.
+- Primary stable packages:
+  - `org.vectrix.core`, `org.vectrix.affine`, `org.vectrix.geometry`, `org.vectrix.gpu`, `org.vectrix.soa`
+  - `org.vectrix.curve`, `org.vectrix.sh`, `org.vectrix.fft`, `org.vectrix.optics`
+  - `org.vectrix.renderingmath`, `org.vectrix.sampling`, `org.vectrix.color`, `org.vectrix.easing`, `org.vectrix.sdf`, `org.vectrix.hash`, `org.vectrix.ltc`
+- Experimental/perf-control surfaces (`org.vectrix.experimental`, backend probing in `org.vectrix.simd`) are opt-in and may evolve more aggressively unless explicitly documented as stable.
 
 ## Performance Contract
 
