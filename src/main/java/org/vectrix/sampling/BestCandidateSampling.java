@@ -36,7 +36,8 @@ import org.vectrix.core.Vector3f;
  * Creates samples using the "Best Candidate" algorithm.
  * 
  * @author Kai Burjack
- */
+  * @since 1.0.0
+  */
 public class BestCandidateSampling {
 
     private static final class IntHolder {

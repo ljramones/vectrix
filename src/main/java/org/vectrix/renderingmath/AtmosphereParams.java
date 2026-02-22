@@ -25,7 +25,8 @@ package org.vectrix.renderingmath;
 
 /**
  * Spherically-symmetric atmosphere parameters for transmittance LUT generation.
- */
+  * @since 1.0.0
+  */
 public final class AtmosphereParams {
     public final float groundRadius;
     public final float atmosphereRadius;

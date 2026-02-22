@@ -29,7 +29,8 @@ import org.vectrix.core.Random;
  * Creates samples on a spiral around a center point.
  * 
  * @author Kai Burjack
- */
+  * @since 1.0.0
+  */
 public class SpiralSampling {
     private final Random rnd;
 

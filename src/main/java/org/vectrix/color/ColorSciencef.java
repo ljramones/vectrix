@@ -27,7 +27,8 @@ import org.vectrix.core.Vector3f;
 
 /**
  * Minimal color science helpers including CIE 1931 approximations.
- */
+  * @since 1.0.0
+  */
 public final class ColorSciencef {
     public static final float VISIBLE_MIN_NM = 380.0f;
     public static final float VISIBLE_MAX_NM = 780.0f;

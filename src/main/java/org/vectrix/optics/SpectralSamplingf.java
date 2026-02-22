@@ -25,7 +25,8 @@ package org.vectrix.optics;
 
 /**
  * Spectral sampling utilities (single-precision).
- */
+  * @since 1.0.0
+  */
 public final class SpectralSamplingf {
     public static final float MIN_NM = 380.0f;
     public static final float MAX_NM = 780.0f;

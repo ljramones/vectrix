@@ -28,6 +28,10 @@ import org.vectrix.core.Vector4d;
 import org.vectrix.core.Vector4dc;
 import org.vectrix.curve.CubicCurveMath;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class CatmullRom4d {
     private CatmullRom4d() {}
     public static Vector4d evaluate(Vector4dc p0, Vector4dc p1, Vector4dc p2, Vector4dc p3, double t, double tension, Vector4d dest) {

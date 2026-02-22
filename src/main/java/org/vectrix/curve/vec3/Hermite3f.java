@@ -28,6 +28,10 @@ import org.vectrix.core.Vector3f;
 import org.vectrix.core.Vector3fc;
 import org.vectrix.curve.CubicCurveMath;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class Hermite3f {
     private Hermite3f() {}
     public static Vector3f evaluate(Vector3fc p0, Vector3fc m0, Vector3fc p1, Vector3fc m1, float t, Vector3f dest) {

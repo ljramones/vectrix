@@ -25,7 +25,8 @@ package org.vectrix.renderingmath;
 
 /**
  * Builds preintegrated SSS LUTs into caller-provided flat RGB arrays.
- */
+  * @since 1.0.0
+  */
 public final class SssLutBuilder {
     private SssLutBuilder() {
     }

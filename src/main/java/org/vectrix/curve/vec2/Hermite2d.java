@@ -28,6 +28,10 @@ import org.vectrix.core.Vector2d;
 import org.vectrix.core.Vector2dc;
 import org.vectrix.curve.CubicCurveMath;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class Hermite2d {
     private Hermite2d() {}
 

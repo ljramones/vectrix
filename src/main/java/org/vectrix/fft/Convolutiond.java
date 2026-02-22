@@ -25,7 +25,8 @@ package org.vectrix.fft;
 
 /**
  * FFT-based convolution for interleaved complex sequences.
- */
+  * @since 1.0.0
+  */
 public final class Convolutiond {
     private Convolutiond() {
     }

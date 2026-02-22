@@ -26,6 +26,10 @@ package org.vectrix.curve.scalar;
 
 import org.vectrix.curve.CubicCurveMath;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class Bezier1f {
     private Bezier1f() {}
 

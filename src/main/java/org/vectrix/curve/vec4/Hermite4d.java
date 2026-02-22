@@ -28,6 +28,10 @@ import org.vectrix.core.Vector4d;
 import org.vectrix.core.Vector4dc;
 import org.vectrix.curve.CubicCurveMath;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class Hermite4d {
     private Hermite4d() {}
     public static Vector4d evaluate(Vector4dc p0, Vector4dc m0, Vector4dc p1, Vector4dc m1, double t, Vector4d dest) {

@@ -28,7 +28,8 @@ import org.vectrix.core.Vector3fc;
 
 /**
  * Real SH basis for L0..L2 under a right-handed Y-up convention.
- */
+  * @since 1.0.0
+  */
 public final class ShBasis {
     private static final float C0 = 0.2820947918f;
     private static final float C1 = 0.4886025119f;

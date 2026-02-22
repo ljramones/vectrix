@@ -29,7 +29,8 @@ import org.vectrix.core.Random;
  * Generates uniform samples.
  * 
  * @author Kai Burjack
- */
+  * @since 1.0.0
+  */
 public class UniformSampling {
 
     /**

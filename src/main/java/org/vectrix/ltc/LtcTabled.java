@@ -27,7 +27,8 @@ import org.vectrix.renderingmath.Interpolationd;
 
 /**
  * LTC table sampling helpers (double-precision).
- */
+  * @since 1.0.0
+  */
 public final class LtcTabled {
     private LtcTabled() {
     }

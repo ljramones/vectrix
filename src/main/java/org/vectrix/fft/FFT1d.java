@@ -26,7 +26,8 @@ package org.vectrix.fft;
 /**
  * In-place radix-2 1D FFT over interleaved complex arrays:
  * {@code data[2*i]} = real, {@code data[2*i+1]} = imaginary.
- */
+  * @since 1.0.0
+  */
 public final class FFT1d {
     private FFT1d() {
     }

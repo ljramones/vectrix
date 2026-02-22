@@ -25,7 +25,8 @@ package org.vectrix.sh;
 
 /**
  * RGB SH coefficients for L0..L3 (16 bands), flattened as [c0.r, c0.g, c0.b, ...].
- */
+  * @since 1.0.0
+  */
 public final class ShCoeffs16d {
     public static final int BANDS = 16;
     public static final int CHANNELS = 3;

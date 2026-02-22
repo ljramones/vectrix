@@ -23,6 +23,10 @@
  */
 package org.vectrix.hash;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class PcgHash {
     private static final int PCG_MULTIPLIER = 747796405;
     private static final int PCG_INCREMENT = (int) 2891336453L;

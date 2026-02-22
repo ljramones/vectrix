@@ -27,7 +27,8 @@ import org.vectrix.core.Vector3d;
 
 /**
  * Thin-film interference helpers (double-precision) using tri-band RGB wavelengths.
- */
+  * @since 1.0.0
+  */
 public final class ThinFilmd {
     private ThinFilmd() {
     }

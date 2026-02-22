@@ -25,7 +25,8 @@ package org.vectrix.optics;
 
 /**
  * Spectral sampling utilities (double-precision).
- */
+  * @since 1.0.0
+  */
 public final class SpectralSamplingd {
     public static final double MIN_NM = 380.0;
     public static final double MAX_NM = 780.0;

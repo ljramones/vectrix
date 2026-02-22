@@ -27,7 +27,8 @@ import org.vectrix.core.Vector3d;
 
 /**
  * Minimal color science helpers including CIE 1931 approximations.
- */
+  * @since 1.0.0
+  */
 public final class ColorScienced {
     public static final double VISIBLE_MIN_NM = 380.0;
     public static final double VISIBLE_MAX_NM = 780.0;

@@ -28,6 +28,10 @@ import org.vectrix.core.Vector4f;
 import org.vectrix.core.Vector4fc;
 import org.vectrix.curve.CubicCurveMath;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class UniformBSpline4f {
     private final Vector4fc[] controlPoints;
     public UniformBSpline4f(Vector4fc[] controlPoints) {

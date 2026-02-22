@@ -27,7 +27,8 @@ package org.vectrix.sampling;
  * Callback used for notifying about a new generated 3D sample.
  * 
  * @author Kai Burjack
- */
+  * @since 1.0.0
+  */
 public interface Callback3d {
     /**
      * Will be called whenever a new sample with the given coordinates <code>(x, y, z)</code> is generated.

@@ -33,7 +33,8 @@ import org.vectrix.core.Math;
  * Generates various convolution kernels.
  *
  * @author Kai Burjack
- */
+  * @since 1.0.0
+  */
 public class Convolution {
 
 //#ifdef __HAS_NIO__

@@ -25,7 +25,8 @@ package org.vectrix.renderingmath;
 
 /**
  * Bilinear and bicubic interpolation helpers (double-precision).
- */
+  * @since 1.0.0
+  */
 public final class Interpolationd {
     private Interpolationd() {
     }

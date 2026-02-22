@@ -25,7 +25,8 @@ package org.vectrix.fft;
 
 /**
  * Mutable complex number value type (double-precision).
- */
+  * @since 1.0.0
+  */
 public final class Complexd {
     public double real;
     public double imag;

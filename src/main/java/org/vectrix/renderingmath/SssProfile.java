@@ -26,7 +26,8 @@ package org.vectrix.renderingmath;
 /**
  * Sum-of-Gaussians diffusion profile for preintegrated SSS.
  * Arrays are flattened RGB per lobe: {@code [l0.r,l0.g,l0.b,l1.r,...]}.
- */
+  * @since 1.0.0
+  */
 public final class SssProfile {
     private final int lobes;
     private final float[] weightsRgb;

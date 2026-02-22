@@ -25,7 +25,8 @@ package org.vectrix.optics;
 
 /**
  * Refractive-index utility helpers (double-precision).
- */
+  * @since 1.0.0
+  */
 public final class Iord {
     private Iord() {
     }

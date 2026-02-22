@@ -28,6 +28,10 @@ import org.vectrix.core.Vector2f;
 import org.vectrix.core.Vector2fc;
 import org.vectrix.curve.CubicCurveMath;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class CatmullRom2f {
     private CatmullRom2f() {}
 

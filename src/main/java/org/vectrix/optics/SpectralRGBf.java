@@ -25,7 +25,8 @@ package org.vectrix.optics;
 
 /**
  * Minimal tri-band RGB wavelength constants (nanometers).
- */
+  * @since 1.0.0
+  */
 public final class SpectralRGBf {
     public static final float LAMBDA_R_NM = 650.0f;
     public static final float LAMBDA_G_NM = 550.0f;

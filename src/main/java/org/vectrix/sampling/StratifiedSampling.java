@@ -29,7 +29,8 @@ import org.vectrix.core.Random;
  * Creates samples on a unit quad using an NxN strata grid.
  * 
  * @author Kai Burjack
- */
+  * @since 1.0.0
+  */
 public class StratifiedSampling {
 
     private final Random rnd;

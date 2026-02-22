@@ -26,6 +26,10 @@ package org.vectrix.curve.scalar;
 
 import org.vectrix.curve.CubicCurveMath;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class CatmullRom1d {
     private CatmullRom1d() {}
 

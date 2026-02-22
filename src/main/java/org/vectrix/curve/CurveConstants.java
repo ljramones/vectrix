@@ -24,6 +24,10 @@
 
 package org.vectrix.curve;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class CurveConstants {
     public static final int DEFAULT_ARCLEN_SAMPLES = 64;
 

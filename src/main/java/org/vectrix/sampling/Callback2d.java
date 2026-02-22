@@ -27,7 +27,8 @@ package org.vectrix.sampling;
  * Callback used for notifying about a new generated 2D sample.
  * 
  * @author Kai Burjack
- */
+  * @since 1.0.0
+  */
 public interface Callback2d {
     /**
      * Will be called whenever a new sample with the given coordinates <code>(x, y)</code> is generated.

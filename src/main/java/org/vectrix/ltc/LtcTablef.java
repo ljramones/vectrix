@@ -27,7 +27,8 @@ import org.vectrix.renderingmath.Interpolationf;
 
 /**
  * LTC table sampling helpers.
- */
+  * @since 1.0.0
+  */
 public final class LtcTablef {
     private LtcTablef() {
     }

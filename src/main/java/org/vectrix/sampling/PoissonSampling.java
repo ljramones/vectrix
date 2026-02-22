@@ -35,7 +35,8 @@ import org.vectrix.core.Vector2f;
  * Dimensions</a>.
  * 
  * @author Kai Burjack
- */
+  * @since 1.0.0
+  */
 public class PoissonSampling {
 
     /**

@@ -28,6 +28,10 @@ import org.vectrix.core.Vector3d;
 import org.vectrix.core.Vector3dc;
 import org.vectrix.curve.CubicCurveMath;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class Bezier3d {
     private Bezier3d() {}
     public static Vector3d evaluate(Vector3dc p0, Vector3dc p1, Vector3dc p2, Vector3dc p3, double t, Vector3d dest) {

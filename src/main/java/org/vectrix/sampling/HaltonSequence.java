@@ -30,7 +30,8 @@ import org.vectrix.core.Vector3f;
 
 /**
  * Deterministic Halton low-discrepancy sequence utilities.
- */
+  * @since 1.0.0
+  */
 public final class HaltonSequence {
     private HaltonSequence() {
     }

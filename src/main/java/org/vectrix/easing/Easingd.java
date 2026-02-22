@@ -23,6 +23,10 @@
  */
 package org.vectrix.easing;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class Easingd {
     private Easingd() {
     }

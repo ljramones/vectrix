@@ -28,6 +28,10 @@ import org.vectrix.core.Vector2f;
 import org.vectrix.core.Vector2fc;
 import org.vectrix.curve.CubicCurveMath;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class UniformBSpline2f {
     private final Vector2fc[] controlPoints;
 

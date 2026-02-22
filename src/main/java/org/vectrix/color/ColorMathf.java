@@ -26,6 +26,10 @@ package org.vectrix.color;
 import org.vectrix.core.Vector3f;
 import org.vectrix.core.Vector3fc;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class ColorMathf {
     private ColorMathf() {
     }

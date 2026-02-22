@@ -25,7 +25,8 @@ package org.vectrix.renderingmath;
 
 /**
  * Builds Bruneton-style transmittance LUTs (height x zenith cosine) into flat RGB arrays.
- */
+  * @since 1.0.0
+  */
 public final class TransmittanceLutBuilder {
     private TransmittanceLutBuilder() {
     }

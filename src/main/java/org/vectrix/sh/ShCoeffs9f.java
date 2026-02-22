@@ -25,7 +25,8 @@ package org.vectrix.sh;
 
 /**
  * RGB SH coefficients for L0..L2 (9 bands), flattened as [c0.r, c0.g, c0.b, c1.r, ... c8.b].
- */
+  * @since 1.0.0
+  */
 public final class ShCoeffs9f {
     public static final int BANDS = 9;
     public static final int CHANNELS = 3;

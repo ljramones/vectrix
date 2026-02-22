@@ -27,7 +27,8 @@ import org.vectrix.core.Vector3dc;
 
 /**
  * Bent-normal visibility cone utilities (double-precision).
- */
+  * @since 1.0.0
+  */
 public final class BentNormalConed {
     private BentNormalConed() {
     }

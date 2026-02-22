@@ -28,7 +28,8 @@ import org.vectrix.core.Vector3dc;
 
 /**
  * LTC evaluation helpers for area-light form factors (double-precision).
- */
+  * @since 1.0.0
+  */
 public final class LtcEvald {
     private static final double INV_TWO_PI = 1.0 / (2.0 * java.lang.Math.PI);
 

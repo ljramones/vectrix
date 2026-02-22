@@ -27,7 +27,8 @@ import org.vectrix.core.Vector3fc;
 
 /**
  * Bent-normal visibility cone utilities (single-precision).
- */
+  * @since 1.0.0
+  */
 public final class BentNormalConef {
     private BentNormalConef() {
     }

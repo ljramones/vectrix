@@ -26,6 +26,10 @@ package org.vectrix.sdf;
 import org.vectrix.core.Vector2f;
 import org.vectrix.core.Vector3fc;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class Sdf3f {
     private Sdf3f() {
     }

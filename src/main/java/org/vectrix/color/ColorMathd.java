@@ -26,6 +26,10 @@ package org.vectrix.color;
 import org.vectrix.core.Vector3d;
 import org.vectrix.core.Vector3dc;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class ColorMathd {
     private ColorMathd() {
     }

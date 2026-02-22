@@ -30,7 +30,8 @@ import org.vectrix.core.Vector3f;
 
 /**
  * Deterministic Sobol low-discrepancy sequence utilities for dimensions 0..3.
- */
+  * @since 1.0.0
+  */
 public final class SobolSequence {
     private static final double TO_UNIT_D = 1.0 / 4294967296.0;
     private static final float TO_UNIT_F = 1.0f / 4294967296.0f;

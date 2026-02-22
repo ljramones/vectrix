@@ -27,7 +27,8 @@ import org.vectrix.fft.Complexd;
 
 /**
  * Fresnel reflectance helpers (double-precision).
- */
+  * @since 1.0.0
+  */
 public final class Fresneld {
     private Fresneld() {
     }

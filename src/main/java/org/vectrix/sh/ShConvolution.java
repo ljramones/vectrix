@@ -28,6 +28,10 @@ import org.vectrix.core.Vector3dc;
 import org.vectrix.core.Vector3f;
 import org.vectrix.core.Vector3fc;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class ShConvolution {
     private static final float A0 = (float) java.lang.Math.PI;
     private static final float A1 = (float) (2.0 * java.lang.Math.PI / 3.0);

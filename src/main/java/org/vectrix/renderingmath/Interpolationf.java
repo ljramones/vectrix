@@ -27,7 +27,8 @@ import org.vectrix.core.Vector3f;
 
 /**
  * Bilinear and bicubic interpolation helpers (single-precision).
- */
+  * @since 1.0.0
+  */
 public final class Interpolationf {
     private Interpolationf() {
     }

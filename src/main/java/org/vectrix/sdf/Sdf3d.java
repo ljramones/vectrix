@@ -25,6 +25,10 @@ package org.vectrix.sdf;
 
 import org.vectrix.core.Vector3dc;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class Sdf3d {
     private Sdf3d() {
     }

@@ -23,6 +23,10 @@
  */
 package org.vectrix.hash;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class SpatialHash {
     private static final int PRIME_X = 73856093;
     private static final int PRIME_Y = 19349663;

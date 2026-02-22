@@ -28,6 +28,10 @@ import org.vectrix.core.Vector3d;
 import org.vectrix.core.Vector3dc;
 import org.vectrix.curve.CubicCurveMath;
 
+/**
+ * @since 1.0.0
+ */
+
 public final class UniformBSpline3d {
     private final Vector3dc[] controlPoints;
 

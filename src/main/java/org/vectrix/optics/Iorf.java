@@ -25,7 +25,8 @@ package org.vectrix.optics;
 
 /**
  * Refractive-index utility helpers (single-precision).
- */
+  * @since 1.0.0
+  */
 public final class Iorf {
     private Iorf() {
     }
