@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
+## [1.10.13] - 2026-02-25
+### Fixed
+- Fixes invalid consumer POM metadata (`systemPath` profile removed).
+
 ## [1.10.9] - 2026-02-22
 ### Added
 - Quaternion rotation toolkit additions:
