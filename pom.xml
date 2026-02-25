@@ -6,7 +6,7 @@
 
     <groupId>org.vectrix</groupId>
     <artifactId>vectrix</artifactId>
-    <version>1.10.10</version>
+    <version>1.10.12</version>
     <packaging>jar</packaging>
 
     <name>Vectrix</name>
@@ -109,6 +109,9 @@
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
                     <encoding>UTF-8</encoding>
+                    <excludes>
+                        <exclude>module-info.java</exclude>
+                    </excludes>
                     <testExcludes>
                         <testExclude>**/experimental/**</testExclude>
                     </testExcludes>

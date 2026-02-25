@@ -37,6 +37,17 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class MathTest {
     @Test
+    void testAtan() {
+        assertEquals(java.lang.Math.atan(0.0f), Math.atan(0.0f), 1E-7f);
+        assertEquals(java.lang.Math.atan(0.75f), Math.atan(0.75f), 1E-7f);
+        assertEquals(java.lang.Math.atan(-2.5f), Math.atan(-2.5f), 1E-7f);
+
+        assertEquals(java.lang.Math.atan(0.0), Math.atan(0.0), 1E-12);
+        assertEquals(java.lang.Math.atan(0.75), Math.atan(0.75), 1E-12);
+        assertEquals(java.lang.Math.atan(-2.5), Math.atan(-2.5), 1E-12);
+    }
+
+    @Test
     void testClamp(){
         // Integer value tests
         assertEquals(Math.clamp(10,20,0),10);

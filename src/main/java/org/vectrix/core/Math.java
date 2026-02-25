@@ -344,6 +344,12 @@ public class Math {
             return fastAtan2(y, x);
         return java.lang.Math.atan2(y, x);
     }
+    public static float atan(float r) {
+        return (float) java.lang.Math.atan(r);
+    }
+    public static double atan(double r) {
+        return java.lang.Math.atan(r);
+    }
 
     public static float asin(float r) {
         return (float) java.lang.Math.asin(r);

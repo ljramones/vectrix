@@ -2410,6 +2410,37 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     }
 
     /**
+     * Compute the shortest-arc angular difference from {@code from} to {@code to}, returned as axis-angle in a vector.
+     * <p>
+     * The resulting vector direction is the rotation axis and its length is the signed rotation angle in radians.
+     *
+     * @param from source orientation
+     * @param to target orientation
+     * @param dest will hold the axis-angle vector
+     * @return dest
+     * @since 1.10.12
+     */
+    public static Vector3f angularError(Quaternionfc from, Quaternionfc to, Vector3f dest) {
+        float fw = from.w(), fx = from.x(), fy = from.y(), fz = from.z();
+        float tw = to.w(), tx = to.x(), ty = to.y(), tz = to.z();
+        // delta = to * conjugate(from)
+        float dx = -tw * fx + tx * fw - ty * fz + tz * fy;
+        float dy = -tw * fy + tx * fz + ty * fw - tz * fx;
+        float dz = -tw * fz - tx * fy + ty * fx + tz * fw;
+        float dw = tw * fw + tx * fx + ty * fy + tz * fz;
+        float sinHalfAngle = Math.sqrt(Math.fma(dx, dx, Math.fma(dy, dy, dz * dz)));
+        if (sinHalfAngle < 1E-6f) {
+            return dest.set(0.0f, 0.0f, 0.0f);
+        }
+        float angle = 2.0f * Math.atan2(sinHalfAngle, Math.abs(dw));
+        if (dw < 0.0f) {
+            angle = -angle;
+        }
+        float scale = angle / sinHalfAngle;
+        return dest.set(dx * scale, dy * scale, dz * scale);
+    }
+
+    /**
      * Interpolate between all of the quaternions given in <code>qs</code> via spherical linear interpolation using the specified interpolation factors <code>weights</code>,
      * and store the result in <code>dest</code>.
      * <p>
