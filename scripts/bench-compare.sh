@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -lt 2 ]]; then
-  echo "Usage: $0 <baseline.csv> <current.csv> [core_threshold_pct] [copy_threshold_pct] [simd_threshold_pct]" >&2
+  echo "Usage: $0 <baseline.(csv|json)> <current.(csv|json)> [core_threshold_pct] [copy_threshold_pct] [simd_threshold_pct]" >&2
   exit 1
 fi
 
@@ -19,6 +19,16 @@ fi
 if [[ ! -f "$CURR" ]]; then
   echo "Missing current CSV: $CURR" >&2
   exit 1
+fi
+
+if [[ "$BASE" == *.json && "$CURR" == *.json ]]; then
+  ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  "$ROOT_DIR/tools/bench-compare" \
+    --threshold "$CORE_THRESHOLD" \
+    --interop-threshold "$COPY_THRESHOLD" \
+    --simd-threshold "$SIMD_THRESHOLD" \
+    "$BASE" "$CURR"
+  exit $?
 fi
 
 TMP_BASE="$(mktemp)"

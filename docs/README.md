@@ -13,6 +13,10 @@ This folder contains the current project documentation for Vectrix.
   Public/internal API stability and compatibility expectations.
 - `docs/performance-strategy.md`
   Performance charter, benchmark tier taxonomy, and naming conventions.
+- `docs/benchmarking-guide.md`
+  How to build, run, profile, normalize, and compare benchmark runs.
+- `docs/benchmark-environment.md`
+  Recorded benchmark environment and run discipline requirements.
 - `docs/release-cut-checklist.md`
   Release process and validation commands.
 - `docs/technology-explainer.md`

@@ -18,9 +18,8 @@ import java.util.concurrent.TimeUnit;
  */
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@BenchmarkMode(Mode.AverageTime)
-@Fork(value = 1, jvmArgsAppend = {"--add-modules", "jdk.incubator.vector", "--enable-native-access=ALL-UNNAMED"})
-public class BatchMatrixBenchmark {
+@Fork(value = 3, jvmArgsAppend = {"--add-modules", "jdk.incubator.vector", "--enable-native-access=ALL-UNNAMED"})
+public class BatchMatrixBenchmark extends ThroughputBenchmark {
     private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
 
     @Param({"64", "256", "4096"})

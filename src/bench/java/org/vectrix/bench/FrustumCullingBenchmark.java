@@ -27,8 +27,6 @@ import java.util.SplittableRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
@@ -44,8 +42,7 @@ import org.vectrix.soa.AABBSoA;
 
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@BenchmarkMode(Mode.AverageTime)
-public class FrustumCullingBenchmark {
+public class FrustumCullingBenchmark extends ThroughputBenchmark {
     @Param({"1024", "16384", "65536"})
     public int count;
 

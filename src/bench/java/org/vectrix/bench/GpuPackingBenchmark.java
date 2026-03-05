@@ -9,8 +9,6 @@ import java.util.SplittableRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
@@ -24,8 +22,7 @@ import org.vectrix.gpu.PackedNorm;
 
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@BenchmarkMode(Mode.AverageTime)
-public class GpuPackingBenchmark {
+public class GpuPackingBenchmark extends ThroughputBenchmark {
     @Param({"256", "4096", "65536"})
     public int size;
 

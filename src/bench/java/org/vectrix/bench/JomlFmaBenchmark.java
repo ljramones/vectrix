@@ -42,11 +42,10 @@ import java.util.concurrent.TimeUnit;
  */
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
-@BenchmarkMode(Mode.AverageTime)
-@Fork(value = 2, jvmArgsAppend = {"-Djoml.useMathFma=true", "--enable-native-access=ALL-UNNAMED"})
-public class JomlFmaBenchmark {
+@Warmup(iterations = 6, time = 1, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 10, time = 1, timeUnit = TimeUnit.SECONDS)
+@Fork(value = 3, jvmArgsAppend = {"-Djoml.useMathFma=true", "--enable-native-access=ALL-UNNAMED"})
+public class JomlFmaBenchmark extends LatencyBenchmark {
 
     // Matrices
     private final Matrix4f m4a = new Matrix4f();

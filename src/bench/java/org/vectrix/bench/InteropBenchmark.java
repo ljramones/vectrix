@@ -18,8 +18,7 @@ import java.util.concurrent.TimeUnit;
  */
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@BenchmarkMode(Mode.AverageTime)
-public class InteropBenchmark {
+public class InteropBenchmark extends ThroughputBenchmark {
 
     @Param({"64", "1024", "8192"})
     public int count;

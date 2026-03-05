@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import math
+import re
+import sys
+from pathlib import Path
+
+
+def key_for(row):
+    params = row.get("params", {})
+    p = tuple(sorted((k, str(v)) for k, v in params.items()))
+    return row["benchmark"], p
+
+
+def canonical_id(benchmark):
+    parts = benchmark.split(".")
+    cls = parts[-2] if len(parts) >= 2 else benchmark
+    method = parts[-1]
+    base = re.sub(r"Benchmark$", "", cls)
+    words = re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])|\d+", base)
+    class_key = ".".join(w.lower() for w in words if w)
+    m = method.lower()
+    if "skinning" in class_key or "skin" in m:
+        category = "skinning"
+    elif any(k in class_key for k in ("gpu", "interop", "memory", "layout", "std")):
+        category = "interop"
+    elif any(k in class_key for k in ("batch", "frustum", "transform", "curve", "fft", "mesh", "reduction")):
+        category = "batch"
+    else:
+        category = "math"
+    variant = re.sub(r"_+", ".", re.sub(r"([a-z0-9])([A-Z])", r"\1.\2", method)).lower()
+    return f"vectrix.{category}.{class_key}.{variant}"
+
+
+def threshold_for(canon, default_threshold, interop_threshold, simd_threshold):
+    if ".interop." in canon:
+        return interop_threshold
+    if "simd" in canon or "vector" in canon or "soa" in canon:
+        return simd_threshold
+    return default_threshold
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Compare two JMH JSON runs and report regressions")
+    parser.add_argument("baseline", help="Baseline JMH JSON")
+    parser.add_argument("current", help="Current JMH JSON")
+    parser.add_argument("--threshold", type=float, default=5.0, help="Default regression threshold percentage")
+    parser.add_argument("--interop-threshold", type=float, default=6.0, help="Interop regression threshold percentage")
+    parser.add_argument("--simd-threshold", type=float, default=5.0, help="SIMD/SOA regression threshold percentage")
+    args = parser.parse_args()
+
+    with Path(args.baseline).open("r", encoding="utf-8") as f:
+        baseline_rows = {key_for(row): row for row in json.load(f)}
+    with Path(args.current).open("r", encoding="utf-8") as f:
+        current_rows = {key_for(row): row for row in json.load(f)}
+
+    failures = 0
+    print("canonical_id,benchmark,baseline,current,delta_pct,threshold_pct,status")
+
+    for key, base in sorted(baseline_rows.items()):
+        cur = current_rows.get(key)
+        if cur is None:
+            continue
+
+        b = float(base.get("primaryMetric", {}).get("score", math.nan))
+        c = float(cur.get("primaryMetric", {}).get("score", math.nan))
+        if math.isnan(b) or math.isnan(c) or b == 0.0:
+            continue
+
+        mode = base.get("mode", "")
+        # lower is better for avgt; higher is better for throughput
+        if mode == "thrpt":
+            delta = ((b - c) / b) * 100.0
+        else:
+            delta = ((c - b) / b) * 100.0
+
+        canon = canonical_id(base["benchmark"])
+        threshold = threshold_for(canon, args.threshold, args.interop_threshold, args.simd_threshold)
+        status = "PASS"
+        if delta > threshold:
+            status = "FAIL"
+            failures += 1
+
+        print(f"{canon},{base['benchmark']},{b:.6f},{c:.6f},{delta:.2f},{threshold:.2f},{status}")
+
+    if failures:
+        print(f"Regression check failed: {failures} benchmark(s) exceeded threshold.", file=sys.stderr)
+        sys.exit(2)
+
+    print("Regression check passed.")
+
+
+if __name__ == "__main__":
+    main()

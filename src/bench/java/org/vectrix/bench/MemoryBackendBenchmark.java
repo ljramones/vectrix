@@ -18,8 +18,7 @@ import java.util.concurrent.TimeUnit;
  */
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@BenchmarkMode(Mode.AverageTime)
-public class MemoryBackendBenchmark {
+public class MemoryBackendBenchmark extends ThroughputBenchmark {
 
     @Param({"1", "16", "256"})
     public int matrices;
@@ -39,7 +38,7 @@ public class MemoryBackendBenchmark {
     }
 
     @Benchmark
-    @Fork(value = 1, jvmArgsAppend = {"-Djoml.noffm=true"})
+    @Fork(value = 3, jvmArgsAppend = {"-Djoml.noffm=true"})
     public ByteBuffer transferUnsafePathByteBuffer() {
         int off = 0;
         for (int i = 0; i < matrices; i++) {
@@ -50,7 +49,7 @@ public class MemoryBackendBenchmark {
     }
 
     @Benchmark
-    @Fork(value = 1, jvmArgsAppend = {"-Djoml.noffm=true"})
+    @Fork(value = 3, jvmArgsAppend = {"-Djoml.noffm=true"})
     public FloatBuffer transferUnsafePathFloatBuffer() {
         int off = 0;
         for (int i = 0; i < matrices; i++) {
@@ -61,7 +60,7 @@ public class MemoryBackendBenchmark {
     }
 
     @Benchmark
-    @Fork(value = 1, jvmArgsAppend = {"-Djoml.nounsafe=true"})
+    @Fork(value = 3, jvmArgsAppend = {"-Djoml.nounsafe=true"})
     public ByteBuffer transferFfmOrNioByteBuffer() {
         int off = 0;
         for (int i = 0; i < matrices; i++) {
@@ -72,7 +71,7 @@ public class MemoryBackendBenchmark {
     }
 
     @Benchmark
-    @Fork(value = 1, jvmArgsAppend = {"-Djoml.nounsafe=true"})
+    @Fork(value = 3, jvmArgsAppend = {"-Djoml.nounsafe=true"})
     public FloatBuffer transferFfmOrNioFloatBuffer() {
         int off = 0;
         for (int i = 0; i < matrices; i++) {

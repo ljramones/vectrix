@@ -27,8 +27,6 @@ import java.util.SplittableRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
@@ -40,8 +38,7 @@ import org.vectrix.core.Matrix4x3f;
 
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@BenchmarkMode(Mode.AverageTime)
-public class Affine4fBenchmark {
+public class Affine4fBenchmark extends ThroughputBenchmark {
     @Param({"64", "256", "4096"})
     public int size;
 

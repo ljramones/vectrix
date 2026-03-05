@@ -17,8 +17,7 @@ import java.util.concurrent.TimeUnit;
  */
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@BenchmarkMode(Mode.AverageTime)
-public class SkinningBenchmark {
+public class SkinningBenchmark extends ThroughputBenchmark {
 
     @Param({"64", "1024", "8192"})
     public int vertices;

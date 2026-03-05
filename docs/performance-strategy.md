@@ -24,11 +24,19 @@ Tier goals:
 - Tier D: architecture and engine integration decisions.
 
 ## Naming Convention
-Use benchmark class names that encode tier and workload domain:
-- `Primitive*Benchmark` (Tier A)
-- `Batch*Benchmark` (Tier B)
-- `Layout*Benchmark` (Tier C)
-- `Kernel*Benchmark` (Tier D)
+Use stable canonical IDs in reports and regression tooling:
+- `vectrix.<category>.<kernel>.<variant>`
+
+Examples:
+- `vectrix.math.vector.dot`
+- `vectrix.batch.transform.matrix`
+- `vectrix.skinning.matrix.lbs`
+- `vectrix.interop.upload.soa`
+
+Implementation notes:
+- JMH benchmark names remain JVM class/method identifiers.
+- Reporting scripts normalize JMH names into canonical IDs.
+- Canonical IDs are enforced by `scripts/bench-normalize.py`.
 
 Method naming rules:
 - Use verb + subject + scope, for example `transformVectors`, `composeAffine`, `stagePackedAffine`.
@@ -38,8 +46,6 @@ Method naming rules:
   - `vertices` for skinning/mesh vertex counts
   - `instances` for instance-upload/update kernels
   - `bytes` for copy/transfer size
-
-Benchmark IDs should remain stable once published to preserve baseline comparability.
 
 ## Decision Process
 1. Use Tier A to guard correctness-preserving low-level performance.

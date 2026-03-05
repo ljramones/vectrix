@@ -590,6 +590,47 @@
             </build>
         </profile>
 
+        <profile>
+            <id>bench-quick</id>
+            <properties>
+                <vectrix.bench.profile>quick</vectrix.bench.profile>
+                <vectrix.bench.forks>1</vectrix.bench.forks>
+                <vectrix.bench.warmupIterations>3</vectrix.bench.warmupIterations>
+                <vectrix.bench.measurementIterations>5</vectrix.bench.measurementIterations>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>bench-full</id>
+            <properties>
+                <vectrix.bench.profile>full</vectrix.bench.profile>
+                <vectrix.bench.forks>3</vectrix.bench.forks>
+                <vectrix.bench.warmupIterations>6</vectrix.bench.warmupIterations>
+                <vectrix.bench.measurementIterations>10</vectrix.bench.measurementIterations>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>bench-prof</id>
+            <properties>
+                <vectrix.bench.profile>prof</vectrix.bench.profile>
+                <vectrix.bench.forks>3</vectrix.bench.forks>
+                <vectrix.bench.warmupIterations>6</vectrix.bench.warmupIterations>
+                <vectrix.bench.measurementIterations>10</vectrix.bench.measurementIterations>
+                <vectrix.bench.profilers>gc,stack</vectrix.bench.profilers>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>bench-regression</id>
+            <properties>
+                <vectrix.bench.profile>regression</vectrix.bench.profile>
+                <vectrix.bench.forks>2</vectrix.bench.forks>
+                <vectrix.bench.warmupIterations>4</vectrix.bench.warmupIterations>
+                <vectrix.bench.measurementIterations>6</vectrix.bench.measurementIterations>
+            </properties>
+        </profile>
+
         <!-- Sign profile: GPG signing for releases -->
         <profile>
             <id>sign</id>

@@ -8,8 +8,6 @@ package org.vectrix.bench;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
@@ -17,8 +15,7 @@ import org.vectrix.gpu.StdLayout;
 
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@BenchmarkMode(Mode.AverageTime)
-public class StdLayoutBenchmark {
+public class StdLayoutBenchmark extends LatencyBenchmark {
     private static final StdLayout.Type[] TYPES = {
             StdLayout.Type.VEC3,
             StdLayout.Type.FLOAT,

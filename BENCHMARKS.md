@@ -7,17 +7,29 @@ This document defines the benchmark methodology and records current baseline res
 - Java: `--add-modules jdk.incubator.vector`
 - Entry: `./scripts/bench-run.sh`
 - Bench artifact: `target/benchmarks.jar`
+- Normalization: `./scripts/bench-normalize.py`
+- Regression compare: `tools/bench-compare` (JSON) or `./scripts/bench-compare.sh`
 
 ## Methodology
 - Build benchmark jar:
   - `mvn -q clean package -Pbench -DskipTests`
-- Run benchmark suite:
-  - `BENCH_REGEX='org.vectrix.bench.*' ./scripts/bench-run.sh`
-- Recommended publication profile:
-  - `FORKS=2 WARMUP_ITERS=5 MEASURE_ITERS=8 THREADS=1 TIME_UNIT=ns`
+- Run benchmark suite using profile wrappers:
+  - `./scripts/bench-quick.sh`
+  - `./scripts/bench-full.sh`
+  - `./scripts/bench-prof.sh`
+  - `./scripts/bench-regression.sh`
+- Standard profile defaults:
+  - `quick`: `f=1 wi=3 i=5`
+  - `full`: `f=3 wi=6 i=10`
+  - `prof`: `f=3 wi=6 i=10 -prof gc -prof stack`
+  - `regression`: `f=2 wi=4 i=6`
 - Output artifacts:
+  - `benchmarks/results/YYYY-MM-DD/{quick,full,profiled,regression}.json`
+  - `benchmarks/results/YYYY-MM-DD/{quick,full,profiled,regression}.txt`
   - `target/benchmarks/latest.txt`
-  - `target/benchmarks/latest.csv`
+  - `target/benchmarks/latest.json`
+- Normalize per-item metrics:
+  - `./scripts/bench-normalize.py benchmarks/results/YYYY-MM-DD/full.json`
 
 ## Coverage
 - Existing domains:
