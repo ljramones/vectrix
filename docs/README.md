@@ -11,6 +11,8 @@ This folder contains the current project documentation for Vectrix.
   Math and engine-facing conventions (handedness, layout, mutability model).
 - `docs/api-policy.md`
   Public/internal API stability and compatibility expectations.
+- `docs/performance-strategy.md`
+  Performance charter, benchmark tier taxonomy, and naming conventions.
 - `docs/release-cut-checklist.md`
   Release process and validation commands.
 - `docs/technology-explainer.md`
