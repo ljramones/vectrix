@@ -19,6 +19,8 @@ This folder contains the current project documentation for Vectrix.
   How to build, run, profile, normalize, and compare benchmark runs.
 - `docs/benchmark-environment.md`
   Recorded benchmark environment and run discipline requirements.
+- `docs/benchmark-modulepath-resolution.md`
+  Named-module/JMH benchmark build failure diagnosis and resolved approach.
 - `docs/release-cut-checklist.md`
   Release process and validation commands.
 - `docs/technology-explainer.md`

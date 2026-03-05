@@ -30,11 +30,10 @@ Ship rendering math features aggressively while preventing hidden regressions wi
 4. Reject or fix changes that fail thresholds.
 5. Refresh baseline only after explicit acceptance.
 
-## Known Constraint (Tracked)
-1. JMH benchmark packaging on named modules currently fails under the current toolchain with module-read visibility errors (`org.vectrix` reading JMH/annotations modules).
-2. This is tracked as a benchmark infrastructure blocker for routine full-suite execution.
-3. Short-term: continue benchmark code expansion and harness hardening.
-4. Next cleanup item: resolve module visibility/build wiring for `mvn -Pbench package` so benchmark runs are routine.
+## Known Constraint (Resolved)
+1. Named-module JMH packaging issues were resolved by explicit bench-profile module read edges for `ALL-UNNAMED`, `jdk.incubator.vector`, and `jdk.unsupported`.
+2. `mvn -Pbench package` is now part of routine benchmark workflow again.
+3. Resolution details: `docs/benchmark-modulepath-resolution.md`.
 
 ## Operational Rule
 No performance-sensitive PR merges without an attached benchmark comparison output.

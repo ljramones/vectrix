@@ -57,7 +57,6 @@ The project exposes benchmark preset profiles for repeatable settings:
 
 Use together with `-Pbench` when building benchmark artifacts.
 
-## Known Constraint
-- `mvn -Pbench package` currently has a tracked named-module visibility blocker on this toolchain/environment.
-- Track this item in [benchmarks/PERF_PLAN.md](/Users/larrymitchell/Dynamis/vectrix/benchmarks/PERF_PLAN.md) under `Known Constraint (Tracked)`.
-- Do not treat this as a transient warning; benchmark packaging reliability is a required cleanup task.
+## Named-Module Note
+- The prior `-Pbench` named-module visibility blocker is resolved.
+- Resolution details are documented in [benchmark-modulepath-resolution.md](/Users/larrymitchell/Dynamis/vectrix/docs/benchmark-modulepath-resolution.md).

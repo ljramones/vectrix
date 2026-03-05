@@ -20,7 +20,7 @@ Date: 2026-03-05
 
 ## Status
 - Harness and benchmark classes are in place for Phase 2 measurements.
-- Full benchmark execution remains blocked by the tracked named-module JMH packaging issue (see `benchmarks/PERF_PLAN.md`).
+- Named-module JMH packaging blocker is resolved (see `docs/benchmark-modulepath-resolution.md`).
 
 ## Next Measurement Pass (after blocker fix)
 - Run `quick`, `full`, and `prof` profiles for all Phase 2 kernels.

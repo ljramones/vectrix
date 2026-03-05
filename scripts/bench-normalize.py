@@ -96,13 +96,17 @@ def main():
                 if mode == "thrpt":
                     # score in ops/time-unit, each op processes `items`
                     ops_per_sec = score
-                    if "us" in unit_l:
+                    if "/ns" in unit_l:
+                        ops_per_sec *= 1_000_000_000.0
+                    elif "/us" in unit_l:
                         ops_per_sec *= 1_000_000.0
-                    elif "ms" in unit_l:
+                    elif "/ms" in unit_l:
                         ops_per_sec *= 1_000.0
-                    elif "min" in unit_l:
+                    elif "/s" in unit_l:
+                        ops_per_sec *= 1.0
+                    elif "/min" in unit_l:
                         ops_per_sec /= 60.0
-                    elif "hr" in unit_l:
+                    elif "/hr" in unit_l:
                         ops_per_sec /= 3600.0
                     ns_per_item = (1_000_000_000.0 / (ops_per_sec * items)) if ops_per_sec > 0 else ""
                     items_per_sec = ops_per_sec * items
