@@ -34,6 +34,11 @@ This document defines the benchmark methodology and records current baseline res
 ## Coverage
 - Existing domains:
   - transforms, culling, GPU packing/layout, skinning, reductions, mesh math
+- Phase 2 kernel expansion:
+  - `TransformAabbBenchmark`
+  - `TransformComposeBenchmark` (TRS/SoA/matrix/affine variants)
+  - `QuatMatrixConversionBenchmark`
+  - `InstanceUploadBenchmark`
 - Added domains in this release:
   - curves (`CurveBenchmark`)
   - spherical harmonics (`ShBenchmark`)

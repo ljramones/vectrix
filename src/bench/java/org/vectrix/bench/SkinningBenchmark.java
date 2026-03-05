@@ -19,11 +19,13 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class SkinningBenchmark extends ThroughputBenchmark {
 
-    @Param({"64", "1024", "8192"})
+    @Param({"1", "4", "16", "64", "256", "1024", "4096", "16384"})
     public int vertices;
 
     private Vector3f[] positions;
     private Vector3f[] out;
+    private Vector3f[] tmpA;
+    private Vector3f[] tmpB;
 
     private Matrix4f m0;
     private Matrix4f m1;
@@ -36,9 +38,13 @@ public class SkinningBenchmark extends ThroughputBenchmark {
     public void setup() {
         positions = new Vector3f[vertices];
         out = new Vector3f[vertices];
+        tmpA = new Vector3f[vertices];
+        tmpB = new Vector3f[vertices];
         for (int i = 0; i < vertices; i++) {
             positions[i] = new Vector3f(i * 0.001f, 1.0f, 0.25f);
             out[i] = new Vector3f();
+            tmpA[i] = new Vector3f();
+            tmpB[i] = new Vector3f();
         }
 
         m0 = new Matrix4f().translation(0.2f, 0.0f, -0.1f).rotateXYZ(0.1f, 0.2f, 0.3f);
@@ -55,9 +61,9 @@ public class SkinningBenchmark extends ThroughputBenchmark {
         final float w0 = 0.6f;
         final float w1 = 0.4f;
         for (int i = 0; i < vertices; i++) {
-            Vector3f tmp0 = positions[i].mulPosition(m0, new Vector3f()).mul(w0);
-            Vector3f tmp1 = positions[i].mulPosition(m1, new Vector3f()).mul(w1);
-            out[i].set(tmp0).add(tmp1);
+            positions[i].mulPosition(m0, tmpA[i]).mul(w0);
+            positions[i].mulPosition(m1, tmpB[i]).mul(w1);
+            out[i].set(tmpA[i]).add(tmpB[i]);
         }
         return out;
     }
@@ -68,9 +74,9 @@ public class SkinningBenchmark extends ThroughputBenchmark {
         final float w1 = 0.4f;
         for (int i = 0; i < vertices; i++) {
             Vector3f p = positions[i];
-            Vector3f a = q0.transform(new Vector3f(p)).add(t0).mul(w0);
-            Vector3f b = q1.transform(new Vector3f(p)).add(t1).mul(w1);
-            out[i].set(a).add(b);
+            q0.transform(p, tmpA[i]).add(t0).mul(w0);
+            q1.transform(p, tmpB[i]).add(t1).mul(w1);
+            out[i].set(tmpA[i]).add(tmpB[i]);
         }
         return out;
     }

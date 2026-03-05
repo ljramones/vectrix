@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 public class BatchMatrixBenchmark extends ThroughputBenchmark {
     private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
 
-    @Param({"64", "256", "4096"})
+    @Param({"1", "4", "16", "64", "256", "1024", "4096", "16384"})
     public int size;
 
     private Matrix4f[] a;

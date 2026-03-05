@@ -14,19 +14,27 @@ import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.vectrix.affine.Affine4f;
 import org.vectrix.affine.TransformKernels;
 import org.vectrix.affine.Transformf;
+import org.vectrix.core.Matrix4f;
 import org.vectrix.soa.TransformSoA;
 
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class TransformComposeBenchmark extends ThroughputBenchmark {
-    @Param({"64", "256", "4096"})
+    @Param({"1", "4", "16", "64", "256", "1024", "4096", "16384"})
     public int size;
 
     private Transformf[] parentsObj;
     private Transformf[] localsObj;
     private Transformf[] outObj;
+    private Matrix4f[] parentsMatrix;
+    private Matrix4f[] localsMatrix;
+    private Matrix4f[] outMatrix;
+    private Affine4f[] parentsAffine;
+    private Affine4f[] localsAffine;
+    private Affine4f[] outAffine;
     private TransformSoA parentsSoA;
     private TransformSoA localsSoA;
     private TransformSoA outSoA;
@@ -36,6 +44,12 @@ public class TransformComposeBenchmark extends ThroughputBenchmark {
         parentsObj = new Transformf[size];
         localsObj = new Transformf[size];
         outObj = new Transformf[size];
+        parentsMatrix = new Matrix4f[size];
+        localsMatrix = new Matrix4f[size];
+        outMatrix = new Matrix4f[size];
+        parentsAffine = new Affine4f[size];
+        localsAffine = new Affine4f[size];
+        outAffine = new Affine4f[size];
         parentsSoA = new TransformSoA(size);
         localsSoA = new TransformSoA(size);
         outSoA = new TransformSoA(size);
@@ -46,6 +60,12 @@ public class TransformComposeBenchmark extends ThroughputBenchmark {
             parentsObj[i] = p;
             localsObj[i] = l;
             outObj[i] = new Transformf();
+            parentsMatrix[i] = new Matrix4f().translationRotateScale(p.translation, p.rotation, p.scale);
+            localsMatrix[i] = new Matrix4f().translationRotateScale(l.translation, l.rotation, l.scale);
+            outMatrix[i] = new Matrix4f();
+            parentsAffine[i] = new Affine4f().translationRotateScale(p.translation, p.rotation, p.scale);
+            localsAffine[i] = new Affine4f().translationRotateScale(l.translation, l.rotation, l.scale);
+            outAffine[i] = new Affine4f();
             parentsSoA.set(i, p);
             localsSoA.set(i, l);
         }
@@ -63,6 +83,22 @@ public class TransformComposeBenchmark extends ThroughputBenchmark {
     public TransformSoA composeSoABatch() {
         TransformKernels.composeBatch(parentsSoA, localsSoA, outSoA, size);
         return outSoA;
+    }
+
+    @Benchmark
+    public Matrix4f[] composeMatrixBatch() {
+        for (int i = 0; i < size; i++) {
+            parentsMatrix[i].mul(localsMatrix[i], outMatrix[i]);
+        }
+        return outMatrix;
+    }
+
+    @Benchmark
+    public Affine4f[] composeAffineBatch() {
+        for (int i = 0; i < size; i++) {
+            parentsAffine[i].mul(localsAffine[i], outAffine[i]);
+        }
+        return outAffine;
     }
 
     private static Transformf randomTransform(SplittableRandom rnd) {

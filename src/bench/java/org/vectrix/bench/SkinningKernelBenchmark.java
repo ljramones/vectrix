@@ -23,7 +23,7 @@ import org.vectrix.soa.TransformSoA;
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class SkinningKernelBenchmark extends ThroughputBenchmark {
-    @Param({"256", "4096", "16384"})
+    @Param({"1", "4", "16", "64", "256", "1024", "4096", "16384"})
     public int vertices;
 
     private static final int JOINTS = 64;
