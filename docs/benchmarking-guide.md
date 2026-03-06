@@ -12,6 +12,7 @@
   - `./scripts/bench-prof.sh`
 - Regression gate run:
   - `./scripts/bench-regression.sh`
+  - `./scripts/bench-regression-phaseb.sh`
 
 All profile scripts call `scripts/bench-run.sh` and write outputs to:
 - `benchmarks/results/YYYY-MM-DD/<profile>.json`
@@ -47,6 +48,18 @@ Compare two JMH JSON runs:
 - `tools/bench-compare benchmarks/baselines/full.json benchmarks/results/2026-03-05/full.json`
 
 The comparer flags regressions beyond configured thresholds and exits non-zero on failure.
+
+## Phase B Gate Set
+Use the focused Pass B gate suite to protect packed-affine wins and locality-sensitive behavior:
+- `./scripts/bench-regression-phaseb.sh`
+
+This emits:
+- `benchmarks/results/YYYY-MM-DD/regression-phaseb-aabb.json`
+- `benchmarks/results/YYYY-MM-DD/regression-phaseb-upload.json`
+
+Recommended baseline compare commands:
+- `tools/bench-compare benchmarks/baselines/regression-phaseb-aabb.json benchmarks/results/YYYY-MM-DD/regression-phaseb-aabb.json`
+- `tools/bench-compare benchmarks/baselines/regression-phaseb-upload.json benchmarks/results/YYYY-MM-DD/regression-phaseb-upload.json`
 
 ## Maven Benchmark Preset Profiles
 The project exposes benchmark preset profiles for repeatable settings:

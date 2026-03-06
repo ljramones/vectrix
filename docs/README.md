@@ -25,6 +25,10 @@ This folder contains the current project documentation for Vectrix.
   Constrained full-run observations and architecture recommendations.
 - `docs/performance-phaseB-findings.md`
   Pass B locality + packed-affine implementation findings and recommendations.
+- `docs/performance-phaseB-decision-memo.md`
+  Pass B architecture defaults, keep/discard table, and Pass C targeting.
+- `docs/performance-phaseB-packed-affine-postmortem.md`
+  Short profiler-backed explanation of why packed-affine kernels won.
 - `docs/benchmarking-guide.md`
   How to build, run, profile, normalize, and compare benchmark runs.
 - `docs/benchmark-environment.md`

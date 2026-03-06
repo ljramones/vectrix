@@ -84,3 +84,7 @@ Scope: Pass B locality + packed-affine implementation and constrained `bench-ful
 1. Do we want adaptive runtime policy to switch scheduling for random traversal workloads at large counts?
 2. Should upload chunking stay exposed publicly, or remain internal until it shows clear wins for specific hardware patterns?
 3. Is a dedicated packed-affine + vector AABB kernel the next highest-value transform optimization after Pass C skinning work?
+
+## Related Decision Artifacts
+- `docs/performance-phaseB-decision-memo.md`
+- `docs/performance-phaseB-packed-affine-postmortem.md`

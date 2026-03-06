@@ -18,6 +18,7 @@ This document defines the benchmark methodology and records current baseline res
   - `./scripts/bench-full.sh`
   - `./scripts/bench-prof.sh`
   - `./scripts/bench-regression.sh`
+  - `./scripts/bench-regression-phaseb.sh`
 - Standard profile defaults:
   - `quick`: `f=1 wi=3 i=5`
   - `full`: `f=3 wi=6 i=10`
@@ -175,3 +176,18 @@ FFT benchmarks use `complexCount` (1024 mid-point):
 ## Notes
 - Baselines should be compared only across matching hardware/JVM settings.
 - Use longer runs and isolated machine conditions for release-grade publication.
+
+## Phase B Regression Gates
+Focused regression gate suite to protect Pass B gains:
+- `regression-phaseb-aabb`:
+  - `TransformAabbBenchmark.transformAabbBatch`
+  - params: `count=16384`, `representation=matrix4f,packedAffine`, `traversalMode=SEQUENTIAL,RANDOM`, `accessPattern=hot`
+- `regression-phaseb-upload`:
+  - `InstanceUploadBenchmark.instanceUploadMatrix4f`
+  - `InstanceUploadBenchmark.instanceUploadPackedAffine`
+  - params: `instances=16384`, `traversalMode=SEQUENTIAL,RANDOM`, `accessPattern=hot`
+
+Intent:
+- guard packed-affine AABB and upload winners,
+- retain one matrix baseline for relative comparison,
+- retain one locality-sensitive random traversal case.

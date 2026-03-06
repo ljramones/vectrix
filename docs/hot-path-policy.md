@@ -13,11 +13,15 @@ Keep runtime-critical Vectrix paths data-oriented, allocation-free, and benchmar
 5. Treat full `Matrix4f` as boundary format, not default hot-path format.
 6. Avoid hidden allocations, boxing, and temporary object churn in kernel code.
 7. Require benchmark evidence for hot-path API changes.
+8. Distinguish orchestration chunking from optimization chunking:
+   - structural chunking (`BatchChunks`-style wrappers) improves control/readability and scheduling, but is not presumed faster.
+   - kernel-native chunking (loop/body designed for locality/prefetch/vector shape) is where chunking is expected to produce throughput gains.
 
 ## Discouraged Patterns
 - Repeated object-level transforms in inner loops.
 - Eager full-matrix conversion in frame-critical stages.
 - Convert-then-convert-again pipelines in one frame phase.
+- Assuming generic wrapper chunking is a performance optimization without benchmark proof.
 
 ## Required Performance Hygiene
 - Hot kernels should target `0 B/op` in benchmark profiles.

@@ -7,8 +7,8 @@ Define the default transform representations for runtime kernels, staging paths,
 
 ## Default
 - Runtime local/world transform state: `Transformf`/`TransformSoA` (TRS-oriented representation).
-- Bulk transform materialization target: `Affine4f` (packed 3x4).
-- GPU instance staging default: packed affine payloads (12-float equivalent) or compact TRS layouts, depending on backend contract.
+- Bulk transform materialization target: packed affine (canonical 3x4/12-float form).
+- GPU instance staging default: packed affine payloads (12-float equivalent) unless a boundary contract explicitly requires full matrices.
 
 ## Allowed
 - `Matrix4x3f` for interoperability with existing affine-capable APIs and JOML-style operations.
@@ -25,11 +25,21 @@ Define the default transform representations for runtime kernels, staging paths,
 2. Convert late to packed affine for bounds/update/upload stages.
 3. Materialize `Matrix4f` only when required by API boundary or semantic need.
 4. Prefer contiguous-array kernels over per-object calls.
+5. Treat generic chunk wrappers as orchestration tools; only keep chunking on the hot path when kernel-native chunked loops show measured wins.
 
 ## Evidence Basis
 - Phase 2 constrained full run (`2026-03-05`) showed:
   - Compose kernels: `composeSoABatch` and `composeAffineBatch` outperform `composeMatrixBatch`.
   - Quat conversion: `quatToAffineMatrixBatch` outperforms `quatToMatrixBatch`.
   - Instance upload: packed affine staging outperforms full-matrix staging.
+- Pass B constrained full + profiled runs (`2026-03-05` to `2026-03-06`) strengthened this:
+  - AABB transform (`count=16384`): packed affine is significantly faster than matrix/affine baselines.
+  - Instance upload (`instances=16384`): packed affine staging is roughly 2x-3x faster than matrix staging.
+  - Locality remains first-order (random traversal penalties are large across representations).
 
-See `docs/performance-phase2-decision-memo.md` and `benchmarks/results/2026-03-05/phase2-summary.csv` (local artifacts) for normalized details.
+See:
+- `docs/performance-phase2-decision-memo.md`
+- `docs/performance-phaseB-decision-memo.md`
+- `docs/performance-phaseB-packed-affine-postmortem.md`
+- `benchmarks/results/2026-03-05/phase2-summary.csv`
+- `benchmarks/results/2026-03-06/phaseB-summary.csv`
