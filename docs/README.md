@@ -37,6 +37,8 @@ This folder contains the current project documentation for Vectrix.
   End-to-end composed-path validation of transform/skinning/upload winners.
 - `docs/engine-runtime-defaults.md`
   Current default runtime doctrine (bulk transforms, upload, skinning, experimental paths).
+- `docs/performance-state-of-the-union.md`
+  Snapshot of settled defaults, experimental areas, active gates, and parked work.
 - `docs/benchmarking-guide.md`
   How to build, run, profile, normalize, and compare benchmark runs.
 - `docs/benchmark-environment.md`
