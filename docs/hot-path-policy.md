@@ -1,6 +1,6 @@
 # Hot Path Policy
 
-Date: 2026-03-05
+Date: 2026-03-06
 
 ## Objective
 Keep runtime-critical Vectrix paths data-oriented, allocation-free, and benchmark-driven.
@@ -16,6 +16,8 @@ Keep runtime-critical Vectrix paths data-oriented, allocation-free, and benchmar
 8. Distinguish orchestration chunking from optimization chunking:
    - structural chunking (`BatchChunks`-style wrappers) improves control/readability and scheduling, but is not presumed faster.
    - kernel-native chunking (loop/body designed for locality/prefetch/vector shape) is where chunking is expected to produce throughput gains.
+9. Prefer miss-fast geometry kernels for miss-heavy query workloads (`Intersection*.testRayAab` optimized miss path).
+10. Prefer invariant-hoisted precompute builders for LUT generation; keep heavy transcendentals isolated to unavoidable inner loops.
 
 ## Discouraged Patterns
 - Repeated object-level transforms in inner loops.
