@@ -38,6 +38,22 @@ Primary result artifacts:
 3. `benchmarks/results/2026-03-06/integration-slice.{json,txt,normalized.csv}`
 4. `benchmarks/results/2026-03-06/subsystem-integration.{json,txt,normalized.csv}`
 
+## Why These Results Are Achievable On The JVM
+Vectrix relies on modern HotSpot behavior plus data-oriented kernel design:
+1. JIT specialization from runtime profiles.
+2. Escape analysis and allocation elimination in hot loops.
+3. Aggressive inlining/loop optimization for tight kernels.
+4. Vector API paths (`jdk.incubator.vector`) where SIMD shape is favorable.
+
+## Workload Shapes Tested
+Representative sizes map to common engine workload bands:
+
+| Shape | Example Use |
+|---|---|
+| `64` | small actor groups / animation jobs |
+| `1024` | scene node / instance batches |
+| `16384` | large instance, culling, or submission batches |
+
 ## Headline Kernel Results
 All values below are normalized `ns/item`.
 
@@ -77,6 +93,10 @@ Integration slice (`IntegrationPipelineBenchmark`) and subsystem path (`Subsyste
 1. matrix fallback: `25.171` (seq), `32.415` (random)
 2. packed default: `11.175` (seq), `16.925` (random)
 
+Comparison interpretation (`count=16384`, subsystem path):
+1. Sequential: packed is ~`2.25x` faster (`25.171 / 11.175`).
+2. Random: packed is ~`1.92x` faster (`32.415 / 16.925`).
+
 Takeaway:
 1. packed-affine wins are not just microbench artifacts; they survive end-to-end composition.
 2. random/scattered access hurts all paths, but packed defaults remain materially faster.
@@ -109,6 +129,12 @@ Current doctrine:
 2. Matrix-palette tight LBS default for CPU skinning.
 3. Matrix fallback retained explicitly for boundaries/interoperability.
 4. Vector skinning remains experimental pending repeated wins.
+
+## Implications For Engine Architecture
+1. Use packed-affine transforms for bulk runtime processing.
+2. Reserve `Matrix4f` for boundary/interoperability code.
+3. Prefer tight specialized kernels over overly generic hot-loop abstractions.
+4. Preserve locality in large traversal/update workloads.
 
 ## Regression Discipline
 Active benchmark protection:
