@@ -193,6 +193,55 @@ public final class SkinningKernels {
         }
     }
 
+    /**
+     * Stripped matrix-palette skinning kernel for work-equivalence/perf parity studies.
+     * Matrix palette layout per joint is 12 floats:
+     * [m00 m01 m02 tx  m10 m11 m12 ty  m20 m21 m22 tz]
+     */
+    public static void skinLbs4MatrixPalette(float[] matrixPalette12, int[] jointIndices, float[] jointWeights,
+            float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
+        for (int i = 0; i < count; i++) {
+            int base = i << 2;
+            float x = inX[i];
+            float y = inY[i];
+            float z = inZ[i];
+
+            int j0 = jointIndices[base] * 12;
+            int j1 = jointIndices[base + 1] * 12;
+            int j2 = jointIndices[base + 2] * 12;
+            int j3 = jointIndices[base + 3] * 12;
+
+            float w0 = jointWeights[base];
+            float w1 = jointWeights[base + 1];
+            float w2 = jointWeights[base + 2];
+            float w3 = jointWeights[base + 3];
+
+            float ox = 0.0f;
+            float oy = 0.0f;
+            float oz = 0.0f;
+
+            ox += (matrixPalette12[j0] * x + matrixPalette12[j0 + 1] * y + matrixPalette12[j0 + 2] * z + matrixPalette12[j0 + 3]) * w0;
+            oy += (matrixPalette12[j0 + 4] * x + matrixPalette12[j0 + 5] * y + matrixPalette12[j0 + 6] * z + matrixPalette12[j0 + 7]) * w0;
+            oz += (matrixPalette12[j0 + 8] * x + matrixPalette12[j0 + 9] * y + matrixPalette12[j0 + 10] * z + matrixPalette12[j0 + 11]) * w0;
+
+            ox += (matrixPalette12[j1] * x + matrixPalette12[j1 + 1] * y + matrixPalette12[j1 + 2] * z + matrixPalette12[j1 + 3]) * w1;
+            oy += (matrixPalette12[j1 + 4] * x + matrixPalette12[j1 + 5] * y + matrixPalette12[j1 + 6] * z + matrixPalette12[j1 + 7]) * w1;
+            oz += (matrixPalette12[j1 + 8] * x + matrixPalette12[j1 + 9] * y + matrixPalette12[j1 + 10] * z + matrixPalette12[j1 + 11]) * w1;
+
+            ox += (matrixPalette12[j2] * x + matrixPalette12[j2 + 1] * y + matrixPalette12[j2 + 2] * z + matrixPalette12[j2 + 3]) * w2;
+            oy += (matrixPalette12[j2 + 4] * x + matrixPalette12[j2 + 5] * y + matrixPalette12[j2 + 6] * z + matrixPalette12[j2 + 7]) * w2;
+            oz += (matrixPalette12[j2 + 8] * x + matrixPalette12[j2 + 9] * y + matrixPalette12[j2 + 10] * z + matrixPalette12[j2 + 11]) * w2;
+
+            ox += (matrixPalette12[j3] * x + matrixPalette12[j3 + 1] * y + matrixPalette12[j3 + 2] * z + matrixPalette12[j3 + 3]) * w3;
+            oy += (matrixPalette12[j3 + 4] * x + matrixPalette12[j3 + 5] * y + matrixPalette12[j3 + 6] * z + matrixPalette12[j3 + 7]) * w3;
+            oz += (matrixPalette12[j3 + 8] * x + matrixPalette12[j3 + 9] * y + matrixPalette12[j3 + 10] * z + matrixPalette12[j3 + 11]) * w3;
+
+            outX[i] = ox;
+            outY[i] = oy;
+            outZ[i] = oz;
+        }
+    }
+
     private static void skinLbs4Single(TransformSoA joints, int j0, int j1, int j2, int j3, float w0, float w1, float w2, float w3, float x, float y,
             float z, float[] outX, float[] outY, float[] outZ, int i) {
         float ox = 0.0f;

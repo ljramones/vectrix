@@ -17,6 +17,7 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.vectrix.affine.Transformf;
+import org.vectrix.gpu.GpuTransformWriteKernels;
 import org.vectrix.gpu.GpuTransformLayout;
 
 @State(Scope.Benchmark)
@@ -30,6 +31,7 @@ public class GpuLayoutBenchmark extends ThroughputBenchmark {
     private GpuTransformLayout compact;
     private ByteBuffer fullBuf;
     private ByteBuffer compactBuf;
+    private int[] identityOrder;
 
     @Setup
     public void setup() {
@@ -46,21 +48,21 @@ public class GpuLayoutBenchmark extends ThroughputBenchmark {
         compact = GpuTransformLayout.compactTRS();
         fullBuf = ByteBuffer.allocate(full.requiredBytes(count)).order(ByteOrder.LITTLE_ENDIAN);
         compactBuf = ByteBuffer.allocate(compact.requiredBytes(count)).order(ByteOrder.LITTLE_ENDIAN);
+        identityOrder = new int[count];
+        for (int i = 0; i < count; i++) {
+            identityOrder[i] = i;
+        }
     }
 
     @Benchmark
     public ByteBuffer writeFullFloat() {
-        for (int i = 0; i < count; i++) {
-            full.write(fullBuf, i, transforms[i]);
-        }
+        GpuTransformWriteKernels.writeFloatTrs(full, transforms, identityOrder, fullBuf, count);
         return fullBuf;
     }
 
     @Benchmark
     public ByteBuffer writeCompactPacked() {
-        for (int i = 0; i < count; i++) {
-            compact.write(compactBuf, i, transforms[i]);
-        }
+        GpuTransformWriteKernels.writeCompactTrs(compact, transforms, identityOrder, compactBuf, count);
         return compactBuf;
     }
 }

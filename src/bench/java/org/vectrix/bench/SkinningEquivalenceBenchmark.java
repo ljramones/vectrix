@@ -13,6 +13,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.vectrix.affine.RigidTransformf;
 import org.vectrix.core.Matrix4f;
+import org.vectrix.soa.SkinningKernels;
 import org.vectrix.soa.TransformSoA;
 
 import java.util.SplittableRandom;
@@ -27,13 +28,14 @@ public class SkinningEquivalenceBenchmark extends ThroughputBenchmark {
     @Param({"32", "128", "512"})
     public int paletteSize;
 
-    @Param({"legacyLbs", "kernelLbs"})
+    @Param({"legacyLbs", "kernelLbs", "kernelMatrixTight"})
     public String path;
 
     @Param({"fullWrite", "blackholeOnly"})
     public String writeMode;
 
     private Matrix4f[] matrixPalette;
+    private float[] matrixPalette12;
     private TransformSoA rigidPalette;
 
     private int[] jointIndices;
@@ -48,6 +50,7 @@ public class SkinningEquivalenceBenchmark extends ThroughputBenchmark {
     @Setup
     public void setup() {
         matrixPalette = new Matrix4f[paletteSize];
+        matrixPalette12 = new float[paletteSize * 12];
         rigidPalette = new TransformSoA(paletteSize);
 
         jointIndices = new int[vertices * 4];
@@ -69,6 +72,19 @@ public class SkinningEquivalenceBenchmark extends ThroughputBenchmark {
             rt.rotation.identity().rotateXYZ((float) rnd.nextDouble(-1.0, 1.0), (float) rnd.nextDouble(-1.0, 1.0), (float) rnd.nextDouble(-1.0, 1.0));
 
             matrixPalette[j] = new Matrix4f().translationRotate(rt.translation, rt.rotation);
+            int o = j * 12;
+            matrixPalette12[o] = matrixPalette[j].m00();
+            matrixPalette12[o + 1] = matrixPalette[j].m01();
+            matrixPalette12[o + 2] = matrixPalette[j].m02();
+            matrixPalette12[o + 3] = matrixPalette[j].m30();
+            matrixPalette12[o + 4] = matrixPalette[j].m10();
+            matrixPalette12[o + 5] = matrixPalette[j].m11();
+            matrixPalette12[o + 6] = matrixPalette[j].m12();
+            matrixPalette12[o + 7] = matrixPalette[j].m31();
+            matrixPalette12[o + 8] = matrixPalette[j].m20();
+            matrixPalette12[o + 9] = matrixPalette[j].m21();
+            matrixPalette12[o + 10] = matrixPalette[j].m22();
+            matrixPalette12[o + 11] = matrixPalette[j].m32();
             rigidPalette.tx[j] = rt.translation.x;
             rigidPalette.ty[j] = rt.translation.y;
             rigidPalette.tz[j] = rt.translation.z;
@@ -107,6 +123,9 @@ public class SkinningEquivalenceBenchmark extends ThroughputBenchmark {
 
     @Benchmark
     public float skinningEquivalent() {
+        if ("kernelMatrixTight".equals(path)) {
+            return kernelMatrixTightLoop();
+        }
         if ("kernelLbs".equals(path)) {
             return kernelLoop();
         }
@@ -191,6 +210,18 @@ public class SkinningEquivalenceBenchmark extends ThroughputBenchmark {
             }
         }
         return write ? outX[vertices - 1] + outY[vertices - 1] + outZ[vertices - 1] : acc;
+    }
+
+    private float kernelMatrixTightLoop() {
+        SkinningKernels.skinLbs4MatrixPalette(matrixPalette12, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
+        if ("fullWrite".equals(writeMode)) {
+            return outX[vertices - 1] + outY[vertices - 1] + outZ[vertices - 1];
+        }
+        float acc = 0.0f;
+        for (int i = 0; i < vertices; i++) {
+            acc += outX[i] + outY[i] + outZ[i];
+        }
+        return acc;
     }
 
     private float influence(int j, float w, float x, float y, float z) {

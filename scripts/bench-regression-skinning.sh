@@ -17,3 +17,9 @@ RESULT_BASENAME=regression-skinning-lbs4vector \
 BENCH_REGEX='org.vectrix.bench.SkinningKernelBenchmark.skinLbs4Vector$' \
 JMH_EXTRA='-p vertices=16384 -p paletteAccess=contiguous,random -p paletteSize=64' \
 "$RUN"
+
+BENCH_PROFILE=regression \
+RESULT_BASENAME=regression-skinning-equivalence \
+BENCH_REGEX='org.vectrix.bench.SkinningEquivalenceBenchmark.skinningEquivalent$' \
+JMH_EXTRA='-p vertices=16384 -p paletteSize=512 -p writeMode=fullWrite -p path=legacyLbs,kernelMatrixTight,kernelLbs' \
+"$RUN"

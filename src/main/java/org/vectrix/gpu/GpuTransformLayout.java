@@ -70,30 +70,36 @@ public final class GpuTransformLayout {
         return count * strideBytes;
     }
 
-    public void write(ByteBuffer dst, int index, Transformf transform) {
+    public void writeFloatTrs(ByteBuffer dst, int index, Transformf transform) {
         int base = index * strideBytes;
         dst.putFloat(base + translationOffset, transform.translation.x);
         dst.putFloat(base + translationOffset + 4, transform.translation.y);
         dst.putFloat(base + translationOffset + 8, transform.translation.z);
+        dst.putFloat(base + rotationOffset, transform.rotation.x);
+        dst.putFloat(base + rotationOffset + 4, transform.rotation.y);
+        dst.putFloat(base + rotationOffset + 8, transform.rotation.z);
+        dst.putFloat(base + rotationOffset + 12, transform.rotation.w);
+        dst.putFloat(base + scaleOffset, transform.scale.x);
+        dst.putFloat(base + scaleOffset + 4, transform.scale.y);
+        dst.putFloat(base + scaleOffset + 8, transform.scale.z);
+    }
 
-        if (rotationEncoding == RotationEncoding.FLOAT4) {
-            dst.putFloat(base + rotationOffset, transform.rotation.x);
-            dst.putFloat(base + rotationOffset + 4, transform.rotation.y);
-            dst.putFloat(base + rotationOffset + 8, transform.rotation.z);
-            dst.putFloat(base + rotationOffset + 12, transform.rotation.w);
-        } else {
-            long packed = QuatCompression.packSmallest3(transform.rotation);
-            dst.putLong(base + rotationOffset, packed);
-        }
+    public void writeCompactTrs(ByteBuffer dst, int index, Transformf transform) {
+        int base = index * strideBytes;
+        dst.putFloat(base + translationOffset, transform.translation.x);
+        dst.putFloat(base + translationOffset + 4, transform.translation.y);
+        dst.putFloat(base + translationOffset + 8, transform.translation.z);
+        dst.putLong(base + rotationOffset, QuatCompression.packSmallest3(transform.rotation));
+        dst.putShort(base + scaleOffset, Half.pack(transform.scale.x));
+        dst.putShort(base + scaleOffset + 2, Half.pack(transform.scale.y));
+        dst.putShort(base + scaleOffset + 4, Half.pack(transform.scale.z));
+    }
 
-        if (scaleEncoding == ScaleEncoding.FLOAT3) {
-            dst.putFloat(base + scaleOffset, transform.scale.x);
-            dst.putFloat(base + scaleOffset + 4, transform.scale.y);
-            dst.putFloat(base + scaleOffset + 8, transform.scale.z);
+    public void write(ByteBuffer dst, int index, Transformf transform) {
+        if (rotationEncoding == RotationEncoding.FLOAT4 && scaleEncoding == ScaleEncoding.FLOAT3) {
+            writeFloatTrs(dst, index, transform);
         } else {
-            dst.putShort(base + scaleOffset, Half.pack(transform.scale.x));
-            dst.putShort(base + scaleOffset + 2, Half.pack(transform.scale.y));
-            dst.putShort(base + scaleOffset + 4, Half.pack(transform.scale.z));
+            writeCompactTrs(dst, index, transform);
         }
     }
 }

@@ -216,6 +216,10 @@ Focused gate suite for current skinning policy:
 - `regression-skinning-lbs4vector`:
   - `SkinningKernelBenchmark.skinLbs4Vector`
   - same params, tracked as experimental target.
+- `regression-skinning-equivalence`:
+  - `SkinningEquivalenceBenchmark.skinningEquivalent`
+  - params: `vertices=16384`, `paletteSize=512`, `writeMode=fullWrite`, `path=legacyLbs,kernelMatrixTight,kernelLbs`
+  - intent: protect stripped matrix-palette tight baseline and monitor `kernelLbs` as non-default comparator.
 
 ## Integration Regression Gate
 Composed-path gate to protect runtime doctrine under end-to-end flow:

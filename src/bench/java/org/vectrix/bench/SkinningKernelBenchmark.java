@@ -42,6 +42,7 @@ public class SkinningKernelBenchmark extends ThroughputBenchmark {
     private float[] w0, w1, w2, w3;
     private float[] inX, inY, inZ;
     private float[] outX, outY, outZ;
+    private float[] matrixPalette12;
 
     @Setup
     public void setup() {
@@ -66,6 +67,7 @@ public class SkinningKernelBenchmark extends ThroughputBenchmark {
         outX = new float[vertices];
         outY = new float[vertices];
         outZ = new float[vertices];
+        matrixPalette12 = new float[JOINTS * 12];
 
         SplittableRandom rnd = new SplittableRandom(7L);
         RigidTransformf r = new RigidTransformf();
@@ -80,6 +82,35 @@ public class SkinningKernelBenchmark extends ThroughputBenchmark {
             jointRigid.qy[j] = r.rotation.y;
             jointRigid.qz[j] = r.rotation.z;
             jointRigid.qw[j] = r.rotation.w;
+            float qx = r.rotation.x;
+            float qy = r.rotation.y;
+            float qz = r.rotation.z;
+            float qw = r.rotation.w;
+            float dqx = qx + qx;
+            float dqy = qy + qy;
+            float dqz = qz + qz;
+            float q00 = dqx * qx;
+            float q11 = dqy * qy;
+            float q22 = dqz * qz;
+            float q01 = dqx * qy;
+            float q02 = dqx * qz;
+            float q03 = dqx * qw;
+            float q12 = dqy * qz;
+            float q13 = dqy * qw;
+            float q23 = dqz * qw;
+            int o = j * 12;
+            matrixPalette12[o] = 1.0f - (q11 + q22);
+            matrixPalette12[o + 1] = q01 + q23;
+            matrixPalette12[o + 2] = q02 - q13;
+            matrixPalette12[o + 3] = r.translation.x;
+            matrixPalette12[o + 4] = q01 - q23;
+            matrixPalette12[o + 5] = 1.0f - (q22 + q00);
+            matrixPalette12[o + 6] = q12 + q03;
+            matrixPalette12[o + 7] = r.translation.y;
+            matrixPalette12[o + 8] = q02 + q13;
+            matrixPalette12[o + 9] = q12 - q03;
+            matrixPalette12[o + 10] = 1.0f - (q11 + q00);
+            matrixPalette12[o + 11] = r.translation.z;
             dq.setFromRigid(r);
             jointDualQuat.set(j, dq);
         }
@@ -168,6 +199,12 @@ public class SkinningKernelBenchmark extends ThroughputBenchmark {
     @Benchmark
     public float[] skinDualQuat4() {
         SkinningKernels.skinDualQuat4(jointDualQuat, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
+        return outX;
+    }
+
+    @Benchmark
+    public float[] skinLbs4MatrixPaletteTight() {
+        SkinningKernels.skinLbs4MatrixPalette(matrixPalette12, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
         return outX;
     }
 }

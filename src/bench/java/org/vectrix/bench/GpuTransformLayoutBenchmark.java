@@ -16,6 +16,7 @@ import org.vectrix.affine.PackedAffineKernels;
 import org.vectrix.affine.Transformf;
 import org.vectrix.core.Matrix4f;
 import org.vectrix.gpu.GpuTransformLayout;
+import org.vectrix.gpu.GpuTransformWriteKernels;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -86,6 +87,19 @@ public class GpuTransformLayoutBenchmark extends ThroughputBenchmark {
 
     @Benchmark
     public int writeTransformLayoutPath() {
+        if ("instanceCompact".equals(layout)) {
+            GpuTransformWriteKernels.writeCompactTrs(compactLayout, transforms, order, compactOut, count);
+            return compactOut.getInt(0);
+        }
+        if ("packedAffine".equals(layout) && "packedAffine".equals(sourceRep)) {
+            GpuTransformWriteKernels.writePackedAffine(packed, order, packedOut, count);
+            return Float.floatToRawIntBits(packedOut[0]);
+        }
+        if ("matrix4f".equals(layout) && "packedAffine".equals(sourceRep)) {
+            GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(packed, order, matrixOut, count);
+            return Float.floatToRawIntBits(matrixOut[0]);
+        }
+
         float[] rawPacked = packed.raw();
         int checksum = 0;
         for (int i = 0; i < count; i++) {
@@ -135,24 +149,19 @@ public class GpuTransformLayoutBenchmark extends ThroughputBenchmark {
                 }
                 case "packedAffine": {
                     int dst = i * 12;
-                    if ("matrix".equals(sourceRep)) {
-                        Matrix4f m = matrices[idx];
-                        packedOut[dst] = m.m00();
-                        packedOut[dst + 1] = m.m01();
-                        packedOut[dst + 2] = m.m02();
-                        packedOut[dst + 3] = m.m03();
-                        packedOut[dst + 4] = m.m10();
-                        packedOut[dst + 5] = m.m11();
-                        packedOut[dst + 6] = m.m12();
-                        packedOut[dst + 7] = m.m13();
-                        packedOut[dst + 8] = m.m20();
-                        packedOut[dst + 9] = m.m21();
-                        packedOut[dst + 10] = m.m22();
-                        packedOut[dst + 11] = m.m23();
-                    } else {
-                        int src = idx * 12;
-                        System.arraycopy(rawPacked, src, packedOut, dst, 12);
-                    }
+                    Matrix4f m = matrices[idx];
+                    packedOut[dst] = m.m00();
+                    packedOut[dst + 1] = m.m01();
+                    packedOut[dst + 2] = m.m02();
+                    packedOut[dst + 3] = m.m03();
+                    packedOut[dst + 4] = m.m10();
+                    packedOut[dst + 5] = m.m11();
+                    packedOut[dst + 6] = m.m12();
+                    packedOut[dst + 7] = m.m13();
+                    packedOut[dst + 8] = m.m20();
+                    packedOut[dst + 9] = m.m21();
+                    packedOut[dst + 10] = m.m22();
+                    packedOut[dst + 11] = m.m23();
                     checksum += Float.floatToRawIntBits(packedOut[dst]);
                     break;
                 }
@@ -207,8 +216,7 @@ public class GpuTransformLayoutBenchmark extends ThroughputBenchmark {
                 }
                 case "instanceCompact":
                 default:
-                    compactLayout.write(compactOut, i, transforms[idx]);
-                    checksum += compactOut.getInt(i * compactLayout.strideBytes);
+                    checksum += 0;
                     break;
             }
         }
