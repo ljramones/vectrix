@@ -47,6 +47,8 @@ This folder contains the current project documentation for Vectrix.
   Transform-update + instance-submission subsystem replacement memo (packed default vs matrix fallback).
 - `docs/benchmarking-guide.md`
   How to build, run, profile, normalize, and compare benchmark runs.
+- `docs/perfasm-notes.md`
+  Assembly-level inspection workflow for hot JMH kernels (`-prof perfasm`) and interpretation guardrails.
 - `docs/benchmark-environment.md`
   Recorded benchmark environment and run discipline requirements.
 - `docs/benchmark-modulepath-resolution.md`

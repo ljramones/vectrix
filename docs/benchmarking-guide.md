@@ -75,3 +75,7 @@ Use together with `-Pbench` when building benchmark artifacts.
 ## Named-Module Note
 - The prior `-Pbench` named-module visibility blocker is resolved.
 - Resolution details are documented in [benchmark-modulepath-resolution.md](/Users/larrymitchell/Dynamis/vectrix/docs/benchmark-modulepath-resolution.md).
+
+## Perfasm Notes
+- For assembly-level follow-up on selected kernels, see:
+  - [perfasm-notes.md](/Users/larrymitchell/Dynamis/vectrix/docs/perfasm-notes.md)
