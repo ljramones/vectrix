@@ -54,12 +54,19 @@ This is the current, prominent benchmark snapshot used for runtime policy decisi
   - `benchmarks/results/2026-03-06/subsystem-integration.{json,txt,normalized.csv}`
   - `benchmarks/results/2026-03-06/passG-*.{json,txt,normalized.csv}`
   - `benchmarks/results/2026-03-06/passG-prof-*.{json,txt,normalized.csv}`
+  - `benchmarks/results/2026-03-06/passH-geometry-aabb.{json,txt,normalized.csv}`
+  - `benchmarks/results/2026-03-06/passH-prof-geometry-aabb.{json,txt,normalized.csv}`
+  - `benchmarks/results/2026-03-06/passH-rendering-lut.{json,txt,normalized.csv}`
+  - `benchmarks/results/2026-03-06/passH-prof-rendering-lut.{json,txt,normalized.csv}`
 - Decision memos:
   - `docs/performance-passE-gpu-layout-decision.md`
   - `docs/performance-passE-skinning-resolution.md`
   - `docs/performance-integration-slice-findings.md`
   - `docs/subsystem-integration-memo.md`
   - `docs/performance-passG-ranking.md`
+  - `docs/performance-passH-geometry-findings.md`
+  - `docs/performance-passH-lut-findings.md`
+  - `docs/performance-passH-summary.md`
 
 ## Coverage
 Current benchmark suites (2026-03-06):
