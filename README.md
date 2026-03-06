@@ -7,6 +7,31 @@ Vectrix is a pure Java math kernel for real-time graphics, simulation, and engin
 MIT licensed. JOML lineage attribution is documented in `NOTICE`.
 
 ---
+## Current Benchmarks (Prominent)
+
+Current benchmark inventory and methodology are tracked in [`BENCHMARKS.md`](BENCHMARKS.md), with runnable details in [`docs/benchmarking-guide.md`](docs/benchmarking-guide.md) and environment capture in [`docs/benchmark-environment.md`](docs/benchmark-environment.md).
+
+How results are obtained (current standard path):
+
+```bash
+mvn -q clean package -Pbench -DskipTests
+./scripts/bench-quick.sh
+./scripts/bench-full.sh
+./scripts/bench-prof.sh
+./scripts/bench-normalize.py benchmarks/results/YYYY-MM-DD/full.json
+```
+
+Current benchmark suites include:
+- Core latency/throughput: `JomlBenchmark`, `JomlFmaBenchmark`, `Affine4fBenchmark`, `BatchMatrixBenchmark`, `ReductionBenchmark`
+- Transform/runtime prep: `TransformComposeBenchmark`, `TransformAabbBenchmark`, `PackedAffineConversionBenchmark`, `InstanceUploadBenchmark`, `GpuTransformLayoutBenchmark`
+- Skinning: `SkinningBenchmark`, `SkinningKernelBenchmark`, `SkinningEquivalenceBenchmark`
+- Integration: `IntegrationPipelineBenchmark`, `SubsystemIntegrationBenchmark`
+- Geometry/mesh/culling: `FrustumCullingBenchmark`, `MeshMathBenchmark`
+- GPU/interoperability/memory: `GpuPackingBenchmark`, `GpuLayoutBenchmark`, `StdLayoutBenchmark`, `InteropBenchmark`, `MemoryBackendBenchmark`, `QuatCompressionBenchmark`
+- Rendering math domains: `CurveBenchmark`, `ShBenchmark`, `ShHotPathBenchmark`, `FftBenchmark`, `LtcBenchmark`, `OpticsBenchmark`, `LowDiscrepancyBenchmark`
+- Newly added coverage: `PhysicsMathBenchmark`, `HashBenchmark`, `SdfBenchmark`, `SamplingBenchmark`, `ColorBenchmark`, `EasingBenchmark`, `ParallelTransformBenchmark`
+
+---
 
 ## Design Goals
 

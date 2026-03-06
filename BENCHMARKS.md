@@ -35,23 +35,37 @@ This document defines the benchmark methodology and records current baseline res
   - `./scripts/bench-normalize.py benchmarks/results/YYYY-MM-DD/full.json`
 
 ## Coverage
-- Existing domains:
-  - transforms, culling, GPU packing/layout, skinning, reductions, mesh math
-- Phase 2 kernel expansion:
-  - `TransformAabbBenchmark`
-  - `TransformComposeBenchmark` (TRS/SoA/matrix/affine variants)
-  - `QuatMatrixConversionBenchmark`
-  - `InstanceUploadBenchmark`
-- Added domains in this release:
-  - curves (`CurveBenchmark`)
-  - spherical harmonics (`ShBenchmark`)
-  - FFT/convolution (`FftBenchmark`)
-  - optics (`OpticsBenchmark`)
-  - quaternion rotation hot paths (`QuaternionRotationBenchmark`)
-  - SH zero-allocation paths (`ShHotPathBenchmark`)
-  - LTC table/evaluation (`LtcBenchmark`)
-  - low-discrepancy scrambled Sobol (`LowDiscrepancyBenchmark`)
-  - SoA skinning parity (`SkinningKernelBenchmark`)
+Current benchmark suites (2026-03-06):
+- Core latency/throughput:
+  - `JomlBenchmark`, `JomlFmaBenchmark`, `Affine4fBenchmark`, `BatchMatrixBenchmark`, `ReductionBenchmark`
+- Transform/runtime prep:
+  - `TransformComposeBenchmark`, `TransformAabbBenchmark`, `PackedAffineConversionBenchmark`, `InstanceUploadBenchmark`, `QuatMatrixConversionBenchmark`, `GpuTransformLayoutBenchmark`
+- Skinning:
+  - `SkinningBenchmark`, `SkinningKernelBenchmark`, `SkinningEquivalenceBenchmark`
+- Engine-composed flows:
+  - `IntegrationPipelineBenchmark`, `SubsystemIntegrationBenchmark`
+- Geometry/mesh/culling:
+  - `FrustumCullingBenchmark`, `MeshMathBenchmark`
+- GPU/interoperability/memory:
+  - `GpuPackingBenchmark`, `GpuLayoutBenchmark`, `StdLayoutBenchmark`, `InteropBenchmark`, `MemoryBackendBenchmark`, `QuatCompressionBenchmark`
+- Rendering math domains:
+  - `CurveBenchmark`, `ShBenchmark`, `ShHotPathBenchmark`, `FftBenchmark`, `LtcBenchmark`, `OpticsBenchmark`, `LowDiscrepancyBenchmark`, `QuaternionRotationBenchmark`
+- New expansion suites:
+  - `PhysicsMathBenchmark`, `HashBenchmark`, `SdfBenchmark`, `SamplingBenchmark`, `ColorBenchmark`, `EasingBenchmark`, `ParallelTransformBenchmark`
+
+Acquisition path for the current suite index above:
+- Build benchmark artifact:
+  - `mvn -q clean package -Pbench -DskipTests`
+- Run profiles:
+  - `./scripts/bench-quick.sh`
+  - `./scripts/bench-full.sh`
+  - `./scripts/bench-prof.sh`
+- Normalize and compare:
+  - `./scripts/bench-normalize.py benchmarks/results/YYYY-MM-DD/full.json`
+  - `./scripts/bench-compare.sh <baseline.json> <candidate.json> <thresholds...>`
+- Preserve artifacts:
+  - `benchmarks/results/YYYY-MM-DD/*.json`
+  - `benchmarks/results/YYYY-MM-DD/*.normalized.csv`
 
 ## Current Baseline
 Baseline capture profile used:

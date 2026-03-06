@@ -32,8 +32,11 @@ public class IntegrationPipelineBenchmark extends ThroughputBenchmark {
     @Param({"1024", "8192"})
     public int vertices;
 
-    @Param({"SEQUENTIAL", "RANDOM"})
+    @Param({"SEQUENTIAL", "CLUSTERED", "RANDOM", "COLD_CHUNKED"})
     public String traversalMode;
+
+    @Param({"hot", "cold"})
+    public String workingSet;
 
     private static final int JOINTS = 64;
 
@@ -124,8 +127,14 @@ public class IntegrationPipelineBenchmark extends ThroughputBenchmark {
             maxZ[i] = cz + ez;
             order[i] = i;
         }
-        if ("RANDOM".equals(traversalMode)) {
-            shuffle(order, rnd.split());
+        int[] traversal = buildTraversal(count, traversalMode, 128, rnd.split());
+        if ("cold".equals(workingSet)) {
+            int[] coldMap = buildRandomPermutation(count, rnd.split());
+            for (int i = 0; i < count; i++) {
+                order[i] = coldMap[traversal[i]];
+            }
+        } else {
+            System.arraycopy(traversal, 0, order, 0, count);
         }
 
         RigidTransformf r = new RigidTransformf();
@@ -216,5 +225,59 @@ public class IntegrationPipelineBenchmark extends ThroughputBenchmark {
             a[i] = a[j];
             a[j] = t;
         }
+    }
+
+    private static int[] buildTraversal(int count, String mode, int chunkSize, SplittableRandom rnd) {
+        if ("RANDOM".equals(mode)) {
+            return buildRandomPermutation(count, rnd);
+        }
+        if ("CLUSTERED".equals(mode)) {
+            int[] order = new int[count];
+            int cluster = java.lang.Math.max(8, chunkSize / 2);
+            int p = 0;
+            for (int start = 0; start < count; start += cluster) {
+                int end = java.lang.Math.min(start + cluster, count);
+                for (int i = start; i < end; i++) {
+                    order[p++] = i;
+                }
+            }
+            return order;
+        }
+        if ("COLD_CHUNKED".equals(mode)) {
+            int[] chunks = new int[(count + chunkSize - 1) / chunkSize];
+            for (int i = 0; i < chunks.length; i++) {
+                chunks[i] = i;
+            }
+            for (int i = chunks.length - 1; i > 0; i--) {
+                int j = rnd.nextInt(i + 1);
+                int t = chunks[i];
+                chunks[i] = chunks[j];
+                chunks[j] = t;
+            }
+            int[] order = new int[count];
+            int p = 0;
+            for (int c : chunks) {
+                int start = c * chunkSize;
+                int end = java.lang.Math.min(start + chunkSize, count);
+                for (int i = start; i < end; i++) {
+                    order[p++] = i;
+                }
+            }
+            return order;
+        }
+        int[] order = new int[count];
+        for (int i = 0; i < count; i++) {
+            order[i] = i;
+        }
+        return order;
+    }
+
+    private static int[] buildRandomPermutation(int count, SplittableRandom rnd) {
+        int[] order = new int[count];
+        for (int i = 0; i < count; i++) {
+            order[i] = i;
+        }
+        shuffle(order, rnd);
+        return order;
     }
 }
