@@ -53,8 +53,10 @@ Method naming rules:
 3. Confirm architecture choices with Tier D kernel benchmarks.
 4. Record selected policies and thresholds in dedicated docs:
    - `docs/transform-representation-policy.md`
+   - `docs/transform-materialization-audit.md`
    - `docs/memory-backend-policy.md`
    - `docs/skinning-runtime-policy.md`
+   - `docs/hot-path-policy.md`
 
 ## Phase Commit Rule
 Each performance phase ends with a local commit on `main` and no push until explicitly requested.

@@ -13,8 +13,16 @@ This folder contains the current project documentation for Vectrix.
   Public/internal API stability and compatibility expectations.
 - `docs/performance-strategy.md`
   Performance charter, benchmark tier taxonomy, and naming conventions.
+- `docs/transform-representation-policy.md`
+  Runtime/default transform form policy (TRS, packed affine, boundary matrix usage).
+- `docs/skinning-runtime-policy.md`
+  Default versus quality skinning runtime policy and measurement priorities.
+- `docs/hot-path-policy.md`
+  Enforceable rules for batch-first, locality-first hot code.
 - `docs/performance-phase2-findings.md`
   Initial Phase 2 benchmark coverage and early representation observations.
+- `docs/performance-phase2-decision-memo.md`
+  Constrained full-run observations and architecture recommendations.
 - `docs/benchmarking-guide.md`
   How to build, run, profile, normalize, and compare benchmark runs.
 - `docs/benchmark-environment.md`
@@ -27,6 +35,8 @@ This folder contains the current project documentation for Vectrix.
   Educational guide for non-expert users (what the tech is and when to use it).
 
 ## Supporting Docs
+- `docs/transform-materialization-audit.md`
+  Initial classification of transform materialization APIs by boundary/hot-path intent.
 - `docs/v1-readiness-checklist.md`
   Final V1 readiness status snapshot (kept for release tracking history).
 - `docs/rendering-roadmap.md`
