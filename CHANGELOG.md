@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
+## [Unreleased]
+### Added
+- Engine-style composed performance coverage:
+  - `IntegrationPipelineBenchmark`
+  - `SubsystemIntegrationBenchmark`
+- Expanded benchmark suites for runtime and domain coverage:
+  - `GpuTransformLayoutBenchmark`, `SkinningEquivalenceBenchmark`
+  - `PhysicsMathBenchmark`, `HashBenchmark`, `SdfBenchmark`
+  - `SamplingBenchmark`, `ColorBenchmark`, `EasingBenchmark`, `ParallelTransformBenchmark`
+- Runtime subsystem path implementation with packed-affine default and matrix fallback:
+  - `org.vectrix.gpu.InstanceSubmissionPipeline`
+- Specialized GPU write kernels:
+  - `org.vectrix.gpu.GpuTransformWriteKernels`
+- Tight matrix-palette skinning support:
+  - `SkinningKernels.skinLbs4MatrixPalette(...)`
+  - `SkinningKernels.buildRigidMatrixPalette12(...)`
+- Additional regression gating scripts and benchmark guard coverage:
+  - `scripts/bench-regression-phaseb.sh`
+  - `scripts/bench-regression-skinning.sh`
+  - `scripts/bench-regression-integration.sh`
+- New performance documentation artifacts:
+  - `docs/performance-showcase.md`
+  - `docs/performance-state-of-the-union.md`
+  - `docs/engine-runtime-defaults.md`
+  - Pass B/C/E decision/findings memos and subsystem integration memo
+
+### Changed
+- Runtime/default doctrine is now explicitly benchmark-driven:
+  - packed-affine default for bulk transform/update/upload
+  - matrix paths retained for fallback/interoperability
+  - matrix-palette tight LBS promoted as default CPU skinning baseline
+- `BENCHMARKS.md` now includes a prominent current benchmark snapshot and acquisition path.
+- `README.md` and docs index were updated to surface benchmark methodology and the performance showcase.
+
+### Fixed
+- Resolved benchmark execution reliability under named-module `-Pbench` workflow and documented the approach.
+- Closed skinning equivalence ambiguity by introducing and validating the `kernelMatrixTight` path as the fastest measured baseline shape.
+
 ## [1.10.13] - 2026-02-25
 ### Fixed
 - Fixes invalid consumer POM metadata (`systemPath` profile removed).
