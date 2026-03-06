@@ -37,6 +37,10 @@ This folder contains the current project documentation for Vectrix.
   Consolidated Pass E hotspot resolution summary and promoted defaults.
 - `docs/performance-showcase.md`
   One-page evidence summary of runtime defaults, key benchmark wins, and regression discipline.
+- `docs/why-vectrix-is-fast.md`
+  Concise technical explainer of the mechanisms behind current Vectrix performance.
+- `docs/benchmark-dashboard-summary.md`
+  Compact scorecard of architecture-defining kernel deltas and active regression gates.
 - `docs/performance-integration-slice-findings.md`
   End-to-end composed-path validation of transform/skinning/upload winners.
 - `docs/engine-runtime-defaults.md`

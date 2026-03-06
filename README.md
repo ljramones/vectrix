@@ -232,6 +232,8 @@ src/main/java/org/vectrix/
 | [`docs/vectrix-capabilities.md`](docs/vectrix-capabilities.md) | Complete capability inventory by consumer domain |
 | [`docs/technology-explainer.md`](docs/technology-explainer.md) | Educational deep dive for non-expert users |
 | [`docs/performance-showcase.md`](docs/performance-showcase.md) | Concise performance evidence summary and runtime doctrine |
+| [`docs/why-vectrix-is-fast.md`](docs/why-vectrix-is-fast.md) | Short technical explainer of why the current kernels are fast |
+| [`docs/benchmark-dashboard-summary.md`](docs/benchmark-dashboard-summary.md) | Quick scorecard of current defaults, deltas, and gate coverage |
 | [`BENCHMARKS.md`](BENCHMARKS.md) | Benchmark methodology and normalized results |
 | [`docs/conventions.md`](docs/conventions.md) | API and math conventions |
 | [`docs/api-policy.md`](docs/api-policy.md) | Stability and compatibility policy |
