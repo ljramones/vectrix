@@ -52,11 +52,14 @@ This is the current, prominent benchmark snapshot used for runtime policy decisi
   - `benchmarks/results/2026-03-06/passE-skinning-equivalence.{json,txt,normalized.csv}`
   - `benchmarks/results/2026-03-06/integration-slice.{json,txt,normalized.csv}`
   - `benchmarks/results/2026-03-06/subsystem-integration.{json,txt,normalized.csv}`
+  - `benchmarks/results/2026-03-06/passG-*.{json,txt,normalized.csv}`
+  - `benchmarks/results/2026-03-06/passG-prof-*.{json,txt,normalized.csv}`
 - Decision memos:
   - `docs/performance-passE-gpu-layout-decision.md`
   - `docs/performance-passE-skinning-resolution.md`
   - `docs/performance-integration-slice-findings.md`
   - `docs/subsystem-integration-memo.md`
+  - `docs/performance-passG-ranking.md`
 
 ## Coverage
 Current benchmark suites (2026-03-06):
@@ -76,6 +79,7 @@ Current benchmark suites (2026-03-06):
   - `CurveBenchmark`, `ShBenchmark`, `ShHotPathBenchmark`, `FftBenchmark`, `LtcBenchmark`, `OpticsBenchmark`, `LowDiscrepancyBenchmark`, `QuaternionRotationBenchmark`
 - New expansion suites:
   - `PhysicsMathBenchmark`, `HashBenchmark`, `SdfBenchmark`, `SamplingBenchmark`, `ColorBenchmark`, `EasingBenchmark`, `ParallelTransformBenchmark`
+  - `RenderingMathBenchmark`, `GeometryIntersectionBenchmark`, `SimdSupportBenchmark`, `FrustumRayBuilderBenchmark`, `CoreBatchUtilityBenchmark`
 
 ## Benchmark Coverage Gaps (Current)
 ### Covered Well
@@ -83,22 +87,18 @@ Current benchmark suites (2026-03-06):
 - GPU upload/layout staging
 - skinning kernel families and equivalence checks
 - composed integration and subsystem paths
+- renderingmath coverage (`Interpolation*`, `BentNormalCone*`, LUT builders)
+- geometry intersection helpers (`Intersection*`, `RayAabIntersection`, `PolygonsIntersection`, `FrustumRayBuilder`)
+- direct SIMD package behavior (`Vector4fa`, `SimdSupport`)
 
 ### Partially Covered
-- geometry (frustum + mesh covered; broader intersection helpers not fully covered)
-- core (broad primitives exist; curated batch utility coverage still incomplete)
+- core (curated batch utility coverage exists; deeper integrator/controller families still selective)
+- physics/hash/SDF/sampling/color/easing are benchmarked but not deeply profiled across all workload shapes
 
-### Not Directly Covered Yet
-- `renderingmath` package (`Interpolation*`, `BentNormalCone*`, LUT builders)
-- direct `simd` package behavior (`Vector4fa`, `SimdSupport`) as first-class JMH targets
-- selected geometry helpers (`Intersection*`, `RayAabIntersection`, `PolygonsIntersection`, `FrustumRayBuilder`)
-
-### Next Planned Benchmark Suites (Priority Order)
-1. `RenderingMathBenchmark`
-2. `GeometryIntersectionBenchmark`
-3. `SimdSupportBenchmark`
-4. `FrustumRayBuilderBenchmark`
-5. `CoreBatchUtilityBenchmark` (curated, batch-relevant subset only)
+### Remaining Notable Gaps
+1. wider renderingmath kernel shapes beyond current representative methods
+2. broader core batch coverage for upcoming runtime integrator/controller usage
+3. deeper parallel/scaling sweeps for newly added suites
 
 ### Triage Rule For New Suites
 Every new suite should end with one classification:
