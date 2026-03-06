@@ -15,6 +15,7 @@
   - `./scripts/bench-regression-phaseb.sh`
   - `./scripts/bench-regression-skinning.sh`
   - `./scripts/bench-regression-integration.sh`
+  - `./scripts/bench-regression-passh.sh`
 
 All profile scripts call `scripts/bench-run.sh` and write outputs to:
 - `benchmarks/results/YYYY-MM-DD/<profile>.json`
@@ -62,6 +63,18 @@ This emits:
 Recommended baseline compare commands:
 - `tools/bench-compare benchmarks/baselines/regression-phaseb-aabb.json benchmarks/results/YYYY-MM-DD/regression-phaseb-aabb.json`
 - `tools/bench-compare benchmarks/baselines/regression-phaseb-upload.json benchmarks/results/YYYY-MM-DD/regression-phaseb-upload.json`
+
+## Pass H Gate Set
+Use Pass H gate suite to protect the new geometry and SSS-LUT winners:
+- `./scripts/bench-regression-passh.sh`
+
+This emits:
+- `benchmarks/results/YYYY-MM-DD/regression-passh-geometry-rayaab.json`
+- `benchmarks/results/YYYY-MM-DD/regression-passh-sss-lut.json`
+
+Recommended baseline compare commands:
+- `tools/bench-compare benchmarks/baselines/regression-passh-geometry-rayaab.json benchmarks/results/YYYY-MM-DD/regression-passh-geometry-rayaab.json`
+- `tools/bench-compare benchmarks/baselines/regression-passh-sss-lut.json benchmarks/results/YYYY-MM-DD/regression-passh-sss-lut.json`
 
 ## Maven Benchmark Preset Profiles
 The project exposes benchmark preset profiles for repeatable settings:

@@ -21,6 +21,7 @@ This document defines the benchmark methodology and records current baseline res
   - `./scripts/bench-regression-phaseb.sh`
   - `./scripts/bench-regression-skinning.sh`
   - `./scripts/bench-regression-integration.sh`
+  - `./scripts/bench-regression-passh.sh`
 - Standard profile defaults:
   - `quick`: `f=1 wi=3 i=5`
   - `full`: `f=3 wi=6 i=10`
@@ -287,3 +288,14 @@ Composed-path gate to protect runtime doctrine under end-to-end flow:
   - `IntegrationPipelineBenchmark.integrationPackedPipeline`
   - `IntegrationPipelineBenchmark.integrationMatrixPipeline`
   - params: `count=16384`, `vertices=4096`, `traversalMode=SEQUENTIAL,RANDOM`
+
+## Pass H Regression Gates
+Focused gate suite for Pass H winners:
+- `regression-passh-geometry-rayaab`:
+  - `GeometryIntersectionBenchmark.rayAabBatch`
+  - params: `count=16384`, `precision=float`, `distribution=missHeavy`, `accessPattern=random`, `verts=16`
+  - intent: protect miss-heavy/scattered ray-AABB win.
+- `regression-passh-sss-lut`:
+  - `RenderingMathBenchmark.buildSssLut`
+  - params: `count=1024`, `precision=float`, `mode=arrayBatch`, `distribution=uniform`, `accessPattern=sequential`, `resolution=64`, `quality=medium`
+  - intent: protect SSS LUT invariant-hoisting win on comparable shape.
