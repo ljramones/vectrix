@@ -43,6 +43,12 @@ public class GeometryIntersectionBenchmark extends ThroughputBenchmark {
     private float[] dx;
     private float[] dy;
     private float[] dz;
+    private float[] invDx;
+    private float[] invDy;
+    private float[] invDz;
+    private double[] invDxD;
+    private double[] invDyD;
+    private double[] invDzD;
 
     private float[] minX;
     private float[] minY;
@@ -77,6 +83,12 @@ public class GeometryIntersectionBenchmark extends ThroughputBenchmark {
         dx = new float[count];
         dy = new float[count];
         dz = new float[count];
+        invDx = new float[count];
+        invDy = new float[count];
+        invDz = new float[count];
+        invDxD = new double[count];
+        invDyD = new double[count];
+        invDzD = new double[count];
 
         minX = new float[count];
         minY = new float[count];
@@ -140,6 +152,12 @@ public class GeometryIntersectionBenchmark extends ThroughputBenchmark {
                 dy[i] = 0.7f;
                 dz[i] = 0.3f;
             }
+            invDx[i] = 1.0f / dx[i];
+            invDy[i] = 1.0f / dy[i];
+            invDz[i] = 1.0f / dz[i];
+            invDxD[i] = 1.0d / dx[i];
+            invDyD[i] = 1.0d / dy[i];
+            invDzD[i] = 1.0d / dz[i];
 
             slopeIntersectors[i] = new RayAabIntersection(ox[i], oy[i], oz[i], dx[i], dy[i], dz[i]);
             order[i] = i;
@@ -210,6 +228,28 @@ public class GeometryIntersectionBenchmark extends ThroughputBenchmark {
         for (int i = 0; i < count; i++) {
             int idx = order[i];
             boolean hit = slopeIntersectors[idx].test(minX[idx], minY[idx], minZ[idx], maxX[idx], maxY[idx], maxZ[idx]);
+            hits += hit ? 1 : 0;
+        }
+        return hits;
+    }
+
+    @Benchmark
+    public int rayAabInvDirBatch() {
+        int hits = 0;
+        for (int i = 0; i < count; i++) {
+            int idx = order[i];
+            boolean hit;
+            if ("double".equals(precision)) {
+                hit = Intersectiond.testRayAabInvDir(
+                        ox[idx], oy[idx], oz[idx],
+                        invDxD[idx], invDyD[idx], invDzD[idx],
+                        minX[idx], minY[idx], minZ[idx], maxX[idx], maxY[idx], maxZ[idx]);
+            } else {
+                hit = Intersectionf.testRayAabInvDir(
+                        ox[idx], oy[idx], oz[idx],
+                        invDx[idx], invDy[idx], invDz[idx],
+                        minX[idx], minY[idx], minZ[idx], maxX[idx], maxY[idx], maxZ[idx]);
+            }
             hits += hit ? 1 : 0;
         }
         return hits;

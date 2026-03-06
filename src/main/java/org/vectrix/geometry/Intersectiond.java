@@ -2454,7 +2454,50 @@ public class Intersectiond {
      */
     public static boolean testRayAab(double originX, double originY, double originZ, double dirX, double dirY, double dirZ,
             double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
+        // Fast miss rejection when the ray starts outside and points away from a slab.
+        if ((originX < minX && dirX <= 0.0) || (originX > maxX && dirX >= 0.0)
+                || (originY < minY && dirY <= 0.0) || (originY > maxY && dirY >= 0.0)
+                || (originZ < minZ && dirZ <= 0.0) || (originZ > maxZ && dirZ >= 0.0)) {
+            return false;
+        }
         double invDirX = 1.0 / dirX, invDirY = 1.0 / dirY, invDirZ = 1.0 / dirZ;
+        return testRayAabInvDir(originX, originY, originZ, invDirX, invDirY, invDirZ, minX, minY, minZ, maxX, maxY, maxZ);
+    }
+
+    /**
+     * Like {@link #testRayAab(double, double, double, double, double, double, double, double, double, double, double, double)}
+     * but with precomputed inverse direction values.
+     * <p>
+     * This overload is intended for batch kernels testing many boxes against the same or preprocessed rays.
+     *
+     * @param originX
+     *              the x coordinate of the ray's origin
+     * @param originY
+     *              the y coordinate of the ray's origin
+     * @param originZ
+     *              the z coordinate of the ray's origin
+     * @param invDirX
+     *              the inverse x coordinate of the ray's direction
+     * @param invDirY
+     *              the inverse y coordinate of the ray's direction
+     * @param invDirZ
+     *              the inverse z coordinate of the ray's direction
+     * @param minX
+     *              the x coordinate of the minimum corner of the axis-aligned box
+     * @param minY
+     *              the y coordinate of the minimum corner of the axis-aligned box
+     * @param minZ
+     *              the z coordinate of the minimum corner of the axis-aligned box
+     * @param maxX
+     *              the x coordinate of the maximum corner of the axis-aligned box
+     * @param maxY
+     *              the y coordinate of the maximum corner of the axis-aligned box
+     * @param maxZ
+     *              the y coordinate of the maximum corner of the axis-aligned box
+     * @return <code>true</code> if the given ray intersects the axis-aligned box; <code>false</code> otherwise
+     */
+    public static boolean testRayAabInvDir(double originX, double originY, double originZ, double invDirX, double invDirY, double invDirZ,
+            double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
         double tNear, tFar, tymin, tymax, tzmin, tzmax;
         if (invDirX >= 0.0) {
             tNear = (minX - originX) * invDirX;
