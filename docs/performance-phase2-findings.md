@@ -1,4 +1,4 @@
-# Phase 2 Findings (Initial)
+# Phase 2 Findings (Updated)
 
 Date: 2026-03-05
 
@@ -21,11 +21,20 @@ Date: 2026-03-05
 ## Status
 - Harness and benchmark classes are in place for Phase 2 measurements.
 - Named-module JMH packaging blocker is resolved (see `docs/benchmark-modulepath-resolution.md`).
+- Constrained `bench-full` run completed for:
+  - `BatchMatrixBenchmark`
+  - `TransformComposeBenchmark`
+  - `QuatMatrixConversionBenchmark`
+  - `TransformAabbBenchmark`
+  - `InstanceUploadBenchmark`
+  - `SkinningBenchmark`
+  - `SkinningKernelBenchmark`
+- Decision-quality memo and normalized summary produced:
+  - `docs/performance-phase2-decision-memo.md`
+  - `benchmarks/results/2026-03-05/phase2-summary.csv`
 
-## Next Measurement Pass (after blocker fix)
-- Run `quick`, `full`, and `prof` profiles for all Phase 2 kernels.
-- Normalize outputs with `scripts/bench-normalize.py`.
-- Produce comparative per-item scaling tables for:
-  - matrix vs affine AABB transforms
-  - matrix vs affine vs TRS composition paths
-  - full-matrix upload vs packed-affine upload
+## Next Measurement Pass
+- Expand focused profiling (`bench-prof`) for:
+  - large-size SoA vector transform behavior
+  - cache-cold AABB and upload kernels
+  - skinning palette-access variants
