@@ -35,6 +35,8 @@ This folder contains the current project documentation for Vectrix.
   Initial Pass C skinning implementation outcomes and decisions.
 - `docs/performance-integration-slice-findings.md`
   End-to-end composed-path validation of transform/skinning/upload winners.
+- `docs/engine-runtime-defaults.md`
+  Current default runtime doctrine (bulk transforms, upload, skinning, experimental paths).
 - `docs/benchmarking-guide.md`
   How to build, run, profile, normalize, and compare benchmark runs.
 - `docs/benchmark-environment.md`

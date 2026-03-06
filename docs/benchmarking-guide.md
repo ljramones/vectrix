@@ -14,6 +14,7 @@
   - `./scripts/bench-regression.sh`
   - `./scripts/bench-regression-phaseb.sh`
   - `./scripts/bench-regression-skinning.sh`
+  - `./scripts/bench-regression-integration.sh`
 
 All profile scripts call `scripts/bench-run.sh` and write outputs to:
 - `benchmarks/results/YYYY-MM-DD/<profile>.json`

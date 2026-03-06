@@ -57,6 +57,7 @@ Method naming rules:
    - `docs/memory-backend-policy.md`
    - `docs/skinning-runtime-policy.md`
    - `docs/hot-path-policy.md`
+   - `docs/engine-runtime-defaults.md`
 
 ## Golden Kernels
 These kernels are currently treated as architecture-defining hot paths and should remain explicitly protected by regression gates:
