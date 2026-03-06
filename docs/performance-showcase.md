@@ -37,6 +37,8 @@ Primary result artifacts:
 2. `benchmarks/results/2026-03-06/passE-skinning-equivalence.{json,txt,normalized.csv}`
 3. `benchmarks/results/2026-03-06/integration-slice.{json,txt,normalized.csv}`
 4. `benchmarks/results/2026-03-06/subsystem-integration.{json,txt,normalized.csv}`
+5. `benchmarks/results/2026-03-06/passH-geometry-aabb.{json,txt,normalized.csv}`
+6. `benchmarks/results/2026-03-06/passH-rendering-lut.{json,txt,normalized.csv}`
 
 ## Why These Results Are Achievable On The JVM
 Vectrix relies on modern HotSpot behavior plus data-oriented kernel design:
@@ -79,6 +81,28 @@ Shape: `vertices=16384`, `paletteSize=512`, `writeMode=fullWrite`
 Takeaway:
 1. `kernelMatrixTight` is the default hot-path CPU skinning baseline.
 2. generic kernel shape is retained but not preferred in this workload.
+
+### Geometry Miss-Path Tightening
+Shape: `rayAabBatch`, `count=16384`, `precision=float`, `distribution=missHeavy`, `accessPattern=random`
+
+1. Pass G baseline: `7.164`
+2. Pass H optimized: `1.863`
+3. Improvement: ~`3.85x`
+
+Takeaway:
+1. miss-heavy/scattered ray-AABB path now has a materially cheaper default hot-kernel shape.
+2. this directly targets high-volume query-style workloads (picking, broad-phase helpers, editor ray tests).
+
+### SSS LUT Builder Tightening
+Shape: `buildSssLut`, `resolution=64`, `quality=medium`
+
+1. Pass G baseline: `2515.40`
+2. Pass H optimized: `549.42`
+3. Improvement: ~`4.58x`
+
+Takeaway:
+1. invariant-hoisted kernel precomputation produced a large real gain for SSS precompute work.
+2. transmittance LUT path remained near-flat on comparable shape (~`1.02x`), so further work there is deferred.
 
 ## Composed Pipeline Results
 Integration slice (`IntegrationPipelineBenchmark`) and subsystem path (`SubsystemIntegrationBenchmark`) both preserve kernel winners under composition.
@@ -127,8 +151,10 @@ See:
 Current doctrine:
 1. Packed-affine default for bulk runtime transform/update/upload.
 2. Matrix-palette tight LBS default for CPU skinning.
-3. Matrix fallback retained explicitly for boundaries/interoperability.
-4. Vector skinning remains experimental pending repeated wins.
+3. Miss-fast `Intersection*.testRayAab` default for miss-heavy query paths.
+4. Invariant-hoisted `SssLutBuilder` default for SSS precompute.
+5. Matrix fallback retained explicitly for boundaries/interoperability.
+6. Vector skinning remains experimental pending repeated wins.
 
 ## Implications For Engine Architecture
 1. Use packed-affine transforms for bulk runtime processing.
@@ -141,11 +167,13 @@ Active benchmark protection:
 1. `scripts/bench-regression-phaseb.sh`
 2. `scripts/bench-regression-skinning.sh`
 3. `scripts/bench-regression-integration.sh`
+4. `scripts/bench-regression-passh.sh`
 
 Purpose:
 1. protect packed-affine AABB/upload winners,
 2. protect skinning baseline (`kernelMatrixTight` equivalence gate),
-3. protect composed integration behavior.
+3. protect composed integration behavior,
+4. protect Pass H geometry miss-path and SSS LUT winners.
 
 ## Limits And Scope
 These results are strong for current hardware/JDK and tested workload shapes.
@@ -157,3 +185,6 @@ Do not generalize across machines without reruns under the same methodology.
 3. `docs/performance-integration-slice-findings.md`
 4. `docs/subsystem-integration-memo.md`
 5. `docs/performance-passE-summary.md`
+6. `docs/performance-passH-geometry-findings.md`
+7. `docs/performance-passH-lut-findings.md`
+8. `docs/performance-passH-summary.md`
