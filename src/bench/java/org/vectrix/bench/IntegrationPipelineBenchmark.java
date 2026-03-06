@@ -66,6 +66,7 @@ public class IntegrationPipelineBenchmark extends ThroughputBenchmark {
     private TransformSoA jointRigid;
     private int[] jointIndices;
     private float[] jointWeights;
+    private float[] matrixPalette12;
     private float[] inX;
     private float[] inY;
     private float[] inZ;
@@ -95,6 +96,7 @@ public class IntegrationPipelineBenchmark extends ThroughputBenchmark {
         matrixUpload = new float[count * 16];
 
         jointRigid = new TransformSoA(JOINTS);
+        matrixPalette12 = new float[JOINTS * 12];
         jointIndices = new int[vertices * 4];
         jointWeights = new float[vertices * 4];
         inX = new float[vertices];
@@ -149,6 +151,7 @@ public class IntegrationPipelineBenchmark extends ThroughputBenchmark {
             jointRigid.qz[j] = r.rotation.z;
             jointRigid.qw[j] = r.rotation.w;
         }
+        SkinningKernels.buildRigidMatrixPalette12(jointRigid, matrixPalette12, JOINTS);
         for (int i = 0; i < vertices; i++) {
             inX[i] = (float) rnd.nextDouble(-1.0, 1.0);
             inY[i] = (float) rnd.nextDouble(-1.0, 1.0);
@@ -173,7 +176,7 @@ public class IntegrationPipelineBenchmark extends ThroughputBenchmark {
     @Benchmark
     public float[] integrationPackedPipeline() {
         PackedAffineKernels.trsToPackedAffineBatch(transforms, packed, count);
-        SkinningKernels.skinLbs4(jointRigid, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
+        SkinningKernels.skinLbs4MatrixPalette(matrixPalette12, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
         PackedAffineKernels.transformAabbPackedAffineBatch(
                 packed, order, minX, minY, minZ, maxX, maxY, maxZ,
                 outMinX, outMinY, outMinZ, outMaxX, outMaxY, outMaxZ, count);
@@ -187,7 +190,7 @@ public class IntegrationPipelineBenchmark extends ThroughputBenchmark {
             Transformf t = transforms[i];
             matrices[i].translationRotateScale(t.translation, t.rotation, t.scale);
         }
-        SkinningKernels.skinLbs4(jointRigid, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
+        SkinningKernels.skinLbs4MatrixPalette(matrixPalette12, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
         for (int i = 0; i < count; i++) {
             int idx = order[i];
             matrices[idx].transformAab(minX[idx], minY[idx], minZ[idx], maxX[idx], maxY[idx], maxZ[idx], tmpMin, tmpMax);

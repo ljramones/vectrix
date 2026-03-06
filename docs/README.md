@@ -33,6 +33,8 @@ This folder contains the current project documentation for Vectrix.
   Initial Pass C skinning locality results and vector-path status.
 - `docs/performance-phaseC-findings.md`
   Initial Pass C skinning implementation outcomes and decisions.
+- `docs/performance-passE-summary.md`
+  Consolidated Pass E hotspot resolution summary and promoted defaults.
 - `docs/performance-integration-slice-findings.md`
   End-to-end composed-path validation of transform/skinning/upload winners.
 - `docs/engine-runtime-defaults.md`

@@ -194,6 +194,49 @@ public final class SkinningKernels {
     }
 
     /**
+     * Build a rigid matrix palette with 12 floats per joint:
+     * [m00 m01 m02 tx  m10 m11 m12 ty  m20 m21 m22 tz]
+     * for direct use with {@link #skinLbs4MatrixPalette(float[], int[], float[], float[], float[], float[], float[], float[], float[], int)}.
+     */
+    public static void buildRigidMatrixPalette12(TransformSoA joints, float[] matrixPalette12, int jointCount) {
+        for (int j = 0; j < jointCount; j++) {
+            float x = joints.qx[j];
+            float y = joints.qy[j];
+            float z = joints.qz[j];
+            float w = joints.qw[j];
+            float tx = joints.tx[j];
+            float ty = joints.ty[j];
+            float tz = joints.tz[j];
+
+            float xx = x * x;
+            float yy = y * y;
+            float zz = z * z;
+            float xy = x * y;
+            float xz = x * z;
+            float yz = y * z;
+            float wx = w * x;
+            float wy = w * y;
+            float wz = w * z;
+
+            int o = j * 12;
+            matrixPalette12[o] = 1.0f - 2.0f * (yy + zz);
+            matrixPalette12[o + 1] = 2.0f * (xy - wz);
+            matrixPalette12[o + 2] = 2.0f * (xz + wy);
+            matrixPalette12[o + 3] = tx;
+
+            matrixPalette12[o + 4] = 2.0f * (xy + wz);
+            matrixPalette12[o + 5] = 1.0f - 2.0f * (xx + zz);
+            matrixPalette12[o + 6] = 2.0f * (yz - wx);
+            matrixPalette12[o + 7] = ty;
+
+            matrixPalette12[o + 8] = 2.0f * (xz - wy);
+            matrixPalette12[o + 9] = 2.0f * (yz + wx);
+            matrixPalette12[o + 10] = 1.0f - 2.0f * (xx + yy);
+            matrixPalette12[o + 11] = tz;
+        }
+    }
+
+    /**
      * Stripped matrix-palette skinning kernel for work-equivalence/perf parity studies.
      * Matrix palette layout per joint is 12 floats:
      * [m00 m01 m02 tx  m10 m11 m12 ty  m20 m21 m22 tz]

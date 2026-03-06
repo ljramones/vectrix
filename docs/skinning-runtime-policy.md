@@ -1,12 +1,13 @@
 # Skinning Runtime Policy
 
-Date: 2026-03-05
+Date: 2026-03-06
 
 ## Purpose
 Define default and optional CPU skinning paths so performance and quality tradeoffs are explicit.
 
 ## Default Path
-- Default runtime CPU skinning: matrix LBS (`SkinningKernels.skinLbs4` family).
+- Default runtime CPU skinning: matrix-palette tight LBS (`SkinningKernels.skinLbs4MatrixPalette`).
+- Default palette build path: `SkinningKernels.buildRigidMatrixPalette12(...)`.
 - Default data layout target: contiguous SoA-compatible arrays, with 4-influence kernels as primary optimized form.
 
 ## Optional Quality Path
@@ -16,10 +17,10 @@ Define default and optional CPU skinning paths so performance and quality tradeo
 ## SoA and SIMD Status
 - SoA skinning path is supported.
 - SIMD-enabled SoA path remains experimental and must justify retention with benchmark wins over scalar baseline at production sizes.
-- `skinLbs4Vector` (packed-input vectorized kernel) is now available as an experimental optimization target, but it is not default until it beats `skinLbs4` in constrained full runs.
+- `skinLbs4Vector` (packed-input vectorized kernel) is now available as an experimental optimization target, but it is not default until it beats `skinLbs4MatrixPalette` in constrained/full runs.
 
 ## API Intention
-- Fast/default API usage should select matrix LBS unless caller explicitly requests a quality mode.
+- Fast/default API usage should select matrix-palette tight LBS unless caller explicitly requests a quality mode.
 - Quality mode API usage should be explicit at call-site and in configuration.
 
 ## Current Evidence
@@ -37,8 +38,16 @@ From integration-slice pass (`2026-03-06`):
 - `skinLbs4` remained stable as the composed-path baseline while packed-affine transform/upload stages preserved their wins.
 - No evidence from this slice to replace `skinLbs4` as default CPU path.
 
+From Pass E equivalence resolution (`2026-03-06`):
+- At `vertices=16384`, `palette=512`, `fullWrite`:
+  - `legacyLbs`: `6.652 ns/item`
+  - `kernelLbs`: `9.817 ns/item`
+  - `kernelMatrixTight`: `6.082 ns/item`
+- `kernelMatrixTight` is both faster and lower-allocation than legacy/generic kernels in this benchmark shape.
+- Runtime policy is promoted to matrix-palette tight LBS baseline.
+
 ## Next Required Measurements
-1. Constrained/full rerun of `skinLbs4Vector` after loop-body/vector strategy optimization.
+1. Constrained/full rerun of `skinLbs4Vector` against matrix-palette tight baseline after loop-body/vector strategy optimization.
 2. Expanded palette locality stress (small/medium/large palette with cache-cold variants).
 3. Layout variants for indices/weights.
-4. Work-equivalence analysis between legacy and new kernel benchmarks (tracked in `docs/skinning-work-equivalence-audit.md`).
+4. Keep work-equivalence analysis current as kernel/API shape evolves (tracked in `docs/skinning-work-equivalence-audit.md`).

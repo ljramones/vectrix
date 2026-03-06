@@ -177,6 +177,28 @@ class SkinningKernelsTest {
         }
     }
 
+    @Test
+    void lbsMatrixPaletteKernelMatchesPackedLbs() {
+        Fixture f = Fixture.create(193, 77);
+        float[] matrixPalette12 = new float[Fixture.JOINTS * 12];
+        float[] packedX = new float[f.vertices];
+        float[] packedY = new float[f.vertices];
+        float[] packedZ = new float[f.vertices];
+        float[] tightX = new float[f.vertices];
+        float[] tightY = new float[f.vertices];
+        float[] tightZ = new float[f.vertices];
+
+        SkinningKernels.buildRigidMatrixPalette12(f.joints, matrixPalette12, Fixture.JOINTS);
+        SkinningKernels.skinLbs4(f.joints, f.jointIndices, f.jointWeights, f.inX, f.inY, f.inZ, packedX, packedY, packedZ, f.vertices);
+        SkinningKernels.skinLbs4MatrixPalette(matrixPalette12, f.jointIndices, f.jointWeights, f.inX, f.inY, f.inZ, tightX, tightY, tightZ, f.vertices);
+
+        for (int i = 0; i < f.vertices; i++) {
+            assertEquals(packedX[i], tightX[i], 1E-5f);
+            assertEquals(packedY[i], tightY[i], 1E-5f);
+            assertEquals(packedZ[i], tightZ[i], 1E-5f);
+        }
+    }
+
     private static final class Fixture {
         static final int JOINTS = 8;
         final int vertices;

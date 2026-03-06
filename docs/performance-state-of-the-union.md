@@ -5,7 +5,7 @@ Date: 2026-03-06
 ## What Is Settled
 1. Packed-affine is the default bulk transform execution form.
 2. Packed-affine is the default upload-prep form.
-3. `skinLbs4` is the default CPU skinning baseline.
+3. Matrix-palette tight LBS (`skinLbs4MatrixPalette` / `kernelMatrixTight`) is the default CPU skinning baseline.
 4. `Matrix4f` is boundary/interoperability format, not hot-path bulk default.
 5. Locality remains first-order for large workloads.
 
@@ -13,6 +13,7 @@ Date: 2026-03-06
 1. Matrix-centric bulk transform/update/upload paths as runtime defaults.
 2. Generic chunk wrappers as presumed performance optimizations.
 3. Immediate promotion of vector skinning (`skinLbs4Vector`) to default.
+4. Generic quaternion-LBS kernel (`kernelLbs`) as a default fast path in equivalence shape.
 
 ## What Is Experimental
 1. `skinLbs4Vector` and SoA SIMD skinning variants.
@@ -36,7 +37,7 @@ Date: 2026-03-06
 ## Current Runtime Doctrine
 1. Runtime transforms stay ergonomic (`Transformf`/TRS-oriented input).
 2. Materialize late into packed-affine for bulk work.
-3. Run skinning via `skinLbs4` baseline.
+3. Build rigid matrix palette once per update and run skinning via `skinLbs4MatrixPalette`.
 4. Update bounds and prepare uploads through packed-affine-first paths.
 5. Keep matrix path available as explicit fallback/interoperability path.
 

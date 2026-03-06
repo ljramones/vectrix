@@ -34,6 +34,30 @@ This document defines the benchmark methodology and records current baseline res
 - Normalize per-item metrics:
   - `./scripts/bench-normalize.py benchmarks/results/YYYY-MM-DD/full.json`
 
+## Current Published Snapshot (2026-03-06)
+This is the current, prominent benchmark snapshot used for runtime policy decisions.
+
+- Environment:
+  - Apple M4 Max, macOS 26.3 (Darwin 25.3.0 arm64)
+  - Temurin OpenJDK 25.0.1+8 LTS
+- How obtained:
+  1. `mvn -q clean package -Pbench -DskipTests`
+  2. Constrained full/prof runs:
+     - `./scripts/bench-full.sh` (targeted regex sets)
+     - `./scripts/bench-prof.sh` (targeted regex sets with `-prof gc -prof stack`)
+  3. Normalization:
+     - `./scripts/bench-normalize.py benchmarks/results/2026-03-06/<run>.json`
+- Primary artifacts:
+  - `benchmarks/results/2026-03-06/passE-gpu-layout.{json,txt,normalized.csv}`
+  - `benchmarks/results/2026-03-06/passE-skinning-equivalence.{json,txt,normalized.csv}`
+  - `benchmarks/results/2026-03-06/integration-slice.{json,txt,normalized.csv}`
+  - `benchmarks/results/2026-03-06/subsystem-integration.{json,txt,normalized.csv}`
+- Decision memos:
+  - `docs/performance-passE-gpu-layout-decision.md`
+  - `docs/performance-passE-skinning-resolution.md`
+  - `docs/performance-integration-slice-findings.md`
+  - `docs/subsystem-integration-memo.md`
+
 ## Coverage
 Current benchmark suites (2026-03-06):
 - Core latency/throughput:

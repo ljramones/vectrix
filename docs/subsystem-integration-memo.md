@@ -8,7 +8,7 @@ Scope: transform update + instance submission subsystem path with packed-affine 
   - `org.vectrix.gpu.InstanceSubmissionPipeline`
 - Default path:
   - packed-affine materialization
-  - skinning via `skinLbs4`
+  - skinning via matrix-palette tight LBS (`skinLbs4MatrixPalette`)
   - bounds update + packed upload prep
 - Fallback path:
   - matrix-centric branch (`Path.MATRIX_FALLBACK`)
@@ -57,5 +57,5 @@ Constrained prof run (`count=16384`):
 The subsystem integration confirms doctrine:
 1. Keep packed-affine as default composed runtime branch.
 2. Keep matrix branch as explicit fallback/interoperability path only.
-3. Keep `skinLbs4` as subsystem baseline.
+3. Keep matrix-palette tight LBS (`skinLbs4MatrixPalette`) as subsystem baseline.
 4. Keep locality-sensitive scheduling as first-order concern.

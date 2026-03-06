@@ -49,6 +49,7 @@ public final class InstanceSubmissionPipeline {
     private final boolean forceMatrixFallback;
     private PackedAffineArray packed;
     private Matrix4f[] matrices;
+    private float[] skinningMatrixPalette12;
     private final Vector3f tmpMin = new Vector3f();
     private final Vector3f tmpMax = new Vector3f();
 
@@ -57,6 +58,7 @@ public final class InstanceSubmissionPipeline {
         int cap = java.lang.Math.max(1, initialCapacity);
         this.packed = new PackedAffineArray(cap);
         this.matrices = new Matrix4f[cap];
+        this.skinningMatrixPalette12 = new float[12];
         for (int i = 0; i < cap; i++) {
             matrices[i] = new Matrix4f();
         }
@@ -92,7 +94,9 @@ public final class InstanceSubmissionPipeline {
             int vertexCount,
             Path path) {
         ensureCapacity(instanceCount);
-        SkinningKernels.skinLbs4(joints, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertexCount);
+        ensureSkinningPaletteCapacity(joints.size());
+        SkinningKernels.buildRigidMatrixPalette12(joints, skinningMatrixPalette12, joints.size());
+        SkinningKernels.skinLbs4MatrixPalette(skinningMatrixPalette12, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertexCount);
 
         Path effective = resolvePath(path);
         if (effective == Path.MATRIX_FALLBACK) {
@@ -199,5 +203,12 @@ public final class InstanceSubmissionPipeline {
             next[i] = new Matrix4f();
         }
         matrices = next;
+    }
+
+    private void ensureSkinningPaletteCapacity(int jointCount) {
+        int needed = jointCount * 12;
+        if (skinningMatrixPalette12.length < needed) {
+            skinningMatrixPalette12 = new float[needed];
+        }
     }
 }
