@@ -11,7 +11,9 @@ import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
-import org.vectrix.affine.Affine4f;
+import org.vectrix.affine.BatchChunks;
+import org.vectrix.affine.PackedAffineArray;
+import org.vectrix.affine.PackedAffineKernels;
 import org.vectrix.affine.Transformf;
 import org.vectrix.core.Matrix4f;
 
@@ -30,16 +32,23 @@ public class InstanceUploadBenchmark extends ThroughputBenchmark {
     @Param({"hot", "cold"})
     public String accessPattern;
 
+    @Param({"SEQUENTIAL", "STRIDED", "RANDOM", "CHUNKED"})
+    public String traversalMode;
+
+    @Param({"64", "128", "256", "512"})
+    public int chunkSize;
+
     private Transformf[] transforms;
+    private PackedAffineArray packedTransforms;
     private int[] order;
     private float[] matrixUpload;
     private float[] packedAffineUpload;
     private final Matrix4f tmpMatrix = new Matrix4f();
-    private final Affine4f tmpAffine = new Affine4f();
 
     @Setup
     public void setup() {
         transforms = new Transformf[instances];
+        packedTransforms = new PackedAffineArray(instances);
         order = new int[instances];
         matrixUpload = new float[instances * 16];
         packedAffineUpload = new float[instances * 12];
@@ -54,15 +63,17 @@ public class InstanceUploadBenchmark extends ThroughputBenchmark {
             t.rotation.identity().rotateXYZ((float) rnd.nextDouble(-2.0, 2.0), (float) rnd.nextDouble(-2.0, 2.0), (float) rnd.nextDouble(-2.0, 2.0));
             t.scale.set((float) rnd.nextDouble(0.5, 3.0), (float) rnd.nextDouble(0.5, 3.0), (float) rnd.nextDouble(0.5, 3.0));
             transforms[i] = t;
-            order[i] = i;
         }
+        PackedAffineKernels.trsToPackedAffineBatch(transforms, packedTransforms, instances);
+
+        int[] traversal = buildTraversal(instances, traversalMode, chunkSize, rnd.split());
         if ("cold".equals(accessPattern)) {
-            for (int i = instances - 1; i > 0; i--) {
-                int j = rnd.nextInt(i + 1);
-                int v = order[i];
-                order[i] = order[j];
-                order[j] = v;
+            int[] coldMap = buildRandomPermutation(instances, rnd.split());
+            for (int i = 0; i < instances; i++) {
+                order[i] = coldMap[traversal[i]];
             }
+        } else {
+            System.arraycopy(traversal, 0, order, 0, instances);
         }
     }
 
@@ -70,7 +81,7 @@ public class InstanceUploadBenchmark extends ThroughputBenchmark {
     public float[] instanceUploadMatrix4f() {
         for (int i = 0; i < instances; i++) {
             int idx = order[i];
-            int base = idx << 4;
+            int base = i << 4;
             Transformf t = transforms[idx];
             tmpMatrix.translationRotateScale(t.translation, t.rotation, t.scale);
             matrixUpload[base] = tmpMatrix.m00();
@@ -95,24 +106,89 @@ public class InstanceUploadBenchmark extends ThroughputBenchmark {
 
     @Benchmark
     public float[] instanceUploadPackedAffine() {
-        for (int i = 0; i < instances; i++) {
-            int idx = order[i];
-            int base = idx * 12;
-            Transformf t = transforms[idx];
-            tmpAffine.translationRotateScale(t.translation, t.rotation, t.scale);
-            packedAffineUpload[base] = tmpAffine.m00;
-            packedAffineUpload[base + 1] = tmpAffine.m01;
-            packedAffineUpload[base + 2] = tmpAffine.m02;
-            packedAffineUpload[base + 3] = tmpAffine.m10;
-            packedAffineUpload[base + 4] = tmpAffine.m11;
-            packedAffineUpload[base + 5] = tmpAffine.m12;
-            packedAffineUpload[base + 6] = tmpAffine.m20;
-            packedAffineUpload[base + 7] = tmpAffine.m21;
-            packedAffineUpload[base + 8] = tmpAffine.m22;
-            packedAffineUpload[base + 9] = tmpAffine.m30;
-            packedAffineUpload[base + 10] = tmpAffine.m31;
-            packedAffineUpload[base + 11] = tmpAffine.m32;
-        }
+        PackedAffineKernels.uploadPackedAffine(packedTransforms, order, packedAffineUpload, instances);
         return packedAffineUpload;
+    }
+
+    @Benchmark
+    public float[] instanceUploadPackedAffineChunked() {
+        PackedAffineKernels.uploadPackedAffineChunked(packedTransforms, order, packedAffineUpload, instances, chunkSize);
+        return packedAffineUpload;
+    }
+
+    @Benchmark
+    public float[] instanceUploadMatrix4fChunked() {
+        BatchChunks.forEachChunk(instances, chunkSize, (start, end) -> {
+            for (int i = start; i < end; i++) {
+                int idx = order[i];
+                int base = i << 4;
+                Transformf t = transforms[idx];
+                tmpMatrix.translationRotateScale(t.translation, t.rotation, t.scale);
+                matrixUpload[base] = tmpMatrix.m00();
+                matrixUpload[base + 1] = tmpMatrix.m01();
+                matrixUpload[base + 2] = tmpMatrix.m02();
+                matrixUpload[base + 3] = tmpMatrix.m03();
+                matrixUpload[base + 4] = tmpMatrix.m10();
+                matrixUpload[base + 5] = tmpMatrix.m11();
+                matrixUpload[base + 6] = tmpMatrix.m12();
+                matrixUpload[base + 7] = tmpMatrix.m13();
+                matrixUpload[base + 8] = tmpMatrix.m20();
+                matrixUpload[base + 9] = tmpMatrix.m21();
+                matrixUpload[base + 10] = tmpMatrix.m22();
+                matrixUpload[base + 11] = tmpMatrix.m23();
+                matrixUpload[base + 12] = tmpMatrix.m30();
+                matrixUpload[base + 13] = tmpMatrix.m31();
+                matrixUpload[base + 14] = tmpMatrix.m32();
+                matrixUpload[base + 15] = tmpMatrix.m33();
+            }
+        });
+        return matrixUpload;
+    }
+
+    private static int[] buildTraversal(int count, String mode, int chunkSize, SplittableRandom rnd) {
+        if ("RANDOM".equals(mode)) {
+            return buildRandomPermutation(count, rnd);
+        }
+        if ("STRIDED".equals(mode)) {
+            int[] order = new int[count];
+            int step = 17;
+            int idx = 0;
+            for (int i = 0; i < count; i++) {
+                order[i] = idx;
+                idx = (idx + step) % count;
+            }
+            return order;
+        }
+        if ("CHUNKED".equals(mode)) {
+            int[] order = new int[count];
+            int c = chunkSize <= 0 ? 128 : chunkSize;
+            int p = 0;
+            for (int start = 0; start < count; start += c) {
+                int end = java.lang.Math.min(start + c, count);
+                for (int i = start; i < end; i++) {
+                    order[p++] = i;
+                }
+            }
+            return order;
+        }
+        int[] order = new int[count];
+        for (int i = 0; i < count; i++) {
+            order[i] = i;
+        }
+        return order;
+    }
+
+    private static int[] buildRandomPermutation(int count, SplittableRandom rnd) {
+        int[] order = new int[count];
+        for (int i = 0; i < count; i++) {
+            order[i] = i;
+        }
+        for (int i = count - 1; i > 0; i--) {
+            int j = rnd.nextInt(i + 1);
+            int v = order[i];
+            order[i] = order[j];
+            order[j] = v;
+        }
+        return order;
     }
 }

@@ -23,6 +23,8 @@ This folder contains the current project documentation for Vectrix.
   Initial Phase 2 benchmark coverage and early representation observations.
 - `docs/performance-phase2-decision-memo.md`
   Constrained full-run observations and architecture recommendations.
+- `docs/performance-phaseB-findings.md`
+  Pass B locality + packed-affine implementation findings and recommendations.
 - `docs/benchmarking-guide.md`
   How to build, run, profile, normalize, and compare benchmark runs.
 - `docs/benchmark-environment.md`

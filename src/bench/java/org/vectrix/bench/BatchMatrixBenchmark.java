@@ -5,6 +5,7 @@
  */
 package org.vectrix.bench;
 
+import org.vectrix.affine.BatchChunks;
 import org.vectrix.core.Matrix4f;
 import org.vectrix.core.Vector4f;
 import org.openjdk.jmh.annotations.*;
@@ -24,6 +25,9 @@ public class BatchMatrixBenchmark extends ThroughputBenchmark {
 
     @Param({"1", "4", "16", "64", "256", "1024", "4096", "16384"})
     public int size;
+
+    @Param({"64", "128", "256", "512"})
+    public int chunkSize;
 
     private Matrix4f[] a;
     private Matrix4f[] b;
@@ -86,6 +90,16 @@ public class BatchMatrixBenchmark extends ThroughputBenchmark {
     }
 
     @Benchmark
+    public Vector4f[] transformBatchChunked() {
+        BatchChunks.forEachChunk(size, chunkSize, (start, end) -> {
+            for (int i = start; i < end; i++) {
+                v[i].mul(a[i], vOut[i]);
+            }
+        });
+        return vOut;
+    }
+
+    @Benchmark
     public float[] transformBatchSoAScalar() {
         float m00 = transformMatrix.m00(), m01 = transformMatrix.m01(), m02 = transformMatrix.m02(), m03 = transformMatrix.m03();
         float m10 = transformMatrix.m10(), m11 = transformMatrix.m11(), m12 = transformMatrix.m12(), m13 = transformMatrix.m13();
@@ -98,6 +112,24 @@ public class BatchMatrixBenchmark extends ThroughputBenchmark {
             outZ[i] = m02 * x + m12 * y + m22 * z + m32 * w;
             outW[i] = m03 * x + m13 * y + m23 * z + m33 * w;
         }
+        return outX;
+    }
+
+    @Benchmark
+    public float[] transformBatchSoAScalarChunked() {
+        float m00 = transformMatrix.m00(), m01 = transformMatrix.m01(), m02 = transformMatrix.m02(), m03 = transformMatrix.m03();
+        float m10 = transformMatrix.m10(), m11 = transformMatrix.m11(), m12 = transformMatrix.m12(), m13 = transformMatrix.m13();
+        float m20 = transformMatrix.m20(), m21 = transformMatrix.m21(), m22 = transformMatrix.m22(), m23 = transformMatrix.m23();
+        float m30 = transformMatrix.m30(), m31 = transformMatrix.m31(), m32 = transformMatrix.m32(), m33 = transformMatrix.m33();
+        BatchChunks.forEachChunk(size, chunkSize, (start, end) -> {
+            for (int i = start; i < end; i++) {
+                float x = inX[i], y = inY[i], z = inZ[i], w = inW[i];
+                outX[i] = m00 * x + m10 * y + m20 * z + m30 * w;
+                outY[i] = m01 * x + m11 * y + m21 * z + m31 * w;
+                outZ[i] = m02 * x + m12 * y + m22 * z + m32 * w;
+                outW[i] = m03 * x + m13 * y + m23 * z + m33 * w;
+            }
+        });
         return outX;
     }
 

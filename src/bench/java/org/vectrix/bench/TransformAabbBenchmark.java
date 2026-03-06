@@ -11,6 +11,10 @@ import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.vectrix.affine.Affine4f;
+import org.vectrix.affine.BatchChunks;
+import org.vectrix.affine.PackedAffineArray;
+import org.vectrix.affine.PackedAffineKernels;
 import org.vectrix.core.Matrix4f;
 import org.vectrix.core.Matrix4x3f;
 import org.vectrix.core.Quaternionf;
@@ -25,7 +29,7 @@ public class TransformAabbBenchmark extends ThroughputBenchmark {
     @Param({"1", "4", "16", "64", "256", "1024", "4096", "16384"})
     public int count;
 
-    @Param({"matrix4f", "affine4x3"})
+    @Param({"matrix4f", "affine4x3", "packedAffine"})
     public String representation;
 
     @Param({"uniform", "clustered"})
@@ -34,8 +38,15 @@ public class TransformAabbBenchmark extends ThroughputBenchmark {
     @Param({"hot", "cold"})
     public String accessPattern;
 
+    @Param({"SEQUENTIAL", "STRIDED", "RANDOM", "CHUNKED"})
+    public String traversalMode;
+
+    @Param({"64", "128", "256", "512"})
+    public int chunkSize;
+
     private Matrix4f[] matrices4f;
     private Matrix4x3f[] matrices4x3;
+    private PackedAffineArray packed;
     private int[] order;
 
     private float[] minX;
@@ -59,6 +70,7 @@ public class TransformAabbBenchmark extends ThroughputBenchmark {
     public void setup() {
         matrices4f = new Matrix4f[count];
         matrices4x3 = new Matrix4x3f[count];
+        packed = new PackedAffineArray(count);
         order = new int[count];
         minX = new float[count];
         minY = new float[count];
@@ -75,6 +87,7 @@ public class TransformAabbBenchmark extends ThroughputBenchmark {
 
         SplittableRandom rnd = new SplittableRandom(99L);
         Quaternionf q = new Quaternionf();
+        Affine4f a = new Affine4f();
         for (int i = 0; i < count; i++) {
             float cx;
             float cy;
@@ -107,22 +120,36 @@ public class TransformAabbBenchmark extends ThroughputBenchmark {
             float sz = (float) rnd.nextDouble(0.5, 2.0);
             matrices4f[i] = new Matrix4f().translationRotateScale(tx, ty, tz, q.x, q.y, q.z, q.w, sx, sy, sz);
             matrices4x3[i] = new Matrix4x3f().translationRotateScale(tx, ty, tz, q.x, q.y, q.z, q.w, sx, sy, sz);
-            order[i] = i;
+            a.translationRotateScale(tx, ty, tz, q.x, q.y, q.z, q.w, sx, sy, sz);
+            packed.set(i,
+                    a.m00, a.m01, a.m02, a.m30,
+                    a.m10, a.m11, a.m12, a.m31,
+                    a.m20, a.m21, a.m22, a.m32);
         }
 
+        int[] traversal = buildTraversal(count, traversalMode, chunkSize, rnd);
         if ("cold".equals(accessPattern)) {
-            for (int i = count - 1; i > 0; i--) {
-                int j = rnd.nextInt(i + 1);
-                int t = order[i];
-                order[i] = order[j];
-                order[j] = t;
+            int[] coldMap = buildRandomPermutation(count, rnd.split());
+            for (int i = 0; i < count; i++) {
+                order[i] = coldMap[traversal[i]];
             }
+        } else {
+            System.arraycopy(traversal, 0, order, 0, count);
         }
     }
 
     @Benchmark
     public float[] transformAabbBatch() {
-        if ("affine4x3".equals(representation)) {
+        if ("packedAffine".equals(representation)) {
+            PackedAffineKernels.transformAabbPackedAffineBatch(
+                    packed,
+                    order,
+                    minX, minY, minZ,
+                    maxX, maxY, maxZ,
+                    outMinX, outMinY, outMinZ,
+                    outMaxX, outMaxY, outMaxZ,
+                    count);
+        } else if ("affine4x3".equals(representation)) {
             for (int i = 0; i < count; i++) {
                 int idx = order[i];
                 matrices4x3[idx].transformAab(minX[idx], minY[idx], minZ[idx], maxX[idx], maxY[idx], maxZ[idx], tmpMin, tmpMax);
@@ -146,5 +173,95 @@ public class TransformAabbBenchmark extends ThroughputBenchmark {
             }
         }
         return outMinX;
+    }
+
+    @Benchmark
+    public float[] transformAabbBatchChunked() {
+        if ("packedAffine".equals(representation)) {
+            PackedAffineKernels.transformAabbPackedAffineChunked(
+                    packed,
+                    order,
+                    minX, minY, minZ,
+                    maxX, maxY, maxZ,
+                    outMinX, outMinY, outMinZ,
+                    outMaxX, outMaxY, outMaxZ,
+                    count,
+                    chunkSize);
+            return outMinX;
+        }
+
+        BatchChunks.forEachChunk(count, chunkSize, (start, end) -> {
+            if ("affine4x3".equals(representation)) {
+                for (int i = start; i < end; i++) {
+                    int idx = order[i];
+                    matrices4x3[idx].transformAab(minX[idx], minY[idx], minZ[idx], maxX[idx], maxY[idx], maxZ[idx], tmpMin, tmpMax);
+                    outMinX[idx] = tmpMin.x;
+                    outMinY[idx] = tmpMin.y;
+                    outMinZ[idx] = tmpMin.z;
+                    outMaxX[idx] = tmpMax.x;
+                    outMaxY[idx] = tmpMax.y;
+                    outMaxZ[idx] = tmpMax.z;
+                }
+            } else {
+                for (int i = start; i < end; i++) {
+                    int idx = order[i];
+                    matrices4f[idx].transformAab(minX[idx], minY[idx], minZ[idx], maxX[idx], maxY[idx], maxZ[idx], tmpMin, tmpMax);
+                    outMinX[idx] = tmpMin.x;
+                    outMinY[idx] = tmpMin.y;
+                    outMinZ[idx] = tmpMin.z;
+                    outMaxX[idx] = tmpMax.x;
+                    outMaxY[idx] = tmpMax.y;
+                    outMaxZ[idx] = tmpMax.z;
+                }
+            }
+        });
+        return outMinX;
+    }
+
+    private static int[] buildTraversal(int count, String mode, int chunkSize, SplittableRandom rnd) {
+        if ("RANDOM".equals(mode)) {
+            return buildRandomPermutation(count, rnd);
+        }
+        if ("STRIDED".equals(mode)) {
+            int[] order = new int[count];
+            int step = 17;
+            int idx = 0;
+            for (int i = 0; i < count; i++) {
+                order[i] = idx;
+                idx = (idx + step) % count;
+            }
+            return order;
+        }
+        if ("CHUNKED".equals(mode)) {
+            int[] order = new int[count];
+            int c = chunkSize <= 0 ? 128 : chunkSize;
+            int p = 0;
+            for (int start = 0; start < count; start += c) {
+                int end = java.lang.Math.min(start + c, count);
+                for (int i = start; i < end; i++) {
+                    order[p++] = i;
+                }
+            }
+            return order;
+        }
+        int[] order = new int[count];
+        for (int i = 0; i < count; i++) {
+            order[i] = i;
+        }
+        return order;
+    }
+
+    private static int[] buildRandomPermutation(int count, SplittableRandom rnd) {
+        int[] order = new int[count];
+        for (int i = 0; i < count; i++) {
+            order[i] = i;
+        }
+        for (int i = count - 1; i > 0; i--) {
+            int j = rnd.nextInt(i + 1);
+            int t = order[i];
+            order[i] = order[j];
+            order[j] = t;
+        }
+        return order;
     }
 }
