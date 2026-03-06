@@ -33,6 +33,10 @@ From Phase C constrained quick locality pass (`2026-03-06`):
 - `skinLbs4Vector` and forced SIMD SoA variants were generally slower (`~10.0 ns/item` range).
 - Palette locality effects were present but modest in this benchmark shape.
 
+From integration-slice pass (`2026-03-06`):
+- `skinLbs4` remained stable as the composed-path baseline while packed-affine transform/upload stages preserved their wins.
+- No evidence from this slice to replace `skinLbs4` as default CPU path.
+
 ## Next Required Measurements
 1. Constrained/full rerun of `skinLbs4Vector` after loop-body/vector strategy optimization.
 2. Expanded palette locality stress (small/medium/large palette with cache-cold variants).

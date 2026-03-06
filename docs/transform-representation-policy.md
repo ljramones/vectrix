@@ -36,10 +36,13 @@ Define the default transform representations for runtime kernels, staging paths,
   - AABB transform (`count=16384`): packed affine is significantly faster than matrix/affine baselines.
   - Instance upload (`instances=16384`): packed affine staging is roughly 2x-3x faster than matrix staging.
   - Locality remains first-order (random traversal penalties are large across representations).
+- Integration slice run (`2026-03-06`) confirmed packed-affine wins survive composition:
+  - composed packed pipeline outperformed composed matrix pipeline, especially at large count.
 
 See:
 - `docs/performance-phase2-decision-memo.md`
 - `docs/performance-phaseB-decision-memo.md`
 - `docs/performance-phaseB-packed-affine-postmortem.md`
+- `docs/performance-integration-slice-findings.md`
 - `benchmarks/results/2026-03-05/phase2-summary.csv`
 - `benchmarks/results/2026-03-06/phaseB-summary.csv`
