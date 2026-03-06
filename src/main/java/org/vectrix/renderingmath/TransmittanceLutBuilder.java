@@ -48,44 +48,49 @@ public final class TransmittanceLutBuilder {
         if (outRgb == null || outRgb.length < width * height * 3) {
             throw new IllegalArgumentException("outRgb");
         }
-        float[] tmp = new float[3];
+        float invWidth = 1.0f / width;
+        float invHeight = 1.0f / height;
+        float groundRadius = params.groundRadius;
+        float atmosphereRadius = params.atmosphereRadius;
+        float rayleighScaleHeight = params.rayleighScaleHeight;
+        float mieScaleHeight = params.mieScaleHeight;
+        float betaRayleighR = params.betaRayleighR;
+        float betaRayleighG = params.betaRayleighG;
+        float betaRayleighB = params.betaRayleighB;
+        float betaMieR = params.betaMieR;
+        float betaMieG = params.betaMieG;
+        float betaMieB = params.betaMieB;
         for (int y = 0; y < height; y++) {
-            float v = (y + 0.5f) / height;
-            float r = params.groundRadius + v * (params.atmosphereRadius - params.groundRadius);
+            float v = (y + 0.5f) * invHeight;
+            float r = groundRadius + v * (atmosphereRadius - groundRadius);
+            float r2 = r * r;
             for (int x = 0; x < width; x++) {
-                float u = (x + 0.5f) / width;
+                float u = (x + 0.5f) * invWidth;
                 float mu = -1.0f + 2.0f * u;
-                float d = distanceToAtmosphereBoundary(r, mu, params.groundRadius, params.atmosphereRadius);
-                integrateOpticalDepth(r, mu, d, params, sampleCount, tmp);
-
+                float d = distanceToAtmosphereBoundary(r, mu, groundRadius, atmosphereRadius);
                 int o = (y * width + x) * 3;
-                outRgb[o] = clamp01(tmp[0]);
-                outRgb[o + 1] = clamp01(tmp[1]);
-                outRgb[o + 2] = clamp01(tmp[2]);
+                if (d <= 0.0f) {
+                    outRgb[o] = 1.0f;
+                    outRgb[o + 1] = 1.0f;
+                    outRgb[o + 2] = 1.0f;
+                    continue;
+                }
+                float ds = d / sampleCount;
+                float tauR = 0.0f;
+                float tauM = 0.0f;
+                for (int i = 0; i < sampleCount; i++) {
+                    float s = (i + 0.5f) * ds;
+                    float rr = (float) java.lang.Math.sqrt(r2 + s * s + 2.0f * r * mu * s);
+                    float h = java.lang.Math.max(0.0f, rr - groundRadius);
+                    tauR += (float) java.lang.Math.exp(-h / rayleighScaleHeight) * ds;
+                    tauM += (float) java.lang.Math.exp(-h / mieScaleHeight) * ds;
+                }
+
+                outRgb[o] = clamp01((float) java.lang.Math.exp(-(betaRayleighR * tauR + betaMieR * tauM)));
+                outRgb[o + 1] = clamp01((float) java.lang.Math.exp(-(betaRayleighG * tauR + betaMieG * tauM)));
+                outRgb[o + 2] = clamp01((float) java.lang.Math.exp(-(betaRayleighB * tauR + betaMieB * tauM)));
             }
         }
-    }
-
-    private static void integrateOpticalDepth(float r0, float mu, float distance, AtmosphereParams p, int samples, float[] outRgb) {
-        if (distance <= 0.0f) {
-            outRgb[0] = 1.0f;
-            outRgb[1] = 1.0f;
-            outRgb[2] = 1.0f;
-            return;
-        }
-        float ds = distance / samples;
-        float tauR = 0.0f;
-        float tauM = 0.0f;
-        for (int i = 0; i < samples; i++) {
-            float s = (i + 0.5f) * ds;
-            float r = (float) java.lang.Math.sqrt(r0 * r0 + s * s + 2.0f * r0 * mu * s);
-            float h = java.lang.Math.max(0.0f, r - p.groundRadius);
-            tauR += (float) java.lang.Math.exp(-h / p.rayleighScaleHeight) * ds;
-            tauM += (float) java.lang.Math.exp(-h / p.mieScaleHeight) * ds;
-        }
-        outRgb[0] = (float) java.lang.Math.exp(-(p.betaRayleighR * tauR + p.betaMieR * tauM));
-        outRgb[1] = (float) java.lang.Math.exp(-(p.betaRayleighG * tauR + p.betaMieG * tauM));
-        outRgb[2] = (float) java.lang.Math.exp(-(p.betaRayleighB * tauR + p.betaMieB * tauM));
     }
 
     private static float distanceToAtmosphereBoundary(float r, float mu, float groundRadius, float atmosphereRadius) {

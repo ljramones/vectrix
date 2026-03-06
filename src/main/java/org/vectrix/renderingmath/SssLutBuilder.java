@@ -50,29 +50,43 @@ public final class SssLutBuilder {
         if (outRgb == null || outRgb.length < width * height * 3) {
             throw new IllegalArgumentException("outRgb");
         }
+        float invWidth = 1.0f / width;
+        float invHeight = 1.0f / height;
+        float ds = (2.0f * maxArcLength) / sampleCount;
+        float[] sampleOffsets = new float[sampleCount];
+        float[] kernelR = new float[sampleCount];
+        float[] kernelG = new float[sampleCount];
+        float[] kernelB = new float[sampleCount];
         float[] p = new float[3];
+        for (int i = 0; i < sampleCount; i++) {
+            float s = -maxArcLength + (i + 0.5f) * ds;
+            sampleOffsets[i] = s;
+            profile.evaluate(java.lang.Math.abs(s), p);
+            kernelR[i] = p[0] * ds;
+            kernelG[i] = p[1] * ds;
+            kernelB[i] = p[2] * ds;
+        }
+        float[] thetaByX = new float[width];
+        for (int x = 0; x < width; x++) {
+            float ndotl = (x + 0.5f) * invWidth;
+            thetaByX[x] = (float) java.lang.Math.acos(clamp01(ndotl));
+        }
         for (int y = 0; y < height; y++) {
-            float v = (y + 0.5f) / height;
+            float v = (y + 0.5f) * invHeight;
             float curvature = v * maxCurvature;
-            float radius = curvature > 1E-6f ? 1.0f / curvature : 1E6f;
+            float invRadius = curvature > 1E-6f ? curvature : 1E-6f;
             for (int x = 0; x < width; x++) {
-                float u = (x + 0.5f) / width;
-                float ndotl = u;
-                float theta = (float) java.lang.Math.acos(clamp01(ndotl));
-
+                float theta = thetaByX[x];
                 float ir = 0.0f, ig = 0.0f, ib = 0.0f;
-                float ds = (2.0f * maxArcLength) / sampleCount;
                 for (int i = 0; i < sampleCount; i++) {
-                    float s = -maxArcLength + (i + 0.5f) * ds;
-                    float shifted = theta + s / radius;
+                    float shifted = theta + sampleOffsets[i] * invRadius;
                     float localNoL = (float) java.lang.Math.cos(shifted);
                     if (localNoL <= 0.0f) {
                         continue;
                     }
-                    profile.evaluate(java.lang.Math.abs(s), p);
-                    ir += p[0] * localNoL * ds;
-                    ig += p[1] * localNoL * ds;
-                    ib += p[2] * localNoL * ds;
+                    ir += kernelR[i] * localNoL;
+                    ig += kernelG[i] * localNoL;
+                    ib += kernelB[i] * localNoL;
                 }
 
                 int o = (y * width + x) * 3;
