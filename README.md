@@ -231,6 +231,7 @@ src/main/java/org/vectrix/
 | [`API.md`](API.md) | Practical API reference by module |
 | [`docs/vectrix-capabilities.md`](docs/vectrix-capabilities.md) | Complete capability inventory by consumer domain |
 | [`docs/technology-explainer.md`](docs/technology-explainer.md) | Educational deep dive for non-expert users |
+| [`docs/performance-showcase.md`](docs/performance-showcase.md) | Concise performance evidence summary and runtime doctrine |
 | [`BENCHMARKS.md`](BENCHMARKS.md) | Benchmark methodology and normalized results |
 | [`docs/conventions.md`](docs/conventions.md) | API and math conventions |
 | [`docs/api-policy.md`](docs/api-policy.md) | Stability and compatibility policy |

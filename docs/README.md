@@ -35,6 +35,8 @@ This folder contains the current project documentation for Vectrix.
   Initial Pass C skinning implementation outcomes and decisions.
 - `docs/performance-passE-summary.md`
   Consolidated Pass E hotspot resolution summary and promoted defaults.
+- `docs/performance-showcase.md`
+  One-page evidence summary of runtime defaults, key benchmark wins, and regression discipline.
 - `docs/performance-integration-slice-findings.md`
   End-to-end composed-path validation of transform/skinning/upload winners.
 - `docs/engine-runtime-defaults.md`
