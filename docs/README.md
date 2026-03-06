@@ -39,6 +39,8 @@ This folder contains the current project documentation for Vectrix.
   Current default runtime doctrine (bulk transforms, upload, skinning, experimental paths).
 - `docs/performance-state-of-the-union.md`
   Snapshot of settled defaults, experimental areas, active gates, and parked work.
+- `docs/subsystem-integration-memo.md`
+  Transform-update + instance-submission subsystem replacement memo (packed default vs matrix fallback).
 - `docs/benchmarking-guide.md`
   How to build, run, profile, normalize, and compare benchmark runs.
 - `docs/benchmark-environment.md`

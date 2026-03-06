@@ -28,3 +28,7 @@ Date: 2026-03-06
 
 ## Policy Status
 These defaults are current engine law until a new benchmark pass provides stronger contradictory evidence.
+
+## Reference Subsystem
+Current reference implementation of this doctrine:
+- `org.vectrix.gpu.InstanceSubmissionPipeline`
