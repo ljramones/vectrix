@@ -77,6 +77,35 @@ Current benchmark suites (2026-03-06):
 - New expansion suites:
   - `PhysicsMathBenchmark`, `HashBenchmark`, `SdfBenchmark`, `SamplingBenchmark`, `ColorBenchmark`, `EasingBenchmark`, `ParallelTransformBenchmark`
 
+## Benchmark Coverage Gaps (Current)
+### Covered Well
+- transforms / affine / packed-affine runtime paths
+- GPU upload/layout staging
+- skinning kernel families and equivalence checks
+- composed integration and subsystem paths
+
+### Partially Covered
+- geometry (frustum + mesh covered; broader intersection helpers not fully covered)
+- core (broad primitives exist; curated batch utility coverage still incomplete)
+
+### Not Directly Covered Yet
+- `renderingmath` package (`Interpolation*`, `BentNormalCone*`, LUT builders)
+- direct `simd` package behavior (`Vector4fa`, `SimdSupport`) as first-class JMH targets
+- selected geometry helpers (`Intersection*`, `RayAabIntersection`, `PolygonsIntersection`, `FrustumRayBuilder`)
+
+### Next Planned Benchmark Suites (Priority Order)
+1. `RenderingMathBenchmark`
+2. `GeometryIntersectionBenchmark`
+3. `SimdSupportBenchmark`
+4. `FrustumRayBuilderBenchmark`
+5. `CoreBatchUtilityBenchmark` (curated, batch-relevant subset only)
+
+### Triage Rule For New Suites
+Every new suite should end with one classification:
+1. `Promote` (optimize now)
+2. `Good enough` (track, no immediate optimization)
+3. `Parked` (defer)
+
 Acquisition path for the current suite index above:
 - Build benchmark artifact:
   - `mvn -q clean package -Pbench -DskipTests`
