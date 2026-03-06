@@ -50,6 +50,55 @@ public final class SkinningKernels {
         skinLbs4Scalar(joints, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, count);
     }
 
+    public static void skinLbs4Vector(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
+            float[] outX, float[] outY, float[] outZ, int count) {
+//#ifdef __HAS_VECTOR_API__
+        int lanes = SKIN_SPECIES.length();
+        if (lanes <= 1) {
+            skinLbs4Scalar(joints, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, count);
+            return;
+        }
+        int i = 0;
+        int limit = count - (count % lanes);
+        for (; i < limit; i += lanes) {
+            FloatVector ox = FloatVector.zero(SKIN_SPECIES);
+            FloatVector oy = FloatVector.zero(SKIN_SPECIES);
+            FloatVector oz = FloatVector.zero(SKIN_SPECIES);
+            for (int lane = 0; lane < lanes; lane++) {
+                int idx = i + lane;
+                int base = idx << 2;
+                float x = inX[idx], y = inY[idx], z = inZ[idx];
+                float sx = 0.0f, sy = 0.0f, sz = 0.0f;
+                sx = addInfluence(joints, jointIndices[base], jointWeights[base], x, y, z, sx, 0);
+                sy = addInfluence(joints, jointIndices[base], jointWeights[base], x, y, z, sy, 1);
+                sz = addInfluence(joints, jointIndices[base], jointWeights[base], x, y, z, sz, 2);
+                sx = addInfluence(joints, jointIndices[base + 1], jointWeights[base + 1], x, y, z, sx, 0);
+                sy = addInfluence(joints, jointIndices[base + 1], jointWeights[base + 1], x, y, z, sy, 1);
+                sz = addInfluence(joints, jointIndices[base + 1], jointWeights[base + 1], x, y, z, sz, 2);
+                sx = addInfluence(joints, jointIndices[base + 2], jointWeights[base + 2], x, y, z, sx, 0);
+                sy = addInfluence(joints, jointIndices[base + 2], jointWeights[base + 2], x, y, z, sy, 1);
+                sz = addInfluence(joints, jointIndices[base + 2], jointWeights[base + 2], x, y, z, sz, 2);
+                sx = addInfluence(joints, jointIndices[base + 3], jointWeights[base + 3], x, y, z, sx, 0);
+                sy = addInfluence(joints, jointIndices[base + 3], jointWeights[base + 3], x, y, z, sy, 1);
+                sz = addInfluence(joints, jointIndices[base + 3], jointWeights[base + 3], x, y, z, sz, 2);
+                ox = ox.withLane(lane, sx);
+                oy = oy.withLane(lane, sy);
+                oz = oz.withLane(lane, sz);
+            }
+            ox.intoArray(outX, i);
+            oy.intoArray(outY, i);
+            oz.intoArray(outZ, i);
+        }
+        for (; i < count; i++) {
+            int base = i << 2;
+            skinLbs4Single(joints, jointIndices[base], jointIndices[base + 1], jointIndices[base + 2], jointIndices[base + 3], jointWeights[base], jointWeights[base + 1],
+                    jointWeights[base + 2], jointWeights[base + 3], inX[i], inY[i], inZ[i], outX, outY, outZ, i);
+        }
+//#else
+        skinLbs4Scalar(joints, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, count);
+//#endif
+    }
+
     public static void skinLbs4Scalar(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
             float[] outX, float[] outY, float[] outZ, int count) {
         for (int i = 0; i < count; i++) {

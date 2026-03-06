@@ -29,6 +29,10 @@ This folder contains the current project documentation for Vectrix.
   Pass B architecture defaults, keep/discard table, and Pass C targeting.
 - `docs/performance-phaseB-packed-affine-postmortem.md`
   Short profiler-backed explanation of why packed-affine kernels won.
+- `docs/performance-phaseC-palette-locality-memo.md`
+  Initial Pass C skinning locality results and vector-path status.
+- `docs/performance-phaseC-findings.md`
+  Initial Pass C skinning implementation outcomes and decisions.
 - `docs/benchmarking-guide.md`
   How to build, run, profile, normalize, and compare benchmark runs.
 - `docs/benchmark-environment.md`
@@ -47,6 +51,8 @@ This folder contains the current project documentation for Vectrix.
   Final V1 readiness status snapshot (kept for release tracking history).
 - `docs/rendering-roadmap.md`
   Historical roadmap record; implementation has already surpassed this plan.
+- `docs/skinning-work-equivalence-audit.md`
+  Legacy-vs-kernel skinning workload equivalence analysis.
 
 ## Benchmark and Release Docs (repo root)
 - `BENCHMARKS.md`

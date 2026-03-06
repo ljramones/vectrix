@@ -58,5 +58,12 @@ Method naming rules:
    - `docs/skinning-runtime-policy.md`
    - `docs/hot-path-policy.md`
 
+## Golden Kernels
+These kernels are currently treated as architecture-defining hot paths and should remain explicitly protected by regression gates:
+- packed-affine AABB transform (`TransformAabbBenchmark` packed-affine slices),
+- packed-affine instance upload staging (`InstanceUploadBenchmark.instanceUploadPackedAffine`),
+- SoA/vector transform batch kernels (`BatchMatrixBenchmark` SoA slices),
+- skinning default baseline (`SkinningKernelBenchmark.skinLbs4`) and experimental vector tracking (`skinLbs4Vector`).
+
 ## Phase Commit Rule
 Each performance phase ends with a local commit on `main` and no push until explicitly requested.

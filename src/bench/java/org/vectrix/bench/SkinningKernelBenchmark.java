@@ -26,7 +26,13 @@ public class SkinningKernelBenchmark extends ThroughputBenchmark {
     @Param({"1", "4", "16", "64", "256", "1024", "4096", "16384"})
     public int vertices;
 
-    private static final int JOINTS = 64;
+    @Param({"contiguous", "clustered", "random"})
+    public String paletteAccess;
+
+    @Param({"32", "64", "256"})
+    public int paletteSize;
+
+    private static final int JOINTS = 256;
 
     private TransformSoA jointRigid;
     private DualQuatSoA jointDualQuat;
@@ -39,6 +45,9 @@ public class SkinningKernelBenchmark extends ThroughputBenchmark {
 
     @Setup
     public void setup() {
+        if (paletteSize > JOINTS) {
+            throw new IllegalStateException("paletteSize must be <= JOINTS");
+        }
         jointRigid = new TransformSoA(JOINTS);
         jointDualQuat = new DualQuatSoA(JOINTS);
         jointIndices = new int[vertices * 4];
@@ -79,10 +88,29 @@ public class SkinningKernelBenchmark extends ThroughputBenchmark {
             inY[i] = (float) rnd.nextDouble(-1.0, 1.0);
             inZ[i] = (float) rnd.nextDouble(-1.0, 1.0);
             int base = i << 2;
-            int j0 = rnd.nextInt(JOINTS);
-            int j1 = rnd.nextInt(JOINTS);
-            int j2 = rnd.nextInt(JOINTS);
-            int j3 = rnd.nextInt(JOINTS);
+            int j0;
+            int j1;
+            int j2;
+            int j3;
+            if ("contiguous".equals(paletteAccess)) {
+                int start = i % paletteSize;
+                j0 = start;
+                j1 = (start + 1) % paletteSize;
+                j2 = (start + 2) % paletteSize;
+                j3 = (start + 3) % paletteSize;
+            } else if ("clustered".equals(paletteAccess)) {
+                int cluster = java.lang.Math.max(4, paletteSize / 8);
+                int baseCluster = rnd.nextInt(java.lang.Math.max(1, paletteSize - cluster + 1));
+                j0 = baseCluster + rnd.nextInt(cluster);
+                j1 = baseCluster + rnd.nextInt(cluster);
+                j2 = baseCluster + rnd.nextInt(cluster);
+                j3 = baseCluster + rnd.nextInt(cluster);
+            } else {
+                j0 = rnd.nextInt(paletteSize);
+                j1 = rnd.nextInt(paletteSize);
+                j2 = rnd.nextInt(paletteSize);
+                j3 = rnd.nextInt(paletteSize);
+            }
             jointIndices[base] = j0;
             jointIndices[base + 1] = j1;
             jointIndices[base + 2] = j2;
@@ -110,6 +138,12 @@ public class SkinningKernelBenchmark extends ThroughputBenchmark {
     @Benchmark
     public float[] skinLbs4() {
         SkinningKernels.skinLbs4(jointRigid, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
+        return outX;
+    }
+
+    @Benchmark
+    public float[] skinLbs4Vector() {
+        SkinningKernels.skinLbs4Vector(jointRigid, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
         return outX;
     }
 

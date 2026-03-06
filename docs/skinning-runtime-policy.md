@@ -16,6 +16,7 @@ Define default and optional CPU skinning paths so performance and quality tradeo
 ## SoA and SIMD Status
 - SoA skinning path is supported.
 - SIMD-enabled SoA path remains experimental and must justify retention with benchmark wins over scalar baseline at production sizes.
+- `skinLbs4Vector` (packed-input vectorized kernel) is now available as an experimental optimization target, but it is not default until it beats `skinLbs4` in constrained full runs.
 
 ## API Intention
 - Fast/default API usage should select matrix LBS unless caller explicitly requests a quality mode.
@@ -27,7 +28,13 @@ From Phase 2 constrained full run (`2026-03-05`):
 - `skinLbs4` outperformed `skinDualQuat4` in kernel family.
 - `skinLbs4SoAAuto` was close to `skinLbs4` and needs further SIMD/layout investigation before broad policy changes.
 
+From Phase C constrained quick locality pass (`2026-03-06`):
+- `skinLbs4` remained the fastest measured LBS variant (`~9.7-9.9 ns/item` across tested palette modes/sizes).
+- `skinLbs4Vector` and forced SIMD SoA variants were generally slower (`~10.0 ns/item` range).
+- Palette locality effects were present but modest in this benchmark shape.
+
 ## Next Required Measurements
-1. Palette access pattern variants (contiguous/clustered/random).
-2. Layout variants for indices/weights.
-3. Work-equivalence analysis between legacy and new kernel benchmarks.
+1. Constrained/full rerun of `skinLbs4Vector` after loop-body/vector strategy optimization.
+2. Expanded palette locality stress (small/medium/large palette with cache-cold variants).
+3. Layout variants for indices/weights.
+4. Work-equivalence analysis between legacy and new kernel benchmarks (tracked in `docs/skinning-work-equivalence-audit.md`).

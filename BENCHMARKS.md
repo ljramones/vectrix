@@ -19,6 +19,7 @@ This document defines the benchmark methodology and records current baseline res
   - `./scripts/bench-prof.sh`
   - `./scripts/bench-regression.sh`
   - `./scripts/bench-regression-phaseb.sh`
+  - `./scripts/bench-regression-skinning.sh`
 - Standard profile defaults:
   - `quick`: `f=1 wi=3 i=5`
   - `full`: `f=3 wi=6 i=10`
@@ -191,3 +192,12 @@ Intent:
 - guard packed-affine AABB and upload winners,
 - retain one matrix baseline for relative comparison,
 - retain one locality-sensitive random traversal case.
+
+## Skinning Regression Gates
+Focused gate suite for current skinning policy:
+- `regression-skinning-lbs4`:
+  - `SkinningKernelBenchmark.skinLbs4`
+  - params: `vertices=16384`, `paletteAccess=contiguous,random`, `paletteSize=64`
+- `regression-skinning-lbs4vector`:
+  - `SkinningKernelBenchmark.skinLbs4Vector`
+  - same params, tracked as experimental target.

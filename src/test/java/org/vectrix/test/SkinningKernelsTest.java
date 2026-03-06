@@ -159,6 +159,24 @@ class SkinningKernelsTest {
         }
     }
 
+    @Test
+    void lbsPackedScalarAndVectorMatch() {
+        Fixture f = Fixture.create(257, 2026);
+        float[] sx = new float[f.vertices];
+        float[] sy = new float[f.vertices];
+        float[] sz = new float[f.vertices];
+        float[] vx = new float[f.vertices];
+        float[] vy = new float[f.vertices];
+        float[] vz = new float[f.vertices];
+        SkinningKernels.skinLbs4Scalar(f.joints, f.jointIndices, f.jointWeights, f.inX, f.inY, f.inZ, sx, sy, sz, f.vertices);
+        SkinningKernels.skinLbs4Vector(f.joints, f.jointIndices, f.jointWeights, f.inX, f.inY, f.inZ, vx, vy, vz, f.vertices);
+        for (int i = 0; i < f.vertices; i++) {
+            assertEquals(sx[i], vx[i], 1E-6f);
+            assertEquals(sy[i], vy[i], 1E-6f);
+            assertEquals(sz[i], vz[i], 1E-6f);
+        }
+    }
+
     private static final class Fixture {
         static final int JOINTS = 8;
         final int vertices;
