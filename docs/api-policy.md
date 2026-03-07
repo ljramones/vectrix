@@ -3,7 +3,7 @@
 ## Stability Levels
 
 - Public API: classes and methods not marked with `@Internal` are intended for external use.
-- Internal API: any symbol marked with `@org.vectrix.core.Internal` is implementation detail and may change or be removed between releases.
+- Internal API: any symbol marked with `@org.dynamisengine.vectrix.core.Internal` is implementation detail and may change or be removed between releases.
 
 ## Compatibility Guarantees
 
@@ -14,10 +14,10 @@
 ## Package Guidance
 
 - Primary stable packages:
-  - `org.vectrix.core`, `org.vectrix.affine`, `org.vectrix.geometry`, `org.vectrix.gpu`, `org.vectrix.soa`
-  - `org.vectrix.curve`, `org.vectrix.sh`, `org.vectrix.fft`, `org.vectrix.optics`
-  - `org.vectrix.renderingmath`, `org.vectrix.sampling`, `org.vectrix.color`, `org.vectrix.easing`, `org.vectrix.sdf`, `org.vectrix.hash`, `org.vectrix.ltc`
-- Experimental/perf-control surfaces (`org.vectrix.experimental`, backend probing in `org.vectrix.simd`) are opt-in and may evolve more aggressively unless explicitly documented as stable.
+  - `org.dynamisengine.vectrix.core`, `org.dynamisengine.vectrix.affine`, `org.dynamisengine.vectrix.geometry`, `org.dynamisengine.vectrix.gpu`, `org.dynamisengine.vectrix.soa`
+  - `org.dynamisengine.vectrix.curve`, `org.dynamisengine.vectrix.sh`, `org.dynamisengine.vectrix.fft`, `org.dynamisengine.vectrix.optics`
+  - `org.dynamisengine.vectrix.renderingmath`, `org.dynamisengine.vectrix.sampling`, `org.dynamisengine.vectrix.color`, `org.dynamisengine.vectrix.easing`, `org.dynamisengine.vectrix.sdf`, `org.dynamisengine.vectrix.hash`, `org.dynamisengine.vectrix.ltc`
+- Experimental/perf-control surfaces (`org.dynamisengine.vectrix.experimental`, backend probing in `org.dynamisengine.vectrix.simd`) are opt-in and may evolve more aggressively unless explicitly documented as stable.
 
 ## Performance Contract
 

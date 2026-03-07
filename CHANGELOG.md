@@ -14,9 +14,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - `PhysicsMathBenchmark`, `HashBenchmark`, `SdfBenchmark`
   - `SamplingBenchmark`, `ColorBenchmark`, `EasingBenchmark`, `ParallelTransformBenchmark`
 - Runtime subsystem path implementation with packed-affine default and matrix fallback:
-  - `org.vectrix.gpu.InstanceSubmissionPipeline`
+  - `org.dynamisengine.vectrix.gpu.InstanceSubmissionPipeline`
 - Specialized GPU write kernels:
-  - `org.vectrix.gpu.GpuTransformWriteKernels`
+  - `org.dynamisengine.vectrix.gpu.GpuTransformWriteKernels`
 - Tight matrix-palette skinning support:
   - `SkinningKernels.skinLbs4MatrixPalette(...)`
   - `SkinningKernels.buildRigidMatrixPalette12(...)`
@@ -80,7 +80,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Changed
 - `README.md` rewritten as a consumer-oriented guide with quick-start usage.
-- `FrustumCullingBenchmark` updated to import `MathMode` from `org.vectrix.core`.
+- `FrustumCullingBenchmark` updated to import `MathMode` from `org.dynamisengine.vectrix.core`.
 - Javadoc improvements on release-critical APIs (RK4 usage, quaternion interpolation contracts, SH projection and LTC contracts).
 
 ### Fixed

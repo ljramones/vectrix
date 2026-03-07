@@ -5,7 +5,7 @@ Scope: transform update + instance submission subsystem path with packed-affine 
 
 ## Implemented Subsystem Path
 - Runtime class:
-  - `org.vectrix.gpu.InstanceSubmissionPipeline`
+  - `org.dynamisengine.vectrix.gpu.InstanceSubmissionPipeline`
 - Default path:
   - packed-affine materialization
   - skinning via matrix-palette tight LBS (`skinLbs4MatrixPalette`)
@@ -18,7 +18,7 @@ Scope: transform update + instance submission subsystem path with packed-affine 
 
 ## Subsystem Benchmark
 - Benchmark class:
-  - `org.vectrix.bench.SubsystemIntegrationBenchmark`
+  - `org.dynamisengine.vectrix.bench.SubsystemIntegrationBenchmark`
 - Methods:
   - `subsystemPackedDefaultPath`
   - `subsystemMatrixFallbackPath`

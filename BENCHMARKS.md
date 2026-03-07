@@ -130,7 +130,7 @@ Acquisition path for the current suite index above:
 
 ## Current Baseline
 Baseline capture profile used:
-- `BENCH_REGEX='org.vectrix.bench.(CurveBenchmark|ShBenchmark|FftBenchmark|OpticsBenchmark).*'`
+- `BENCH_REGEX='org.dynamisengine.vectrix.bench.(CurveBenchmark|ShBenchmark|FftBenchmark|OpticsBenchmark).*'`
 - `FORKS=1 WARMUP_ITERS=1 MEASURE_ITERS=1 THREADS=1 TIME_UNIT=ns`
 
 Hardware/software:
@@ -193,7 +193,7 @@ Interpretation notes:
 
 ## Full Coverage Pass (Latest)
 Latest end-to-end capture profile:
-- `BENCH_REGEX='org.vectrix.bench.(CurveBenchmark|FftBenchmark|OpticsBenchmark|ShBenchmark|QuaternionRotationBenchmark|ShHotPathBenchmark|LtcBenchmark|LowDiscrepancyBenchmark|SkinningKernelBenchmark).*'`
+- `BENCH_REGEX='org.dynamisengine.vectrix.bench.(CurveBenchmark|FftBenchmark|OpticsBenchmark|ShBenchmark|QuaternionRotationBenchmark|ShHotPathBenchmark|LtcBenchmark|LowDiscrepancyBenchmark|SkinningKernelBenchmark).*'`
 - `FORKS=1 WARMUP_ITERS=1 MEASURE_ITERS=1 THREADS=1 TIME_UNIT=ns`
 
 Result artifacts:

@@ -104,8 +104,8 @@ Full methodology/results: [`BENCHMARKS.md`](BENCHMARKS.md).
 ### FAST / STRICT mode
 
 ```java
-import org.vectrix.core.MathMode;
-import org.vectrix.experimental.KernelConfig;
+import org.dynamisengine.vectrix.core.MathMode;
+import org.dynamisengine.vectrix.experimental.KernelConfig;
 
 MathMode prev = KernelConfig.mathMode();
 try {
@@ -187,7 +187,7 @@ mvn -q clean package -Pbench -DskipTests
 Run benchmarks:
 
 ```bash
-BENCH_REGEX='org.vectrix.bench.*' ./scripts/bench-run.sh
+BENCH_REGEX='org.dynamisengine.vectrix.bench.*' ./scripts/bench-run.sh
 ```
 
 Compare benchmark outputs:

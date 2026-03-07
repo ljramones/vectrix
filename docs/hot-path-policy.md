@@ -31,8 +31,8 @@ Keep runtime-critical Vectrix paths data-oriented, allocation-free, and benchmar
 - Primitive micro-op benches are regression guards, not active optimization goals.
 
 ## Package Guidance
-- Preferred hot-path packages: `org.vectrix.affine`, `org.vectrix.soa`, `org.vectrix.geometry`, `org.vectrix.gpu`.
-- `org.vectrix.core` matrix/quaternion APIs remain foundational and boundary-safe, but hot kernels should avoid object-heavy usage patterns where batch kernels exist.
+- Preferred hot-path packages: `org.dynamisengine.vectrix.affine`, `org.dynamisengine.vectrix.soa`, `org.dynamisengine.vectrix.geometry`, `org.dynamisengine.vectrix.gpu`.
+- `org.dynamisengine.vectrix.core` matrix/quaternion APIs remain foundational and boundary-safe, but hot kernels should avoid object-heavy usage patterns where batch kernels exist.
 
 ## Enforcement
 - New hot-path code should include/extend JMH coverage.

@@ -38,4 +38,4 @@ These defaults are current engine law until a new benchmark pass provides strong
 
 ## Reference Subsystem
 Current reference implementation of this doctrine:
-- `org.vectrix.gpu.InstanceSubmissionPipeline`
+- `org.dynamisengine.vectrix.gpu.InstanceSubmissionPipeline`

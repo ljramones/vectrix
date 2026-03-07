@@ -6,12 +6,12 @@ This guide is the practical API reference for Vectrix. It is example-first and i
 
 For capability inventory by consumer domain, see `docs/vectrix-capabilities.md`.
 
-## 1) Core Math (`org.vectrix.core`)
+## 1) Core Math (`org.dynamisengine.vectrix.core`)
 
 ### Vectors and matrices
 
 ```java
-import org.vectrix.core.*;
+import org.dynamisengine.vectrix.core.*;
 
 Vector3f a = new Vector3f(1, 2, 3);
 Vector3f b = new Vector3f(4, 5, 6);
@@ -65,11 +65,11 @@ IntegratorRK4f.step(new OdeDerivativef() {
 }, 0f, 0.016f, state, 0, state.length, scratch, 0, state, 0);
 ```
 
-## 2) Affine and Transforms (`org.vectrix.affine`)
+## 2) Affine and Transforms (`org.dynamisengine.vectrix.affine`)
 
 ```java
-import org.vectrix.affine.*;
-import org.vectrix.core.*;
+import org.dynamisengine.vectrix.affine.*;
+import org.dynamisengine.vectrix.core.*;
 
 Transformf t = new Transformf();
 t.translation.set(1, 2, 3);
@@ -89,7 +89,7 @@ DualQuatTransformf dq = new DualQuatTransformf().setFromRigid(new RigidTransform
 Vector3f p = dq.transformPosition(1, 0, 0, new Vector3f());
 ```
 
-## 3) Curves (`org.vectrix.curve`)
+## 3) Curves (`org.dynamisengine.vectrix.curve`)
 
 Families available (float and double):
 - Bezier
@@ -102,8 +102,8 @@ Domains available:
 - vec2/vec3/vec4 (`curve.vec2`, `curve.vec3`, `curve.vec4`)
 
 ```java
-import org.vectrix.curve.vec3.Bezier3f;
-import org.vectrix.core.Vector3f;
+import org.dynamisengine.vectrix.curve.vec3.Bezier3f;
+import org.dynamisengine.vectrix.core.Vector3f;
 
 Vector3f p = Bezier3f.evaluate(p0, p1, p2, p3, 0.35f, new Vector3f());
 Vector3f v = Bezier3f.derivative(p0, p1, p2, p3, 0.35f, new Vector3f());
@@ -112,7 +112,7 @@ float[] arcTable = CurveReparameterizer3f.buildArcLengthTableForBezier(p0, p1, p
 float t = CurveReparameterizer3f.mapArcLengthToT(0.5f, arcTable);
 ```
 
-## 4) SoA and Skinning (`org.vectrix.soa`)
+## 4) SoA and Skinning (`org.dynamisengine.vectrix.soa`)
 
 ```java
 TransformSoA transforms = new TransformSoA(1024);
@@ -124,7 +124,7 @@ SkinningKernels.skinLbs4SoA(soa, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, 
 SkinningKernels.skinDualQuat4SoA(dq, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, count);
 ```
 
-## 5) Geometry (`org.vectrix.geometry`)
+## 5) Geometry (`org.dynamisengine.vectrix.geometry`)
 
 ```java
 FrustumPlanes planes = new FrustumPlanes().set(viewProj, true);
@@ -135,7 +135,7 @@ RayAabIntersection hit = new RayAabIntersection().set(ox, oy, oz, dx, dy, dz);
 boolean intersects = hit.test(minX, minY, minZ, maxX, maxY, maxZ);
 ```
 
-## 6) Rendering Math (`org.vectrix.renderingmath`)
+## 6) Rendering Math (`org.dynamisengine.vectrix.renderingmath`)
 
 ```java
 SssProfile profile = SssProfile.singleGaussian(1f, 0.8f, 0.6f, 0.2f, 0.3f, 0.4f);
@@ -160,7 +160,7 @@ float y = Interpolationf.bicubicHermite(samples4x4, tx, ty);
 float coneAngle = BentNormalConef.coneAngleFromAo(ao);
 ```
 
-## 7) SH (`org.vectrix.sh`)
+## 7) SH (`org.dynamisengine.vectrix.sh`)
 
 ```java
 ShCoeffs9f coeffs = new ShCoeffs9f().zero();
@@ -174,7 +174,7 @@ ShConvolution.evaluateIrradiance(irradianceCoeffs, nx, ny, nz, b9, rgb);
 
 L3 support is available via `ShBasis`, `ShProjection`, `ShConvolution`, and `ShCoeffs16f/d`.
 
-## 8) FFT and Convolution (`org.vectrix.fft`)
+## 8) FFT and Convolution (`org.dynamisengine.vectrix.fft`)
 
 Data is interleaved complex: `data[2*i] = real`, `data[2*i+1] = imag`.
 
@@ -191,7 +191,7 @@ Convolutionf.circular(a, b, out);
 
 ## 9) Optics and Color
 
-### Optics (`org.vectrix.optics`)
+### Optics (`org.dynamisengine.vectrix.optics`)
 
 ```java
 float fDielectric = Fresnelf.dielectric(cosTheta, 1.0f, 1.5f);
@@ -201,7 +201,7 @@ Vector3f thin = ThinFilmf.reflectanceRgb(1.0f, 1.38f, 1.5f, 320.0f, cosTheta, ne
 float f0 = Iorf.schlickF0(1.0f, 1.5f);
 ```
 
-### Color (`org.vectrix.color`)
+### Color (`org.dynamisengine.vectrix.color`)
 
 ```java
 float linear = ColorMathf.srgbToLinear(0.5f);
@@ -210,7 +210,7 @@ float Y = ColorMathf.luminanceLinear(r, g, b);
 Vector3f xyz = ColorMathf.linearSrgbToXyz(new Vector3f(r, g, b), new Vector3f());
 ```
 
-## 10) LTC (`org.vectrix.ltc`)
+## 10) LTC (`org.dynamisengine.vectrix.ltc`)
 
 ```java
 float[] m3 = new float[9];
@@ -219,7 +219,7 @@ LtcTablef.sampleMat3(table, width, height, roughness, ndotv, m3);
 float ffRect = LtcEvalf.formFactorRectClipped(v0, v1, v2, v3);
 ```
 
-## 11) Sampling (`org.vectrix.sampling`)
+## 11) Sampling (`org.dynamisengine.vectrix.sampling`)
 
 ```java
 Vector2f h = HaltonSequence.halton2D(index, new Vector2f());
@@ -231,7 +231,7 @@ SobolSequence.sobolScrambledBatch2D(start, count, seed, outX, 0, outY, 0);
 
 Legacy samplers are also available (`PoissonSampling`, `StratifiedSampling`, `UniformSampling`, `BestCandidateSampling`, `SpiralSampling`).
 
-## 12) GPU Utilities (`org.vectrix.gpu`)
+## 12) GPU Utilities (`org.dynamisengine.vectrix.gpu`)
 
 ```java
 short h = Half.pack(0.75f);
@@ -263,7 +263,7 @@ boolean simd = SimdSupport.isVectorApiAvailable();
 mvn -q test
 mvn -q verify
 mvn -q clean package -Pbench -DskipTests
-BENCH_REGEX='org.vectrix.bench.*' ./scripts/bench-run.sh
+BENCH_REGEX='org.dynamisengine.vectrix.bench.*' ./scripts/bench-run.sh
 ```
 
 ## Usage Notes

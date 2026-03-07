@@ -51,7 +51,7 @@ float[] posZ = new float[1000];
 // Accessing posX[0..999] is a single sequential memory region — cache friendly
 ```
 
-When you are processing thousands of items per frame, SoA is typically 2–6× faster than equivalent AoS code because the CPU prefetcher can stream data efficiently. The `org.vectrix.soa` package provides ready-made SoA containers for transforms and dual quaternions, and the batch APIs in the curve, SH, and sampling packages all follow the same layout convention.
+When you are processing thousands of items per frame, SoA is typically 2–6× faster than equivalent AoS code because the CPU prefetcher can stream data efficiently. The `org.dynamisengine.vectrix.soa` package provides ready-made SoA containers for transforms and dual quaternions, and the batch APIs in the curve, SH, and sampling packages all follow the same layout convention.
 
 ### 3. FAST vs STRICT Mode
 
@@ -97,28 +97,28 @@ The appropriate choice depends on your use case. Float is the right choice for G
 
 | Package | Purpose |
 |---|---|
-| `org.vectrix.core` | Vectors, matrices, quaternions, dual quaternions, ranges, RK4 |
-| `org.vectrix.affine` | TRS/affine transforms, rigid transforms, dual-quat transforms |
-| `org.vectrix.soa` | SoA containers: TransformSoA, DualQuatSoA, SkinningKernels |
-| `org.vectrix.simd` | Vector API helpers and SIMD utility types |
-| `org.vectrix.curve` | Arc-length reparameterization, curve constants |
-| `org.vectrix.curve.scalar` | Bezier/Hermite/CatmullRom/BSpline for scalar float/double channels |
-| `org.vectrix.curve.vec2` | Same curve families for 2D vector channels |
-| `org.vectrix.curve.vec3` | Same curve families for 3D vector channels |
-| `org.vectrix.curve.vec4` | Same curve families for 4D vector channels |
-| `org.vectrix.geometry` | Frustum, culling, intersection, mesh math |
-| `org.vectrix.gpu` | Vertex layout, half-float, packed normals, quaternion compression |
-| `org.vectrix.sampling` | Best-candidate, Poisson, stratified, Halton, Sobol, scrambled Sobol |
-| `org.vectrix.easing` | Linear, smoothstep, quad/cubic, bounce, spring easing |
-| `org.vectrix.color` | sRGB/linear, XYZ, luminance, tone mapping, color science |
-| `org.vectrix.sh` | Spherical harmonics L0–L3: basis, projection, convolution |
-| `org.vectrix.fft` | Complex types, radix-2 FFT, circular/linear convolution |
-| `org.vectrix.optics` | IOR, Fresnel, thin-film interference, spectral sampling |
-| `org.vectrix.sdf` | Signed distance functions: sphere, box, capsule, cylinder, torus |
-| `org.vectrix.hash` | PCG hash, spatial hash |
-| `org.vectrix.ltc` | LTC area-light table sampling and form-factor evaluation |
-| `org.vectrix.renderingmath` | SSS LUT, atmosphere transmittance LUT, interpolation, bent normals |
-| `org.vectrix.experimental` | KernelConfig, experimental SIMD and FFM paths |
+| `org.dynamisengine.vectrix.core` | Vectors, matrices, quaternions, dual quaternions, ranges, RK4 |
+| `org.dynamisengine.vectrix.affine` | TRS/affine transforms, rigid transforms, dual-quat transforms |
+| `org.dynamisengine.vectrix.soa` | SoA containers: TransformSoA, DualQuatSoA, SkinningKernels |
+| `org.dynamisengine.vectrix.simd` | Vector API helpers and SIMD utility types |
+| `org.dynamisengine.vectrix.curve` | Arc-length reparameterization, curve constants |
+| `org.dynamisengine.vectrix.curve.scalar` | Bezier/Hermite/CatmullRom/BSpline for scalar float/double channels |
+| `org.dynamisengine.vectrix.curve.vec2` | Same curve families for 2D vector channels |
+| `org.dynamisengine.vectrix.curve.vec3` | Same curve families for 3D vector channels |
+| `org.dynamisengine.vectrix.curve.vec4` | Same curve families for 4D vector channels |
+| `org.dynamisengine.vectrix.geometry` | Frustum, culling, intersection, mesh math |
+| `org.dynamisengine.vectrix.gpu` | Vertex layout, half-float, packed normals, quaternion compression |
+| `org.dynamisengine.vectrix.sampling` | Best-candidate, Poisson, stratified, Halton, Sobol, scrambled Sobol |
+| `org.dynamisengine.vectrix.easing` | Linear, smoothstep, quad/cubic, bounce, spring easing |
+| `org.dynamisengine.vectrix.color` | sRGB/linear, XYZ, luminance, tone mapping, color science |
+| `org.dynamisengine.vectrix.sh` | Spherical harmonics L0–L3: basis, projection, convolution |
+| `org.dynamisengine.vectrix.fft` | Complex types, radix-2 FFT, circular/linear convolution |
+| `org.dynamisengine.vectrix.optics` | IOR, Fresnel, thin-film interference, spectral sampling |
+| `org.dynamisengine.vectrix.sdf` | Signed distance functions: sphere, box, capsule, cylinder, torus |
+| `org.dynamisengine.vectrix.hash` | PCG hash, spatial hash |
+| `org.dynamisengine.vectrix.ltc` | LTC area-light table sampling and form-factor evaluation |
+| `org.dynamisengine.vectrix.renderingmath` | SSS LUT, atmosphere transmittance LUT, interpolation, bent normals |
+| `org.dynamisengine.vectrix.experimental` | KernelConfig, experimental SIMD and FFM paths |
 
 ---
 
@@ -175,7 +175,7 @@ Quaternionf delta = Quaternionf.integrateAngularVelocity(omega, dt, new Quaterni
 
 ### Curves and Interpolation
 
-The `org.vectrix.curve` package provides four curve families across five channel dimensions (scalar, vec2, vec3, vec4) in both float and double precision. All stateless families use purely static methods — no construction cost, no state.
+The `org.dynamisengine.vectrix.curve` package provides four curve families across five channel dimensions (scalar, vec2, vec3, vec4) in both float and double precision. All stateless families use purely static methods — no construction cost, no state.
 
 **Bezier** (cubic) — defined by four control points. The curve passes through the first and last points; the middle two are tangent handles that pull the curve without being on it. Best for authored paths where an artist needs direct handle control.
 
@@ -274,7 +274,7 @@ The coordinate convention is Y-up right-handed throughout. All probe data captur
 
 ### FFT and Convolution
 
-The `org.vectrix.fft` package provides a radix-2 Cooley-Tukey FFT with the following conventions locked:
+The `org.dynamisengine.vectrix.fft` package provides a radix-2 Cooley-Tukey FFT with the following conventions locked:
 
 - **Input size must be a power of two.** Non-power-of-two sizes throw `IllegalArgumentException`. Use the next power of two and zero-pad if needed.
 - **Interleaved complex layout:** `data[2i]` is the real component, `data[2i+1]` is the imaginary component.
@@ -290,7 +290,7 @@ The `Convolutionf` class provides two convolution modes:
 
 ### Optics and Material Math
 
-The `org.vectrix.optics` package covers the math underlying physically-based material models.
+The `org.dynamisengine.vectrix.optics` package covers the math underlying physically-based material models.
 
 **IOR utilities** (`Iorf`) handle the conversion math that appears throughout PBR shading — converting between IOR values and Fresnel F0 reflectance, computing Schlick approximations, and handling the eta ratio between media:
 
@@ -321,7 +321,7 @@ ThinFilmf.reflectanceRgb(1.0f, filmIor, substrateIor, filmThickness, cosTheta, r
 
 ### Rendering Math (LUT Generation)
 
-The `org.vectrix.renderingmath` package contains the math for generating precomputed lookup tables. These are renderer-agnostic — the outputs are flat float arrays that your renderer uploads as textures.
+The `org.dynamisengine.vectrix.renderingmath` package contains the math for generating precomputed lookup tables. These are renderer-agnostic — the outputs are flat float arrays that your renderer uploads as textures.
 
 **Preintegrated SSS LUT** — builds the 2D lookup table for preintegrated subsurface scattering (Penner/d'Eon method). The LUT axes are curvature and NdotL. The output is RGB reflectance:
 
@@ -347,7 +347,7 @@ float[] lut = new float[256 * 64 * 3];
 TransmittanceLutBuilder.build(256, 64, earth, 64, lut);
 ```
 
-**LTC area-light evaluation** — the `org.vectrix.ltc` package provides the runtime evaluation math for Linearly Transformed Cosines area lighting. The LTC matrix table (a 64×64 float array) lives in your renderer as a texture; Vectrix provides the sampling and form-factor evaluation:
+**LTC area-light evaluation** — the `org.dynamisengine.vectrix.ltc` package provides the runtime evaluation math for Linearly Transformed Cosines area lighting. The LTC matrix table (a 64×64 float array) lives in your renderer as a texture; Vectrix provides the sampling and form-factor evaluation:
 
 ```java
 // Sample the LTC matrix at (NdotV, roughness)
@@ -362,7 +362,7 @@ float formFactor = LtcEvalf.formFactorRectClipped(v0, v1, v2, v3);
 
 ### Sampling
 
-The `org.vectrix.sampling` package covers stochastic sampling for rendering algorithms.
+The `org.dynamisengine.vectrix.sampling` package covers stochastic sampling for rendering algorithms.
 
 **Poisson and stratified sampling** are the general-purpose options for offline or pre-baked sample sets. Use stratified for any application where regular grid sampling would alias.
 
@@ -384,7 +384,7 @@ SobolSequence.sobolScrambled2D(sampleIndex, frameIndex, sample); // seed by fram
 
 ### GPU Packing and Data Transfer
 
-The `org.vectrix.gpu` package handles the conversion from full-precision math types to compact GPU formats. Packing happens once on upload; the GPU works with the compact form.
+The `org.dynamisengine.vectrix.gpu` package handles the conversion from full-precision math types to compact GPU formats. Packing happens once on upload; the GPU works with the compact form.
 
 **Half-float** (`Half`) converts `float` to 16-bit float (IEEE 754 half-precision). Reduces position/normal buffer sizes by 50% at the cost of reduced precision — usually acceptable for normals and UVs.
 

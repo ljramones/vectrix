@@ -3,8 +3,8 @@
 Date: 2026-03-05
 
 ## Failure Mode
-- `mvn -q -Pbench -DskipTests package` failed while compiling `src/bench/java` in named module `org.vectrix`.
-- JMH annotation packages were seen in the unnamed module, and `org.vectrix` had no read edge to them.
+- `mvn -q -Pbench -DskipTests package` failed while compiling `src/bench/java` in named module `org.dynamisengine.vectrix`.
+- JMH annotation packages were seen in the unnamed module, and `org.dynamisengine.vectrix` had no read edge to them.
 - Additional read-edge failures appeared for:
   - `jdk.incubator.vector`
   - `jdk.unsupported` (`sun.misc` use via `MemUtil`)
@@ -17,9 +17,9 @@ Date: 2026-03-05
 - Keep current packaging strategy (single `bench` profile + shaded JMH jar).
 - Add explicit bench-profile compiler arguments to satisfy module read edges:
   - `--add-modules jdk.incubator.vector,jdk.unsupported`
-  - `--add-reads org.vectrix=ALL-UNNAMED`
-  - `--add-reads org.vectrix=jdk.incubator.vector`
-  - `--add-reads org.vectrix=jdk.unsupported`
+  - `--add-reads org.dynamisengine.vectrix=ALL-UNNAMED`
+  - `--add-reads org.dynamisengine.vectrix=jdk.incubator.vector`
+  - `--add-reads org.dynamisengine.vectrix=jdk.unsupported`
 
 ## Validation
 - `mvn -q -Pbench -DskipTests package` passes.

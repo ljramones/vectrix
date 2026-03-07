@@ -5,7 +5,7 @@ Scope: end-to-end composed engine-style path using runtime transforms, skinning,
 
 ## Integration Benchmark
 - Benchmark class:
-  - `org.vectrix.bench.IntegrationPipelineBenchmark`
+  - `org.dynamisengine.vectrix.bench.IntegrationPipelineBenchmark`
 - Methods:
   - `integrationPackedPipeline`
   - `integrationMatrixPipeline`

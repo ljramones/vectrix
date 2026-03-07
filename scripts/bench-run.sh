@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 BENCH_PROFILE="${BENCH_PROFILE:-full}"
-BENCH_REGEX="${BENCH_REGEX:-org.vectrix.bench.*}"
+BENCH_REGEX="${BENCH_REGEX:-org.dynamisengine.vectrix.bench.*}"
 THREADS="${THREADS:-1}"
 TIME_UNIT="${TIME_UNIT:-ns}"
 JMH_FORMAT="${JMH_FORMAT:-json}"

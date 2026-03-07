@@ -25,7 +25,7 @@ Example:
 
 ```bash
 java --add-modules jdk.incubator.vector -jar target/benchmarks.jar \
-  "org.vectrix.bench.SkinningKernelBenchmark.skinLbs4MatrixPaletteTight" \
+  "org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4MatrixPaletteTight" \
   -p vertices=16384 -p paletteAccess=random -p paletteSize=64 \
   -f 1 -wi 3 -i 5 -prof perfasm
 ```
@@ -34,7 +34,7 @@ For transform/upload kernels:
 
 ```bash
 java --add-modules jdk.incubator.vector -jar target/benchmarks.jar \
-  "org.vectrix.bench.GpuTransformLayoutBenchmark.writeTransformLayoutPath" \
+  "org.dynamisengine.vectrix.bench.GpuTransformLayoutBenchmark.writeTransformLayoutPath" \
   -p count=16384 -p accessPattern=RANDOM -p sourceRep=packedAffine \
   -f 1 -wi 3 -i 5 -prof perfasm
 ```
