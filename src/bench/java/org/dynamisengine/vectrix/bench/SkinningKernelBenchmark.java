@@ -1,0 +1,210 @@
+/*
+ * The MIT License
+ *
+ * Copyright (c) 2024 Vectrix
+ */
+package org.dynamisengine.vectrix.bench;
+
+import java.util.SplittableRandom;
+import java.util.concurrent.TimeUnit;
+
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.dynamisengine.vectrix.affine.DualQuatTransformf;
+import org.dynamisengine.vectrix.affine.RigidTransformf;
+import org.dynamisengine.vectrix.soa.DualQuatSoA;
+import org.dynamisengine.vectrix.soa.SkinningKernels;
+import org.dynamisengine.vectrix.soa.TransformSoA;
+
+@State(Scope.Benchmark)
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+public class SkinningKernelBenchmark extends ThroughputBenchmark {
+    @Param({"1", "4", "16", "64", "256", "1024", "4096", "16384"})
+    public int vertices;
+
+    @Param({"contiguous", "clustered", "random"})
+    public String paletteAccess;
+
+    @Param({"32", "64", "256"})
+    public int paletteSize;
+
+    private static final int JOINTS = 256;
+
+    private TransformSoA jointRigid;
+    private DualQuatSoA jointDualQuat;
+    private int[] jointIndices;
+    private float[] jointWeights;
+    private int[] j0, j1, j2, j3;
+    private float[] w0, w1, w2, w3;
+    private float[] inX, inY, inZ;
+    private float[] outX, outY, outZ;
+    private float[] matrixPalette12;
+
+    @Setup
+    public void setup() {
+        if (paletteSize > JOINTS) {
+            throw new IllegalStateException("paletteSize must be <= JOINTS");
+        }
+        jointRigid = new TransformSoA(JOINTS);
+        jointDualQuat = new DualQuatSoA(JOINTS);
+        jointIndices = new int[vertices * 4];
+        jointWeights = new float[vertices * 4];
+        j0 = new int[vertices];
+        j1 = new int[vertices];
+        j2 = new int[vertices];
+        j3 = new int[vertices];
+        w0 = new float[vertices];
+        w1 = new float[vertices];
+        w2 = new float[vertices];
+        w3 = new float[vertices];
+        inX = new float[vertices];
+        inY = new float[vertices];
+        inZ = new float[vertices];
+        outX = new float[vertices];
+        outY = new float[vertices];
+        outZ = new float[vertices];
+        matrixPalette12 = new float[JOINTS * 12];
+
+        SplittableRandom rnd = new SplittableRandom(7L);
+        RigidTransformf r = new RigidTransformf();
+        DualQuatTransformf dq = new DualQuatTransformf();
+        for (int j = 0; j < JOINTS; j++) {
+            r.translation.set((float) rnd.nextDouble(-2.0, 2.0), (float) rnd.nextDouble(-2.0, 2.0), (float) rnd.nextDouble(-2.0, 2.0));
+            r.rotation.identity().rotateXYZ((float) rnd.nextDouble(-1.0, 1.0), (float) rnd.nextDouble(-1.0, 1.0), (float) rnd.nextDouble(-1.0, 1.0));
+            jointRigid.tx[j] = r.translation.x;
+            jointRigid.ty[j] = r.translation.y;
+            jointRigid.tz[j] = r.translation.z;
+            jointRigid.qx[j] = r.rotation.x;
+            jointRigid.qy[j] = r.rotation.y;
+            jointRigid.qz[j] = r.rotation.z;
+            jointRigid.qw[j] = r.rotation.w;
+            float qx = r.rotation.x;
+            float qy = r.rotation.y;
+            float qz = r.rotation.z;
+            float qw = r.rotation.w;
+            float dqx = qx + qx;
+            float dqy = qy + qy;
+            float dqz = qz + qz;
+            float q00 = dqx * qx;
+            float q11 = dqy * qy;
+            float q22 = dqz * qz;
+            float q01 = dqx * qy;
+            float q02 = dqx * qz;
+            float q03 = dqx * qw;
+            float q12 = dqy * qz;
+            float q13 = dqy * qw;
+            float q23 = dqz * qw;
+            int o = j * 12;
+            matrixPalette12[o] = 1.0f - (q11 + q22);
+            matrixPalette12[o + 1] = q01 + q23;
+            matrixPalette12[o + 2] = q02 - q13;
+            matrixPalette12[o + 3] = r.translation.x;
+            matrixPalette12[o + 4] = q01 - q23;
+            matrixPalette12[o + 5] = 1.0f - (q22 + q00);
+            matrixPalette12[o + 6] = q12 + q03;
+            matrixPalette12[o + 7] = r.translation.y;
+            matrixPalette12[o + 8] = q02 + q13;
+            matrixPalette12[o + 9] = q12 - q03;
+            matrixPalette12[o + 10] = 1.0f - (q11 + q00);
+            matrixPalette12[o + 11] = r.translation.z;
+            dq.setFromRigid(r);
+            jointDualQuat.set(j, dq);
+        }
+        for (int i = 0; i < vertices; i++) {
+            inX[i] = (float) rnd.nextDouble(-1.0, 1.0);
+            inY[i] = (float) rnd.nextDouble(-1.0, 1.0);
+            inZ[i] = (float) rnd.nextDouble(-1.0, 1.0);
+            int base = i << 2;
+            int j0;
+            int j1;
+            int j2;
+            int j3;
+            if ("contiguous".equals(paletteAccess)) {
+                int start = i % paletteSize;
+                j0 = start;
+                j1 = (start + 1) % paletteSize;
+                j2 = (start + 2) % paletteSize;
+                j3 = (start + 3) % paletteSize;
+            } else if ("clustered".equals(paletteAccess)) {
+                int cluster = java.lang.Math.max(4, paletteSize / 8);
+                int baseCluster = rnd.nextInt(java.lang.Math.max(1, paletteSize - cluster + 1));
+                j0 = baseCluster + rnd.nextInt(cluster);
+                j1 = baseCluster + rnd.nextInt(cluster);
+                j2 = baseCluster + rnd.nextInt(cluster);
+                j3 = baseCluster + rnd.nextInt(cluster);
+            } else {
+                j0 = rnd.nextInt(paletteSize);
+                j1 = rnd.nextInt(paletteSize);
+                j2 = rnd.nextInt(paletteSize);
+                j3 = rnd.nextInt(paletteSize);
+            }
+            jointIndices[base] = j0;
+            jointIndices[base + 1] = j1;
+            jointIndices[base + 2] = j2;
+            jointIndices[base + 3] = j3;
+            this.j0[i] = j0;
+            this.j1[i] = j1;
+            this.j2[i] = j2;
+            this.j3[i] = j3;
+            float w0 = rnd.nextFloat();
+            float w1 = rnd.nextFloat();
+            float w2 = rnd.nextFloat();
+            float w3 = rnd.nextFloat();
+            float inv = 1.0f / (w0 + w1 + w2 + w3);
+            jointWeights[base] = w0 * inv;
+            jointWeights[base + 1] = w1 * inv;
+            jointWeights[base + 2] = w2 * inv;
+            jointWeights[base + 3] = w3 * inv;
+            this.w0[i] = jointWeights[base];
+            this.w1[i] = jointWeights[base + 1];
+            this.w2[i] = jointWeights[base + 2];
+            this.w3[i] = jointWeights[base + 3];
+        }
+    }
+
+    @Benchmark
+    public float[] skinLbs4() {
+        SkinningKernels.skinLbs4(jointRigid, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
+        return outX;
+    }
+
+    @Benchmark
+    public float[] skinLbs4Vector() {
+        SkinningKernels.skinLbs4Vector(jointRigid, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
+        return outX;
+    }
+
+    @Benchmark
+    public float[] skinLbs4SoAAuto() {
+        SkinningKernels.skinLbs4SoA(jointRigid, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, vertices);
+        return outX;
+    }
+
+    @Benchmark
+    public float[] skinLbs4SoAScalarForced() {
+        SkinningKernels.skinLbs4SoAScalar(jointRigid, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, vertices);
+        return outX;
+    }
+
+    @Benchmark
+    public float[] skinLbs4SoASimdForced() {
+        SkinningKernels.skinLbs4SoASimd(jointRigid, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, vertices);
+        return outX;
+    }
+
+    @Benchmark
+    public float[] skinDualQuat4() {
+        SkinningKernels.skinDualQuat4(jointDualQuat, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
+        return outX;
+    }
+
+    @Benchmark
+    public float[] skinLbs4MatrixPaletteTight() {
+        SkinningKernels.skinLbs4MatrixPalette(matrixPalette12, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
+        return outX;
+    }
+}

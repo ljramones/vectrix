@@ -127,9 +127,9 @@
                         <arg>--add-modules</arg>
                         <arg>jdk.unsupported</arg>
                         <arg>--add-reads</arg>
-                        <arg>org.vectrix=ALL-UNNAMED</arg>
+                        <arg>org.dynamisengine.vectrix=ALL-UNNAMED</arg>
                         <arg>--add-reads</arg>
-                        <arg>org.vectrix=jdk.unsupported</arg>
+                        <arg>org.dynamisengine.vectrix=jdk.unsupported</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -177,9 +177,9 @@
                             <Implementation-Build>${git.commit.id.full}</Implementation-Build>
                             <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
                             <Bundle-Name>JOML</Bundle-Name>
-                            <Bundle-SymbolicName>org.vectrix</Bundle-SymbolicName>
+                            <Bundle-SymbolicName>org.dynamisengine.vectrix</Bundle-SymbolicName>
                             <Bundle-Version>${project.version}</Bundle-Version>
-                            <Export-Package>org.vectrix,org.vectrix.sampling</Export-Package>
+                            <Export-Package>org.dynamisengine.vectrix,org.dynamisengine.vectrix.sampling</Export-Package>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -543,11 +543,11 @@
                                 <arg>--add-modules</arg>
                                 <arg>jdk.incubator.vector,jdk.unsupported</arg>
                                 <arg>--add-reads</arg>
-                                <arg>org.vectrix=ALL-UNNAMED</arg>
+                                <arg>org.dynamisengine.vectrix=ALL-UNNAMED</arg>
                                 <arg>--add-reads</arg>
-                                <arg>org.vectrix=jdk.incubator.vector</arg>
+                                <arg>org.dynamisengine.vectrix=jdk.incubator.vector</arg>
                                 <arg>--add-reads</arg>
-                                <arg>org.vectrix=jdk.unsupported</arg>
+                                <arg>org.dynamisengine.vectrix=jdk.unsupported</arg>
                             </compilerArgs>
                             <annotationProcessorPaths>
                                 <path>

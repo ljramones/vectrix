@@ -1,0 +1,68 @@
+/*
+ * The MIT License
+ *
+ * Copyright (c) 2024 Vectrix
+ */
+package org.dynamisengine.vectrix.bench;
+
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.SplittableRandom;
+import java.util.concurrent.TimeUnit;
+
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.dynamisengine.vectrix.affine.Transformf;
+import org.dynamisengine.vectrix.gpu.GpuTransformWriteKernels;
+import org.dynamisengine.vectrix.gpu.GpuTransformLayout;
+
+@State(Scope.Benchmark)
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+public class GpuLayoutBenchmark extends ThroughputBenchmark {
+    @Param({"256", "4096", "16384"})
+    public int count;
+
+    private Transformf[] transforms;
+    private GpuTransformLayout full;
+    private GpuTransformLayout compact;
+    private ByteBuffer fullBuf;
+    private ByteBuffer compactBuf;
+    private int[] identityOrder;
+
+    @Setup
+    public void setup() {
+        transforms = new Transformf[count];
+        SplittableRandom rnd = new SplittableRandom(77);
+        for (int i = 0; i < count; i++) {
+            Transformf t = new Transformf();
+            t.translation.set((float) rnd.nextDouble(-100.0, 100.0), (float) rnd.nextDouble(-100.0, 100.0), (float) rnd.nextDouble(-100.0, 100.0));
+            t.rotation.identity().rotateXYZ((float) rnd.nextDouble(-3.0, 3.0), (float) rnd.nextDouble(-3.0, 3.0), (float) rnd.nextDouble(-3.0, 3.0));
+            t.scale.set((float) rnd.nextDouble(0.25, 8.0), (float) rnd.nextDouble(0.25, 8.0), (float) rnd.nextDouble(0.25, 8.0));
+            transforms[i] = t;
+        }
+        full = GpuTransformLayout.floatTRS();
+        compact = GpuTransformLayout.compactTRS();
+        fullBuf = ByteBuffer.allocate(full.requiredBytes(count)).order(ByteOrder.LITTLE_ENDIAN);
+        compactBuf = ByteBuffer.allocate(compact.requiredBytes(count)).order(ByteOrder.LITTLE_ENDIAN);
+        identityOrder = new int[count];
+        for (int i = 0; i < count; i++) {
+            identityOrder[i] = i;
+        }
+    }
+
+    @Benchmark
+    public ByteBuffer writeFullFloat() {
+        GpuTransformWriteKernels.writeFloatTrs(full, transforms, identityOrder, fullBuf, count);
+        return fullBuf;
+    }
+
+    @Benchmark
+    public ByteBuffer writeCompactPacked() {
+        GpuTransformWriteKernels.writeCompactTrs(compact, transforms, identityOrder, compactBuf, count);
+        return compactBuf;
+    }
+}
