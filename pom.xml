@@ -215,6 +215,21 @@
                 </executions>
                 <configuration>
                     <doclint>none</doclint>
+                    <additionalDependencies>
+                        <additionalDependency>
+                            <groupId>org.jetbrains</groupId>
+                            <artifactId>annotations</artifactId>
+                            <version>24.1.0</version>
+                        </additionalDependency>
+                    </additionalDependencies>
+                    <additionalJOptions>
+                        <additionalJOption>--add-modules</additionalJOption>
+                        <additionalJOption>jdk.unsupported</additionalJOption>
+                        <additionalJOption>--add-reads</additionalJOption>
+                        <additionalJOption>org.dynamisengine.vectrix=ALL-UNNAMED</additionalJOption>
+                        <additionalJOption>--add-reads</additionalJOption>
+                        <additionalJOption>org.dynamisengine.vectrix=jdk.unsupported</additionalJOption>
+                    </additionalJOptions>
                 </configuration>
             </plugin>
 
