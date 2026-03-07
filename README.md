@@ -241,6 +241,18 @@ src/main/java/org/vectrix/
 
 ---
 
+## Build and Release
+
+Vectrix follows the same release flow as `org.dynamisengine:dynamis-parent`.
+
+- Local build: `./build.sh`
+- Pre-deploy gate: `mvn -Prelease clean verify`
+- Deploy: `./deploy.sh`
+
+Note: legacy OSSRH/Nexus staging configuration was intentionally removed in favor of the parent-aligned Central publishing flow.
+
+---
+
 ## License
 
 MIT — see [`LICENSE`](LICENSE).  
