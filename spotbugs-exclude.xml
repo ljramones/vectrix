@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!--
+        Vectrix is a JOML fork — a high-performance math library where public mutable
+        fields, floating-point equality, and integer overflow patterns are intentional
+        design choices for zero-allocation, branchless vector/matrix math.
+    -->
+
+    <!-- Public mutable fields are the JOML API contract (e.g. Vector3f.x/y/z) -->
+    <Match><Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/></Match>
+    <Match><Bug pattern="PA_PUBLIC_MUTABLE_OBJECT_ATTRIBUTE"/></Match>
+
+    <!-- Deserialization overwrite is acceptable for value-type math objects -->
+    <Match><Bug pattern="SE_PREVENT_EXT_OBJ_OVERWRITE"/></Match>
+
+    <!-- Math types intentionally expose internal arrays/state for performance -->
+    <Match><Bug pattern="EI_EXPOSE_REP"/></Match>
+    <Match><Bug pattern="EI_EXPOSE_REP2"/></Match>
+
+    <!-- Constructor method calls are safe in final/effectively-final math classes -->
+    <Match><Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR"/></Match>
+    <Match><Bug pattern="CT_CONSTRUCTOR_THROW"/></Match>
+
+    <!-- Exact floating-point comparison is intentional in math library code -->
+    <Match><Bug pattern="FE_FLOATING_POINT_EQUALITY"/></Match>
+
+    <!-- Integer multiply widening is intentional in matrix/hash code computation -->
+    <Match><Bug pattern="ICAST_INTEGER_MULTIPLY_CAST_TO_LONG"/></Match>
+
+    <!-- Uncalled private methods kept for API completeness -->
+    <Match><Bug pattern="UPM_UNCALLED_PRIVATE_METHOD"/></Match>
+
+    <!-- Stack classes intentionally re-declare interfaces from their parent -->
+    <Match><Bug pattern="RI_REDUNDANT_INTERFACES"/></Match>
+
+    <!-- SVD decomposition legitimately throws RuntimeException on non-convergence -->
+    <Match>
+        <Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION"/>
+        <Or>
+            <Class name="org.dynamisengine.vectrix.core.QuaterniondInterpolator$SvdDecomposition3d"/>
+            <Class name="org.dynamisengine.vectrix.core.QuaternionfInterpolator$SvdDecomposition3f"/>
+        </Or>
+    </Match>
+
+    <!-- Internal comparators are never serialized -->
+    <Match>
+        <Bug pattern="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE"/>
+        <Class name="~org\.dynamisengine\.vectrix\.geometry\.PolygonsIntersection\$.*"/>
+    </Match>
+
+    <!-- sampling.Math intentionally shadows java.lang.Math and hides parent methods -->
+    <Match>
+        <Or>
+            <Bug pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS"/>
+            <Bug pattern="HSM_HIDING_METHOD"/>
+        </Or>
+        <Class name="org.dynamisengine.vectrix.sampling.Math"/>
+    </Match>
+</FindBugsFilter>
