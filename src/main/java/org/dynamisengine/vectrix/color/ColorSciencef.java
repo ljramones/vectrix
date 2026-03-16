@@ -72,6 +72,50 @@ public final class ColorSciencef {
         return (float) java.lang.Math.exp(-0.5f * d * d);
     }
 
+    /**
+     * Approximate blackbody (Planckian locus) color for a given color temperature
+     * using the Tanner Helland algorithm, returned in linear sRGB.
+     *
+     * @param kelvin color temperature in Kelvin; clamped to [1000, 40000]
+     * @param dest   destination vector to store the linear RGB result
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code dest} is null, or kelvin is
+     *                                  non-finite or &lt;= 0
+     */
+    public static Vector3f kelvinToLinearRgb(float kelvin, Vector3f dest) {
+        if (dest == null) {
+            throw new IllegalArgumentException("dest is required");
+        }
+        if (!Float.isFinite(kelvin) || kelvin <= 0f) {
+            throw new IllegalArgumentException("kelvin must be finite and > 0");
+        }
+
+        float temperature = clamp(kelvin, 1000f, 40000f) / 100f;
+
+        float red;
+        float green;
+        float blue;
+
+        if (temperature <= 66f) {
+            red = 255f;
+            green = 99.4708f * (float) java.lang.Math.log(temperature) - 161.11957f;
+            blue = temperature <= 19f
+                    ? 0f
+                    : 138.51773f * (float) java.lang.Math.log(temperature - 10f) - 305.0448f;
+        } else {
+            red = 329.69873f * (float) java.lang.Math.pow(temperature - 60f, -0.13320476f);
+            green = 288.12216f * (float) java.lang.Math.pow(temperature - 60f, -0.075514846f);
+            blue = 255f;
+        }
+
+        float sr = clamp(red / 255f, 0f, 1f);
+        float sg = clamp(green / 255f, 0f, 1f);
+        float sb = clamp(blue / 255f, 0f, 1f);
+
+        dest.set(sr, sg, sb);
+        return ColorMathf.srgbToLinear(dest, dest);
+    }
+
     private static float clamp(float v, float lo, float hi) {
         return java.lang.Math.max(lo, java.lang.Math.min(hi, v));
     }
