@@ -80,4 +80,26 @@ public class MemoryBackendBenchmark extends ThroughputBenchmark {
         }
         return fb;
     }
+
+    @Benchmark
+    @Fork(value = 3, jvmArgsAppend = {"-Djoml.forceFfm=true"})
+    public ByteBuffer transferFfmPathByteBuffer() {
+        int off = 0;
+        for (int i = 0; i < matrices; i++) {
+            src[i].get(off, bb);
+            off += 16 * Float.BYTES;
+        }
+        return bb;
+    }
+
+    @Benchmark
+    @Fork(value = 3, jvmArgsAppend = {"-Djoml.forceFfm=true"})
+    public FloatBuffer transferFfmPathFloatBuffer() {
+        int off = 0;
+        for (int i = 0; i < matrices; i++) {
+            src[i].get(off, fb);
+            off += 16;
+        }
+        return fb;
+    }
 }

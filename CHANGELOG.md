@@ -6,6 +6,14 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 ### Added
+- `AccurateMath`: the single place where transcendental functions choose between `java.lang.Math` and
+  `StrictMath`. `-Dvectrix.strictMath=true` makes every transcendental in the library bitwise reproducible across
+  platforms, overriding `joml.fastmath` (review M-12). All 72 direct `java.lang.Math` transcendental calls now go
+  through it, and a test rejects new ones.
+- `CoreConfig.determinismFingerprint()` names every setting that changes output bits, for replay files.
+  `docs/determinism.md` documents them.
+- `-Dvectrix.test.jvmArgs` passes extra JVM arguments to the experimental profile's tests, for example
+  `-Djoml.forceFfm=true` to run the suite on the FFM backend.
 - Engine-style composed performance coverage:
   - `IntegrationPipelineBenchmark`
   - `SubsystemIntegrationBenchmark`
@@ -31,6 +39,23 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - Pass B/C/E decision/findings memos and subsystem integration memo
 
 ### Changed
+- **Memory backends (review H-9).** The FFM backend now accesses buffers through bounds-checked
+  `MemorySegment.ofBuffer` views. It no longer uses Unsafe, raw addresses or restricted methods, and checks
+  limits, slices and read-only buffers like NIO. It is compiled into the default jar and is the fallback when
+  Unsafe is disabled (`-Djoml.nounsafe`) or denied by the JVM (`--sun-misc-unsafe-memory-access=deny`), instead of
+  plain NIO. Unsafe remains the default. Measured per `Matrix4f` transfer on arm64: Unsafe 2.0–2.1 ns,
+  FFM 2.6–3.4 ns, NIO about 4.1 ns.
+- The Unsafe backend probes one real memory access during initialisation. Under
+  `--sun-misc-unsafe-memory-access=deny` the lookups succeed but every access throws, so it used to be selected
+  and then fail on every transfer.
+- `getToAddress`/`setFromAddress` throw `UnsupportedOperationException` when Unsafe is disabled or denied, as
+  documented, instead of `NoClassDefFoundError`.
+- `skinLbs4Vector` (AoS) and `skinLbs4SoASimd` run the scalar kernel. Their "SIMD" bodies did scalar work per lane
+  plus `withLane`. A real gather kernel measured 6.8× slower than scalar on arm64, where NEON has no gather.
+- The `experimental` profile builds again on JDK 25, and its tests now include the previously uncompiled
+  `experimental/**` tests (review M-16). It compiles without `--release`, which hides `jdk.internal.vm.ci`.
+- Benchmarks fork with `--add-modules=jdk.incubator.vector`. Earlier "SIMD" benchmark results measured the scalar
+  code; see the `SimdSupport` fix below.
 - `Vector3L` constructors take `long` (`(long)`, `(long, long, long)`, new `(long[])`). `setComponent` takes a
   `long`, and the `(Vector2dc, z, mode)` constructor takes a `double` z. `Vector4L` gains a `(long[])`
   constructor. `Vector2L`/`Vector2Lc.minComponent`/`maxComponent` return `int` (a component index), like every
@@ -65,6 +90,19 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     (all now call `Runtime.formatNumbers`). Output is unchanged.
 
 ### Fixed
+- `SimdSupport` never detected the Vector API: it called `length()` through the non-public species class, got
+  `IllegalAccessException`, and reported `SCALAR` even with `--add-modules jdk.incubator.vector`. No SIMD path had
+  ever run. It now uses the public `VectorSpecies` interface (review M-15).
+- Vector API builds threw `NoClassDefFoundError` from the *scalar* skinning and culling paths on a JVM without
+  `--add-modules jdk.incubator.vector`: a static species field, and Vector API method bodies that HotSpot verifies
+  when the class links. SIMD code now lives in nested `Simd` classes that only the SIMD path loads (review M-15).
+- `TransformKernels.composeBatch`'s Vector API path was a scalar stub. It is now a real kernel, bitwise identical
+  to the scalar path and 3.6–3.7× faster for 64 to 1024 transforms on arm64 (memory-bound at 16384).
+- `Affine4f` called `java.lang.Math.fma` directly, ignoring `-Djoml.useMathFma` (review M-13).
+- `CoreConfigModeTest`'s "isolated" class loader was not isolated under Surefire's module path: the platform
+  loader delegated to the already-loaded classes. Tests that observe static initialisation now use
+  `IsolatedClasses` (bootstrap parent, with a self-check). Re-verified: the pre-fix `CoreConfig`/`KernelConfig`
+  fail both H-8 scenarios.
 - Memory backend safety (review C-1, C-2):
   - The Unsafe backend crashed the JVM (SIGSEGV) when given heap NIO buffers, and wrote outside direct buffers
     for out-of-range offsets. Heap and read-only buffers now take the NIO path, and the raw-address path is

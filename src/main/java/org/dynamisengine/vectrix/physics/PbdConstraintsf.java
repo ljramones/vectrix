@@ -103,7 +103,7 @@ public final class PbdConstraintsf {
             zero(d0, d1, d2);
             return;
         }
-        float angle = (float) java.lang.Math.atan2(al, n0x * n1x + n0y * n1y + n0z * n1z);
+        float angle = (float) org.dynamisengine.vectrix.core.AccurateMath.atan2(al, n0x * n1x + n0y * n1y + n0z * n1z);
         float error = angle - restAngle;
         ax /= al;
         ay /= al;
@@ -289,8 +289,8 @@ public final class PbdConstraintsf {
             if (w < 1.0e-9) {
                 break;
             }
-            double h = 0.5 * w, sh = java.lang.Math.sin(h) / w;
-            double rw = java.lang.Math.cos(h), rx = ox * sh, ry = oy * sh, rz = oz * sh;
+            double h = 0.5 * w, sh = org.dynamisengine.vectrix.core.AccurateMath.sin(h) / w;
+            double rw = org.dynamisengine.vectrix.core.AccurateMath.cos(h), rx = ox * sh, ry = oy * sh, rz = oz * sh;
             // q = r * q
             double nw = rw * qw - rx * qx - ry * qy - rz * qz;
             double nx = rw * qx + rx * qw + ry * qz - rz * qy;

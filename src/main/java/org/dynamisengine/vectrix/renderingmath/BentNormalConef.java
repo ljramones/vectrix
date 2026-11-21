@@ -39,12 +39,12 @@ public final class BentNormalConef {
      */
     public static float coneAngleFromAo(float ao) {
         float a = clamp01(ao);
-        return (float) java.lang.Math.acos(1.0f - a);
+        return (float) org.dynamisengine.vectrix.core.AccurateMath.acos(1.0f - a);
     }
 
     public static float coneSolidAngle(float halfAngle) {
         float a = java.lang.Math.max(0.0f, halfAngle);
-        return (float) (2.0 * java.lang.Math.PI * (1.0 - java.lang.Math.cos(a)));
+        return (float) (2.0 * java.lang.Math.PI * (1.0 - org.dynamisengine.vectrix.core.AccurateMath.cos(a)));
     }
 
     /**
@@ -54,7 +54,7 @@ public final class BentNormalConef {
         float a = java.lang.Math.max(0.0f, halfAngleA);
         float b = java.lang.Math.max(0.0f, halfAngleB);
         float dot = clamp(axisA.x() * axisB.x() + axisA.y() * axisB.y() + axisA.z() * axisB.z(), -1.0f, 1.0f);
-        float d = (float) java.lang.Math.acos(dot);
+        float d = (float) org.dynamisengine.vectrix.core.AccurateMath.acos(dot);
         float omegaA = coneSolidAngle(a);
         float omegaB = coneSolidAngle(b);
         float omegaMin = java.lang.Math.min(omegaA, omegaB);

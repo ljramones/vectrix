@@ -82,13 +82,13 @@ public final class TransmittanceLutBuilder {
                     float s = (i + 0.5f) * ds;
                     float rr = (float) java.lang.Math.sqrt(r2 + s * s + 2.0f * r * mu * s);
                     float h = java.lang.Math.max(0.0f, rr - groundRadius);
-                    tauR += (float) java.lang.Math.exp(-h / rayleighScaleHeight) * ds;
-                    tauM += (float) java.lang.Math.exp(-h / mieScaleHeight) * ds;
+                    tauR += (float) org.dynamisengine.vectrix.core.AccurateMath.exp(-h / rayleighScaleHeight) * ds;
+                    tauM += (float) org.dynamisengine.vectrix.core.AccurateMath.exp(-h / mieScaleHeight) * ds;
                 }
 
-                outRgb[o] = clamp01((float) java.lang.Math.exp(-(betaRayleighR * tauR + betaMieR * tauM)));
-                outRgb[o + 1] = clamp01((float) java.lang.Math.exp(-(betaRayleighG * tauR + betaMieG * tauM)));
-                outRgb[o + 2] = clamp01((float) java.lang.Math.exp(-(betaRayleighB * tauR + betaMieB * tauM)));
+                outRgb[o] = clamp01((float) org.dynamisengine.vectrix.core.AccurateMath.exp(-(betaRayleighR * tauR + betaMieR * tauM)));
+                outRgb[o + 1] = clamp01((float) org.dynamisengine.vectrix.core.AccurateMath.exp(-(betaRayleighG * tauR + betaMieG * tauM)));
+                outRgb[o + 2] = clamp01((float) org.dynamisengine.vectrix.core.AccurateMath.exp(-(betaRayleighB * tauR + betaMieB * tauM)));
             }
         }
     }

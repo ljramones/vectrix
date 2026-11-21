@@ -58,6 +58,8 @@ public class Math {
     public static final float PI_OVER_4_f = (float) (PI * 0.25);
     public static final double ONE_OVER_PI = 1.0 / PI;
     public static final float ONE_OVER_PI_f = (float) (1.0 / PI);
+    /** {@code -Djoml.fastmath}, unless {@code -Dvectrix.strictMath} asks for reproducible transcendentals. */
+    private static final boolean FAST_MATH = Options.FASTMATH && !Options.STRICT_MATH;
     private static final int lookupBits = Options.SIN_LOOKUP_BITS;
     private static final int lookupTableSize = 1 << lookupBits;
     private static final int lookupTableSizeMinus1 = lookupTableSize - 1;
@@ -66,11 +68,11 @@ public class Math {
     private static final float lookupSizeOverPi2 = lookupTableSize / PI_TIMES_2_f;
     private static final float sinTable[];
     static {
-        if (Options.FASTMATH && Options.SIN_LOOKUP) {
+        if (FAST_MATH && Options.SIN_LOOKUP) {
             sinTable = new float[lookupTableSizeWithMargin];
             for (int i = 0; i < lookupTableSizeWithMargin; i++) {
                 double d = i * pi2OverLookupSize;
-                sinTable[i] = (float) java.lang.Math.sin(d);
+                sinTable[i] = (float) AccurateMath.sin(d);
             }
         } else {
             sinTable = null;
@@ -204,35 +206,35 @@ public class Math {
     }
 
     public static float sin(float rad) {
-        if (Options.FASTMATH) {
+        if (FAST_MATH) {
             if (Options.SIN_LOOKUP)
                 return sin_theagentd_lookup(rad);
             return (float) sin_roquen_newk(rad);
         }
-        return (float) java.lang.Math.sin(rad);
+        return (float) AccurateMath.sin(rad);
     }
     public static double sin(double rad) {
-        if (Options.FASTMATH) {
+        if (FAST_MATH) {
             if (Options.SIN_LOOKUP)
                 return sin_theagentd_lookup((float) rad);
             return sin_roquen_newk(rad);
         }
-        return java.lang.Math.sin(rad);
+        return AccurateMath.sin(rad);
     }
 
     public static float cos(float rad) {
-        if (Options.FASTMATH)
+        if (FAST_MATH)
             return sin(rad + PI_OVER_2_f);
-        return (float) java.lang.Math.cos(rad);
+        return (float) AccurateMath.cos(rad);
     }
     public static double cos(double rad) {
-        if (Options.FASTMATH)
+        if (FAST_MATH)
             return sin(rad + PI_OVER_2);
-        return java.lang.Math.cos(rad);
+        return AccurateMath.cos(rad);
     }
 
     public static float cosFromSin(float sin, float angle) {
-        if (Options.FASTMATH)
+        if (FAST_MATH)
             return sin(angle + PI_OVER_2_f);
         return cosFromSinInternal(sin, angle);
     }
@@ -248,7 +250,7 @@ public class Math {
         return cos;
     }
     public static double cosFromSin(double sin, double angle) {
-        if (Options.FASTMATH)
+        if (FAST_MATH)
             return sin(angle + PI_OVER_2);
         // sin(x)^2 + cos(x)^2 = 1
         double cos = sqrt(1.0 - sin * sin);
@@ -278,17 +280,17 @@ public class Math {
     }
 
     public static float tan(float r) {
-        return (float) java.lang.Math.tan(r);
+        return (float) AccurateMath.tan(r);
     }
     public static double tan(double r) {
-        return java.lang.Math.tan(r);
+        return AccurateMath.tan(r);
     }
 
     public static float acos(float r) {
-        return (float) java.lang.Math.acos(r);
+        return (float) AccurateMath.acos(r);
     }
     public static double acos(double r) {
-        return java.lang.Math.acos(r);
+        return AccurateMath.acos(r);
     }
 
     public static float safeAcos(float v) {
@@ -335,27 +337,27 @@ public class Math {
     }
 
     public static float atan2(float y, float x) {
-        if (Options.FASTMATH)
+        if (FAST_MATH)
             return fastAtan2(y, x);
-        return (float) java.lang.Math.atan2(y, x);
+        return (float) AccurateMath.atan2(y, x);
     }
     public static double atan2(double y, double x) {
-        if (Options.FASTMATH)
+        if (FAST_MATH)
             return fastAtan2(y, x);
-        return java.lang.Math.atan2(y, x);
+        return AccurateMath.atan2(y, x);
     }
     public static float atan(float r) {
-        return (float) java.lang.Math.atan(r);
+        return (float) AccurateMath.atan(r);
     }
     public static double atan(double r) {
-        return java.lang.Math.atan(r);
+        return AccurateMath.atan(r);
     }
 
     public static float asin(float r) {
-        return (float) java.lang.Math.asin(r);
+        return (float) AccurateMath.asin(r);
     }
     public static double asin(double r) {
-        return java.lang.Math.asin(r);
+        return AccurateMath.asin(r);
     }
     public static float safeAsin(float r) {
         return r <= -1.0f ? -PI_OVER_2_f : r >= 1.0f ? PI_OVER_2_f : asin(r);
@@ -465,7 +467,7 @@ public class Math {
     }
 
     public static double exp(double a) {
-        return java.lang.Math.exp(a);
+        return AccurateMath.exp(a);
     }
 
     public static boolean isFinite(double d) {

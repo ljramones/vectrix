@@ -474,8 +474,8 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
      * @return this
      */
     public Vector2d setFromAddress(long address) {
-        if (Options.NO_UNSAFE)
-            throw new UnsupportedOperationException("Not supported when using joml.nounsafe");
+        if (!MemUtil.UNSAFE_ADDRESS_API)
+            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.get(this, address);
         return this;
     }
@@ -556,8 +556,8 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
 
 //#ifdef __HAS_UNSAFE__
     public Vector2dc getToAddress(long address) {
-        if (Options.NO_UNSAFE)
-            throw new UnsupportedOperationException("Not supported when using joml.nounsafe");
+        if (!MemUtil.UNSAFE_ADDRESS_API)
+            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.put(this, address);
         return this;
     }

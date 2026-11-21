@@ -38,14 +38,14 @@ public final class ColorMathf {
         if (c <= 0.04045f) {
             return c / 12.92f;
         }
-        return (float) java.lang.Math.pow((c + 0.055f) / 1.055f, 2.4);
+        return (float) org.dynamisengine.vectrix.core.AccurateMath.pow((c + 0.055f) / 1.055f, 2.4);
     }
 
     public static float linearToSrgb(float c) {
         if (c <= 0.0031308f) {
             return c * 12.92f;
         }
-        return 1.055f * (float) java.lang.Math.pow(c, 1.0 / 2.4) - 0.055f;
+        return 1.055f * (float) org.dynamisengine.vectrix.core.AccurateMath.pow(c, 1.0 / 2.4) - 0.055f;
     }
 
     public static Vector3f srgbToLinear(Vector3fc srgb, Vector3f dest) {

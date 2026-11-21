@@ -84,7 +84,7 @@ public final class SssLutBuilder {
         float[] thetaByX = new float[width];
         for (int x = 0; x < width; x++) {
             float ndotl = (x + 0.5f) * invWidth;
-            thetaByX[x] = (float) java.lang.Math.acos(clamp01(ndotl));
+            thetaByX[x] = (float) org.dynamisengine.vectrix.core.AccurateMath.acos(clamp01(ndotl));
         }
         for (int y = 0; y < height; y++) {
             float v = (y + 0.5f) * invHeight;
@@ -95,7 +95,7 @@ public final class SssLutBuilder {
                 float ir = 0.0f, ig = 0.0f, ib = 0.0f;
                 for (int i = 0; i < sampleCount; i++) {
                     float shifted = theta + sampleOffsets[i] * invRadius;
-                    float localNoL = (float) java.lang.Math.cos(shifted);
+                    float localNoL = (float) org.dynamisengine.vectrix.core.AccurateMath.cos(shifted);
                     if (localNoL <= 0.0f) {
                         continue;
                     }

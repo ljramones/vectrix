@@ -35,11 +35,11 @@ public final class Easingd {
     public static double smoothStep(double t) { return t * t * (3.0 - 2.0 * t); }
     public static double easeInQuad(double t) { return t * t; }
     public static double easeOutQuad(double t) { return 1.0 - (1.0 - t) * (1.0 - t); }
-    public static double easeInOutQuad(double t) { return t < 0.5 ? 2.0 * t * t : 1.0 - 0.5 * java.lang.Math.pow(-2.0 * t + 2.0, 2.0); }
+    public static double easeInOutQuad(double t) { return t < 0.5 ? 2.0 * t * t : 1.0 - 0.5 * org.dynamisengine.vectrix.core.AccurateMath.pow(-2.0 * t + 2.0, 2.0); }
 
     public static double easeInCubic(double t) { return t * t * t; }
     public static double easeOutCubic(double t) { double u = 1.0 - t; return 1.0 - u * u * u; }
-    public static double easeInOutCubic(double t) { return t < 0.5 ? 4.0 * t * t * t : 1.0 - 0.5 * java.lang.Math.pow(-2.0 * t + 2.0, 3.0); }
+    public static double easeInOutCubic(double t) { return t < 0.5 ? 4.0 * t * t * t : 1.0 - 0.5 * org.dynamisengine.vectrix.core.AccurateMath.pow(-2.0 * t + 2.0, 3.0); }
 
     public static double bounceOut(double t) {
         double n1 = 7.5625;
@@ -58,7 +58,7 @@ public final class Easingd {
     }
 
     public static double spring(double t, double damping, double frequency) {
-        double envelope = java.lang.Math.exp(-damping * t);
-        return 1.0 - envelope * java.lang.Math.cos(frequency * t);
+        double envelope = org.dynamisengine.vectrix.core.AccurateMath.exp(-damping * t);
+        return 1.0 - envelope * org.dynamisengine.vectrix.core.AccurateMath.cos(frequency * t);
     }
 }

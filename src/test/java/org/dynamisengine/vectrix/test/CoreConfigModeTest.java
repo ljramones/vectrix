@@ -25,7 +25,6 @@ package org.dynamisengine.vectrix.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.net.URL;
 import java.net.URLClassLoader;
 
 import org.dynamisengine.vectrix.core.CoreConfig;
@@ -46,8 +45,7 @@ class CoreConfigModeTest {
     private static final String PROP = "vectrix.math.mode";
 
     private static URLClassLoader isolatedLoader() {
-        URL classes = CoreConfig.class.getProtectionDomain().getCodeSource().getLocation();
-        return new URLClassLoader(new URL[] {classes}, ClassLoader.getPlatformClassLoader());
+        return IsolatedClasses.loader();
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

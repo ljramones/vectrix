@@ -95,7 +95,7 @@ public final class ThinFilmd {
         double r12p = Fresneld.amplitudeP(c1, etaFilm, etaSub, c2);
 
         double delta = 4.0 * java.lang.Math.PI * etaFilm * thicknessNm * c1 / wavelengthNm;
-        double cd = java.lang.Math.cos(delta);
+        double cd = org.dynamisengine.vectrix.core.AccurateMath.cos(delta);
 
         double rs = combineAmplitude(r01s, r12s, cd);
         double rp = combineAmplitude(r01p, r12p, cd);
@@ -110,7 +110,7 @@ public final class ThinFilmd {
     }
 
     private static double channelReflectance(double phaseScale, double wavelengthNm, double r01s, double r12s, double r01p, double r12p) {
-        double cd = java.lang.Math.cos(phaseScale / wavelengthNm);
+        double cd = org.dynamisengine.vectrix.core.AccurateMath.cos(phaseScale / wavelengthNm);
         double rs = combineAmplitude(r01s, r12s, cd);
         double rp = combineAmplitude(r01p, r12p, cd);
         return 0.5 * (rs + rp);

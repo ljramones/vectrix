@@ -64,7 +64,10 @@ public final class SimdSupport {
             Class<?> floatVectorClass = Class.forName("jdk.incubator.vector.FloatVector");
             Field speciesPreferredField = floatVectorClass.getField("SPECIES_PREFERRED");
             Object speciesPreferred = speciesPreferredField.get(null);
-            Method lengthMethod = speciesPreferred.getClass().getMethod("length");
+            // Look length() up on the public VectorSpecies interface: the runtime class (FloatVector$FloatSpecies)
+            // is not public, so invoking through it threw IllegalAccessException and detection always reported
+            // SCALAR, even with --add-modules jdk.incubator.vector (review M-15).
+            Method lengthMethod = Class.forName("jdk.incubator.vector.VectorSpecies").getMethod("length");
             int lanes = ((Integer) lengthMethod.invoke(speciesPreferred)).intValue();
             if (lanes < 1) {
                 lanes = 1;

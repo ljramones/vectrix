@@ -86,6 +86,6 @@ public final class SssProfile {
     }
 
     private static float gaussian(float r2, float weight, float variance) {
-        return (float) (weight * java.lang.Math.exp(-r2 / (2.0f * variance)) / (2.0f * java.lang.Math.PI * variance));
+        return (float) (weight * org.dynamisengine.vectrix.core.AccurateMath.exp(-r2 / (2.0f * variance)) / (2.0f * java.lang.Math.PI * variance));
     }
 }

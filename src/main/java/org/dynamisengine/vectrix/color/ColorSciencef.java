@@ -73,7 +73,7 @@ public final class ColorSciencef {
 
     private static float g(float wl, float mu, float sigmaLo, float sigmaHi) {
         float d = (wl - mu) * (wl < mu ? sigmaLo : sigmaHi);
-        return (float) java.lang.Math.exp(-0.5f * d * d);
+        return (float) org.dynamisengine.vectrix.core.AccurateMath.exp(-0.5f * d * d);
     }
 
     /**
@@ -102,13 +102,13 @@ public final class ColorSciencef {
 
         if (temperature <= 66f) {
             red = 255f;
-            green = 99.4708f * (float) java.lang.Math.log(temperature) - 161.11957f;
+            green = 99.4708f * (float) org.dynamisengine.vectrix.core.AccurateMath.log(temperature) - 161.11957f;
             blue = temperature <= 19f
                     ? 0f
-                    : 138.51773f * (float) java.lang.Math.log(temperature - 10f) - 305.0448f;
+                    : 138.51773f * (float) org.dynamisengine.vectrix.core.AccurateMath.log(temperature - 10f) - 305.0448f;
         } else {
-            red = 329.69873f * (float) java.lang.Math.pow(temperature - 60f, -0.13320476f);
-            green = 288.12216f * (float) java.lang.Math.pow(temperature - 60f, -0.075514846f);
+            red = 329.69873f * (float) org.dynamisengine.vectrix.core.AccurateMath.pow(temperature - 60f, -0.13320476f);
+            green = 288.12216f * (float) org.dynamisengine.vectrix.core.AccurateMath.pow(temperature - 60f, -0.075514846f);
             blue = 255f;
         }
 

@@ -129,6 +129,6 @@ public final class QuatCompression {
     public static float angularErrorDegrees(Quaternionfc a, Quaternionfc b) {
         float dot = java.lang.Math.abs(a.x() * b.x() + a.y() * b.y() + a.z() * b.z() + a.w() * b.w());
         dot = dot > 1.0f ? 1.0f : dot;
-        return (float) java.lang.Math.toDegrees(2.0 * java.lang.Math.acos(dot));
+        return (float) java.lang.Math.toDegrees(2.0 * org.dynamisengine.vectrix.core.AccurateMath.acos(dot));
     }
 }

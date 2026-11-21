@@ -695,8 +695,8 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
      * @return this
      */
     public Vector4f setFromAddress(long address) {
-        if (Options.NO_UNSAFE)
-            throw new UnsupportedOperationException("Not supported when using joml.nounsafe");
+        if (!MemUtil.UNSAFE_ADDRESS_API)
+            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.get(this, address);
         return this;
     }
@@ -754,8 +754,8 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
 
 //#ifdef __HAS_UNSAFE__
     public Vector4fc getToAddress(long address) {
-        if (Options.NO_UNSAFE)
-            throw new UnsupportedOperationException("Not supported when using joml.nounsafe");
+        if (!MemUtil.UNSAFE_ADDRESS_API)
+            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.put(this, address);
         return this;
     }

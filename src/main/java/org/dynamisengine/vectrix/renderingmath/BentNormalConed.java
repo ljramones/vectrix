@@ -35,19 +35,19 @@ public final class BentNormalConed {
 
     public static double coneAngleFromAo(double ao) {
         double a = clamp01(ao);
-        return java.lang.Math.acos(1.0 - a);
+        return org.dynamisengine.vectrix.core.AccurateMath.acos(1.0 - a);
     }
 
     public static double coneSolidAngle(double halfAngle) {
         double a = java.lang.Math.max(0.0, halfAngle);
-        return 2.0 * java.lang.Math.PI * (1.0 - java.lang.Math.cos(a));
+        return 2.0 * java.lang.Math.PI * (1.0 - org.dynamisengine.vectrix.core.AccurateMath.cos(a));
     }
 
     public static double estimateIntersectionSolidAngle(double halfAngleA, Vector3dc axisA, double halfAngleB, Vector3dc axisB) {
         double a = java.lang.Math.max(0.0, halfAngleA);
         double b = java.lang.Math.max(0.0, halfAngleB);
         double dot = clamp(axisA.x() * axisB.x() + axisA.y() * axisB.y() + axisA.z() * axisB.z(), -1.0, 1.0);
-        double d = java.lang.Math.acos(dot);
+        double d = org.dynamisengine.vectrix.core.AccurateMath.acos(dot);
         double omegaA = coneSolidAngle(a);
         double omegaB = coneSolidAngle(b);
         double omegaMin = java.lang.Math.min(omegaA, omegaB);

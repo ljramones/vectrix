@@ -95,7 +95,7 @@ public final class ThinFilmf {
         float r12p = Fresnelf.amplitudeP(c1, etaFilm, etaSub, c2);
 
         float delta = (float) (4.0 * java.lang.Math.PI * etaFilm * thicknessNm * c1 / wavelengthNm);
-        float cd = (float) java.lang.Math.cos(delta);
+        float cd = (float) org.dynamisengine.vectrix.core.AccurateMath.cos(delta);
 
         float rs = combineAmplitude(r01s, r12s, cd);
         float rp = combineAmplitude(r01p, r12p, cd);
@@ -110,7 +110,7 @@ public final class ThinFilmf {
     }
 
     private static float channelReflectance(float phaseScale, float wavelengthNm, float r01s, float r12s, float r01p, float r12p) {
-        float cd = (float) java.lang.Math.cos(phaseScale / wavelengthNm);
+        float cd = (float) org.dynamisengine.vectrix.core.AccurateMath.cos(phaseScale / wavelengthNm);
         float rs = combineAmplitude(r01s, r12s, cd);
         float rp = combineAmplitude(r01p, r12p, cd);
         return 0.5f * (rs + rp);

@@ -19,7 +19,9 @@ import java.util.concurrent.TimeUnit;
  */
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@Fork(value = 3)
+// The bench build compiles the Vector API paths; without the module SimdSupport reports SCALAR and every
+// "SIMD" benchmark silently measures the scalar code.
+@Fork(value = 3, jvmArgsPrepend = {"--add-modules=jdk.incubator.vector"})
 @Warmup(iterations = 6, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 10, time = 1, timeUnit = TimeUnit.SECONDS)
 public abstract class BaseBenchmark {

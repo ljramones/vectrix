@@ -65,7 +65,7 @@ public final class ColorScienced {
 
     private static double g(double wl, double mu, double sigmaLo, double sigmaHi) {
         double d = (wl - mu) * (wl < mu ? sigmaLo : sigmaHi);
-        return java.lang.Math.exp(-0.5 * d * d);
+        return org.dynamisengine.vectrix.core.AccurateMath.exp(-0.5 * d * d);
     }
 
     private static double clamp(double v, double lo, double hi) {

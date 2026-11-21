@@ -42,9 +42,6 @@ public final class CullingKernels {
     private static final int SIMD_BATCH_THRESHOLD = 64;
     private static final int SIMD_BATCH_MAX = 32768;
     private static final boolean EXPERIMENTAL_CULLING_SIMD = KernelConfig.parseBoolean(System.getProperty(PROP_EXPERIMENTAL_CULLING_SIMD), false);
-//#ifdef __HAS_VECTOR_API__
-    private static final VectorSpecies<Float> CULL_SPECIES = FloatVector.SPECIES_PREFERRED;
-//#endif
 
     private CullingKernels() {
     }
@@ -138,114 +135,11 @@ public final class CullingKernels {
      */
     public static void frustumCullAabbBatchSimd(FrustumPlanes frustum, AABBSoA bounds, int[] outResult, int count) {
 //#ifdef __HAS_VECTOR_API__
-        int lanes = CULL_SPECIES.length();
-        if (lanes <= 1) {
-            frustumCullAabbBatchScalar(frustum, bounds, outResult, count);
+        if (SimdSupport.isVectorApiAvailable()) {
+            Simd.frustumCull(frustum, bounds, outResult, count);
             return;
         }
-        boolean nxNegX = frustum.x[FrustumPlanes.PLANE_NX] < 0.0f;
-        boolean nxNegY = frustum.y[FrustumPlanes.PLANE_NX] < 0.0f;
-        boolean nxNegZ = frustum.z[FrustumPlanes.PLANE_NX] < 0.0f;
-        boolean pxNegX = frustum.x[FrustumPlanes.PLANE_PX] < 0.0f;
-        boolean pxNegY = frustum.y[FrustumPlanes.PLANE_PX] < 0.0f;
-        boolean pxNegZ = frustum.z[FrustumPlanes.PLANE_PX] < 0.0f;
-        boolean nyNegX = frustum.x[FrustumPlanes.PLANE_NY] < 0.0f;
-        boolean nyNegY = frustum.y[FrustumPlanes.PLANE_NY] < 0.0f;
-        boolean nyNegZ = frustum.z[FrustumPlanes.PLANE_NY] < 0.0f;
-        boolean pyNegX = frustum.x[FrustumPlanes.PLANE_PY] < 0.0f;
-        boolean pyNegY = frustum.y[FrustumPlanes.PLANE_PY] < 0.0f;
-        boolean pyNegZ = frustum.z[FrustumPlanes.PLANE_PY] < 0.0f;
-        boolean nzNegX = frustum.x[FrustumPlanes.PLANE_NZ] < 0.0f;
-        boolean nzNegY = frustum.y[FrustumPlanes.PLANE_NZ] < 0.0f;
-        boolean nzNegZ = frustum.z[FrustumPlanes.PLANE_NZ] < 0.0f;
-        boolean pzNegX = frustum.x[FrustumPlanes.PLANE_PZ] < 0.0f;
-        boolean pzNegY = frustum.y[FrustumPlanes.PLANE_PZ] < 0.0f;
-        boolean pzNegZ = frustum.z[FrustumPlanes.PLANE_PZ] < 0.0f;
-
-        FloatVector nxXv = FloatVector.broadcast(CULL_SPECIES, frustum.x[FrustumPlanes.PLANE_NX]);
-        FloatVector nxYv = FloatVector.broadcast(CULL_SPECIES, frustum.y[FrustumPlanes.PLANE_NX]);
-        FloatVector nxZv = FloatVector.broadcast(CULL_SPECIES, frustum.z[FrustumPlanes.PLANE_NX]);
-        FloatVector nxWv = FloatVector.broadcast(CULL_SPECIES, frustum.w[FrustumPlanes.PLANE_NX]);
-        FloatVector pxXv = FloatVector.broadcast(CULL_SPECIES, frustum.x[FrustumPlanes.PLANE_PX]);
-        FloatVector pxYv = FloatVector.broadcast(CULL_SPECIES, frustum.y[FrustumPlanes.PLANE_PX]);
-        FloatVector pxZv = FloatVector.broadcast(CULL_SPECIES, frustum.z[FrustumPlanes.PLANE_PX]);
-        FloatVector pxWv = FloatVector.broadcast(CULL_SPECIES, frustum.w[FrustumPlanes.PLANE_PX]);
-        FloatVector nyXv = FloatVector.broadcast(CULL_SPECIES, frustum.x[FrustumPlanes.PLANE_NY]);
-        FloatVector nyYv = FloatVector.broadcast(CULL_SPECIES, frustum.y[FrustumPlanes.PLANE_NY]);
-        FloatVector nyZv = FloatVector.broadcast(CULL_SPECIES, frustum.z[FrustumPlanes.PLANE_NY]);
-        FloatVector nyWv = FloatVector.broadcast(CULL_SPECIES, frustum.w[FrustumPlanes.PLANE_NY]);
-        FloatVector pyXv = FloatVector.broadcast(CULL_SPECIES, frustum.x[FrustumPlanes.PLANE_PY]);
-        FloatVector pyYv = FloatVector.broadcast(CULL_SPECIES, frustum.y[FrustumPlanes.PLANE_PY]);
-        FloatVector pyZv = FloatVector.broadcast(CULL_SPECIES, frustum.z[FrustumPlanes.PLANE_PY]);
-        FloatVector pyWv = FloatVector.broadcast(CULL_SPECIES, frustum.w[FrustumPlanes.PLANE_PY]);
-        FloatVector nzXv = FloatVector.broadcast(CULL_SPECIES, frustum.x[FrustumPlanes.PLANE_NZ]);
-        FloatVector nzYv = FloatVector.broadcast(CULL_SPECIES, frustum.y[FrustumPlanes.PLANE_NZ]);
-        FloatVector nzZv = FloatVector.broadcast(CULL_SPECIES, frustum.z[FrustumPlanes.PLANE_NZ]);
-        FloatVector nzWv = FloatVector.broadcast(CULL_SPECIES, frustum.w[FrustumPlanes.PLANE_NZ]);
-        FloatVector pzXv = FloatVector.broadcast(CULL_SPECIES, frustum.x[FrustumPlanes.PLANE_PZ]);
-        FloatVector pzYv = FloatVector.broadcast(CULL_SPECIES, frustum.y[FrustumPlanes.PLANE_PZ]);
-        FloatVector pzZv = FloatVector.broadcast(CULL_SPECIES, frustum.z[FrustumPlanes.PLANE_PZ]);
-        FloatVector pzWv = FloatVector.broadcast(CULL_SPECIES, frustum.w[FrustumPlanes.PLANE_PZ]);
-
-        int i = 0;
-        int limit = count - (count % lanes);
-        VectorMask<Float> allTrue = CULL_SPECIES.indexInRange(0, lanes);
-        VectorMask<Float> allFalse = allTrue.not();
-        for (; i < limit; i += lanes) {
-            FloatVector minXv = FloatVector.fromArray(CULL_SPECIES, bounds.minX, i);
-            FloatVector minYv = FloatVector.fromArray(CULL_SPECIES, bounds.minY, i);
-            FloatVector minZv = FloatVector.fromArray(CULL_SPECIES, bounds.minZ, i);
-            FloatVector maxXv = FloatVector.fromArray(CULL_SPECIES, bounds.maxX, i);
-            FloatVector maxYv = FloatVector.fromArray(CULL_SPECIES, bounds.maxY, i);
-            FloatVector maxZv = FloatVector.fromArray(CULL_SPECIES, bounds.maxZ, i);
-
-            VectorMask<Float> outsideMask = allFalse;
-            VectorMask<Float> insideMask = allTrue;
-
-            FloatVector dMax = (nxNegX ? minXv : maxXv).mul(nxXv).add((nxNegY ? minYv : maxYv).mul(nxYv)).add((nxNegZ ? minZv : maxZv).mul(nxZv)).add(nxWv);
-            outsideMask = outsideMask.or(dMax.lt(0.0f));
-            FloatVector dMin = (nxNegX ? maxXv : minXv).mul(nxXv).add((nxNegY ? maxYv : minYv).mul(nxYv)).add((nxNegZ ? maxZv : minZv).mul(nxZv)).add(nxWv);
-            insideMask = insideMask.and(dMin.lt(0.0f).not());
-
-            dMax = (pxNegX ? minXv : maxXv).mul(pxXv).add((pxNegY ? minYv : maxYv).mul(pxYv)).add((pxNegZ ? minZv : maxZv).mul(pxZv)).add(pxWv);
-            outsideMask = outsideMask.or(dMax.lt(0.0f));
-            dMin = (pxNegX ? maxXv : minXv).mul(pxXv).add((pxNegY ? maxYv : minYv).mul(pxYv)).add((pxNegZ ? maxZv : minZv).mul(pxZv)).add(pxWv);
-            insideMask = insideMask.and(dMin.lt(0.0f).not());
-
-            dMax = (nyNegX ? minXv : maxXv).mul(nyXv).add((nyNegY ? minYv : maxYv).mul(nyYv)).add((nyNegZ ? minZv : maxZv).mul(nyZv)).add(nyWv);
-            outsideMask = outsideMask.or(dMax.lt(0.0f));
-            dMin = (nyNegX ? maxXv : minXv).mul(nyXv).add((nyNegY ? maxYv : minYv).mul(nyYv)).add((nyNegZ ? maxZv : minZv).mul(nyZv)).add(nyWv);
-            insideMask = insideMask.and(dMin.lt(0.0f).not());
-
-            dMax = (pyNegX ? minXv : maxXv).mul(pyXv).add((pyNegY ? minYv : maxYv).mul(pyYv)).add((pyNegZ ? minZv : maxZv).mul(pyZv)).add(pyWv);
-            outsideMask = outsideMask.or(dMax.lt(0.0f));
-            dMin = (pyNegX ? maxXv : minXv).mul(pyXv).add((pyNegY ? maxYv : minYv).mul(pyYv)).add((pyNegZ ? maxZv : minZv).mul(pyZv)).add(pyWv);
-            insideMask = insideMask.and(dMin.lt(0.0f).not());
-
-            dMax = (nzNegX ? minXv : maxXv).mul(nzXv).add((nzNegY ? minYv : maxYv).mul(nzYv)).add((nzNegZ ? minZv : maxZv).mul(nzZv)).add(nzWv);
-            outsideMask = outsideMask.or(dMax.lt(0.0f));
-            dMin = (nzNegX ? maxXv : minXv).mul(nzXv).add((nzNegY ? maxYv : minYv).mul(nzYv)).add((nzNegZ ? maxZv : minZv).mul(nzZv)).add(nzWv);
-            insideMask = insideMask.and(dMin.lt(0.0f).not());
-
-            dMax = (pzNegX ? minXv : maxXv).mul(pzXv).add((pzNegY ? minYv : maxYv).mul(pzYv)).add((pzNegZ ? minZv : maxZv).mul(pzZv)).add(pzWv);
-            outsideMask = outsideMask.or(dMax.lt(0.0f));
-            dMin = (pzNegX ? maxXv : minXv).mul(pzXv).add((pzNegY ? maxYv : minYv).mul(pzYv)).add((pzNegZ ? maxZv : minZv).mul(pzZv)).add(pzWv);
-            insideMask = insideMask.and(dMin.lt(0.0f).not());
-
-            for (int lane = 0; lane < lanes; lane++) {
-                if (outsideMask.laneIsSet(lane)) {
-                    outResult[i + lane] = FrustumIntersection.OUTSIDE;
-                } else if (insideMask.laneIsSet(lane)) {
-                    outResult[i + lane] = FrustumIntersection.INSIDE;
-                } else {
-                    outResult[i + lane] = FrustumIntersection.INTERSECT;
-                }
-            }
-        }
-        for (; i < count; i++) {
-            classifyInto(frustum, bounds, outResult, i);
-        }
-//#else
+//#endif
         int i = 0;
         int limit = count & ~3;
         for (; i < limit; i += 4) {
@@ -257,7 +151,6 @@ public final class CullingKernels {
         for (; i < count; i++) {
             classifyInto(frustum, bounds, outResult, i);
         }
-//#endif
     }
 
     private static void classifyInto(FrustumPlanes frustum, AABBSoA bounds, int[] outResult, int i) {
@@ -297,4 +190,129 @@ public final class CullingKernels {
         }
         return inside ? FrustumIntersection.INSIDE : FrustumIntersection.INTERSECT;
     }
+
+//#ifdef __HAS_VECTOR_API__
+    /**
+     * Vector API implementation. It lives in its own class so that only the SIMD path loads
+     * {@code jdk.incubator.vector}: HotSpot verifies every method of a class when it links, so Vector API code in
+     * {@code CullingKernels} itself made even the scalar path throw {@link NoClassDefFoundError} on a JVM started
+     * without {@code --add-modules jdk.incubator.vector} (review M-15).
+     */
+    private static final class Simd {
+        static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
+
+        private Simd() {
+        }
+
+        static void frustumCull(FrustumPlanes frustum, AABBSoA bounds, int[] outResult, int count) {
+            int lanes = SPECIES.length();
+            if (lanes <= 1) {
+                frustumCullAabbBatchScalar(frustum, bounds, outResult, count);
+                return;
+            }
+            boolean nxNegX = frustum.x[FrustumPlanes.PLANE_NX] < 0.0f;
+            boolean nxNegY = frustum.y[FrustumPlanes.PLANE_NX] < 0.0f;
+            boolean nxNegZ = frustum.z[FrustumPlanes.PLANE_NX] < 0.0f;
+            boolean pxNegX = frustum.x[FrustumPlanes.PLANE_PX] < 0.0f;
+            boolean pxNegY = frustum.y[FrustumPlanes.PLANE_PX] < 0.0f;
+            boolean pxNegZ = frustum.z[FrustumPlanes.PLANE_PX] < 0.0f;
+            boolean nyNegX = frustum.x[FrustumPlanes.PLANE_NY] < 0.0f;
+            boolean nyNegY = frustum.y[FrustumPlanes.PLANE_NY] < 0.0f;
+            boolean nyNegZ = frustum.z[FrustumPlanes.PLANE_NY] < 0.0f;
+            boolean pyNegX = frustum.x[FrustumPlanes.PLANE_PY] < 0.0f;
+            boolean pyNegY = frustum.y[FrustumPlanes.PLANE_PY] < 0.0f;
+            boolean pyNegZ = frustum.z[FrustumPlanes.PLANE_PY] < 0.0f;
+            boolean nzNegX = frustum.x[FrustumPlanes.PLANE_NZ] < 0.0f;
+            boolean nzNegY = frustum.y[FrustumPlanes.PLANE_NZ] < 0.0f;
+            boolean nzNegZ = frustum.z[FrustumPlanes.PLANE_NZ] < 0.0f;
+            boolean pzNegX = frustum.x[FrustumPlanes.PLANE_PZ] < 0.0f;
+            boolean pzNegY = frustum.y[FrustumPlanes.PLANE_PZ] < 0.0f;
+            boolean pzNegZ = frustum.z[FrustumPlanes.PLANE_PZ] < 0.0f;
+
+            FloatVector nxXv = FloatVector.broadcast(SPECIES, frustum.x[FrustumPlanes.PLANE_NX]);
+            FloatVector nxYv = FloatVector.broadcast(SPECIES, frustum.y[FrustumPlanes.PLANE_NX]);
+            FloatVector nxZv = FloatVector.broadcast(SPECIES, frustum.z[FrustumPlanes.PLANE_NX]);
+            FloatVector nxWv = FloatVector.broadcast(SPECIES, frustum.w[FrustumPlanes.PLANE_NX]);
+            FloatVector pxXv = FloatVector.broadcast(SPECIES, frustum.x[FrustumPlanes.PLANE_PX]);
+            FloatVector pxYv = FloatVector.broadcast(SPECIES, frustum.y[FrustumPlanes.PLANE_PX]);
+            FloatVector pxZv = FloatVector.broadcast(SPECIES, frustum.z[FrustumPlanes.PLANE_PX]);
+            FloatVector pxWv = FloatVector.broadcast(SPECIES, frustum.w[FrustumPlanes.PLANE_PX]);
+            FloatVector nyXv = FloatVector.broadcast(SPECIES, frustum.x[FrustumPlanes.PLANE_NY]);
+            FloatVector nyYv = FloatVector.broadcast(SPECIES, frustum.y[FrustumPlanes.PLANE_NY]);
+            FloatVector nyZv = FloatVector.broadcast(SPECIES, frustum.z[FrustumPlanes.PLANE_NY]);
+            FloatVector nyWv = FloatVector.broadcast(SPECIES, frustum.w[FrustumPlanes.PLANE_NY]);
+            FloatVector pyXv = FloatVector.broadcast(SPECIES, frustum.x[FrustumPlanes.PLANE_PY]);
+            FloatVector pyYv = FloatVector.broadcast(SPECIES, frustum.y[FrustumPlanes.PLANE_PY]);
+            FloatVector pyZv = FloatVector.broadcast(SPECIES, frustum.z[FrustumPlanes.PLANE_PY]);
+            FloatVector pyWv = FloatVector.broadcast(SPECIES, frustum.w[FrustumPlanes.PLANE_PY]);
+            FloatVector nzXv = FloatVector.broadcast(SPECIES, frustum.x[FrustumPlanes.PLANE_NZ]);
+            FloatVector nzYv = FloatVector.broadcast(SPECIES, frustum.y[FrustumPlanes.PLANE_NZ]);
+            FloatVector nzZv = FloatVector.broadcast(SPECIES, frustum.z[FrustumPlanes.PLANE_NZ]);
+            FloatVector nzWv = FloatVector.broadcast(SPECIES, frustum.w[FrustumPlanes.PLANE_NZ]);
+            FloatVector pzXv = FloatVector.broadcast(SPECIES, frustum.x[FrustumPlanes.PLANE_PZ]);
+            FloatVector pzYv = FloatVector.broadcast(SPECIES, frustum.y[FrustumPlanes.PLANE_PZ]);
+            FloatVector pzZv = FloatVector.broadcast(SPECIES, frustum.z[FrustumPlanes.PLANE_PZ]);
+            FloatVector pzWv = FloatVector.broadcast(SPECIES, frustum.w[FrustumPlanes.PLANE_PZ]);
+
+            int i = 0;
+            int limit = count - (count % lanes);
+            VectorMask<Float> allTrue = SPECIES.indexInRange(0, lanes);
+            VectorMask<Float> allFalse = allTrue.not();
+            for (; i < limit; i += lanes) {
+                FloatVector minXv = FloatVector.fromArray(SPECIES, bounds.minX, i);
+                FloatVector minYv = FloatVector.fromArray(SPECIES, bounds.minY, i);
+                FloatVector minZv = FloatVector.fromArray(SPECIES, bounds.minZ, i);
+                FloatVector maxXv = FloatVector.fromArray(SPECIES, bounds.maxX, i);
+                FloatVector maxYv = FloatVector.fromArray(SPECIES, bounds.maxY, i);
+                FloatVector maxZv = FloatVector.fromArray(SPECIES, bounds.maxZ, i);
+
+                VectorMask<Float> outsideMask = allFalse;
+                VectorMask<Float> insideMask = allTrue;
+
+                FloatVector dMax = (nxNegX ? minXv : maxXv).mul(nxXv).add((nxNegY ? minYv : maxYv).mul(nxYv)).add((nxNegZ ? minZv : maxZv).mul(nxZv)).add(nxWv);
+                outsideMask = outsideMask.or(dMax.lt(0.0f));
+                FloatVector dMin = (nxNegX ? maxXv : minXv).mul(nxXv).add((nxNegY ? maxYv : minYv).mul(nxYv)).add((nxNegZ ? maxZv : minZv).mul(nxZv)).add(nxWv);
+                insideMask = insideMask.and(dMin.lt(0.0f).not());
+
+                dMax = (pxNegX ? minXv : maxXv).mul(pxXv).add((pxNegY ? minYv : maxYv).mul(pxYv)).add((pxNegZ ? minZv : maxZv).mul(pxZv)).add(pxWv);
+                outsideMask = outsideMask.or(dMax.lt(0.0f));
+                dMin = (pxNegX ? maxXv : minXv).mul(pxXv).add((pxNegY ? maxYv : minYv).mul(pxYv)).add((pxNegZ ? maxZv : minZv).mul(pxZv)).add(pxWv);
+                insideMask = insideMask.and(dMin.lt(0.0f).not());
+
+                dMax = (nyNegX ? minXv : maxXv).mul(nyXv).add((nyNegY ? minYv : maxYv).mul(nyYv)).add((nyNegZ ? minZv : maxZv).mul(nyZv)).add(nyWv);
+                outsideMask = outsideMask.or(dMax.lt(0.0f));
+                dMin = (nyNegX ? maxXv : minXv).mul(nyXv).add((nyNegY ? maxYv : minYv).mul(nyYv)).add((nyNegZ ? maxZv : minZv).mul(nyZv)).add(nyWv);
+                insideMask = insideMask.and(dMin.lt(0.0f).not());
+
+                dMax = (pyNegX ? minXv : maxXv).mul(pyXv).add((pyNegY ? minYv : maxYv).mul(pyYv)).add((pyNegZ ? minZv : maxZv).mul(pyZv)).add(pyWv);
+                outsideMask = outsideMask.or(dMax.lt(0.0f));
+                dMin = (pyNegX ? maxXv : minXv).mul(pyXv).add((pyNegY ? maxYv : minYv).mul(pyYv)).add((pyNegZ ? maxZv : minZv).mul(pyZv)).add(pyWv);
+                insideMask = insideMask.and(dMin.lt(0.0f).not());
+
+                dMax = (nzNegX ? minXv : maxXv).mul(nzXv).add((nzNegY ? minYv : maxYv).mul(nzYv)).add((nzNegZ ? minZv : maxZv).mul(nzZv)).add(nzWv);
+                outsideMask = outsideMask.or(dMax.lt(0.0f));
+                dMin = (nzNegX ? maxXv : minXv).mul(nzXv).add((nzNegY ? maxYv : minYv).mul(nzYv)).add((nzNegZ ? maxZv : minZv).mul(nzZv)).add(nzWv);
+                insideMask = insideMask.and(dMin.lt(0.0f).not());
+
+                dMax = (pzNegX ? minXv : maxXv).mul(pzXv).add((pzNegY ? minYv : maxYv).mul(pzYv)).add((pzNegZ ? minZv : maxZv).mul(pzZv)).add(pzWv);
+                outsideMask = outsideMask.or(dMax.lt(0.0f));
+                dMin = (pzNegX ? maxXv : minXv).mul(pzXv).add((pzNegY ? maxYv : minYv).mul(pzYv)).add((pzNegZ ? maxZv : minZv).mul(pzZv)).add(pzWv);
+                insideMask = insideMask.and(dMin.lt(0.0f).not());
+
+                for (int lane = 0; lane < lanes; lane++) {
+                    if (outsideMask.laneIsSet(lane)) {
+                        outResult[i + lane] = FrustumIntersection.OUTSIDE;
+                    } else if (insideMask.laneIsSet(lane)) {
+                        outResult[i + lane] = FrustumIntersection.INSIDE;
+                    } else {
+                        outResult[i + lane] = FrustumIntersection.INTERSECT;
+                    }
+                }
+            }
+            for (; i < count; i++) {
+                classifyInto(frustum, bounds, outResult, i);
+            }
+        }
+    }
+//#endif
 }

@@ -12,7 +12,8 @@ JOML++ is a fork of JOML (Java OpenGL Math Library) — a Java math library for 
 mvn verify                       # Compile, test, checkstyle, assemble JAR
 mvn test                         # Run JUnit 5 tests only
 mvn package -DskipTests          # Build JAR without tests
-mvn clean verify -Pexperimental  # Experimental profile (compiles at the running JDK level, 25+)
+mvn clean verify -Pexperimental  # Experimental profile (Vector API, FFM, JVMCI; also runs the experimental tests)
+mvn clean verify -Pexperimental -Dvectrix.test.jvmArgs=-Djoml.forceFfm=true  # run the suite on the FFM backend
 ```
 
 **Important:** Always use `clean` when switching between the default and experimental profiles. The default profile generates a `module-info.class` during post-processing that causes compilation errors in the experimental profile if left in `target/`.
@@ -37,9 +38,10 @@ Types come in float (`f`), double (`d`), int (`i`), and long (`L`) variants. All
 
 ### Key Internal Classes
 
-- `MemUtil` — memory operations via `sun.misc.Unsafe` (fast path) or NIO buffers (fallback)
+- `MemUtil` — buffer transfers via `sun.misc.Unsafe` (default), bounds-checked FFM `MemorySegment`s (fallback when Unsafe is disabled or denied; `-Djoml.forceFfm=true` selects it), or plain NIO. All backends honour NIO semantics (limit checks, slices, read-only and heap buffers).
 - `Math` — fast math with sin/cos lookup tables, configurable via `-Djoml.fastmath`
-- `Options` — JVM system property configuration (`-Djoml.debug`, `-Djoml.nounsafe`, `-Djoml.forceUnsafe`)
+- `Options` — JVM system property configuration (`-Djoml.debug`, `-Djoml.nounsafe`, `-Djoml.forceUnsafe`, `-Djoml.forceFfm`, `-Djoml.noffm`, `-Dvectrix.strictMath`)
+- `AccurateMath` — the only place transcendentals choose `java.lang.Math` vs `StrictMath`; never call those directly (a test enforces it). See `docs/determinism.md`.
 
 ### JOML++ Additions
 

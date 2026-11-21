@@ -362,7 +362,7 @@ class JvmciCode {
     }
     canUseJvmci = _canUseJvmci;
   }
-  private static void checkMatrix4f() throws Throwable {
+  private static void checkMatrix4f() throws ReflectiveOperationException {
     Field f;
     sun.misc.Unsafe u = unsafeInstance();
     for (int i = 0; i < 16; i++) {
@@ -374,7 +374,7 @@ class JvmciCode {
         throw new AssertionError("invalid Matrix4f field offset");
     }
   }
-  private static void checkMatrix4d() throws Throwable {
+  private static void checkMatrix4d() throws ReflectiveOperationException {
     Field f;
     sun.misc.Unsafe u = unsafeInstance();
     for (int i = 0; i < 16; i++) {
@@ -386,7 +386,7 @@ class JvmciCode {
         throw new AssertionError("invalid Matrix4d field offset");
     }
   }
-  private static void checkQuaternionf() throws Throwable {
+  private static void checkQuaternionf() throws ReflectiveOperationException {
     sun.misc.Unsafe u = unsafeInstance();
     if (u.objectFieldOffset(Quaternionf.class.getDeclaredField("w")) != 16L ||
         u.objectFieldOffset(Quaternionf.class.getDeclaredField("x")) != 20L ||
@@ -413,7 +413,7 @@ class JvmciCode {
     }
     throw new AssertionError("no sun.misc.Unsafe available");
   }
-  private static void installCode(JVMCIBackend jvmciBackend, Method m, byte[] code) throws Throwable {
+  private static void installCode(JVMCIBackend jvmciBackend, Method m, byte[] code) throws ReflectiveOperationException {
     ResolvedJavaMethod rm = jvmciBackend.getMetaAccess().lookupJavaMethod(m);
     CompiledCode nm = new HotSpotCompiledNmethod(m.getName(), code, code.length, new Site[0],
             new Assumptions.Assumption[0], new ResolvedJavaMethod[0], new HotSpotCompiledCode.Comment[0], new byte[0], 1,

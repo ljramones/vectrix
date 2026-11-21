@@ -93,6 +93,12 @@ public final class Options {
     public static final boolean USE_MATH_FMA = hasOption(System.getProperty("joml.useMathFma", "true"));
 
     /**
+     * Whether transcendental functions use {@link StrictMath} for bitwise-reproducible results across platforms
+     * ({@code -Dvectrix.strictMath=true}). Takes precedence over {@link #FASTMATH}. See {@link AccurateMath}.
+     */
+    public static final boolean STRICT_MATH = hasOption(System.getProperty("vectrix.strictMath", "false"));
+
+    /**
      * When {@link #useNumberFormat} is <code>true</code> then this determines the number of decimal digits
      * produced in the formatted numbers.
      */

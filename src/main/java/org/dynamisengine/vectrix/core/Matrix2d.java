@@ -716,14 +716,14 @@ public class Matrix2d implements Externalizable, Cloneable, Matrix2dc {
 
 //#ifdef __HAS_UNSAFE__
     public Matrix2dc getToAddress(long address) {
-        if (Options.NO_UNSAFE)
-            throw new UnsupportedOperationException("Not supported when using joml.nounsafe");
+        if (!MemUtil.UNSAFE_ADDRESS_API)
+            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.put(this, address);
         return this;
     }
     public Matrix2dc getTransposedToAddress(long address) {
-        if (Options.NO_UNSAFE)
-            throw new UnsupportedOperationException("Not supported when using joml.nounsafe");
+        if (!MemUtil.UNSAFE_ADDRESS_API)
+            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.putTransposed(this, address);
         return this;
     }
@@ -823,8 +823,8 @@ public class Matrix2d implements Externalizable, Cloneable, Matrix2dc {
      * @return this
      */
     public Matrix2d setFromAddress(long address) {
-        if (Options.NO_UNSAFE)
-            throw new UnsupportedOperationException("Not supported when using joml.nounsafe");
+        if (!MemUtil.UNSAFE_ADDRESS_API)
+            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.get(this, address);
         return this;
     }
@@ -841,8 +841,8 @@ public class Matrix2d implements Externalizable, Cloneable, Matrix2dc {
      * @return this
      */
     public Matrix2d setTransposedFromAddress(long address) {
-        if (Options.NO_UNSAFE)
-            throw new UnsupportedOperationException("Not supported when using joml.nounsafe");
+        if (!MemUtil.UNSAFE_ADDRESS_API)
+            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.getTransposed(this, address);
         return this;
     }

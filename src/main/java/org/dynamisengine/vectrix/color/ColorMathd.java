@@ -38,14 +38,14 @@ public final class ColorMathd {
         if (c <= 0.04045) {
             return c / 12.92;
         }
-        return java.lang.Math.pow((c + 0.055) / 1.055, 2.4);
+        return org.dynamisengine.vectrix.core.AccurateMath.pow((c + 0.055) / 1.055, 2.4);
     }
 
     public static double linearToSrgb(double c) {
         if (c <= 0.0031308) {
             return c * 12.92;
         }
-        return 1.055 * java.lang.Math.pow(c, 1.0 / 2.4) - 0.055;
+        return 1.055 * org.dynamisengine.vectrix.core.AccurateMath.pow(c, 1.0 / 2.4) - 0.055;
     }
 
     public static Vector3d srgbToLinear(Vector3dc srgb, Vector3d dest) {

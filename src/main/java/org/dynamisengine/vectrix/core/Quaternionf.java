@@ -2160,7 +2160,7 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         }
         // atan2 is well conditioned for every rotation; acos(w) loses all precision as w -> 1, and in float it
         // returned 0 for rotations below ~5e-4 rad (review finding H-7).
-        float angle = (float) java.lang.Math.atan2(vLen, w);
+        float angle = (float) AccurateMath.atan2(vLen, w);
         float scale = angle / vLen;
         dest.x = x * scale;
         dest.y = y * scale;
@@ -2358,7 +2358,7 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         if (sinHalf == 0.0f) {
             return dest.set(0.0f, 0.0f, 0.0f);
         }
-        float angle = 2.0f * (float) java.lang.Math.atan2(sinHalf, dqW);
+        float angle = 2.0f * (float) AccurateMath.atan2(sinHalf, dqW);
         float scale = angle / (sinHalf * dt);
         return dest.set(dqX * scale, dqY * scale, dqZ * scale);
     }

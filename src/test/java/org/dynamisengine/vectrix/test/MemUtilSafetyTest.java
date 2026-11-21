@@ -26,7 +26,8 @@ package org.dynamisengine.vectrix.test;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -77,6 +78,13 @@ class MemUtilSafetyTest {
             out[i] = b.get(from + i);
         }
         return out;
+    }
+
+    @Test
+    void forcedFfmBackendIsActive() {
+        // Guards against silently testing the default backend when the FFM run was intended.
+        assumeTrue(Boolean.getBoolean("joml.forceFfm"), "run with -Djoml.forceFfm=true to cover the FFM backend");
+        assertTrue(ffmBackend(), "-Djoml.forceFfm=true did not select the FFM backend");
     }
 
     private static boolean ffmBackend() {
@@ -164,7 +172,6 @@ class MemUtilSafetyTest {
 
     @Test
     void outOfBoundsDirectAccessThrowsInsteadOfCorrupting() {
-        assumeFalse(ffmBackend(), "FFM backend has no bounds checks yet (finding H-9); it is opt-in only");
         FloatBuffer parent = ByteBuffer.allocateDirect(256 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
         parent.position(16).limit(24);
         FloatBuffer slice = parent.slice(); // capacity 8
@@ -184,7 +191,6 @@ class MemUtilSafetyTest {
 
     @Test
     void readOnlyDirectBufferIsNotWritten() {
-        assumeFalse(ffmBackend(), "FFM backend has no read-only checks yet (finding H-9); it is opt-in only");
         FloatBuffer direct = ByteBuffer.allocateDirect(16 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
         FloatBuffer readOnly = direct.asReadOnlyBuffer();
         assertThrows(ReadOnlyBufferException.class, () -> sampleMatrix().get(0, readOnly));

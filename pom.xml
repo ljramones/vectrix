@@ -314,6 +314,9 @@
                         <configuration>
                             <vars>
                                 <__HAS_UNSAFE__>true</__HAS_UNSAFE__>
+                                <!-- java.lang.foreign is final since JDK 22: the bounds-checked FFM backend is the
+                                     fallback when Unsafe is disabled or denied, and selectable with -Djoml.forceFfm -->
+                                <__HAS_FFM__>true</__HAS_FFM__>
                             </vars>
                         </configuration>
                     </plugin>
@@ -396,9 +399,15 @@
         <profile>
             <id>experimental</id>
             <properties>
-                <!-- Compile at the running JDK level (>= 25, enforced); required for enable-preview -->
-                <maven.compiler.release>${java.specification.version}</maven.compiler.release>
+                <!-- Compile at the running JDK level (>= 25, enforced); required for enable-preview.
+                     No release flag: release mode hides internal modules such as jdk.internal.vm.ci and rejects
+                     add-exports from system modules, so this profile uses source/target instead. -->
+                <maven.compiler.release></maven.compiler.release>
+                <maven.compiler.source>${java.specification.version}</maven.compiler.source>
+                <maven.compiler.target>${java.specification.version}</maven.compiler.target>
                 <maven.javadoc.skip>true</maven.javadoc.skip>
+                <!-- Extra test JVM arguments, e.g. -Dvectrix.test.jvmArgs=-Djoml.forceFfm=true to test the FFM backend -->
+                <vectrix.test.jvmArgs></vectrix.test.jvmArgs>
             </properties>
             <dependencies>
                 <dependency>
@@ -436,23 +445,41 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
                         <configuration>
-                            <release>${maven.compiler.release}</release>
+                            <release combine.self="override"/>
+                            <source>${maven.compiler.source}</source>
+                            <target>${maven.compiler.target}</target>
+                            <!-- As in the bench profile: the sources still compile as module org.dynamisengine.vectrix,
+                                 so it is given reads and exports explicitly. -->
+                            <useModulePath>false</useModulePath>
+                            <excludes>
+                                <exclude>**/module-info.java</exclude>
+                            </excludes>
+                            <!-- Compile and run the Vector API tests that the default profile excludes (review M-16) -->
+                            <testExcludes combine.self="override"/>
                             <compilerArgs>
                                 <arg>--enable-preview</arg>
                                 <arg>--add-modules</arg>
-                                <arg>jdk.internal.vm.ci,jdk.incubator.vector</arg>
+                                <arg>jdk.internal.vm.ci,jdk.incubator.vector,jdk.unsupported</arg>
                                 <arg>--add-exports</arg>
-                                <arg>jdk.internal.vm.ci/jdk.vm.ci.code=ALL-UNNAMED</arg>
+                                <arg>jdk.internal.vm.ci/jdk.vm.ci.code=org.dynamisengine.vectrix,ALL-UNNAMED</arg>
                                 <arg>--add-exports</arg>
-                                <arg>jdk.internal.vm.ci/jdk.vm.ci.code.site=ALL-UNNAMED</arg>
+                                <arg>jdk.internal.vm.ci/jdk.vm.ci.code.site=org.dynamisengine.vectrix,ALL-UNNAMED</arg>
                                 <arg>--add-exports</arg>
-                                <arg>jdk.internal.vm.ci/jdk.vm.ci.hotspot=ALL-UNNAMED</arg>
+                                <arg>jdk.internal.vm.ci/jdk.vm.ci.hotspot=org.dynamisengine.vectrix,ALL-UNNAMED</arg>
                                 <arg>--add-exports</arg>
-                                <arg>jdk.internal.vm.ci/jdk.vm.ci.meta=ALL-UNNAMED</arg>
+                                <arg>jdk.internal.vm.ci/jdk.vm.ci.meta=org.dynamisengine.vectrix,ALL-UNNAMED</arg>
                                 <arg>--add-exports</arg>
-                                <arg>jdk.internal.vm.ci/jdk.vm.ci.runtime=ALL-UNNAMED</arg>
+                                <arg>jdk.internal.vm.ci/jdk.vm.ci.runtime=org.dynamisengine.vectrix,ALL-UNNAMED</arg>
                                 <arg>--add-exports</arg>
-                                <arg>jdk.internal.vm.ci/jdk.vm.ci.amd64=ALL-UNNAMED</arg>
+                                <arg>jdk.internal.vm.ci/jdk.vm.ci.amd64=org.dynamisengine.vectrix,ALL-UNNAMED</arg>
+                                <arg>--add-reads</arg>
+                                <arg>org.dynamisengine.vectrix=ALL-UNNAMED</arg>
+                                <arg>--add-reads</arg>
+                                <arg>org.dynamisengine.vectrix=jdk.internal.vm.ci</arg>
+                                <arg>--add-reads</arg>
+                                <arg>org.dynamisengine.vectrix=jdk.incubator.vector</arg>
+                                <arg>--add-reads</arg>
+                                <arg>org.dynamisengine.vectrix=jdk.unsupported</arg>
                             </compilerArgs>
                         </configuration>
                     </plugin>
@@ -476,6 +503,7 @@
                                 --add-exports jdk.internal.vm.ci/jdk.vm.ci.runtime=ALL-UNNAMED
                                 --add-exports jdk.internal.vm.ci/jdk.vm.ci.amd64=ALL-UNNAMED
                                 -Djdk.incubator.vector.VECTOR_ACCESS_OOB_CHECK=0
+                                ${vectrix.test.jvmArgs}
                             </argLine>
                         </configuration>
                     </plugin>

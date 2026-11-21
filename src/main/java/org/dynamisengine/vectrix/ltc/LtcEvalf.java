@@ -119,7 +119,7 @@ public final class LtcEvalf {
      */
     public static float formFactorDisc(float cosThetaCenter, float discAngularRadius) {
         double alpha = java.lang.Math.min(java.lang.Math.max(0.0, discAngularRadius), java.lang.Math.PI / 2);
-        double sinSigma = java.lang.Math.sin(alpha);
+        double sinSigma = org.dynamisengine.vectrix.core.AccurateMath.sin(alpha);
         double sinSigmaSqr = sinSigma * sinSigma;
         if (sinSigmaSqr <= 0.0) {
             return 0.0f;
@@ -134,8 +134,8 @@ public final class LtcEvalf {
             double x = java.lang.Math.sqrt(1.0 / sinSigmaSqr - 1.0);
             double y = -x * cosTheta / sinTheta;
             double sinThetaSqrtY = sinTheta * java.lang.Math.sqrt(java.lang.Math.max(0.0, 1.0 - y * y));
-            e = ((cosTheta * java.lang.Math.acos(y) - x * sinThetaSqrtY) * sinSigmaSqr
-                    + java.lang.Math.atan2(sinThetaSqrtY, x)) / java.lang.Math.PI;
+            e = ((cosTheta * org.dynamisengine.vectrix.core.AccurateMath.acos(y) - x * sinThetaSqrtY) * sinSigmaSqr
+                    + org.dynamisengine.vectrix.core.AccurateMath.atan2(sinThetaSqrtY, x)) / java.lang.Math.PI;
         }
         return clamp01((float) e);
     }
@@ -168,7 +168,7 @@ public final class LtcEvalf {
         if (len < 1E-7f) {
             return 0.0f;
         }
-        float angle = (float) java.lang.Math.atan2(len, ax * bx + ay * by + az * bz);
+        float angle = (float) org.dynamisengine.vectrix.core.AccurateMath.atan2(len, ax * bx + ay * by + az * bz);
         return cz * (angle / len);
     }
 

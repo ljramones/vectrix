@@ -155,18 +155,18 @@ public class Affine4f {
      * Compute {@code dest = this * right}.
      */
     public Affine4f mul(Affine4f right, Affine4f dest) {
-        float nm00 = java.lang.Math.fma(m00, right.m00, java.lang.Math.fma(m10, right.m01, m20 * right.m02));
-        float nm01 = java.lang.Math.fma(m01, right.m00, java.lang.Math.fma(m11, right.m01, m21 * right.m02));
-        float nm02 = java.lang.Math.fma(m02, right.m00, java.lang.Math.fma(m12, right.m01, m22 * right.m02));
-        float nm10 = java.lang.Math.fma(m00, right.m10, java.lang.Math.fma(m10, right.m11, m20 * right.m12));
-        float nm11 = java.lang.Math.fma(m01, right.m10, java.lang.Math.fma(m11, right.m11, m21 * right.m12));
-        float nm12 = java.lang.Math.fma(m02, right.m10, java.lang.Math.fma(m12, right.m11, m22 * right.m12));
-        float nm20 = java.lang.Math.fma(m00, right.m20, java.lang.Math.fma(m10, right.m21, m20 * right.m22));
-        float nm21 = java.lang.Math.fma(m01, right.m20, java.lang.Math.fma(m11, right.m21, m21 * right.m22));
-        float nm22 = java.lang.Math.fma(m02, right.m20, java.lang.Math.fma(m12, right.m21, m22 * right.m22));
-        float nm30 = java.lang.Math.fma(m00, right.m30, java.lang.Math.fma(m10, right.m31, java.lang.Math.fma(m20, right.m32, m30)));
-        float nm31 = java.lang.Math.fma(m01, right.m30, java.lang.Math.fma(m11, right.m31, java.lang.Math.fma(m21, right.m32, m31)));
-        float nm32 = java.lang.Math.fma(m02, right.m30, java.lang.Math.fma(m12, right.m31, java.lang.Math.fma(m22, right.m32, m32)));
+        float nm00 = org.dynamisengine.vectrix.core.Math.fma(m00, right.m00, org.dynamisengine.vectrix.core.Math.fma(m10, right.m01, m20 * right.m02));
+        float nm01 = org.dynamisengine.vectrix.core.Math.fma(m01, right.m00, org.dynamisengine.vectrix.core.Math.fma(m11, right.m01, m21 * right.m02));
+        float nm02 = org.dynamisengine.vectrix.core.Math.fma(m02, right.m00, org.dynamisengine.vectrix.core.Math.fma(m12, right.m01, m22 * right.m02));
+        float nm10 = org.dynamisengine.vectrix.core.Math.fma(m00, right.m10, org.dynamisengine.vectrix.core.Math.fma(m10, right.m11, m20 * right.m12));
+        float nm11 = org.dynamisengine.vectrix.core.Math.fma(m01, right.m10, org.dynamisengine.vectrix.core.Math.fma(m11, right.m11, m21 * right.m12));
+        float nm12 = org.dynamisengine.vectrix.core.Math.fma(m02, right.m10, org.dynamisengine.vectrix.core.Math.fma(m12, right.m11, m22 * right.m12));
+        float nm20 = org.dynamisengine.vectrix.core.Math.fma(m00, right.m20, org.dynamisengine.vectrix.core.Math.fma(m10, right.m21, m20 * right.m22));
+        float nm21 = org.dynamisengine.vectrix.core.Math.fma(m01, right.m20, org.dynamisengine.vectrix.core.Math.fma(m11, right.m21, m21 * right.m22));
+        float nm22 = org.dynamisengine.vectrix.core.Math.fma(m02, right.m20, org.dynamisengine.vectrix.core.Math.fma(m12, right.m21, m22 * right.m22));
+        float nm30 = org.dynamisengine.vectrix.core.Math.fma(m00, right.m30, org.dynamisengine.vectrix.core.Math.fma(m10, right.m31, org.dynamisengine.vectrix.core.Math.fma(m20, right.m32, m30)));
+        float nm31 = org.dynamisengine.vectrix.core.Math.fma(m01, right.m30, org.dynamisengine.vectrix.core.Math.fma(m11, right.m31, org.dynamisengine.vectrix.core.Math.fma(m21, right.m32, m31)));
+        float nm32 = org.dynamisengine.vectrix.core.Math.fma(m02, right.m30, org.dynamisengine.vectrix.core.Math.fma(m12, right.m31, org.dynamisengine.vectrix.core.Math.fma(m22, right.m32, m32)));
         dest.m00 = nm00;
         dest.m01 = nm01;
         dest.m02 = nm02;
@@ -208,16 +208,16 @@ public class Affine4f {
     }
 
     public Vector3f transformPoint(float x, float y, float z, Vector3f dest) {
-        dest.x = java.lang.Math.fma(m00, x, java.lang.Math.fma(m10, y, java.lang.Math.fma(m20, z, m30)));
-        dest.y = java.lang.Math.fma(m01, x, java.lang.Math.fma(m11, y, java.lang.Math.fma(m21, z, m31)));
-        dest.z = java.lang.Math.fma(m02, x, java.lang.Math.fma(m12, y, java.lang.Math.fma(m22, z, m32)));
+        dest.x = org.dynamisengine.vectrix.core.Math.fma(m00, x, org.dynamisengine.vectrix.core.Math.fma(m10, y, org.dynamisengine.vectrix.core.Math.fma(m20, z, m30)));
+        dest.y = org.dynamisengine.vectrix.core.Math.fma(m01, x, org.dynamisengine.vectrix.core.Math.fma(m11, y, org.dynamisengine.vectrix.core.Math.fma(m21, z, m31)));
+        dest.z = org.dynamisengine.vectrix.core.Math.fma(m02, x, org.dynamisengine.vectrix.core.Math.fma(m12, y, org.dynamisengine.vectrix.core.Math.fma(m22, z, m32)));
         return dest;
     }
 
     public Vector3f transformVector(float x, float y, float z, Vector3f dest) {
-        dest.x = java.lang.Math.fma(m00, x, java.lang.Math.fma(m10, y, m20 * z));
-        dest.y = java.lang.Math.fma(m01, x, java.lang.Math.fma(m11, y, m21 * z));
-        dest.z = java.lang.Math.fma(m02, x, java.lang.Math.fma(m12, y, m22 * z));
+        dest.x = org.dynamisengine.vectrix.core.Math.fma(m00, x, org.dynamisengine.vectrix.core.Math.fma(m10, y, m20 * z));
+        dest.y = org.dynamisengine.vectrix.core.Math.fma(m01, x, org.dynamisengine.vectrix.core.Math.fma(m11, y, m21 * z));
+        dest.z = org.dynamisengine.vectrix.core.Math.fma(m02, x, org.dynamisengine.vectrix.core.Math.fma(m12, y, m22 * z));
         return dest;
     }
 

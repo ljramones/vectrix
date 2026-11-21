@@ -80,4 +80,23 @@ public final class CoreConfig {
     public static boolean withinStrictUnitTolerance(double lengthSquared) {
         return java.lang.Math.abs(lengthSquared - 1.0) <= STRICT_UNIT_TOLERANCE_D;
     }
+
+    /**
+     * A one-line summary of every setting that can change Vectrix's output bits, for recording in replay files
+     * and comparing on playback. Two runs can only be expected to agree bitwise when their fingerprints are
+     * equal; the {@code os.arch} and {@code java.vm.version} entries only matter while
+     * {@code vectrix.strictMath} is false. See {@code docs/determinism.md}.
+     */
+    public static String determinismFingerprint() {
+        return "vectrix.math.mode=" + mathMode
+                + ";vectrix.strictMath=" + Options.STRICT_MATH
+                + ";joml.fastmath=" + Options.FASTMATH
+                + ";joml.sinLookup=" + Options.SIN_LOOKUP + "/" + Options.SIN_LOOKUP_BITS
+                + ";joml.useMathFma=" + Options.USE_MATH_FMA
+                + ";vectrix.simd.enabled=" + System.getProperty("vectrix.simd.enabled", "true")
+                + ";vectrix.skinning.simd=" + System.getProperty("vectrix.skinning.simd", "false")
+                + ";vectrix.culling.simd=" + System.getProperty("vectrix.culling.simd", "false")
+                + ";os.arch=" + System.getProperty("os.arch")
+                + ";java.vm.version=" + System.getProperty("java.vm.version");
+    }
 }

@@ -73,8 +73,8 @@ public final class FFT1f {
             if (!inverse) {
                 angle = -angle;
             }
-            double wLenR = java.lang.Math.cos(angle);
-            double wLenI = java.lang.Math.sin(angle);
+            double wLenR = org.dynamisengine.vectrix.core.AccurateMath.cos(angle);
+            double wLenI = org.dynamisengine.vectrix.core.AccurateMath.sin(angle);
             int half = len >>> 1;
             for (int i = 0; i < n; i += len) {
                 double w64R = 1.0;

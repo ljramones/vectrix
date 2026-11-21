@@ -26,10 +26,6 @@ package org.dynamisengine.vectrix.soa;
 import org.dynamisengine.vectrix.experimental.KernelConfig;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.simd.SimdSupport;
-//#ifdef __HAS_VECTOR_API__
-import jdk.incubator.vector.FloatVector;
-import jdk.incubator.vector.VectorSpecies;
-//#endif
 
 /**
  * Batch skinning kernels for rigid-joint transforms.
@@ -38,9 +34,6 @@ public final class SkinningKernels {
     private static final String PROP_EXPERIMENTAL_SKINNING_SIMD = "vectrix.skinning.simd";
     private static final int SIMD_BATCH_THRESHOLD = 64;
     private static final boolean EXPERIMENTAL_SKINNING_SIMD = KernelConfig.parseBoolean(System.getProperty(PROP_EXPERIMENTAL_SKINNING_SIMD), false);
-//#ifdef __HAS_VECTOR_API__
-    private static final VectorSpecies<Float> SKIN_SPECIES = FloatVector.SPECIES_PREFERRED;
-//#endif
 
     private SkinningKernels() {
     }
@@ -52,51 +45,10 @@ public final class SkinningKernels {
 
     public static void skinLbs4Vector(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
             float[] outX, float[] outY, float[] outZ, int count) {
-//#ifdef __HAS_VECTOR_API__
-        int lanes = SKIN_SPECIES.length();
-        if (lanes <= 1) {
-            skinLbs4Scalar(joints, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, count);
-            return;
-        }
-        int i = 0;
-        int limit = count - (count % lanes);
-        for (; i < limit; i += lanes) {
-            FloatVector ox = FloatVector.zero(SKIN_SPECIES);
-            FloatVector oy = FloatVector.zero(SKIN_SPECIES);
-            FloatVector oz = FloatVector.zero(SKIN_SPECIES);
-            for (int lane = 0; lane < lanes; lane++) {
-                int idx = i + lane;
-                int base = idx << 2;
-                float x = inX[idx], y = inY[idx], z = inZ[idx];
-                float sx = 0.0f, sy = 0.0f, sz = 0.0f;
-                sx = addInfluence(joints, jointIndices[base], jointWeights[base], x, y, z, sx, 0);
-                sy = addInfluence(joints, jointIndices[base], jointWeights[base], x, y, z, sy, 1);
-                sz = addInfluence(joints, jointIndices[base], jointWeights[base], x, y, z, sz, 2);
-                sx = addInfluence(joints, jointIndices[base + 1], jointWeights[base + 1], x, y, z, sx, 0);
-                sy = addInfluence(joints, jointIndices[base + 1], jointWeights[base + 1], x, y, z, sy, 1);
-                sz = addInfluence(joints, jointIndices[base + 1], jointWeights[base + 1], x, y, z, sz, 2);
-                sx = addInfluence(joints, jointIndices[base + 2], jointWeights[base + 2], x, y, z, sx, 0);
-                sy = addInfluence(joints, jointIndices[base + 2], jointWeights[base + 2], x, y, z, sy, 1);
-                sz = addInfluence(joints, jointIndices[base + 2], jointWeights[base + 2], x, y, z, sz, 2);
-                sx = addInfluence(joints, jointIndices[base + 3], jointWeights[base + 3], x, y, z, sx, 0);
-                sy = addInfluence(joints, jointIndices[base + 3], jointWeights[base + 3], x, y, z, sy, 1);
-                sz = addInfluence(joints, jointIndices[base + 3], jointWeights[base + 3], x, y, z, sz, 2);
-                ox = ox.withLane(lane, sx);
-                oy = oy.withLane(lane, sy);
-                oz = oz.withLane(lane, sz);
-            }
-            ox.intoArray(outX, i);
-            oy.intoArray(outY, i);
-            oz.intoArray(outZ, i);
-        }
-        for (; i < count; i++) {
-            int base = i << 2;
-            skinLbs4Single(joints, jointIndices[base], jointIndices[base + 1], jointIndices[base + 2], jointIndices[base + 3], jointWeights[base], jointWeights[base + 1],
-                    jointWeights[base + 2], jointWeights[base + 3], inX[i], inY[i], inZ[i], outX, outY, outZ, i);
-        }
-//#else
+        // The AoS influence layout (jointIndices[4 * i + k]) cannot feed a Vector API gather without a scratch
+        // index array, so there is no SIMD path for it; use skinLbs4SoA with per-influence arrays. This method used
+        // to do the scalar work lane by lane and pack the results with withLane, which only added overhead.
         skinLbs4Scalar(joints, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, count);
-//#endif
     }
 
     public static void skinLbs4Scalar(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
@@ -133,48 +85,10 @@ public final class SkinningKernels {
 
     public static void skinLbs4SoASimd(TransformSoA joints, int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2, float[] w3,
             float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
-//#ifdef __HAS_VECTOR_API__
-        int lanes = SKIN_SPECIES.length();
-        if (lanes <= 1) {
-            skinLbs4SoAScalar(joints, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, count);
-            return;
-        }
-        int i = 0;
-        int limit = count - (count % lanes);
-        for (; i < limit; i += lanes) {
-            FloatVector ox = FloatVector.zero(SKIN_SPECIES);
-            FloatVector oy = FloatVector.zero(SKIN_SPECIES);
-            FloatVector oz = FloatVector.zero(SKIN_SPECIES);
-            for (int lane = 0; lane < lanes; lane++) {
-                int idx = i + lane;
-                float x = inX[idx], y = inY[idx], z = inZ[idx];
-                float sx = 0.0f, sy = 0.0f, sz = 0.0f;
-                sx = addInfluence(joints, j0[idx], w0[idx], x, y, z, sx, 0);
-                sy = addInfluence(joints, j0[idx], w0[idx], x, y, z, sy, 1);
-                sz = addInfluence(joints, j0[idx], w0[idx], x, y, z, sz, 2);
-                sx = addInfluence(joints, j1[idx], w1[idx], x, y, z, sx, 0);
-                sy = addInfluence(joints, j1[idx], w1[idx], x, y, z, sy, 1);
-                sz = addInfluence(joints, j1[idx], w1[idx], x, y, z, sz, 2);
-                sx = addInfluence(joints, j2[idx], w2[idx], x, y, z, sx, 0);
-                sy = addInfluence(joints, j2[idx], w2[idx], x, y, z, sy, 1);
-                sz = addInfluence(joints, j2[idx], w2[idx], x, y, z, sz, 2);
-                sx = addInfluence(joints, j3[idx], w3[idx], x, y, z, sx, 0);
-                sy = addInfluence(joints, j3[idx], w3[idx], x, y, z, sy, 1);
-                sz = addInfluence(joints, j3[idx], w3[idx], x, y, z, sz, 2);
-                ox = ox.withLane(lane, sx);
-                oy = oy.withLane(lane, sy);
-                oz = oz.withLane(lane, sz);
-            }
-            ox.intoArray(outX, i);
-            oy.intoArray(outY, i);
-            oz.intoArray(outZ, i);
-        }
-        for (; i < count; i++) {
-            skinLbs4Single(joints, j0[i], j1[i], j2[i], j3[i], w0[i], w1[i], w2[i], w3[i], inX[i], inY[i], inZ[i], outX, outY, outZ, i);
-        }
-//#else
+        // No Vector API path: LBS needs a per-lane gather of joint data. A gather kernel (FloatVector.fromArray with
+        // an index map) measured 6.8x slower than this scalar loop on arm64, where NEON has no gather instruction
+        // (72 us vs 10.6 us for 1024 vertices). The previous "SIMD" body did scalar work per lane plus withLane.
         skinLbs4SoAScalar(joints, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, count);
-//#endif
     }
 
     public static void skinDualQuat4(DualQuatSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
@@ -340,22 +254,6 @@ public final class SkinningKernels {
         outZ[i] = oz;
     }
 
-    private static float addInfluence(TransformSoA joints, int j, float w, float x, float y, float z, float acc, int component) {
-        float rx = joints.qx[j], ry = joints.qy[j], rz = joints.qz[j], rw = joints.qw[j];
-        float tx2 = 2.0f * (ry * z - rz * y);
-        float ty2 = 2.0f * (rz * x - rx * z);
-        float tz2 = 2.0f * (rx * y - ry * x);
-        float v;
-        if (component == 0) {
-            v = x + rw * tx2 + (ry * tz2 - rz * ty2) + joints.tx[j];
-        } else if (component == 1) {
-            v = y + rw * ty2 + (rz * tx2 - rx * tz2) + joints.ty[j];
-        } else {
-            v = z + rw * tz2 + (rx * ty2 - ry * tx2) + joints.tz[j];
-        }
-        return acc + v * w;
-    }
-
     private static void skinDualQuat4Single(DualQuatSoA joints, int j0, int j1, int j2, int j3, float w0, float w1, float w2, float w3, float x, float y,
             float z, float[] outX, float[] outY, float[] outZ, int i) {
         float refX = joints.rx[j0], refY = joints.ry[j0], refZ = joints.rz[j0], refW = joints.rw[j0];
@@ -421,4 +319,5 @@ public final class SkinningKernels {
         float dot = refX * rx + refY * ry + refZ * rz + refW * rw;
         return dot < 0.0f ? -1.0f : 1.0f;
     }
+
 }

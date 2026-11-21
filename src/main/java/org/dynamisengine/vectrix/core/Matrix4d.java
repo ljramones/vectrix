@@ -2759,8 +2759,8 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
      * @return this
      */
     public Matrix4d setFromAddress(long address) {
-        if (Options.NO_UNSAFE)
-            throw new UnsupportedOperationException("Not supported when using joml.nounsafe");
+        if (!MemUtil.UNSAFE_ADDRESS_API)
+            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.get(this, address);
         return determineProperties();
     }
@@ -2777,8 +2777,8 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
      * @return this
      */
     public Matrix4d setTransposedFromAddress(long address) {
-        if (Options.NO_UNSAFE)
-            throw new UnsupportedOperationException("Not supported when using joml.nounsafe");
+        if (!MemUtil.UNSAFE_ADDRESS_API)
+            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.getTransposed(this, address);
         return determineProperties();
     }
@@ -3488,14 +3488,14 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 //#ifdef __HAS_UNSAFE__
     public Matrix4dc getToAddress(long address) {
-        if (Options.NO_UNSAFE)
-            throw new UnsupportedOperationException("Not supported when using joml.nounsafe");
+        if (!MemUtil.UNSAFE_ADDRESS_API)
+            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.put(this, address);
         return this;
     }
     public Matrix4dc getTransposedToAddress(long address) {
-        if (Options.NO_UNSAFE)
-            throw new UnsupportedOperationException("Not supported when using joml.nounsafe");
+        if (!MemUtil.UNSAFE_ADDRESS_API)
+            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.putTransposed(this, address);
         return this;
     }
