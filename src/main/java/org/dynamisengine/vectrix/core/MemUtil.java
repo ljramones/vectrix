@@ -24,9 +24,7 @@
 package org.dynamisengine.vectrix.core;
 
 import java.lang.reflect.Field;
-//#ifdef __HAS_NIO__
 import java.nio.*;
-//#endif
 //#ifdef __HAS_FFM__
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -76,7 +74,6 @@ abstract class MemUtil {
         return accessor;
     }
 
-//#ifdef __HAS_NIO__
     public abstract void put(Matrix4f m, int offset, FloatBuffer dest);
     public abstract void put(Matrix4f m, int offset, ByteBuffer dest);
     public abstract void put(Matrix4x3f m, int offset, FloatBuffer dest);
@@ -246,7 +243,6 @@ abstract class MemUtil {
     public abstract void putMatrix4f(Quaternionf q, int position, FloatBuffer dest);
     public abstract void putMatrix4x3f(Quaternionf q, int position, ByteBuffer dest);
     public abstract void putMatrix4x3f(Quaternionf q, int position, FloatBuffer dest);
-//#endif
 
     public abstract float get(Matrix4f m, int column, int row);
     public abstract Matrix4f set(Matrix4f m, int column, int row, float v);
@@ -328,7 +324,6 @@ abstract class MemUtil {
     public abstract void zero(Matrix2d dest);
 
     public static class MemUtilNIO extends MemUtil {
-//#ifdef __HAS_NIO__
         public void put0(Matrix4f m, FloatBuffer dest) {
             dest.put(0,  m.m00())
             .put(1,  m.m01())
@@ -2474,7 +2469,6 @@ abstract class MemUtil {
             dst.x = src.getLong(offset);
             dst.y = src.getLong(offset+8);
         }
-//#endif
 
         public float get(Matrix4f m, int column, int row) {
             switch (column) {
@@ -3776,7 +3770,6 @@ abstract class MemUtil {
             ._m11(0.0);
         }
 
-//#ifdef __HAS_NIO__
         public void putMatrix3f(Quaternionf q, int position, ByteBuffer dest) {
             float w2 = q.w * q.w;
             float x2 = q.x * q.x;
@@ -3925,7 +3918,6 @@ abstract class MemUtil {
             .put(position + 10, 0.0f)
             .put(position + 11, 0.0f);
         }
-//#endif
     }
 
 //#ifdef __HAS_FFM__
@@ -4758,7 +4750,6 @@ abstract class MemUtil {
         }
 
         // ============ Buffer override methods ============
-//#ifdef __HAS_NIO__
 
         // --- Quaternion buffer overrides ---
         public void putMatrix3f(Quaternionf q, int offset, ByteBuffer dest) {
@@ -5306,7 +5297,6 @@ abstract class MemUtil {
         public void get(Vector2L dst, int offset, ByteBuffer src) {
             if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
         }
-//#endif
     }
 //#endif
 
@@ -5314,9 +5304,7 @@ abstract class MemUtil {
     public static class MemUtilUnsafe extends MemUtilNIO {
         public static final sun.misc.Unsafe UNSAFE;
 
-//#ifdef __HAS_NIO__
         public static final long ADDRESS;
-//#endif
         public static final long Matrix2f_m00;
         public static final long Matrix3f_m00;
         public static final long Matrix3d_m00;
@@ -5335,9 +5323,7 @@ abstract class MemUtil {
         static {
             UNSAFE = getUnsafeInstance();
             try {
-//#ifdef __HAS_NIO__
                 ADDRESS = findBufferAddress();
-//#endif
                 Matrix4f_m00 = checkMatrix4f();
                 Matrix4d_m00 = checkMatrix4d();
                 Matrix4x3f_m00 = checkMatrix4x3f();
@@ -5362,7 +5348,6 @@ abstract class MemUtil {
             }
         }
 
-//#ifdef __HAS_NIO__
         private static long findBufferAddress() {
             try {
                 return UNSAFE.objectFieldOffset(getDeclaredField(Buffer.class, "address")); //$NON-NLS-1$
@@ -5370,7 +5355,6 @@ abstract class MemUtil {
                 throw new UnsupportedOperationException(e);
             }
         }
-//#endif
 
         private static long checkMatrix4f() throws NoSuchFieldException, SecurityException {
             Field f = Matrix4f.class.getDeclaredField("m00");
@@ -6607,7 +6591,6 @@ abstract class MemUtil {
             throw new IllegalArgumentException("Must use a direct buffer");
         }
 
-//#ifdef __HAS_NIO__
         public void putMatrix3f(Quaternionf q, int offset, ByteBuffer dest) {
             if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9 << 2);
             if (dest.order() == ByteOrder.nativeOrder())
@@ -7913,7 +7896,6 @@ abstract class MemUtil {
             else
                 super.get(dst, offset, src);
         }
-//#endif
     }
 //#endif
 }

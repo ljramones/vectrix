@@ -29,11 +29,9 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
-//#endif
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
@@ -163,7 +161,6 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
         determineProperties();
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Create a new {@link Matrix4x3d} by reading its 12 double components from the given {@link DoubleBuffer}
      * at the buffer's current position.
@@ -179,7 +176,6 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
         MemUtil.INSTANCE.get(this, buffer.position(), buffer);
         determineProperties();
     }
-//#endif
 
     /**
      * Assume the given properties about this matrix.
@@ -1504,7 +1500,6 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
         return set(m, 0);
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Set the values of this matrix by reading 12 double values from the given {@link DoubleBuffer} in column-major order,
      * starting at its current position.
@@ -1648,7 +1643,6 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
         MemUtil.INSTANCE.getf(this, index, buffer);
         return determineProperties();
     }
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     /**
@@ -1953,23 +1947,7 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
      * @return the string representation
      */
     public String toString() {
-        String str = toString(Options.NUMBER_FORMAT);
-        StringBuffer res = new StringBuffer();
-        int eIndex = Integer.MIN_VALUE;
-        for (int i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
-            if (c == 'E') {
-                eIndex = i;
-            } else if (c == ' ' && eIndex == i - 1) {
-                // workaround Java 1.4 DecimalFormat bug
-                res.append('+');
-                continue;
-            } else if (Character.isDigit(c) && eIndex == i - 1) {
-                res.append('+');
-            }
-            res.append(c);
-        }
-        return res.toString();
+        return Runtime.formatNumbers(toString(Options.NUMBER_FORMAT));
     }
 
     /**
@@ -2018,7 +1996,6 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
         return dest.setFromNormalized(this);
     }
 
-//#ifdef __HAS_NIO__
     public DoubleBuffer get(DoubleBuffer buffer) {
         return get(buffer.position(), buffer);
     }
@@ -2054,7 +2031,6 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
         MemUtil.INSTANCE.putf(this, index, buffer);
         return buffer;
     }
-//#endif
 //#ifdef __HAS_UNSAFE__
     public Matrix4x3dc getToAddress(long address) {
         if (Options.NO_UNSAFE)
@@ -2128,7 +2104,6 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
         return get4x4(arr, 0);
     }
 
-//#ifdef __HAS_NIO__
     public DoubleBuffer get4x4(DoubleBuffer buffer) {
         return get4x4(buffer.position(), buffer);
     }
@@ -2182,7 +2157,6 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
         MemUtil.INSTANCE.putfTransposed(this, index, buffer);
         return buffer;
     }
-//#endif
 
     public double[] getTransposed(double[] arr, int offset) {
         arr[offset+0]  = m00;

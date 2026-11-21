@@ -38,6 +38,15 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - `BENCHMARKS.md` now includes a prominent current benchmark snapshot and acquisition path.
 - `README.md` and docs index were updated to surface benchmark methodology and the performance showcase.
 
+### Removed
+- Legacy pre-JDK-25 compatibility layer. JDK 25 is now the minimum and is enforced by `maven-enforcer-plugin`:
+  - `buildhelper/Java6to2` bytecode downgrader and the `maven.compiler.source/target 1.8` properties.
+  - `__HAS_NIO__` and `__HAS_INTEGER_SIGNUM__` preprocessor guards (always true on JDK 25+).
+  - `Runtime.HAS_floatToRawIntBits`, `Runtime.HAS_doubleToRawLongBits`, `Runtime.HAS_Long_rotateLeft`, and the
+    reflection probes behind them and `Runtime.HAS_Math_fma`. `HAS_Math_fma` now reflects only `-Djoml.useMathFma`.
+  - Java 1.4 `DecimalFormat` workaround and ten duplicated copies of the matrix `toString` exponent formatter
+    (all now call `Runtime.formatNumbers`). Output is unchanged.
+
 ### Fixed
 - Resolved benchmark execution reliability under named-module `-Pbench` workflow and documented the approach.
 - Closed skinning equivalence ambiguity by introducing and validating the `kernelMatrixTight` path as the fastest measured baseline shape.

@@ -23,10 +23,8 @@
  */
 package org.dynamisengine.vectrix.core;
 
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-//#endif
 import java.util.*;
 
 /**
@@ -249,7 +247,6 @@ public interface Matrix3fc {
      */
     Quaterniond getNormalizedRotation(Quaterniond dest);
 
-//#ifdef __HAS_NIO__
     /**
      * Store this matrix in column-major order into the supplied {@link FloatBuffer} at the current
      * buffer {@link FloatBuffer#position() position}.
@@ -441,7 +438,6 @@ public interface Matrix3fc {
      * @return the passed in buffer
      */
     ByteBuffer getTransposed(int index, ByteBuffer buffer);
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     /**

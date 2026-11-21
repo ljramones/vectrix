@@ -23,11 +23,9 @@
  */
 package org.dynamisengine.vectrix.core;
 
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
-//#endif
 import java.util.*;
 
 /**
@@ -997,7 +995,6 @@ public interface Matrix4dc {
      */
     Quaterniond getNormalizedRotation(Quaterniond dest);
 
-//#ifdef __HAS_NIO__
     /**
      * Store this matrix in column-major order into the supplied {@link DoubleBuffer} at the current
      * buffer {@link DoubleBuffer#position() position}.
@@ -1165,7 +1162,6 @@ public interface Matrix4dc {
      * @return the passed in buffer
      */
     ByteBuffer getFloats(int index, ByteBuffer buffer);
-//#endif
 
     /**
      * Store this matrix into the supplied double array in column-major order at the given offset.
@@ -1221,7 +1217,6 @@ public interface Matrix4dc {
      */
     float[] get(float[] arr);
 
-//#ifdef __HAS_NIO__
 
     /**
      * Store this matrix in row-major order into the supplied {@link DoubleBuffer} at the current
@@ -1426,7 +1421,6 @@ public interface Matrix4dc {
      * @return the passed in buffer
      */
     ByteBuffer get4x3Transposed(int index, ByteBuffer buffer);
-//#endif
 
     /**
      * Transform/multiply the given vector by this matrix and store the result in that vector.

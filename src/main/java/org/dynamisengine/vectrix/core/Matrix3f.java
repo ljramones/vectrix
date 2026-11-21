@@ -27,10 +27,8 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-//#endif
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
@@ -135,7 +133,6 @@ public class Matrix3f implements Externalizable, Cloneable, Matrix3fc {
         this.m22 = m22;
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Create a new {@link Matrix3f} by reading its 9 float components from the given {@link FloatBuffer}
      * at the buffer's current position.
@@ -150,7 +147,6 @@ public class Matrix3f implements Externalizable, Cloneable, Matrix3fc {
     public Matrix3f(FloatBuffer buffer) {
         MemUtil.INSTANCE.get(this, buffer.position(), buffer);
     }
-//#endif
 
     /**
      * Create a new {@link Matrix3f} and initialize its three columns using the supplied vectors.
@@ -862,23 +858,7 @@ public class Matrix3f implements Externalizable, Cloneable, Matrix3fc {
      * @return the string representation
      */
     public String toString() {
-        String str = toString(Options.NUMBER_FORMAT);
-        StringBuffer res = new StringBuffer();
-        int eIndex = Integer.MIN_VALUE;
-        for (int i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
-            if (c == 'E') {
-                eIndex = i;
-            } else if (c == ' ' && eIndex == i - 1) {
-                // workaround Java 1.4 DecimalFormat bug
-                res.append('+');
-                continue;
-            } else if (Character.isDigit(c) && eIndex == i - 1) {
-                res.append('+');
-            }
-            res.append(c);
-        }
-        return res.toString();
+        return Runtime.formatNumbers(toString(Options.NUMBER_FORMAT));
     }
 
     /**
@@ -935,7 +915,6 @@ public class Matrix3f implements Externalizable, Cloneable, Matrix3fc {
         return dest.setFromNormalized(this);
     }
 
-//#ifdef __HAS_NIO__
     public FloatBuffer get(FloatBuffer buffer) {
         return get(buffer.position(), buffer);
     }
@@ -989,7 +968,6 @@ public class Matrix3f implements Externalizable, Cloneable, Matrix3fc {
         MemUtil.INSTANCE.putTransposed(this, index, buffer);
         return buffer;
     }
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     public Matrix3fc getToAddress(long address) {
@@ -1015,7 +993,6 @@ public class Matrix3f implements Externalizable, Cloneable, Matrix3fc {
         return get(arr, 0);
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Set the values of this matrix by reading 9 float values from the given {@link FloatBuffer} in column-major order,
      * starting at its current position.
@@ -1087,7 +1064,6 @@ public class Matrix3f implements Externalizable, Cloneable, Matrix3fc {
         MemUtil.INSTANCE.get(this, index, buffer);
         return this;
     }
-//#endif
 //#ifdef __HAS_UNSAFE__
     /**
      * Set the values of this matrix by reading 9 float values from off-heap memory in column-major order,

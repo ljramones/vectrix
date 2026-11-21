@@ -80,20 +80,9 @@ public class Random {
             rotateLeft(s0, s1);
             return (int) (result & 0xFFFFFFFF);
         }
-        private static long rotl_JDK4(final long x, final int k) {
-            return (x << k) | (x >>> (64 - k));
-        }
-        private static long rotl_JDK5(final long x, final int k) {
-            return Long.rotateLeft(x, k);
-        }
-        private static long rotl(final long x, final int k) {
-            if (Runtime.HAS_Long_rotateLeft)
-                return rotl_JDK5(x, k);
-            return rotl_JDK4(x, k);
-        }
         private void rotateLeft(long s0, long s1) {
-            _s0 = rotl(s0, 55) ^ s1 ^ (s1 << 14);
-            _s1 = rotl(s1, 36);
+            _s0 = Long.rotateLeft(s0, 55) ^ s1 ^ (s1 << 14);
+            _s1 = Long.rotateLeft(s1, 36);
         }
 
         /**

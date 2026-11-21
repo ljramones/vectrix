@@ -23,9 +23,7 @@
  */
 package org.dynamisengine.vectrix.sampling;
 
-//#ifdef __HAS_NIO__
 import java.nio.FloatBuffer;
-//#endif
 
 import org.dynamisengine.vectrix.core.Math;
 
@@ -37,7 +35,6 @@ import org.dynamisengine.vectrix.core.Math;
   */
 public class Convolution {
 
-//#ifdef __HAS_NIO__
     /**
      * Generate a Gaussian convolution kernel with the given number of rows and columns, and store
      * the factors in row-major order in <code>dest</code>.
@@ -79,7 +76,6 @@ public class Convolution {
             dest.put(pos + i, dest.get(pos + i) * sum);
         }
     }
-//#endif
 
     /**
      * Generate a Gaussian convolution kernel with the given number of rows and columns, and store

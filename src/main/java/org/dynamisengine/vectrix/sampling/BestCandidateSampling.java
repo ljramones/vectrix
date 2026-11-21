@@ -23,9 +23,7 @@
  */
 package org.dynamisengine.vectrix.sampling;
 
-//#ifdef __HAS_NIO__
 import java.nio.FloatBuffer;
-//#endif
 import java.util.ArrayList;
 
 import org.dynamisengine.vectrix.core.Random;
@@ -316,7 +314,6 @@ public class BestCandidateSampling {
             });
         }
 
-//#ifdef __HAS_NIO__
         /**
          * Generate 'best candidate' sample positions and store the coordinates of all generated samples into the given <code>xyzs</code> FloatBuffer.
          * <p>
@@ -342,7 +339,6 @@ public class BestCandidateSampling {
                 }
             });
         }
-//#endif
 
         /**
          * Set the seed to initialize the pseudo-random number generator with.
@@ -606,7 +602,6 @@ public class BestCandidateSampling {
             });
         }
 
-//#ifdef __HAS_NIO__
         /**
          * Generate 'best candidate' sample positions and store the coordinates of all generated samples into the given <code>xys</code> FloatBuffer.
          * <p>
@@ -630,7 +625,6 @@ public class BestCandidateSampling {
                 }
             });
         }
-//#endif
 
         /**
          * Generate 'best candidate' sample positions and call the given <code>callback</code> for each generated sample.
@@ -738,7 +732,6 @@ public class BestCandidateSampling {
             });
         }
 
-//#ifdef __HAS_NIO__
         /**
          * Generate 'best candidate' sample positions and store the coordinates of all generated samples into the given <code>xys</code> FloatBuffer.
          * <p>
@@ -762,7 +755,6 @@ public class BestCandidateSampling {
                 }
             });
         }
-//#endif
 
         /**
          * Generate 'best candidate' sample positions and call the given <code>callback</code> for each generated sample.
@@ -981,7 +973,6 @@ public class BestCandidateSampling {
             });
         }
 
-//#ifdef __HAS_NIO__
         /**
          * Generate 'best candidate' sample positions and store the coordinates of all generated samples into the given <code>xyzs</code> FloatBuffer.
          * <p>
@@ -1007,7 +998,6 @@ public class BestCandidateSampling {
                 }
             });
         }
-//#endif
 
         /**
          * Generate 'best candidate' sample positions and call the given <code>callback</code> for each generated sample.

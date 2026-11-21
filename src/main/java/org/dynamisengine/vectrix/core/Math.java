@@ -623,23 +623,9 @@ public class Math {
         return java.lang.Math.signum(v);
     }
     public static int signum(int v) {
-        int r;
-//#ifdef __HAS_INTEGER_SIGNUM__
-        r = Integer.signum(v);
-//#else
-        // code from java.lang.Integer.signum(int)
-        r = (v >> 31) | (-v >>> 31);
-//#endif
-        return r;
+        return Integer.signum(v);
     }
     public static int signum(long v) {
-        int r;
-//#ifdef __HAS_INTEGER_SIGNUM__
-        r = Long.signum(v);
-//#else
-        // code from java.lang.Long.signum(long)
-        r = (int) ((v >> 63) | (-v >>> 63));
-//#endif
-        return r;
+        return Long.signum(v);
     }
 }

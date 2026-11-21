@@ -23,10 +23,8 @@
  */
 package org.dynamisengine.vectrix.core;
 
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-//#endif
 import java.util.*;
 
 /**
@@ -518,7 +516,6 @@ public interface Matrix4x3fc {
      */
     Quaterniond getNormalizedRotation(Quaterniond dest);
 
-//#ifdef __HAS_NIO__
     /**
      * Store this matrix in column-major order into the supplied {@link FloatBuffer} at the current
      * buffer {@link FloatBuffer#position() position}.
@@ -582,7 +579,6 @@ public interface Matrix4x3fc {
      * @return the passed in buffer
      */
     ByteBuffer get(int index, ByteBuffer buffer);
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     /**
@@ -661,7 +657,6 @@ public interface Matrix4x3fc {
      */
     float[] get4x4(float[] arr);
 
-//#ifdef __HAS_NIO__
     /**
      * Store a 4x4 matrix in column-major order into the supplied {@link FloatBuffer} at the current
      * buffer {@link FloatBuffer#position() position}, where the upper 4x3 submatrix is <code>this</code> and the last row is <code>(0, 0, 0, 1)</code>.
@@ -853,7 +848,6 @@ public interface Matrix4x3fc {
      * @return the passed in buffer
      */
     ByteBuffer getTransposed(int index, ByteBuffer buffer);
-//#endif
 
     /**
      * Store this matrix into the supplied float array in row-major order at the given offset.

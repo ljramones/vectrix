@@ -27,10 +27,8 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-//#endif
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
@@ -231,7 +229,6 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
         this.w = xyzw[3];
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Create a new {@link Vector4f} and read this vector from the supplied {@link ByteBuffer}
      * at the current buffer {@link ByteBuffer#position() position}.
@@ -297,7 +294,6 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
     public Vector4f(int index, FloatBuffer buffer) {
         MemUtil.INSTANCE.get(this, index, buffer);
     }
-//#endif
 
     public float x() {
         return this.x;
@@ -611,7 +607,6 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
         return this;
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Read this vector from the supplied {@link ByteBuffer} at the current
      * buffer {@link ByteBuffer#position() position}.
@@ -685,7 +680,6 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
         MemUtil.INSTANCE.get(this, index, buffer);
         return this;
     }
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     /**
@@ -738,7 +732,6 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
         return this;
     }
 
-//#ifdef __HAS_NIO__
     public FloatBuffer get(FloatBuffer buffer) {
         MemUtil.INSTANCE.put(this, buffer.position(), buffer);
         return buffer;
@@ -758,7 +751,6 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
         MemUtil.INSTANCE.put(this, index, buffer);
         return buffer;
     }
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     public Vector4fc getToAddress(long address) {

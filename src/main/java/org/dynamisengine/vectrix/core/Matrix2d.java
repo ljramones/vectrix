@@ -23,11 +23,9 @@
  */
 package org.dynamisengine.vectrix.core;
 
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
-//#endif
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -133,7 +131,6 @@ public class Matrix2d implements Externalizable, Cloneable, Matrix2dc {
         this.m11 = m11;
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Create a new {@link Matrix2d} by reading its 4 double components from the given {@link DoubleBuffer}
      * at the buffer's current position.
@@ -148,7 +145,6 @@ public class Matrix2d implements Externalizable, Cloneable, Matrix2dc {
     public Matrix2d(DoubleBuffer buffer) {
         MemUtil.INSTANCE.get(this, buffer.position(), buffer);
     }
-//#endif
 
     /**
      * Create a new {@link Matrix2d} and initialize its two columns using the supplied vectors.
@@ -611,23 +607,7 @@ public class Matrix2d implements Externalizable, Cloneable, Matrix2dc {
      * @return the string representation
      */
     public String toString() {
-        String str = toString(Options.NUMBER_FORMAT);
-        StringBuffer res = new StringBuffer();
-        int eIndex = Integer.MIN_VALUE;
-        for (int i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
-            if (c == 'E') {
-                eIndex = i;
-            } else if (c == ' ' && eIndex == i - 1) {
-                // workaround Java 1.4 DecimalFormat bug
-                res.append('+');
-                continue;
-            } else if (Character.isDigit(c) && eIndex == i - 1) {
-                res.append('+');
-            }
-            res.append(c);
-        }
-        return res.toString();
+        return Runtime.formatNumbers(toString(Options.NUMBER_FORMAT));
     }
 
     /**
@@ -671,7 +651,6 @@ public class Matrix2d implements Externalizable, Cloneable, Matrix2dc {
         return (double) Math.atan2(m01, m11);
     }
 
-    //#ifdef __HAS_NIO__
     public DoubleBuffer get(DoubleBuffer buffer) {
         return get(buffer.position(), buffer);
     }
@@ -734,7 +713,6 @@ public class Matrix2d implements Externalizable, Cloneable, Matrix2dc {
         MemUtil.INSTANCE.putfTransposed(this, index, buffer);
         return buffer;
     }
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     public Matrix2dc getToAddress(long address) {
@@ -760,7 +738,6 @@ public class Matrix2d implements Externalizable, Cloneable, Matrix2dc {
         return get(arr, 0);
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Set the values of this matrix by reading 4 double values from the given {@link DoubleBuffer} in column-major order,
      * starting at its current position.
@@ -832,7 +809,6 @@ public class Matrix2d implements Externalizable, Cloneable, Matrix2dc {
         MemUtil.INSTANCE.get(this, index, buffer);
         return this;
     }
-//#endif
 //#ifdef __HAS_UNSAFE__
     /**
      * Set the values of this matrix by reading 4 double values from off-heap memory in column-major order,

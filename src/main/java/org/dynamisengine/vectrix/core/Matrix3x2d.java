@@ -27,11 +27,9 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
-//#endif
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
@@ -130,7 +128,6 @@ public class Matrix3x2d implements Matrix3x2dc, Cloneable, Externalizable {
         this.m21 = m21;
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Create a new {@link Matrix3x2d} by reading its 6 double components from the given {@link DoubleBuffer}
      * at the buffer's current position.
@@ -145,7 +142,6 @@ public class Matrix3x2d implements Matrix3x2dc, Cloneable, Externalizable {
     public Matrix3x2d(DoubleBuffer buffer) {
         MemUtil.INSTANCE.get(this, buffer.position(), buffer);
     }
-//#endif
 
     public double m00() {
         return m00;
@@ -796,23 +792,7 @@ public class Matrix3x2d implements Matrix3x2dc, Cloneable, Externalizable {
      * @return the string representation
      */
     public String toString() {
-        String str = toString(Options.NUMBER_FORMAT);
-        StringBuffer res = new StringBuffer();
-        int eIndex = Integer.MIN_VALUE;
-        for (int i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
-            if (c == 'E') {
-                eIndex = i;
-            } else if (c == ' ' && eIndex == i - 1) {
-                // workaround Java 1.4 DecimalFormat bug
-                res.append('+');
-                continue;
-            } else if (Character.isDigit(c) && eIndex == i - 1) {
-                res.append('+');
-            }
-            res.append(c);
-        }
-        return res.toString();
+        return Runtime.formatNumbers(toString(Options.NUMBER_FORMAT));
     }
 
     /**
@@ -844,7 +824,6 @@ public class Matrix3x2d implements Matrix3x2dc, Cloneable, Externalizable {
         return dest.set(this);
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Store this matrix in column-major order into the supplied {@link DoubleBuffer} at the current
      * buffer {@link DoubleBuffer#position() position}.
@@ -1106,7 +1085,6 @@ public class Matrix3x2d implements Matrix3x2dc, Cloneable, Externalizable {
         MemUtil.INSTANCE.putfTransposed(this, index, buffer);
         return buffer;
     }
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     public Matrix3x2dc getToAddress(long address) {
@@ -1210,7 +1188,6 @@ public class Matrix3x2d implements Matrix3x2dc, Cloneable, Externalizable {
         return get4x4(arr, 0);
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Set the values of this matrix by reading 6 double values from the given {@link DoubleBuffer} in column-major order,
      * starting at its current position.
@@ -1284,7 +1261,6 @@ public class Matrix3x2d implements Matrix3x2dc, Cloneable, Externalizable {
         MemUtil.INSTANCE.get(this, index, buffer);
         return this;
     }
-//#endif
 //#ifdef __HAS_UNSAFE__
     /**
      * Set the values of this matrix by reading 6 double values from off-heap memory in column-major order,

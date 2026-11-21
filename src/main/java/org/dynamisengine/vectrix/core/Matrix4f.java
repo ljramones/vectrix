@@ -29,10 +29,8 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-//#endif
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
@@ -184,7 +182,6 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
             .determineProperties();
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Create a new {@link Matrix4f} by reading its 16 float components from the given {@link FloatBuffer}
      * at the buffer's current position.
@@ -200,7 +197,6 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         MemUtil.INSTANCE.get(this, buffer.position(), buffer);
         determineProperties();
     }
-//#endif
 
     /**
      * Create a new {@link Matrix4f} and initialize its four columns using the supplied vectors.
@@ -2347,7 +2343,6 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         return setTransposed(m, 0);
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Set the values of this matrix by reading 16 float values from the given {@link FloatBuffer} in column-major order,
      * starting at its current position.
@@ -2453,7 +2448,6 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         MemUtil.INSTANCE.getTransposed(this, buffer.position(), buffer);
         return determineProperties();
     }
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     /**
@@ -3178,23 +3172,7 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
      * @return the string representation
      */
     public String toString() {
-        String str = toString(Options.NUMBER_FORMAT);
-        StringBuffer res = new StringBuffer();
-        int eIndex = Integer.MIN_VALUE;
-        for (int i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
-            if (c == 'E') {
-                eIndex = i;
-            } else if (c == ' ' && eIndex == i - 1) {
-                // workaround Java 1.4 DecimalFormat bug
-                res.append('+');
-                continue;
-            } else if (Character.isDigit(c) && eIndex == i - 1) {
-                res.append('+');
-            }
-            res.append(c);
-        }
-        return res.toString();
+        return Runtime.formatNumbers(toString(Options.NUMBER_FORMAT));
     }
 
     /**
@@ -3281,7 +3259,6 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         return dest.setFromNormalized(this);
     }
 
-//#ifdef __HAS_NIO__
     public FloatBuffer get(FloatBuffer buffer) {
         MemUtil.INSTANCE.put(this, buffer.position(), buffer);
         return buffer;
@@ -3381,7 +3358,6 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         MemUtil.INSTANCE.put4x3Transposed(this, index, buffer);
         return buffer;
     }
-//#endif
 //#ifdef __HAS_UNSAFE__
     public Matrix4fc getToAddress(long address) {
         if (Options.NO_UNSAFE)

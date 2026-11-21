@@ -23,11 +23,9 @@
  */
 package org.dynamisengine.vectrix.core;
 
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
-//#endif
 import java.util.*;
 
 /**
@@ -255,7 +253,6 @@ public interface Matrix3dc {
      */
     Quaterniond getNormalizedRotation(Quaterniond dest);
 
-//#ifdef __HAS_NIO__
     /**
      * Store this matrix into the supplied {@link DoubleBuffer} at the current
      * buffer {@link DoubleBuffer#position() position} using column-major order.
@@ -535,7 +532,6 @@ public interface Matrix3dc {
      * @return the passed in buffer
      */
     ByteBuffer getTransposedFloats(int index, ByteBuffer buffer);
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     /**

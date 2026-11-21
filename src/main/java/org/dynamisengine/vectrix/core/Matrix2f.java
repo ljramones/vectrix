@@ -23,10 +23,8 @@
  */
 package org.dynamisengine.vectrix.core;
 
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-//#endif
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -106,7 +104,6 @@ public class Matrix2f implements Externalizable, Cloneable, Matrix2fc {
         this.m11 = m11;
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Create a new {@link Matrix2f} by reading its 4 float components from the given {@link FloatBuffer}
      * at the buffer's current position.
@@ -121,7 +118,6 @@ public class Matrix2f implements Externalizable, Cloneable, Matrix2fc {
     public Matrix2f(FloatBuffer buffer) {
         MemUtil.INSTANCE.get(this, buffer.position(), buffer);
     }
-//#endif
 
     /**
      * Create a new {@link Matrix2f} and initialize its two columns using the supplied vectors.
@@ -474,23 +470,7 @@ public class Matrix2f implements Externalizable, Cloneable, Matrix2fc {
      * @return the string representation
      */
     public String toString() {
-        String str = toString(Options.NUMBER_FORMAT);
-        StringBuffer res = new StringBuffer();
-        int eIndex = Integer.MIN_VALUE;
-        for (int i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
-            if (c == 'E') {
-                eIndex = i;
-            } else if (c == ' ' && eIndex == i - 1) {
-                // workaround Java 1.4 DecimalFormat bug
-                res.append('+');
-                continue;
-            } else if (Character.isDigit(c) && eIndex == i - 1) {
-                res.append('+');
-            }
-            res.append(c);
-        }
-        return res.toString();
+        return Runtime.formatNumbers(toString(Options.NUMBER_FORMAT));
     }
 
     /**
@@ -534,7 +514,6 @@ public class Matrix2f implements Externalizable, Cloneable, Matrix2fc {
         return Math.atan2(m01, m11);
     }
 
-//#ifdef __HAS_NIO__
     public FloatBuffer get(FloatBuffer buffer) {
         return get(buffer.position(), buffer);
     }
@@ -570,7 +549,6 @@ public class Matrix2f implements Externalizable, Cloneable, Matrix2fc {
         MemUtil.INSTANCE.putTransposed(this, index, buffer);
         return buffer;
     }
-//#endif
 //#ifdef __HAS_UNSAFE__
     public Matrix2fc getToAddress(long address) {
         if (Options.NO_UNSAFE)
@@ -595,7 +573,6 @@ public class Matrix2f implements Externalizable, Cloneable, Matrix2fc {
         return get(arr, 0);
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Set the values of this matrix by reading 4 float values from the given {@link FloatBuffer} in column-major order,
      * starting at its current position.
@@ -667,7 +644,6 @@ public class Matrix2f implements Externalizable, Cloneable, Matrix2fc {
         MemUtil.INSTANCE.get(this, index, buffer);
         return this;
     }
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     /**

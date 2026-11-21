@@ -46,8 +46,8 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <!-- Minimum supported JDK. Bytecode level comes from dynamis-parent (maven.compiler.release=25). -->
+        <vectrix.min.jdk>25</vectrix.min.jdk>
         <asm.version>9.7</asm.version>
         <junit.version>5.10.3</junit.version>
         <jcp.version>7.3.0</jcp.version>
@@ -70,6 +70,29 @@
 
     <build>
         <plugins>
+            <!-- Fail fast on JDKs older than the supported minimum -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>enforce-jdk</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[${vectrix.min.jdk},)</version>
+                                    <message>Vectrix requires JDK ${vectrix.min.jdk} or newer.</message>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- JCP Preprocessor -->
             <plugin>
                 <groupId>com.igormaznitsa</groupId>
@@ -101,10 +124,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
                 <configuration>
-                    <release/>
+                    <release>${maven.compiler.release}</release>
                     <useModulePath>false</useModulePath>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
                     <encoding>UTF-8</encoding>
                     <excludes>
                         <exclude>module-info.java</exclude>
@@ -274,7 +295,7 @@
     </build>
 
     <profiles>
-        <!-- Default profile: Java 1.8 target with bytecode downgrading -->
+        <!-- Default profile: JDK 25+ bytecode, NIO + Unsafe memory paths, generated module-info -->
         <profile>
             <id>default</id>
             <activation>
@@ -288,7 +309,6 @@
                         <artifactId>jcp</artifactId>
                         <configuration>
                             <vars>
-                                <__HAS_NIO__>true</__HAS_NIO__>
                                 <__HAS_UNSAFE__>true</__HAS_UNSAFE__>
                             </vars>
                         </configuration>
@@ -320,7 +340,7 @@
                         </executions>
                     </plugin>
 
-                    <!-- Compile and run buildhelper tools (Java6to2, ModuleInfoGenerator) -->
+                    <!-- Compile and run buildhelper tool (ModuleInfoGenerator) -->
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
@@ -340,25 +360,7 @@
                                         <argument>${project.build.directory}/buildhelper-lib/asm-${asm.version}.jar</argument>
                                         <argument>-d</argument>
                                         <argument>${project.build.directory}/buildhelper-classes</argument>
-                                        <argument>${project.basedir}/buildhelper/Java6to2.java</argument>
                                         <argument>${project.basedir}/buildhelper/ModuleInfoGenerator.java</argument>
-                                    </arguments>
-                                </configuration>
-                            </execution>
-                            <!-- Run Java6to2 bytecode downgrader -->
-                            <execution>
-                                <id>run-java6to2</id>
-                                <phase>process-classes</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <executable>java</executable>
-                                    <arguments>
-                                        <argument>-cp</argument>
-                                        <argument>${project.build.directory}/buildhelper-classes${path.separator}${project.build.directory}/buildhelper-lib/asm-${asm.version}.jar</argument>
-                                        <argument>Java6to2</argument>
-                                        <argument>${project.build.directory}/classes</argument>
                                     </arguments>
                                 </configuration>
                             </execution>
@@ -390,8 +392,8 @@
         <profile>
             <id>experimental</id>
             <properties>
-                <maven.compiler.source>${java.specification.version}</maven.compiler.source>
-                <maven.compiler.target>${java.specification.version}</maven.compiler.target>
+                <!-- Compile at the running JDK level (>= 25, enforced); required for enable-preview -->
+                <maven.compiler.release>${java.specification.version}</maven.compiler.release>
                 <maven.javadoc.skip>true</maven.javadoc.skip>
             </properties>
             <dependencies>
@@ -416,7 +418,6 @@
                         <artifactId>jcp</artifactId>
                         <configuration>
                             <vars>
-                                <__HAS_NIO__>true</__HAS_NIO__>
                                 <__HAS_UNSAFE__>true</__HAS_UNSAFE__>
                                 <__HAS_FFM__>true</__HAS_FFM__>
                                 <__HAS_JVMCI__>true</__HAS_JVMCI__>
@@ -431,7 +432,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
                         <configuration>
-                            <release/>
+                            <release>${maven.compiler.release}</release>
                             <compilerArgs>
                                 <arg>--enable-preview</arg>
                                 <arg>--add-modules</arg>
@@ -512,8 +513,8 @@
         <profile>
             <id>bench</id>
             <properties>
-                <maven.compiler.source>${java.specification.version}</maven.compiler.source>
-                <maven.compiler.target>${java.specification.version}</maven.compiler.target>
+                <!-- Compile at the running JDK level (>= 25, enforced); required for enable-preview -->
+                <maven.compiler.release>${java.specification.version}</maven.compiler.release>
                 <maven.javadoc.skip>true</maven.javadoc.skip>
             </properties>
             <dependencies>
@@ -536,7 +537,6 @@
                         <artifactId>jcp</artifactId>
                         <configuration>
                             <vars>
-                                <__HAS_NIO__>true</__HAS_NIO__>
                                 <__HAS_UNSAFE__>true</__HAS_UNSAFE__>
                                 <__HAS_FFM__>true</__HAS_FFM__>
                                 <__HAS_VECTOR_API__>true</__HAS_VECTOR_API__>
@@ -549,7 +549,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
                         <configuration>
-                            <release/>
+                            <release>${maven.compiler.release}</release>
                             <useModulePath>false</useModulePath>
                             <excludes>
                                 <exclude>**/module-info.java</exclude>

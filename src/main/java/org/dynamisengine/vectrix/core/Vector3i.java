@@ -27,10 +27,8 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
-//#endif
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
@@ -241,7 +239,6 @@ public class Vector3i implements Externalizable, Cloneable, Vector3ic {
         this.z = xyz[2];
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Create a new {@link Vector3i} and read this vector from the supplied
      * {@link ByteBuffer} at the current buffer
@@ -313,7 +310,6 @@ public class Vector3i implements Externalizable, Cloneable, Vector3ic {
     public Vector3i(int index, IntBuffer buffer) {
         MemUtil.INSTANCE.get(this, index, buffer);
     }
-//#endif
 
     public int x() {
         return this.x;
@@ -507,7 +503,6 @@ public class Vector3i implements Externalizable, Cloneable, Vector3ic {
         return this;
     }
 
-//#ifdef __HAS_NIO__
     /**
      * Read this vector from the supplied {@link ByteBuffer} at the current
      * buffer {@link ByteBuffer#position() position}.
@@ -583,7 +578,6 @@ public class Vector3i implements Externalizable, Cloneable, Vector3ic {
         MemUtil.INSTANCE.get(this, index, buffer);
         return this;
     }
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     /**
@@ -646,7 +640,6 @@ public class Vector3i implements Externalizable, Cloneable, Vector3ic {
         return this;
     }
 
-//#ifdef __HAS_NIO__
     public IntBuffer get(IntBuffer buffer) {
         MemUtil.INSTANCE.put(this, buffer.position(), buffer);
         return buffer;
@@ -666,7 +659,6 @@ public class Vector3i implements Externalizable, Cloneable, Vector3ic {
         MemUtil.INSTANCE.put(this, index, buffer);
         return buffer;
     }
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     public Vector3ic getToAddress(long address) {

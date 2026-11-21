@@ -23,10 +23,8 @@
  */
 package org.dynamisengine.vectrix.core;
 
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-//#endif
 import java.util.*;
 
 /**
@@ -210,7 +208,6 @@ public interface Matrix3x2fc {
      */
     Matrix3x2f get(Matrix3x2f dest);
 
-//#ifdef __HAS_NIO__
     /**
      * Store this matrix in column-major order into the supplied {@link FloatBuffer} at the current
      * buffer {@link FloatBuffer#position() position}.
@@ -402,7 +399,6 @@ public interface Matrix3x2fc {
      * @return the passed in buffer
      */
     ByteBuffer get4x4(int index, ByteBuffer buffer);
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     /**

@@ -23,10 +23,8 @@
  */
 package org.dynamisengine.vectrix.core;
 
-//#ifdef __HAS_NIO__
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
-//#endif
 
 /**
  * Interface to a read-only view of a 4-dimensional vector of integers.
@@ -55,7 +53,6 @@ public interface Vector4ic {
      */
     int w();
 
-//#ifdef __HAS_NIO__
     /**
      * Store this vector into the supplied {@link IntBuffer} at the current
      * buffer {@link IntBuffer#position() position}.
@@ -119,7 +116,6 @@ public interface Vector4ic {
      * @return the passed in buffer
      */
     ByteBuffer get(int index, ByteBuffer buffer);
-//#endif
 
 //#ifdef __HAS_UNSAFE__
     /**
