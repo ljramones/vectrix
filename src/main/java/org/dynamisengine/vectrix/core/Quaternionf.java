@@ -2152,15 +2152,16 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
             throw new IllegalArgumentException("Quaternion logarithm requires unit input");
         }
         float vLen = Math.sqrt(Math.fma(x, x, Math.fma(y, y, z * z)));
-        if (vLen < ZERO_TOLERANCE) {
+        if (vLen == 0.0f) {
             dest.x = 0.0f;
             dest.y = 0.0f;
             dest.z = 0.0f;
             dest.w = 0.0f;
             return dest;
         }
-        float cw = Math.max(-1.0f, Math.min(1.0f, w));
-        float angle = (float) java.lang.Math.acos(cw);
+        // atan2 is well conditioned for every rotation; acos(w) loses all precision as w -> 1, and in float it
+        // returned 0 for rotations below ~5e-4 rad (review finding H-7).
+        float angle = (float) java.lang.Math.atan2(vLen, w);
         float scale = angle / vLen;
         dest.x = x * scale;
         dest.y = y * scale;
@@ -2193,9 +2194,10 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         }
         float vLen = Math.sqrt(Math.fma(x, x, Math.fma(y, y, z * z)));
         if (vLen < ZERO_TOLERANCE) {
-            dest.x = 0.0f;
-            dest.y = 0.0f;
-            dest.z = 0.0f;
+            // sin(v)/v and cos(v) are 1 to working precision; keep the vector part so exp(log(q)) round-trips
+            dest.x = x;
+            dest.y = y;
+            dest.z = z;
             dest.w = 1.0f;
             return dest;
         }
@@ -2270,6 +2272,11 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         if (CoreConfig.mathMode() == MathMode.STRICT && Math.abs(lengthSquared() - 1.0f) > STRICT_TOLERANCE) {
             throw new IllegalArgumentException("Swing-twist requires unit quaternion input");
         }
+        if (swing == twist) {
+            throw new IllegalArgumentException("swing and twist must be different objects");
+        }
+        // Read this quaternion first: swing or twist may alias this (review finding M-3).
+        float qx = x, qy = y, qz = z, qw = w;
         float ax = twistAxis.x(), ay = twistAxis.y(), az = twistAxis.z();
         float axisLenSq = Math.fma(ax, ax, Math.fma(ay, ay, az * az));
         if (CoreConfig.mathMode() == MathMode.STRICT && Math.abs(axisLenSq - 1.0f) > STRICT_TOLERANCE) {
@@ -2279,7 +2286,7 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
             if (CoreConfig.mathMode() == MathMode.STRICT) {
                 throw new IllegalArgumentException("Swing-twist requires non-zero twist axis");
             }
-            swing.set(this);
+            swing.set(qx, qy, qz, qw);
             twist.identity();
             return swing;
         }
@@ -2288,16 +2295,16 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         ay *= invAxisLen;
         az *= invAxisLen;
 
-        float proj = Math.fma(x, ax, Math.fma(y, ay, z * az));
+        float proj = Math.fma(qx, ax, Math.fma(qy, ay, qz * az));
         twist.x = ax * proj;
         twist.y = ay * proj;
         twist.z = az * proj;
-        twist.w = w;
+        twist.w = qw;
 
         float twistLenSq = Math.fma(twist.x, twist.x, Math.fma(twist.y, twist.y, Math.fma(twist.z, twist.z, twist.w * twist.w)));
         if (twistLenSq < ZERO_TOLERANCE) {
             twist.identity();
-            swing.set(this);
+            swing.set(qx, qy, qz, qw);
             return swing;
         }
         float invTwistLen = Math.invsqrt(twistLenSq);
@@ -2311,10 +2318,10 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         float tz = -twist.z;
         float tw = twist.w;
         swing.set(
-                Math.fma(w, tx, Math.fma(x, tw, Math.fma(y, tz, -z * ty))),
-                Math.fma(w, ty, Math.fma(-x, tz, Math.fma(y, tw, z * tx))),
-                Math.fma(w, tz, Math.fma(x, ty, Math.fma(-y, tx, z * tw))),
-                Math.fma(w, tw, Math.fma(-x, tx, Math.fma(-y, ty, -z * tz))));
+                Math.fma(qw, tx, Math.fma(qx, tw, Math.fma(qy, tz, -qz * ty))),
+                Math.fma(qw, ty, Math.fma(-qx, tz, Math.fma(qy, tw, qz * tx))),
+                Math.fma(qw, tz, Math.fma(qx, ty, Math.fma(-qy, tx, qz * tw))),
+                Math.fma(qw, tw, Math.fma(-qx, tx, Math.fma(-qy, ty, -qz * tz))));
         return swing;
     }
 
@@ -2346,15 +2353,14 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
             dqZ = -dqZ;
             dqW = -dqW;
         }
-        float cwClamped = Math.max(-1.0f, Math.min(1.0f, dqW));
-        float angle = 2.0f * (float) java.lang.Math.acos(cwClamped);
-        float sinHalfSq = Math.max(0.0f, 1.0f - cwClamped * cwClamped);
-        float sinHalf = Math.sqrt(sinHalfSq);
-        if (sinHalf < ZERO_TOLERANCE || angle < ZERO_TOLERANCE) {
+        // angle = 2 * atan2(|dq.xyz|, dq.w): exact for small steps, where dq.w rounds to 1 and the previous
+        // acos/sqrt(1 - w^2) form reported zero angular velocity (review finding H-7).
+        float sinHalf = Math.sqrt(Math.fma(dqX, dqX, Math.fma(dqY, dqY, dqZ * dqZ)));
+        if (sinHalf == 0.0f) {
             return dest.set(0.0f, 0.0f, 0.0f);
         }
-        float invSinHalf = 1.0f / sinHalf;
-        float scale = (angle / dt) * invSinHalf;
+        float angle = 2.0f * (float) java.lang.Math.atan2(sinHalf, dqW);
+        float scale = angle / (sinHalf * dt);
         return dest.set(dqX * scale, dqY * scale, dqZ * scale);
     }
 

@@ -263,6 +263,20 @@ public class Vector4L implements Externalizable, Cloneable, Vector4Lc {
     }
 
     /**
+     * Create a new {@link Vector4L} and initialize its four components from the first
+     * four elements of the given array.
+     *
+     * @param xyzw
+     *          the array containing at least four elements
+     */
+    public Vector4L(long[] xyzw) {
+        this.x = xyzw[0];
+        this.y = xyzw[1];
+        this.z = xyzw[2];
+        this.w = xyzw[3];
+    }
+
+    /**
      * Create a new {@link Vector4L} and read this vector from the supplied
      * {@link ByteBuffer} at the current buffer
      * {@link ByteBuffer#position() position}.
@@ -463,10 +477,10 @@ public class Vector4L implements Externalizable, Cloneable, Vector4Lc {
      * @return this
      */
     public Vector4L set(Vector4dc v) {
-        this.x = (int) v.x();
-        this.y = (int) v.y();
-        this.z = (int) v.z();
-        this.w = (int) v.w();
+        this.x = (long) v.x();
+        this.y = (long) v.y();
+        this.z = (long) v.z();
+        this.w = (long) v.w();
         return this;
     }
 
@@ -1023,11 +1037,11 @@ public class Vector4L implements Externalizable, Cloneable, Vector4Lc {
         return div(scalar, this);
     }
     public Vector4L div(float scalar, Vector4L dest) {
-        float invscalar = 1.0f / scalar;
-        dest.x = (int) (x * invscalar);
-        dest.y = (int) (y * invscalar);
-        dest.z = (int) (z * invscalar);
-        dest.w = (int) (w * invscalar);
+        // Divide in double: a float quotient (24-bit mantissa) and an int cast both lose long precision.
+        dest.x = (long) (x / (double) scalar);
+        dest.y = (long) (y / (double) scalar);
+        dest.z = (long) (z / (double) scalar);
+        dest.w = (long) (w / (double) scalar);
         return dest;
     }
 
@@ -1068,7 +1082,7 @@ public class Vector4L implements Externalizable, Cloneable, Vector4Lc {
     }
 
     public double length() {
-        return Math.sqrt(x * x + y * y + z * z + w * w);
+        return java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z + (double) w * w);
     }
 
     /**
@@ -1082,7 +1096,7 @@ public class Vector4L implements Externalizable, Cloneable, Vector4Lc {
      * @return the length squared of the given vector
      */
     public static double length(long x, long y, long z, long w) {
-        return Math.sqrt(x * x + y * y + z * z + w * w);
+        return java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z + (double) w * w);
     }
 
     public double distance(Vector4Lc v) {
@@ -1097,7 +1111,7 @@ public class Vector4L implements Externalizable, Cloneable, Vector4Lc {
         long dy = this.y - y;
         long dz = this.z - z;
         long dw = this.w - w;
-        return Math.sqrt(Math.fma(dx, dx, Math.fma(dy, dy, Math.fma(dz, dz, dw * dw))));
+        return java.lang.Math.sqrt((double) dx * dx + (double) dy * dy + (double) dz * dz + (double) dw * dw);
     }
 
     public long gridDistance(Vector4Lc v) {
@@ -1152,7 +1166,7 @@ public class Vector4L implements Externalizable, Cloneable, Vector4Lc {
         long dy = y1 - y2;
         long dz = z1 - z2;
         long dw = w1 - w2;
-        return Math.sqrt(dx * dx + dy * dy + dz * dz + dw * dw);
+        return java.lang.Math.sqrt((double) dx * dx + (double) dy * dy + (double) dz * dz + (double) dw * dw);
     }
 
     /**
@@ -1222,14 +1236,13 @@ public class Vector4L implements Externalizable, Cloneable, Vector4Lc {
     }
 
     /**
-     * Return a string representation of this vector.
-     * <p>
-     * This method creates a new {@link DecimalFormat} on every invocation with the format string "<code>0.000E0;-</code>".
-     * 
+     * Return a string representation of this vector, with each component printed exactly as a decimal integer,
+     * for example {@code (78187493530 -1 0)}. Use {@link #toString(NumberFormat)} for a custom format.
+     *
      * @return the string representation
      */
     public String toString() {
-        return Runtime.formatNumbers(toString(Options.NUMBER_FORMAT));
+        return "(" + x + " " + y + " " + z + " " + w + ")";
     }
 
     /**

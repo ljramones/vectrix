@@ -73,7 +73,7 @@ public class Vector3L implements Externalizable, Cloneable, Vector3Lc {
      * @param d
      *          the value of all three components
      */
-    public Vector3L(int d) {
+    public Vector3L(long d) {
         this.x = d;
         this.y = d;
         this.z = d;
@@ -89,7 +89,7 @@ public class Vector3L implements Externalizable, Cloneable, Vector3Lc {
      * @param z
      *          the value of z
      */
-    public Vector3L(int x, int y, int z) {
+    public Vector3L(long x, long y, long z) {
         this.x = x;
         this.y = y;
         this.z = z;
@@ -203,7 +203,7 @@ public class Vector3L implements Externalizable, Cloneable, Vector3Lc {
      * @param mode
      *          the {@link RoundingMode} to use
      */
-    public Vector3L(Vector2dc v, float z, int mode) {
+    public Vector3L(Vector2dc v, double z, int mode) {
         this.x = Math.roundLongUsing(v.x(), mode);
         this.y = Math.roundLongUsing(v.y(), mode);
         this.z = Math.roundLongUsing(z, mode);
@@ -232,6 +232,19 @@ public class Vector3L implements Externalizable, Cloneable, Vector3Lc {
      *          the array containing at least three elements
      */
     public Vector3L(int[] xyz) {
+        this.x = xyz[0];
+        this.y = xyz[1];
+        this.z = xyz[2];
+    }
+
+    /**
+     * Create a new {@link Vector3L} and initialize its three components from the first
+     * three elements of the given array.
+     *
+     * @param xyz
+     *          the array containing at least three elements
+     */
+    public Vector3L(long[] xyz) {
         this.x = xyz[0];
         this.y = xyz[1];
         this.z = xyz[2];
@@ -382,9 +395,9 @@ public class Vector3L implements Externalizable, Cloneable, Vector3Lc {
      * @return this
      */
     public Vector3L set(Vector3dc v) {
-        this.x = (int) v.x();
-        this.y = (int) v.y();
-        this.z = (int) v.z();
+        this.x = (long) v.x();
+        this.y = (long) v.y();
+        this.z = (long) v.z();
         return this;
     }
 
@@ -609,7 +622,7 @@ public class Vector3L implements Externalizable, Cloneable, Vector3Lc {
      * @return this
      * @throws IllegalArgumentException if <code>component</code> is not within <code>[0..2]</code>
      */
-    public Vector3L setComponent(int component, int value) throws IllegalArgumentException {
+    public Vector3L setComponent(int component, long value) throws IllegalArgumentException {
         switch (component) {
             case 0:
                 x = value;
@@ -807,10 +820,10 @@ public class Vector3L implements Externalizable, Cloneable, Vector3Lc {
     }
 
     public Vector3L div(float scalar, Vector3L dest) {
-        float invscalar = 1.0f / scalar;
-        dest.x = (int) (x * invscalar);
-        dest.y = (int) (y * invscalar);
-        dest.z = (int) (z * invscalar);
+        // Divide in double: a float quotient (24-bit mantissa) and an int cast both lose long precision.
+        dest.x = (long) (x / (double) scalar);
+        dest.y = (long) (y / (double) scalar);
+        dest.z = (long) (z / (double) scalar);
         return dest;
     }
 
@@ -850,7 +863,7 @@ public class Vector3L implements Externalizable, Cloneable, Vector3Lc {
     }
 
     public double length() {
-        return Math.sqrt(x * x + y * y + z * z);
+        return java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z);
     }
 
     /**
@@ -863,21 +876,21 @@ public class Vector3L implements Externalizable, Cloneable, Vector3Lc {
      * @return the length squared of the given vector
      */
     public static double length(long x, long y, long z) {
-        return Math.sqrt(x * x + y * y + z * z);
+        return java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z);
     }
 
     public double distance(Vector3Lc v) {
         long dx = this.x - v.x();
         long dy = this.y - v.y();
         long dz = this.z - v.z();
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return java.lang.Math.sqrt((double) dx * dx + (double) dy * dy + (double) dz * dz);
     }
 
     public double distance(long x, long y, long z) {
         long dx = this.x - x;
         long dy = this.y - y;
         long dz = this.z - z;
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return java.lang.Math.sqrt((double) dx * dx + (double) dy * dy + (double) dz * dz);
     }
 
     public long gridDistance(Vector3Lc v) {
@@ -920,7 +933,10 @@ public class Vector3L implements Externalizable, Cloneable, Vector3Lc {
      * @return the euclidean distance
      */
     public static double distance(long x1, long y1, long z1, long x2, long y2, long z2) {
-        return Math.sqrt(distanceSquared(x1, y1, z1, x2, y2, z2));
+        double dx = x1 - x2;
+        double dy = y1 - y2;
+        double dz = z1 - z2;
+        return java.lang.Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
     /**
@@ -960,14 +976,13 @@ public class Vector3L implements Externalizable, Cloneable, Vector3Lc {
     }
 
     /**
-     * Return a string representation of this vector.
-     * <p>
-     * This method creates a new {@link DecimalFormat} on every invocation with the format string "<code>0.000E0;-</code>".
-     * 
+     * Return a string representation of this vector, with each component printed exactly as a decimal integer,
+     * for example {@code (78187493530 -1 0)}. Use {@link #toString(NumberFormat)} for a custom format.
+     *
      * @return the string representation
      */
     public String toString() {
-        return Runtime.formatNumbers(toString(Options.NUMBER_FORMAT));
+        return "(" + x + " " + y + " " + z + ")";
     }
 
     /**
@@ -1046,9 +1061,9 @@ public class Vector3L implements Externalizable, Cloneable, Vector3Lc {
     }
 
     public int maxComponent() {
-        float absX = Math.abs(x);
-        float absY = Math.abs(y);
-        float absZ = Math.abs(z);
+        long absX = java.lang.Math.abs(x);
+        long absY = java.lang.Math.abs(y);
+        long absZ = java.lang.Math.abs(z);
         if (absX >= absY && absX >= absZ) {
             return 0;
         } else if (absY >= absZ) {
@@ -1058,9 +1073,9 @@ public class Vector3L implements Externalizable, Cloneable, Vector3Lc {
     }
 
     public int minComponent() {
-        float absX = Math.abs(x);
-        float absY = Math.abs(y);
-        float absZ = Math.abs(z);
+        long absX = java.lang.Math.abs(x);
+        long absY = java.lang.Math.abs(y);
+        long absZ = java.lang.Math.abs(z);
         if (absX < absY && absX < absZ) {
             return 0;
         } else if (absY < absZ) {

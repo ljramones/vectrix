@@ -31,6 +31,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - Pass B/C/E decision/findings memos and subsystem integration memo
 
 ### Changed
+- `Vector3L` constructors take `long` (`(long)`, `(long, long, long)`, new `(long[])`). `setComponent` takes a
+  `long`, and the `(Vector2dc, z, mode)` constructor takes a `double` z. `Vector4L` gains a `(long[])`
+  constructor. `Vector2L`/`Vector2Lc.minComponent`/`maxComponent` return `int` (a component index), like every
+  other vector type. All of these are source compatible.
 - Runtime/default doctrine is now explicitly benchmark-driven:
   - packed-affine default for bulk transform/update/upload
   - matrix paths retained for fallback/interoperability
@@ -98,6 +102,27 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - `SssLutBuilder` now normalises by the profile integral (Penner 2011). Previously the LUT darkened as the
   profile widened (0.39 and 0.19 instead of 0.97 on a flat surface); a flat surface now reproduces N·L
   (review M-4).
+- Long vectors `Vector2L`/`Vector3L`/`Vector4L` (review H-6) now keep 64-bit semantics:
+  - `Math.roundLongUsing` HALF_* modes clamped to int, so every rounding constructor and setter did.
+  - `Vector3L/4L.set(Vector*dc)` truncated through `(int)`, and `div(float)` used a float quotient with an int cast.
+  - `length()`/`distance()` squared in `long`, overflowing to NaN above about 3.04e9. They also resolved to
+    the float `sqrt` overload, giving ~7 significant digits. They now compute in double from exact `long`
+    differences.
+  - `Vector3L` min/maxComponent compared through float, and `toString` printed 4-digit scientific notation;
+    it now prints exact integers.
+- `Math.roundHalfUp/HalfDown` (int and long) decide ties on the exact fractional part. Before,
+  `roundHalfUp(0.49999999999999994)` was 1 and `roundLongHalfUp(2^52+1)` returned 2^52+2.
+- Quaternions (review H-7, M-3):
+  - Float `log` and `angularVelocity` used `acos(w)`. That collapsed for rotations below ~5e-4 rad: `log`
+    returned 0, and angular velocity was 0 for 0.02 rad/s at 60 Hz. Both now use `atan2` (f and d).
+  - `exp` keeps the vector part for tiny arguments, so `exp(log(q))` round-trips.
+  - `swingTwist` is safe when `swing` or `twist` is `this`, and rejects `swing == twist`.
+- `Transformf.compose`/`RigidTransformf.compose` produced the wrong translation when `dest == parent`
+  (review M-2).
+- `CurveReparameterizer3f/3d.mapArcLengthToT` took the sample count from `table.length`, so oversized or
+  reused tables gave a wrong t (0.984 instead of 0.526). It now has a `samples` overload, and NaN propagates
+  instead of returning 0 (review M-6).
+
 - Resolved benchmark execution reliability under named-module `-Pbench` workflow and documented the approach.
 - Closed skinning equivalence ambiguity by introducing and validating the `kernelMatrixTight` path as the fastest measured baseline shape.
 

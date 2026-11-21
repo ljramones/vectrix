@@ -349,14 +349,14 @@ public interface Vector2Lc {
      * 
      * @return the component index, within <code>[0..1]</code>
      */
-    long maxComponent();
+    int maxComponent();
 
     /**
      * Determine the component with the smallest (towards zero) absolute value.
      * 
      * @return the component index, within <code>[0..1]</code>
      */
-    long minComponent();
+    int minComponent();
 
     /**
      * Compute the absolute of each of this vector's components

@@ -133,23 +133,40 @@ public final class CurveReparameterizer3d {
      *
      * @since 1.0.0
      */
+    /**
+     * Map normalised arc length {@code s01} in [0,1] to the curve parameter t, using a table built for
+     * {@code arcLengthTable.length - 1} samples. If the table was built for fewer samples than its length
+     * allows (a reused or oversized array), use {@link #mapArcLengthToT(double, double[], int)}.
+     */
     public static double mapArcLengthToT(double s01, double[] arcLengthTable) {
-        if (s01 <= 0.0) return 0.0;
-        if (s01 >= 1.0) return 1.0;
-        int hi = arcLengthTable.length - 1;
+        return mapArcLengthToT(s01, arcLengthTable, arcLengthTable.length - 1);
+    }
+
+    /**
+     * Map normalised arc length {@code s01} to the curve parameter t, using entries {@code [0..samples]} of a
+     * table built with the same {@code samples}. Values outside [0,1] clamp; NaN propagates.
+     */
+    public static double mapArcLengthToT(double s01, double[] arcLengthTable, int samples) {
+        if (samples <= 0 || samples > arcLengthTable.length - 1) {
+            throw new IllegalArgumentException("samples");
+        }
+        if (Double.isNaN(s01)) return Double.NaN;
+        if (s01 <= 0) return 0;
+        if (s01 >= 1) return 1;
+        int hi = samples;
         int lo = 0;
         while (lo <= hi) {
             int mid = (lo + hi) >>> 1;
             double v = arcLengthTable[mid];
             if (v < s01) lo = mid + 1; else hi = mid - 1;
         }
-        int i1 = Math.min(lo, arcLengthTable.length - 1);
+        int i1 = Math.min(lo, samples);
         int i0 = Math.max(0, i1 - 1);
         double a0 = arcLengthTable[i0];
         double a1 = arcLengthTable[i1];
-        if (a1 <= a0) return (double) i0 / (double) (arcLengthTable.length - 1);
+        if (a1 <= a0) return (double) i0 / (double) samples;
         double alpha = (s01 - a0) / (a1 - a0);
-        return ((double) i0 + alpha) / (double) (arcLengthTable.length - 1);
+        return ((double) i0 + alpha) / (double) samples;
     }
 
     public static Vector3d evaluateByArcLength(UniformBSpline3d curve, int segmentIndex, double s01, double[] arcLengthTable, Vector3d dest) {

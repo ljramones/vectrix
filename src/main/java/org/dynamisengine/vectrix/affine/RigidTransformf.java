@@ -75,8 +75,10 @@ public class RigidTransformf {
     }
 
     public static RigidTransformf compose(RigidTransformf parent, RigidTransformf local, RigidTransformf dest) {
+        // Read parent's translation before writing dest: dest may be parent (review finding M-2).
+        float ptx = parent.translation.x, pty = parent.translation.y, ptz = parent.translation.z;
         parent.rotation.transform(local.translation, dest.translation);
-        dest.translation.add(parent.translation);
+        dest.translation.add(ptx, pty, ptz);
         parent.rotation.mul(local.rotation, dest.rotation);
         return dest;
     }

@@ -86,8 +86,10 @@ public class Transformf {
         float lty = local.translation.y * parent.scale.y;
         float ltz = local.translation.z * parent.scale.z;
 
+        // Read parent's translation before writing dest: dest may be parent (review finding M-2).
+        float ptx = parent.translation.x, pty = parent.translation.y, ptz = parent.translation.z;
         parent.rotation.transform(ltx, lty, ltz, dest.translation);
-        dest.translation.add(parent.translation);
+        dest.translation.add(ptx, pty, ptz);
         parent.rotation.mul(local.rotation, dest.rotation);
         dest.scale.set(parent.scale.x * local.scale.x, parent.scale.y * local.scale.y, parent.scale.z * local.scale.z);
         return dest;

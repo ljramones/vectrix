@@ -533,11 +533,11 @@ public class Math {
             case RoundingMode.FLOOR:
                 return (long) java.lang.Math.floor(v);
             case RoundingMode.HALF_DOWN:
-                return roundHalfDown(v);
+                return roundLongHalfDown(v);
             case RoundingMode.HALF_UP:
-                return roundHalfUp(v);
+                return roundLongHalfUp(v);
             case RoundingMode.HALF_EVEN:
-                return roundHalfEven(v);
+                return roundLongHalfEven(v);
             default:
                 throw new UnsupportedOperationException();
         }
@@ -586,30 +586,46 @@ public class Math {
         return (int) java.lang.Math.rint(v);
     }
     public static int roundHalfDown(float v) {
-        return (v > 0) ? (int) java.lang.Math.ceil(v - 0.5d) : (int) java.lang.Math.floor(v + 0.5d);
+        return (int) halfDown(v);
     }
     public static int roundHalfUp(float v) {
-        return (v > 0) ? (int) java.lang.Math.floor(v + 0.5d) : (int) java.lang.Math.ceil(v - 0.5d);
+        return (int) halfUp(v);
     }
 
     public static int roundHalfEven(double v) {
         return (int) java.lang.Math.rint(v);
     }
     public static int roundHalfDown(double v) {
-        return (v > 0) ? (int) java.lang.Math.ceil(v - 0.5d) : (int) java.lang.Math.floor(v + 0.5d);
+        return (int) halfDown(v);
     }
     public static int roundHalfUp(double v) {
-        return (v > 0) ? (int) java.lang.Math.floor(v + 0.5d) : (int) java.lang.Math.ceil(v - 0.5d);
+        return (int) halfUp(v);
     }
 
     public static long roundLongHalfEven(double v) {
         return (long) java.lang.Math.rint(v);
     }
     public static long roundLongHalfDown(double v) {
-        return (v > 0) ? (long) java.lang.Math.ceil(v - 0.5d) : (long) java.lang.Math.floor(v + 0.5d);
+        return (long) halfDown(v);
     }
     public static long roundLongHalfUp(double v) {
-        return (v > 0) ? (long) java.lang.Math.floor(v + 0.5d) : (long) java.lang.Math.ceil(v - 0.5d);
+        return (long) halfUp(v);
+    }
+
+    /*
+     * Ties away from zero / toward zero, decided on the exact fractional part. The old v +/- 0.5 forms
+     * rounded the addition itself: 0.49999999999999994 + 0.5 == 1.0, and 2^52 + 1 + 0.5 rounded up
+     * to 2^52 + 2. a - floor(a) is exact for every double.
+     */
+    private static double halfUp(double v) {
+        double a = java.lang.Math.abs(v);
+        double f = java.lang.Math.floor(a);
+        return java.lang.Math.copySign(a - f >= 0.5 ? f + 1.0 : f, v);
+    }
+    private static double halfDown(double v) {
+        double a = java.lang.Math.abs(v);
+        double f = java.lang.Math.floor(a);
+        return java.lang.Math.copySign(a - f > 0.5 ? f + 1.0 : f, v);
     }
 
     public static double random() {

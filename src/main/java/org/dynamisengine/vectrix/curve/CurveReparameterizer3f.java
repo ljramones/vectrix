@@ -133,23 +133,40 @@ public final class CurveReparameterizer3f {
      *
      * @since 1.0.0
      */
+    /**
+     * Map normalised arc length {@code s01} in [0,1] to the curve parameter t, using a table built for
+     * {@code arcLengthTable.length - 1} samples. If the table was built for fewer samples than its length
+     * allows (a reused or oversized array), use {@link #mapArcLengthToT(float, float[], int)}.
+     */
     public static float mapArcLengthToT(float s01, float[] arcLengthTable) {
-        if (s01 <= 0.0f) return 0.0f;
-        if (s01 >= 1.0f) return 1.0f;
-        int hi = arcLengthTable.length - 1;
+        return mapArcLengthToT(s01, arcLengthTable, arcLengthTable.length - 1);
+    }
+
+    /**
+     * Map normalised arc length {@code s01} to the curve parameter t, using entries {@code [0..samples]} of a
+     * table built with the same {@code samples}. Values outside [0,1] clamp; NaN propagates.
+     */
+    public static float mapArcLengthToT(float s01, float[] arcLengthTable, int samples) {
+        if (samples <= 0 || samples > arcLengthTable.length - 1) {
+            throw new IllegalArgumentException("samples");
+        }
+        if (Float.isNaN(s01)) return Float.NaN;
+        if (s01 <= 0) return 0;
+        if (s01 >= 1) return 1;
+        int hi = samples;
         int lo = 0;
         while (lo <= hi) {
             int mid = (lo + hi) >>> 1;
             float v = arcLengthTable[mid];
             if (v < s01) lo = mid + 1; else hi = mid - 1;
         }
-        int i1 = Math.min(lo, arcLengthTable.length - 1);
+        int i1 = Math.min(lo, samples);
         int i0 = Math.max(0, i1 - 1);
         float a0 = arcLengthTable[i0];
         float a1 = arcLengthTable[i1];
-        if (a1 <= a0) return (float) i0 / (float) (arcLengthTable.length - 1);
+        if (a1 <= a0) return (float) i0 / (float) samples;
         float alpha = (s01 - a0) / (a1 - a0);
-        return ((float) i0 + alpha) / (float) (arcLengthTable.length - 1);
+        return ((float) i0 + alpha) / (float) samples;
     }
 
     public static Vector3f evaluateByArcLength(UniformBSpline3f curve, int segmentIndex, float s01, float[] arcLengthTable, Vector3f dest) {
