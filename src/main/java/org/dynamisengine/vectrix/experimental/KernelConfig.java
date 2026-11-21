@@ -32,14 +32,13 @@ import org.dynamisengine.vectrix.core.MathMode;
  */
 @Internal("Internal runtime dispatch control surface; may change between releases.")
 public final class KernelConfig {
-    public static final String PROP_MATH_MODE = "vectrix.math.mode";
+    public static final String PROP_MATH_MODE = CoreConfig.PROP_MATH_MODE;
     public static final String PROP_SIMD_ENABLED = "vectrix.simd.enabled";
 
     private static volatile boolean simdEnabled = parseBoolean(System.getProperty(PROP_SIMD_ENABLED), true);
 
-    static {
-        CoreConfig.setMathMode(parseMathMode(System.getProperty(PROP_MATH_MODE)));
-    }
+    // The math mode is initialised by CoreConfig itself. KernelConfig must not re-apply the property when it
+    // loads: doing so silently reverted a mode already set through CoreConfig.setMathMode (review finding H-8).
 
     private KernelConfig() {
     }
@@ -72,10 +71,7 @@ public final class KernelConfig {
     }
 
     public static MathMode parseMathMode(String value) {
-        if (value == null || value.isEmpty()) {
-            return MathMode.FAST;
-        }
-        return "STRICT".equalsIgnoreCase(value) ? MathMode.STRICT : MathMode.FAST;
+        return CoreConfig.parseMathMode(value);
     }
 
     public static boolean parseBoolean(String value, boolean defaultValue) {

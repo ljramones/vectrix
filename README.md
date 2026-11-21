@@ -105,14 +105,14 @@ Full methodology/results: [`BENCHMARKS.md`](BENCHMARKS.md).
 
 ```java
 import org.dynamisengine.vectrix.core.MathMode;
-import org.dynamisengine.vectrix.experimental.KernelConfig;
+import org.dynamisengine.vectrix.core.CoreConfig;
 
-MathMode prev = KernelConfig.mathMode();
+MathMode prev = CoreConfig.mathMode();
 try {
-    KernelConfig.setMathMode(MathMode.STRICT);
+    CoreConfig.setMathMode(MathMode.STRICT);
     // ... test paths with contract enforcement ...
 } finally {
-    KernelConfig.setMathMode(prev);
+    CoreConfig.setMathMode(prev);
 }
 ```
 

@@ -248,10 +248,10 @@ Quaternionf q2 = QuatCompression.unpackSmallest3(qPacked, new Quaternionf());
 ## 13) Runtime Mode and SIMD
 
 ```java
-KernelConfig.setMathMode(MathMode.FAST);
+CoreConfig.setMathMode(MathMode.FAST);
 float sumFast = Reduction.sumFast(values);
 
-KernelConfig.setMathMode(MathMode.STRICT);
+CoreConfig.setMathMode(MathMode.STRICT);
 float sumStrict = Reduction.sumStrict(values);
 
 boolean simd = SimdSupport.isVectorApiAvailable();

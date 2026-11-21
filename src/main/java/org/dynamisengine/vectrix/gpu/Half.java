@@ -67,7 +67,8 @@ public final class Half {
             return (short) (sign | (rounded >>> shift));
         }
 
-        int rounded = mant + 0x00001000;
+        // Round to nearest, ties to even (IEEE 754 default; matches Float.floatToFloat16 and GPU conversion).
+        int rounded = mant + 0x00000FFF + ((mant >>> 13) & 1);
         if ((rounded & 0x00800000) != 0) {
             rounded = 0;
             halfExp++;

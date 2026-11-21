@@ -74,12 +74,12 @@ CoreConfig.setMathMode(MathMode.FAST);
 The recommended workflow: run your full test suite with STRICT mode active. Ship production builds in FAST mode. Use the save/restore pattern when switching in tests:
 
 ```java
-MathMode prev = KernelConfig.mathMode();
+MathMode prev = CoreConfig.mathMode();
 try {
-    KernelConfig.setMathMode(MathMode.STRICT);
+    CoreConfig.setMathMode(MathMode.STRICT);
     // test code that expects precondition enforcement
 } finally {
-    KernelConfig.setMathMode(prev);
+    CoreConfig.setMathMode(prev);
 }
 ```
 
@@ -118,7 +118,7 @@ The appropriate choice depends on your use case. Float is the right choice for G
 | `org.dynamisengine.vectrix.hash` | PCG hash, spatial hash |
 | `org.dynamisengine.vectrix.ltc` | LTC area-light table sampling and form-factor evaluation |
 | `org.dynamisengine.vectrix.renderingmath` | SSS LUT, atmosphere transmittance LUT, interpolation, bent normals |
-| `org.dynamisengine.vectrix.experimental` | KernelConfig, experimental SIMD and FFM paths |
+| `org.dynamisengine.vectrix.experimental` | Internal (not exported from the module): kernel dispatch and experimental reductions |
 
 ---
 

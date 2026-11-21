@@ -46,7 +46,8 @@ abstract class MemUtil {
         try {
             if (Options.NO_FFM && Options.FORCE_FFM)
                 throw new ConfigurationException("Cannot enable both -Djoml.noffm and -Djoml.forceFfm", null);
-            if (!Options.NO_FFM) {
+            // Opt-in only: the FFM backend still uses raw reinterpreted addresses without bounds checks.
+            if (Options.FORCE_FFM) {
                 accessor = new MemUtilFFM();
                 return accessor;
             }
@@ -3930,20 +3931,29 @@ abstract class MemUtil {
 
         private static final class BufferSegmentCache {
             Buffer buffer;
-            MemorySegment segment;
+            long baseAddress;
         }
 
-        private static MemorySegment bufferSegment(Buffer buf) {
+        /**
+         * Native address of element 0 of a direct buffer. {@link MemorySegment#ofBuffer} starts at the
+         * buffer's current position, so the position is subtracted to get an address that callers can add
+         * an absolute index to. The base address of a buffer instance never changes, so it is cached by
+         * identity.
+         */
+        private static long bufferAddress(Buffer buf) {
             BufferSegmentCache cache = SEGMENT_CACHE.get();
             if (cache.buffer != buf) {
+                cache.baseAddress = MemorySegment.ofBuffer(buf).address() - (long) buf.position() * elementBytes(buf);
                 cache.buffer = buf;
-                cache.segment = MemorySegment.ofBuffer(buf);
             }
-            return cache.segment;
+            return cache.baseAddress;
         }
 
-        private static long bufferAddress(Buffer buf) {
-            return bufferSegment(buf).address();
+        private static int elementBytes(Buffer buf) {
+            if (buf instanceof java.nio.ByteBuffer) return 1;
+            if (buf instanceof java.nio.FloatBuffer || buf instanceof java.nio.IntBuffer) return 4;
+            if (buf instanceof java.nio.DoubleBuffer || buf instanceof java.nio.LongBuffer) return 8;
+            return 2;
         }
 //#ifdef __HAS_UNSAFE__
         private static long unsafeBufferAddress(Buffer buf) {
@@ -4753,27 +4763,27 @@ abstract class MemUtil {
 
         // --- Quaternion buffer overrides ---
         public void putMatrix3f(Quaternionf q, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putMatrix3f(q, bufferAddress(dest) + offset); else super.putMatrix3f(q, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putMatrix3f(q, bufferAddress(dest) + offset); else super.putMatrix3f(q, offset, dest);
         }
         public void putMatrix3f(Quaternionf q, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putMatrix3f(q, bufferAddress(dest) + ((long) offset << 2)); else super.putMatrix3f(q, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putMatrix3f(q, bufferAddress(dest) + ((long) offset << 2)); else super.putMatrix3f(q, offset, dest);
         }
         public void putMatrix4f(Quaternionf q, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putMatrix4f(q, bufferAddress(dest) + offset); else super.putMatrix4f(q, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putMatrix4f(q, bufferAddress(dest) + offset); else super.putMatrix4f(q, offset, dest);
         }
         public void putMatrix4f(Quaternionf q, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putMatrix4f(q, bufferAddress(dest) + ((long) offset << 2)); else super.putMatrix4f(q, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putMatrix4f(q, bufferAddress(dest) + ((long) offset << 2)); else super.putMatrix4f(q, offset, dest);
         }
         public void putMatrix4x3f(Quaternionf q, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putMatrix4x3f(q, bufferAddress(dest) + offset); else super.putMatrix4x3f(q, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putMatrix4x3f(q, bufferAddress(dest) + offset); else super.putMatrix4x3f(q, offset, dest);
         }
         public void putMatrix4x3f(Quaternionf q, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putMatrix4x3f(q, bufferAddress(dest) + ((long) offset << 2)); else super.putMatrix4x3f(q, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putMatrix4x3f(q, bufferAddress(dest) + ((long) offset << 2)); else super.putMatrix4x3f(q, offset, dest);
         }
 
         // --- Matrix4f buffer put ---
         public void put(Matrix4f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) {
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) {
 //#ifdef __HAS_UNSAFE__
                 if (!Options.NO_UNSAFE) {
                     long addr = unsafeBufferAddress(dest) + ((long) offset << 2);
@@ -4788,7 +4798,7 @@ abstract class MemUtil {
             }
         }
         public void put(Matrix4f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) {
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) {
 //#ifdef __HAS_UNSAFE__
                 if (!Options.NO_UNSAFE) {
                     long addr = unsafeBufferAddress(dest) + offset;
@@ -4803,505 +4813,515 @@ abstract class MemUtil {
             }
         }
         public void put4x3(Matrix4f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x3(m, bufferAddress(dest) + ((long) offset << 2)); else super.put4x3(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x3(m, bufferAddress(dest) + ((long) offset << 2)); else super.put4x3(m, offset, dest);
         }
         public void put4x3(Matrix4f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x3(m, bufferAddress(dest) + offset); else super.put4x3(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x3(m, bufferAddress(dest) + offset); else super.put4x3(m, offset, dest);
         }
         public void put3x4(Matrix4f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put3x4(m, bufferAddress(dest) + ((long) offset << 2)); else super.put3x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put3x4(m, bufferAddress(dest) + ((long) offset << 2)); else super.put3x4(m, offset, dest);
         }
         public void put3x4(Matrix4f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put3x4(m, bufferAddress(dest) + offset); else super.put3x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put3x4(m, bufferAddress(dest) + offset); else super.put3x4(m, offset, dest);
         }
         // --- Matrix4x3f buffer put ---
         public void put(Matrix4x3f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 2)); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 2)); else super.put(m, offset, dest);
         }
         public void put(Matrix4x3f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
         }
         public void put4x4(Matrix4x3f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + ((long) offset << 2)); else super.put4x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + ((long) offset << 2)); else super.put4x4(m, offset, dest);
         }
         public void put4x4(Matrix4x3f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + offset); else super.put4x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + offset); else super.put4x4(m, offset, dest);
         }
         public void put3x4(Matrix4x3f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put3x4(m, bufferAddress(dest) + ((long) offset << 2)); else super.put3x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put3x4(m, bufferAddress(dest) + ((long) offset << 2)); else super.put3x4(m, offset, dest);
         }
         public void put3x4(Matrix4x3f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put3x4(m, bufferAddress(dest) + offset); else super.put3x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put3x4(m, bufferAddress(dest) + offset); else super.put3x4(m, offset, dest);
         }
         // --- Matrix4x3d 4x4 buffer put ---
         public void put4x4(Matrix4x3d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + ((long) offset << 3)); else super.put4x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + ((long) offset << 3)); else super.put4x4(m, offset, dest);
         }
         public void put4x4(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + offset); else super.put4x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + offset); else super.put4x4(m, offset, dest);
         }
         // --- Matrix3x2f/3x2d 4x4/3x3 buffer put ---
         public void put4x4(Matrix3x2f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + ((long) offset << 2)); else super.put4x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + ((long) offset << 2)); else super.put4x4(m, offset, dest);
         }
         public void put4x4(Matrix3x2f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + offset); else super.put4x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + offset); else super.put4x4(m, offset, dest);
         }
         public void put4x4(Matrix3x2d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + ((long) offset << 3)); else super.put4x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + ((long) offset << 3)); else super.put4x4(m, offset, dest);
         }
         public void put4x4(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + offset); else super.put4x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x4(m, bufferAddress(dest) + offset); else super.put4x4(m, offset, dest);
         }
         public void put3x3(Matrix3x2f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put3x3(m, bufferAddress(dest) + ((long) offset << 2)); else super.put3x3(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put3x3(m, bufferAddress(dest) + ((long) offset << 2)); else super.put3x3(m, offset, dest);
         }
         public void put3x3(Matrix3x2f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put3x3(m, bufferAddress(dest) + offset); else super.put3x3(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put3x3(m, bufferAddress(dest) + offset); else super.put3x3(m, offset, dest);
         }
         public void put3x3(Matrix3x2d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put3x3(m, bufferAddress(dest) + ((long) offset << 3)); else super.put3x3(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put3x3(m, bufferAddress(dest) + ((long) offset << 3)); else super.put3x3(m, offset, dest);
         }
         public void put3x3(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put3x3(m, bufferAddress(dest) + offset); else super.put3x3(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put3x3(m, bufferAddress(dest) + offset); else super.put3x3(m, offset, dest);
         }
         // --- Transposed buffer put ---
         public void putTransposed(Matrix4f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix4f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
         }
         public void put4x3Transposed(Matrix4f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x3Transposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.put4x3Transposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x3Transposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.put4x3Transposed(m, offset, dest);
         }
         public void put4x3Transposed(Matrix4f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x3Transposed(m, bufferAddress(dest) + offset); else super.put4x3Transposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x3Transposed(m, bufferAddress(dest) + offset); else super.put4x3Transposed(m, offset, dest);
         }
         public void putTransposed(Matrix4x3f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix4x3f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3x2f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix2f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix2f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
         }
         // --- Matrix4d/4x3d buffer put ---
         public void put(Matrix4d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 3)); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 3)); else super.put(m, offset, dest);
         }
         public void put(Matrix4d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
         }
         public void put(Matrix4x3d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 3)); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 3)); else super.put(m, offset, dest);
         }
         public void put(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
         }
         public void putf(Matrix4d m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + ((long) offset << 2)); else super.putf(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + ((long) offset << 2)); else super.putf(m, offset, dest);
         }
         public void putf(Matrix4d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + offset); else super.putf(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + offset); else super.putf(m, offset, dest);
         }
         public void putf(Matrix4x3d m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + ((long) offset << 2)); else super.putf(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + ((long) offset << 2)); else super.putf(m, offset, dest);
         }
         public void putf(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + offset); else super.putf(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + offset); else super.putf(m, offset, dest);
         }
         // --- Double transposed buffer put ---
         public void putTransposed(Matrix4d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 3)); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 3)); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix4d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
         }
         public void put4x3Transposed(Matrix4d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x3Transposed(m, bufferAddress(dest) + ((long) offset << 3)); else super.put4x3Transposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x3Transposed(m, bufferAddress(dest) + ((long) offset << 3)); else super.put4x3Transposed(m, offset, dest);
         }
         public void put4x3Transposed(Matrix4d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put4x3Transposed(m, bufferAddress(dest) + offset); else super.put4x3Transposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put4x3Transposed(m, bufferAddress(dest) + offset); else super.put4x3Transposed(m, offset, dest);
         }
         public void putTransposed(Matrix4x3d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 3)); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 3)); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 3)); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 3)); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3x2d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 3)); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 3)); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix2d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 3)); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + ((long) offset << 3)); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix2d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putTransposed(m, bufferAddress(dest) + offset); else super.putTransposed(m, offset, dest);
         }
         // --- Float-truncated transposed buffer put ---
         public void putfTransposed(Matrix4d m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix4d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + offset); else super.putfTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + offset); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix4x3d m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + offset); else super.putfTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + offset); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix3d m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix3d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + offset); else super.putfTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + offset); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix3x2d m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + offset); else super.putfTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + offset); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix2d m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix2d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + offset); else super.putfTransposed(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putfTransposed(m, bufferAddress(dest) + offset); else super.putfTransposed(m, offset, dest);
         }
         // --- Matrix3f/3d/3x2f/3x2d/2f/2d buffer put ---
         public void put(Matrix3f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 2)); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 2)); else super.put(m, offset, dest);
         }
         public void put(Matrix3f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
         }
         public void put3x4(Matrix3f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put3x4(m, bufferAddress(dest) + ((long) offset << 2)); else super.put3x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put3x4(m, bufferAddress(dest) + ((long) offset << 2)); else super.put3x4(m, offset, dest);
         }
         public void put3x4(Matrix3f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put3x4(m, bufferAddress(dest) + offset); else super.put3x4(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put3x4(m, bufferAddress(dest) + offset); else super.put3x4(m, offset, dest);
         }
         public void put(Matrix3d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 3)); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 3)); else super.put(m, offset, dest);
         }
         public void put(Matrix3d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
         }
         public void put(Matrix3x2f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 2)); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 2)); else super.put(m, offset, dest);
         }
         public void put(Matrix3x2f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
         }
         public void put(Matrix3x2d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 3)); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 3)); else super.put(m, offset, dest);
         }
         public void put(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
         }
         public void putf(Matrix3d m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + ((long) offset << 2)); else super.putf(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + ((long) offset << 2)); else super.putf(m, offset, dest);
         }
         public void putf(Matrix3d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + offset); else super.putf(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + offset); else super.putf(m, offset, dest);
         }
         public void put(Matrix2f m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 2)); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 2)); else super.put(m, offset, dest);
         }
         public void put(Matrix2f m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
         }
         public void put(Matrix2d m, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 3)); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + ((long) offset << 3)); else super.put(m, offset, dest);
         }
         public void put(Matrix2d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(m, bufferAddress(dest) + offset); else super.put(m, offset, dest);
         }
         public void putf(Matrix2d m, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + ((long) offset << 2)); else super.putf(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + ((long) offset << 2)); else super.putf(m, offset, dest);
         }
         public void putf(Matrix2d m, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + offset); else super.putf(m, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putf(m, bufferAddress(dest) + offset); else super.putf(m, offset, dest);
         }
         // --- Vector buffer put ---
         public void put(Vector4d src, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 3)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 3)); else super.put(src, offset, dest);
         }
         public void put(Vector4d src, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putf(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putf(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
         }
         public void put(Vector4d src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
         }
         public void putf(Vector4d src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putf(src, bufferAddress(dest) + offset); else super.putf(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putf(src, bufferAddress(dest) + offset); else super.putf(src, offset, dest);
         }
         public void put(Vector4f src, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
         }
         public void put(Vector4f src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
         }
         public void put(Vector4i src, int offset, IntBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
         }
         public void put(Vector4i src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
         }
         public void put(Vector4L src, int offset, LongBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 3)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 3)); else super.put(src, offset, dest);
         }
         public void put(Vector4L src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
         }
         public void put(Vector3f src, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
         }
         public void put(Vector3f src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
         }
         public void put(Vector3d src, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 3)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 3)); else super.put(src, offset, dest);
         }
         public void put(Vector3d src, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putf(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putf(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
         }
         public void put(Vector3d src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
         }
         public void putf(Vector3d src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) putf(src, bufferAddress(dest) + offset); else super.putf(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) putf(src, bufferAddress(dest) + offset); else super.putf(src, offset, dest);
         }
         public void put(Vector3i src, int offset, IntBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
         }
         public void put(Vector3i src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
         }
         public void put(Vector3L src, int offset, LongBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 3)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 3)); else super.put(src, offset, dest);
         }
         public void put(Vector3L src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
         }
         public void put(Vector2f src, int offset, FloatBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
         }
         public void put(Vector2f src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
         }
         public void put(Vector2d src, int offset, DoubleBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 3)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 3)); else super.put(src, offset, dest);
         }
         public void put(Vector2d src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
         }
         public void put(Vector2i src, int offset, IntBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 2)); else super.put(src, offset, dest);
         }
         public void put(Vector2i src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
         }
         public void put(Vector2L src, int offset, LongBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 3)); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + ((long) offset << 3)); else super.put(src, offset, dest);
         }
         public void put(Vector2L src, int offset, ByteBuffer dest) {
-            if (dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
+            if (dest.isDirect() && dest.order() == ByteOrder.nativeOrder()) put(src, bufferAddress(dest) + offset); else super.put(src, offset, dest);
         }
 
         // --- Matrix buffer get ---
         public void get(Matrix4f m, int offset, FloatBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 2)); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 2)); else super.get(m, offset, src);
         }
         public void get(Matrix4f m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
         }
         public void getTransposed(Matrix4f m, int offset, FloatBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) getTransposed(m, bufferAddress(src) + ((long) offset << 2)); else super.getTransposed(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) getTransposed(m, bufferAddress(src) + ((long) offset << 2)); else super.getTransposed(m, offset, src);
         }
         public void getTransposed(Matrix4f m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) getTransposed(m, bufferAddress(src) + offset); else super.getTransposed(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) getTransposed(m, bufferAddress(src) + offset); else super.getTransposed(m, offset, src);
         }
         public void get(Matrix4x3f m, int offset, FloatBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 2)); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 2)); else super.get(m, offset, src);
         }
         public void get(Matrix4x3f m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
         }
         public void get(Matrix4d m, int offset, DoubleBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 3)); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 3)); else super.get(m, offset, src);
         }
         public void get(Matrix4d m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
         }
         public void get(Matrix4x3d m, int offset, DoubleBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 3)); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 3)); else super.get(m, offset, src);
         }
         public void get(Matrix4x3d m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
         }
         public void getf(Matrix4d m, int offset, FloatBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + ((long) offset << 2)); else super.getf(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + ((long) offset << 2)); else super.getf(m, offset, src);
         }
         public void getf(Matrix4d m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + offset); else super.getf(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + offset); else super.getf(m, offset, src);
         }
         public void getf(Matrix4x3d m, int offset, FloatBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + ((long) offset << 2)); else super.getf(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + ((long) offset << 2)); else super.getf(m, offset, src);
         }
         public void getf(Matrix4x3d m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + offset); else super.getf(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + offset); else super.getf(m, offset, src);
         }
         public void get(Matrix3f m, int offset, FloatBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 2)); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 2)); else super.get(m, offset, src);
         }
         public void get(Matrix3f m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
         }
         public void get(Matrix3d m, int offset, DoubleBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 3)); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 3)); else super.get(m, offset, src);
         }
         public void get(Matrix3d m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
         }
         public void get(Matrix3x2f m, int offset, FloatBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 2)); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 2)); else super.get(m, offset, src);
         }
         public void get(Matrix3x2f m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
         }
         public void get(Matrix3x2d m, int offset, DoubleBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 3)); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 3)); else super.get(m, offset, src);
         }
         public void get(Matrix3x2d m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
         }
         public void getf(Matrix3d m, int offset, FloatBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + ((long) offset << 2)); else super.getf(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + ((long) offset << 2)); else super.getf(m, offset, src);
         }
         public void getf(Matrix3d m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + offset); else super.getf(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + offset); else super.getf(m, offset, src);
         }
         public void get(Matrix2f m, int offset, FloatBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 2)); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 2)); else super.get(m, offset, src);
         }
         public void get(Matrix2f m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
         }
         public void get(Matrix2d m, int offset, DoubleBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 3)); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + ((long) offset << 3)); else super.get(m, offset, src);
         }
         public void get(Matrix2d m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(m, bufferAddress(src) + offset); else super.get(m, offset, src);
         }
         public void getf(Matrix2d m, int offset, FloatBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + ((long) offset << 2)); else super.getf(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + ((long) offset << 2)); else super.getf(m, offset, src);
         }
         public void getf(Matrix2d m, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + offset); else super.getf(m, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) getf(m, bufferAddress(src) + offset); else super.getf(m, offset, src);
         }
         // --- Vector buffer get ---
         public void get(Vector4d dst, int offset, DoubleBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 3)); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 3)); else super.get(dst, offset, src);
         }
         public void get(Vector4d dst, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
         }
         public void get(Vector4f dst, int offset, FloatBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 2)); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 2)); else super.get(dst, offset, src);
         }
         public void get(Vector4f dst, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
         }
         public void get(Vector4i dst, int offset, IntBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 2)); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 2)); else super.get(dst, offset, src);
         }
         public void get(Vector4i dst, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
         }
         public void get(Vector4L dst, int offset, LongBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 3)); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 3)); else super.get(dst, offset, src);
         }
         public void get(Vector4L dst, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
         }
         public void get(Vector3f dst, int offset, FloatBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 2)); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 2)); else super.get(dst, offset, src);
         }
         public void get(Vector3f dst, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
         }
         public void get(Vector3d dst, int offset, DoubleBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 3)); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 3)); else super.get(dst, offset, src);
         }
         public void get(Vector3d dst, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
         }
         public void get(Vector3i dst, int offset, IntBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 2)); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 2)); else super.get(dst, offset, src);
         }
         public void get(Vector3i dst, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
         }
         public void get(Vector3L dst, int offset, LongBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 3)); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 3)); else super.get(dst, offset, src);
         }
         public void get(Vector3L dst, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
         }
         public void get(Vector2f dst, int offset, FloatBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 2)); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 2)); else super.get(dst, offset, src);
         }
         public void get(Vector2f dst, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
         }
         public void get(Vector2d dst, int offset, DoubleBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 3)); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 3)); else super.get(dst, offset, src);
         }
         public void get(Vector2d dst, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
         }
         public void get(Vector2i dst, int offset, IntBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 2)); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 2)); else super.get(dst, offset, src);
         }
         public void get(Vector2i dst, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
         }
         public void get(Vector2L dst, int offset, LongBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 3)); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + ((long) offset << 3)); else super.get(dst, offset, src);
         }
         public void get(Vector2L dst, int offset, ByteBuffer src) {
-            if (src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) get(dst, bufferAddress(src) + offset); else super.get(dst, offset, src);
         }
     }
 //#endif
 
 //#ifdef __HAS_UNSAFE__
     public static class MemUtilUnsafe extends MemUtilNIO {
+        /**
+         * Bounds check for the raw-address fast path. Always on: the address path bypasses NIO's own
+         * index checks, so a bad offset would otherwise corrupt memory outside the buffer. Mirrors the
+         * NIO fallback, which checks absolute indices against {@code limit()}.
+         */
+        private static void checkBounds(int offset, int limit, int size) {
+            if (offset < 0 || size > limit - offset)
+                throw new IndexOutOfBoundsException("offset=" + offset + ", size=" + size + ", limit=" + limit);
+        }
+
         public static final sun.misc.Unsafe UNSAFE;
 
         public static final long ADDRESS;
@@ -6587,918 +6607,907 @@ abstract class MemUtil {
             u.putFloat(null, addr + 44, 0.0f);
         }
 
-        private static void throwNoDirectBufferException() {
-            throw new IllegalArgumentException("Must use a direct buffer");
-        }
-
         public void putMatrix3f(Quaternionf q, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9 << 2);
                 putMatrix3f(q, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putMatrix3f(q, offset, dest);
         }
 
         public void putMatrix3f(Quaternionf q, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9);
                 putMatrix3f(q, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putMatrix3f(q, offset, dest);
         }
 
-        private static void checkPut(int offset, boolean direct, int capacity, int i) {
-            if (!direct)
-                throwNoDirectBufferException();
-            if (capacity - offset < i)
-                throw new BufferOverflowException();
-        }
-
         public void putMatrix4f(Quaternionf q, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16 << 2);
                 putMatrix4f(q, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putMatrix4f(q, offset, dest);
         }
 
         public void putMatrix4f(Quaternionf q, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16);
                 putMatrix4f(q, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putMatrix4f(q, offset, dest);
         }
 
         public void putMatrix4x3f(Quaternionf q, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12 << 2);
                 putMatrix4x3f(q, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putMatrix4x3f(q, offset, dest);
         }
 
         public void putMatrix4x3f(Quaternionf q, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12);
                 putMatrix4x3f(q, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putMatrix4x3f(q, offset, dest);
         }
 
         public void put(Matrix4f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix4f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16 << 2);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put4x3(Matrix4f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12);
                 put4x3(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put4x3(m, offset, dest);
         }
 
         public void put4x3(Matrix4f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12 << 2);
                 put4x3(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put4x3(m, offset, dest);
         }
 
         public void put3x4(Matrix4f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12);
                 put3x4(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put3x4(m, offset, dest);
         }
 
         public void put3x4(Matrix4f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12 << 2);
                 put3x4(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put3x4(m, offset, dest);
         }
 
         public void put(Matrix4x3f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix4x3f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12 << 2);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put4x4(Matrix4x3f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16);
                 put4x4(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put4x4(m, offset, dest);
         }
 
         public void put4x4(Matrix4x3f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16 << 2);
                 put4x4(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put4x4(m, offset, dest);
         }
 
         public void put3x4(Matrix4x3f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12);
                 put3x4(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put3x4(m, offset, dest);
         }
 
         public void put3x4(Matrix4x3f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12 << 2);
                 put3x4(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put3x4(m, offset, dest);
         }
 
         public void put4x4(Matrix4x3d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16);
                 put4x4(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.put4x4(m, offset, dest);
         }
 
         public void put4x4(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16 << 3);
                 put4x4(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put4x4(m, offset, dest);
         }
 
         public void put4x4(Matrix3x2f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16);
                 put4x4(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put4x4(m, offset, dest);
         }
 
         public void put4x4(Matrix3x2f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16 << 2);
                 put4x4(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put4x4(m, offset, dest);
         }
 
         public void put4x4(Matrix3x2d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16);
                 put4x4(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.put4x4(m, offset, dest);
         }
 
         public void put4x4(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16 << 3);
                 put4x4(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put4x4(m, offset, dest);
         }
 
         public void put3x3(Matrix3x2f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9);
                 put3x3(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put3x3(m, offset, dest);
         }
 
         public void put3x3(Matrix3x2f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9 << 2);
                 put3x3(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put3x3(m, offset, dest);
         }
 
         public void put3x3(Matrix3x2d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9);
                 put3x3(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.put3x3(m, offset, dest);
         }
 
         public void put3x3(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9 << 3);
                 put3x3(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put3x3(m, offset, dest);
         }
 
         public void putTransposed(Matrix4f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix4f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16 << 2);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void put4x3Transposed(Matrix4f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12);
                 put4x3Transposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put4x3Transposed(m, offset, dest);
         }
 
         public void put4x3Transposed(Matrix4f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12 << 2);
                 put4x3Transposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put4x3Transposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix4x3f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix4x3f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12 << 2);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix3f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix3f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9 << 2);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix3x2f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 6);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 6);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix2f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix2f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4 << 2);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void put(Matrix4d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix4d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16 << 3);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix4x3d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12 << 3);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void putf(Matrix4d m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16);
                 putf(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putf(m, offset, dest);
         }
 
         public void putf(Matrix4d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16 << 2);
                 putf(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putf(m, offset, dest);
         }
 
         public void putf(Matrix4x3d m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12);
                 putf(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putf(m, offset, dest);
         }
 
         public void putf(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12 << 2);
                 putf(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putf(m, offset, dest);
         }
 
         public void putTransposed(Matrix4d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix4d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16 << 3);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void put4x3Transposed(Matrix4d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12);
                 put4x3Transposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.put4x3Transposed(m, offset, dest);
         }
 
         public void put4x3Transposed(Matrix4d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12 << 3);
                 put4x3Transposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put4x3Transposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix4x3d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12 << 3);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix3d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix3d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9 << 3);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix3x2d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 6);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 6);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 6 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 6 << 3);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix2d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putTransposed(Matrix2d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4 << 3);
                 putTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putTransposed(m, offset, dest);
         }
 
         public void putfTransposed(Matrix4d m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16);
                 putfTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putfTransposed(m, offset, dest);
         }
 
         public void putfTransposed(Matrix4d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 16 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 16 << 2);
                 putfTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putfTransposed(m, offset, dest);
         }
 
         public void putfTransposed(Matrix4x3d m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12);
                 putfTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putfTransposed(m, offset, dest);
         }
 
         public void putfTransposed(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12 << 2);
                 putfTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putfTransposed(m, offset, dest);
         }
 
         public void putfTransposed(Matrix3d m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9);
                 putfTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putfTransposed(m, offset, dest);
         }
 
         public void putfTransposed(Matrix3d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9 << 2);
                 putfTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putfTransposed(m, offset, dest);
         }
 
         public void putfTransposed(Matrix3x2d m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 6);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 6);
                 putfTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putfTransposed(m, offset, dest);
         }
 
         public void putfTransposed(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 6 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 6 << 2);
                 putfTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putfTransposed(m, offset, dest);
         }
 
         public void putfTransposed(Matrix2d m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4);
                 putfTransposed(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putfTransposed(m, offset, dest);
         }
 
         public void putfTransposed(Matrix2d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4 << 2);
                 putfTransposed(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putfTransposed(m, offset, dest);
         }
 
         public void put(Matrix3f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix3f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9 << 2);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put3x4(Matrix3f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12);
                 put3x4(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put3x4(m, offset, dest);
         }
 
         public void put3x4(Matrix3f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 12 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 12 << 2);
                 put3x4(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put3x4(m, offset, dest);
         }
 
         public void put(Matrix3d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix3d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9 << 3);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix3x2f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 6);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 6);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix3x2f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 6 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 6 << 2);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix3x2d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 6);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 6);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 6 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 6 << 3);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void putf(Matrix3d m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9);
                 putf(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putf(m, offset, dest);
         }
 
         public void putf(Matrix3d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 9 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 9 << 2);
                 putf(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putf(m, offset, dest);
         }
 
         public void put(Matrix2f m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix2f m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4 << 2);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix2d m, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void put(Matrix2d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4 << 3);
                 put(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(m, offset, dest);
         }
 
         public void putf(Matrix2d m, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4);
                 putf(m, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.putf(m, offset, dest);
         }
 
         public void putf(Matrix2d m, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4 << 2);
                 putf(m, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putf(m, offset, dest);
         }
 
         public void put(Vector4d src, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector4d src, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4);
                 putf(src, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector4d src, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4 << 3);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void putf(Vector4d src, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4 << 2);
                 putf(src, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putf(src, offset, dest);
         }
 
         public void put(Vector4f src, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector4f src, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4 << 2);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector4i src, int offset, IntBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector4i src, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 4 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 4 << 2);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector3f src, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 3);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector3f src, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 3 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 3 << 2);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector3d src, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 3);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector3d src, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 3);
                 putf(src, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector3d src, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 3 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 3 << 3);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void putf(Vector3d src, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 3 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 3 << 2);
                 putf(src, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.putf(src, offset, dest);
         }
 
         public void put(Vector3i src, int offset, IntBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 3);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector3i src, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 3 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 3 << 2);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector2f src, int offset, FloatBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 2);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector2f src, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 2 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 2 << 2);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector2d src, int offset, DoubleBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 2);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector2d src, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 2 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 2 << 3);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector2i src, int offset, IntBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 2);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector2i src, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 2 << 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 2 << 2);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector2L src, int offset, LongBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 2);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 2);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void put(Vector2L src, int offset, ByteBuffer dest) {
-            if (Options.DEBUG) checkPut(offset, dest.isDirect(), dest.capacity(), 2 << 3);
-            if (dest.order() == ByteOrder.nativeOrder())
+            if (dest.isDirect() && !dest.isReadOnly() && dest.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, dest.limit(), 2 << 3);
                 put(src, UNSAFE.getLong(dest, ADDRESS) + offset);
-            else
+            } else
                 super.put(src, offset, dest);
         }
 
         public void get(Matrix4f m, int offset, FloatBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 16);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 16);
                 get(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix4f m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 16 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 16 << 2);
                 get(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(m, offset, src);
         }
 
@@ -7539,361 +7548,354 @@ abstract class MemUtil {
         }
 
         public void get(Matrix4x3f m, int offset, FloatBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 12);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 12);
                 get(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix4x3f m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 12 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 12 << 2);
                 get(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix4d m, int offset, DoubleBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 16);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 16);
                 get(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix4d m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 16 << 3);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 16 << 3);
                 get(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix4x3d m, int offset, DoubleBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 12);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 12);
                 get(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix4x3d m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 12 << 3);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 12 << 3);
                 get(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void getf(Matrix4d m, int offset, FloatBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 16);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 16);
                 getf(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.getf(m, offset, src);
         }
 
         public void getf(Matrix4d m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 16 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 16 << 2);
                 getf(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.getf(m, offset, src);
         }
 
         public void getf(Matrix4x3d m, int offset, FloatBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 12);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 12);
                 getf(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.getf(m, offset, src);
         }
 
-        private static void checkGet(int offset, boolean direct, int capacity, int i) {
-            if (!direct)
-                throwNoDirectBufferException();
-            if (capacity - offset < i)
-                throw new BufferUnderflowException();
-        }
-
         public void getf(Matrix4x3d m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 12 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 12 << 2);
                 getf(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.getf(m, offset, src);
         }
 
         public void get(Matrix3f m, int offset, FloatBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 9);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 9);
                 get(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix3f m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 9 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 9 << 2);
                 get(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix3d m, int offset, DoubleBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 9);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 9);
                 get(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix3d m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 9 << 3);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 9 << 3);
                 get(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix3x2f m, int offset, FloatBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 6);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 6);
                 get(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix3x2f m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 6 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 6 << 2);
                 get(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix3x2d m, int offset, DoubleBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 6);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 6);
                 get(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix3x2d m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 6 << 3);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 6 << 3);
                 get(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void getf(Matrix3d m, int offset, FloatBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 9);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 9);
                 getf(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.getf(m, offset, src);
         }
 
         public void getf(Matrix3d m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 9 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 9 << 2);
                 getf(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.getf(m, offset, src);
         }
 
         public void get(Matrix2f m, int offset, FloatBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 4);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 4);
                 get(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix2f m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 4 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 4 << 2);
                 get(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix2d m, int offset, DoubleBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 4);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 4);
                 get(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void get(Matrix2d m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 4 << 3);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 4 << 3);
                 get(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(m, offset, src);
         }
 
         public void getf(Matrix2d m, int offset, FloatBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 4);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 4);
                 getf(m, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.getf(m, offset, src);
         }
 
         public void getf(Matrix2d m, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 4 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 4 << 2);
                 getf(m, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.getf(m, offset, src);
         }
 
         public void get(Vector4d dst, int offset, DoubleBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 4);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 4);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector4d dst, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 4 << 3);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 4 << 3);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector4f dst, int offset, FloatBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 4);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 4);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector4f dst, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 4 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 4 << 2);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector4i dst, int offset, IntBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 4);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 4);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector4i dst, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 4 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 4 << 2);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector3f dst, int offset, FloatBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 3);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 3);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector3f dst, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 3 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 3 << 2);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector3d dst, int offset, DoubleBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 3);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 3);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector3d dst, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 3 << 3);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 3 << 3);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector3i dst, int offset, IntBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 3);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 3);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector3i dst, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 3 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 3 << 2);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector2f dst, int offset, FloatBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 2);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector2f dst, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 2 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 2 << 2);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector2d dst, int offset, DoubleBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 2);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 3));
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector2d dst, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 2 << 3);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 2 << 3);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector2i dst, int offset, IntBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 2);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + ((long) offset << 2));
-            else
+            } else
                 super.get(dst, offset, src);
         }
 
         public void get(Vector2i dst, int offset, ByteBuffer src) {
-            if (Options.DEBUG) checkGet(offset, src.isDirect(), src.capacity(), 2 << 2);
-            if (src.order() == ByteOrder.nativeOrder())
+            if (src.isDirect() && src.order() == ByteOrder.nativeOrder()) {
+                checkBounds(offset, src.limit(), 2 << 2);
                 get(dst, UNSAFE.getLong(src, ADDRESS) + offset);
-            else
+            } else
                 super.get(dst, offset, src);
         }
     }

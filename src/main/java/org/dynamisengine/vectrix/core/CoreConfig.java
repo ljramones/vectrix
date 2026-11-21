@@ -27,7 +27,10 @@ package org.dynamisengine.vectrix.core;
  * Global runtime configuration for math behavior used in core primitives.
  */
 public final class CoreConfig {
-    private static volatile MathMode mathMode = MathMode.FAST;
+    /** System property selecting the initial math mode ({@code FAST} or {@code STRICT}). */
+    public static final String PROP_MATH_MODE = "vectrix.math.mode";
+
+    private static volatile MathMode mathMode = parseMathMode(System.getProperty(PROP_MATH_MODE));
 
     private CoreConfig() {
     }
@@ -41,5 +44,15 @@ public final class CoreConfig {
             throw new IllegalArgumentException("mode");
         }
         mathMode = mode;
+    }
+
+    /**
+     * Parse a math-mode property value. {@code null}, empty or unrecognised values mean {@link MathMode#FAST}.
+     */
+    public static MathMode parseMathMode(String value) {
+        if (value == null || value.isEmpty()) {
+            return MathMode.FAST;
+        }
+        return "STRICT".equalsIgnoreCase(value) ? MathMode.STRICT : MathMode.FAST;
     }
 }

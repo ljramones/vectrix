@@ -49,6 +49,8 @@ public final class InertiaTensorf {
 
     /**
      * Solid capsule aligned along the +Y/-Y axis.
+     *
+     * @param height length of the cylindrical section only (excluding the two hemispherical caps)
      */
     public static Vector3f capsule(float mass, float radius, float height, Vector3f dest) {
         float r2 = radius * radius;
@@ -57,7 +59,10 @@ public final class InertiaTensorf {
         float mCaps = mass - mCylinder;
         float iy = 0.5f * mCylinder * r2 + (2.0f / 5.0f) * mCaps * r2;
         float ixz = (mCylinder / 12.0f) * (3.0f * r2 + h2)
-                + mCaps * ((2.0f / 5.0f) * r2 + h2 / 2.0f + (3.0f / 8.0f) * height * radius);
+                // Both caps: hemisphere inertia about its own centroid ((83/320) m r^2) moved by the
+                // parallel-axis theorem to the capsule centre (distance h/2 + 3r/8) gives
+                // m (2r^2/5 + h^2/4 + 3hr/8).
+                + mCaps * ((2.0f / 5.0f) * r2 + h2 / 4.0f + (3.0f / 8.0f) * height * radius);
         return dest.set(ixz, iy, ixz);
     }
 

@@ -17,7 +17,7 @@
 
     <name>Vectrix</name>
     <description>Java rendering math library</description>
-    <url>https://github.com/larrymitchell/vectrix</url>
+    <url>https://github.com/ljramones/vectrix</url>
 
     <licenses>
         <license>
@@ -28,20 +28,24 @@
 
     <organization>
         <name>Vectrix</name>
-        <url>https://github.com/larrymitchell/vectrix</url>
+        <url>https://github.com/ljramones/vectrix</url>
     </organization>
 
-    <developers>
-        <developer>
-            <id>kburjack</id>
+    <!-- <developers> is inherited from dynamis-parent. -->
+    <contributors>
+        <contributor>
             <name>Kai Burjack</name>
-        </developer>
-    </developers>
+            <roles>
+                <role>Original author of JOML, from which Vectrix is derived</role>
+            </roles>
+        </contributor>
+    </contributors>
 
     <scm>
-        <url>https://github.com/JOML-CI/JOML</url>
-        <connection>scm:git:https://github.com/JOML-CI/JOML.git</connection>
-        <developerConnection>scm:git:https://github.com/JOML-CI/JOML.git</developerConnection>
+        <url>https://github.com/ljramones/vectrix</url>
+        <connection>scm:git:https://github.com/ljramones/vectrix.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/ljramones/vectrix.git</developerConnection>
+        <tag>HEAD</tag>
     </scm>
 
     <properties>
@@ -181,15 +185,15 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Implementation-Title>JOML</Implementation-Title>
+                            <Implementation-Title>Vectrix</Implementation-Title>
                             <Implementation-Version>${project.version}</Implementation-Version>
-                            <Implementation-Vendor>JOML</Implementation-Vendor>
+                            <Implementation-Vendor>Dynamis Engine</Implementation-Vendor>
                             <Implementation-Build>${git.commit.id.full}</Implementation-Build>
                             <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
-                            <Bundle-Name>JOML</Bundle-Name>
+                            <Bundle-Name>Vectrix</Bundle-Name>
                             <Bundle-SymbolicName>org.dynamisengine.vectrix</Bundle-SymbolicName>
                             <Bundle-Version>${project.version}</Bundle-Version>
-                            <Export-Package>org.dynamisengine.vectrix,org.dynamisengine.vectrix.sampling</Export-Package>
+                            <Export-Package>org.dynamisengine.vectrix.affine,org.dynamisengine.vectrix.color,org.dynamisengine.vectrix.core,org.dynamisengine.vectrix.curve,org.dynamisengine.vectrix.curve.scalar,org.dynamisengine.vectrix.curve.vec2,org.dynamisengine.vectrix.curve.vec3,org.dynamisengine.vectrix.curve.vec4,org.dynamisengine.vectrix.easing,org.dynamisengine.vectrix.fft,org.dynamisengine.vectrix.geometry,org.dynamisengine.vectrix.gpu,org.dynamisengine.vectrix.hash,org.dynamisengine.vectrix.ltc,org.dynamisengine.vectrix.optics,org.dynamisengine.vectrix.physics,org.dynamisengine.vectrix.renderingmath,org.dynamisengine.vectrix.sampling,org.dynamisengine.vectrix.sdf,org.dynamisengine.vectrix.sh,org.dynamisengine.vectrix.simd,org.dynamisengine.vectrix.soa</Export-Package>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -674,33 +678,5 @@
             </properties>
         </profile>
 
-        <!-- Sign profile: GPG signing for releases -->
-        <profile>
-            <id>sign</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.2.7</version>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <gpgArguments>
-                                <arg>--pinentry-mode</arg>
-                                <arg>loopback</arg>
-                            </gpgArguments>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
     </profiles>
 </project>

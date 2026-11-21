@@ -26,8 +26,6 @@ module org.dynamisengine.vectrix {
 
     exports org.dynamisengine.vectrix.physics;
 
-    exports org.dynamisengine.vectrix.experimental to
-        org.dynamisphysics.ode4j,
-        org.dynamisphysics.jolt,
-        org.dynamislightengine;
+    // org.dynamisengine.vectrix.experimental is intentionally not exported: it is @Internal.
+    // Math mode is configured through org.dynamisengine.vectrix.core.CoreConfig.
 }

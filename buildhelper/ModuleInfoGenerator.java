@@ -65,8 +65,7 @@ public class ModuleInfoGenerator implements Opcodes {
         mv.visitExport("org/dynamisengine/vectrix/sh", 0, (String[]) null);
         mv.visitExport("org/dynamisengine/vectrix/simd", 0, (String[]) null);
         mv.visitExport("org/dynamisengine/vectrix/soa", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/experimental", 0,
-                new String[] {"org.dynamisphysics.ode4j", "org.dynamisphysics.jolt", "org.dynamislightengine"});
+        // org/dynamisengine/vectrix/experimental is intentionally not exported (@Internal).
         mv.visitEnd();
         cw.visitEnd();
         FileOutputStream fos = new FileOutputStream(new File(dest, "module-info.class"));
