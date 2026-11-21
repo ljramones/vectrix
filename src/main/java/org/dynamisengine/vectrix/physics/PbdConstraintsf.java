@@ -34,6 +34,7 @@ import org.dynamisengine.vectrix.core.Vector3f;
  */
 public final class PbdConstraintsf {
     private static final float EPS = 1E-6f;
+    private static final int SHAPE_MATCH_MAX_ITER = 32;
 
     private PbdConstraintsf() {
     }
@@ -56,8 +57,32 @@ public final class PbdConstraintsf {
         return dest.set(dx * scale, dy * scale, dz * scale);
     }
 
+    /**
+     * Equal-mass form of
+     * {@link #bendConstraint(Vector3f, float, Vector3f, float, Vector3f, float, float, float, Vector3f, Vector3f, Vector3f)}
+     * (all inverse masses 1).
+     */
     public static void bendConstraint(
             Vector3f p0, Vector3f p1, Vector3f p2,
+            float restAngle, float stiffness,
+            Vector3f d0, Vector3f d1, Vector3f d2) {
+        bendConstraint(p0, 1.0f, p1, 1.0f, p2, 1.0f, restAngle, stiffness, d0, d1, d2);
+    }
+
+    /**
+     * Three-point bending constraint on the angle at {@code p1} between the edges {@code p1->p0} and
+     * {@code p1->p2}: {@code C = angle - restAngle}. Writes the position-based-dynamics corrections
+     * {@code d_i = -k C w_i grad_i(C) / sum_j w_j |grad_j(C)|^2}, which move the angle toward its rest value.
+     * <p>
+     * All corrections are zero when an edge is degenerate or the edges are (anti)parallel, because the
+     * gradient direction is undefined there. Inputs are read before any output is written, so outputs may
+     * alias inputs.
+     *
+     * @param invMass0 inverse mass of {@code p0} (0 = pinned)
+     * @param stiffness in [0,1]; 1 solves the linearised constraint in one step
+     */
+    public static void bendConstraint(
+            Vector3f p0, float invMass0, Vector3f p1, float invMass1, Vector3f p2, float invMass2,
             float restAngle, float stiffness,
             Vector3f d0, Vector3f d1, Vector3f d2) {
         float v0x = p0.x - p1.x, v0y = p0.y - p1.y, v0z = p0.z - p1.z;
@@ -65,75 +90,107 @@ public final class PbdConstraintsf {
         float l0 = Math.sqrt(v0x * v0x + v0y * v0y + v0z * v0z);
         float l1 = Math.sqrt(v1x * v1x + v1y * v1y + v1z * v1z);
         if (l0 < EPS || l1 < EPS) {
-            d0.set(0.0f, 0.0f, 0.0f);
-            d1.set(0.0f, 0.0f, 0.0f);
-            d2.set(0.0f, 0.0f, 0.0f);
+            zero(d0, d1, d2);
             return;
         }
         float n0x = v0x / l0, n0y = v0y / l0, n0z = v0z / l0;
         float n1x = v1x / l1, n1y = v1y / l1, n1z = v1z / l1;
-        float dot = Math.max(-1.0f, Math.min(1.0f, n0x * n1x + n0y * n1y + n0z * n1z));
-        float angle = Math.acos(dot);
-        float error = angle - restAngle;
         float ax = n0y * n1z - n0z * n1y;
         float ay = n0z * n1x - n0x * n1z;
         float az = n0x * n1y - n0y * n1x;
         float al = Math.sqrt(ax * ax + ay * ay + az * az);
         if (al < EPS) {
-            d0.set(0.0f, 0.0f, 0.0f);
-            d1.set(0.0f, 0.0f, 0.0f);
-            d2.set(0.0f, 0.0f, 0.0f);
+            zero(d0, d1, d2);
             return;
         }
+        float angle = (float) java.lang.Math.atan2(al, n0x * n1x + n0y * n1y + n0z * n1z);
+        float error = angle - restAngle;
         ax /= al;
         ay /= al;
         az /= al;
-        float g0x = (ay * n0z - az * n0y) / l0;
-        float g0y = (az * n0x - ax * n0z) / l0;
-        float g0z = (ax * n0y - ay * n0x) / l0;
-        float g2x = (n1y * az - n1z * ay) / l1;
-        float g2y = (n1z * ax - n1x * az) / l1;
-        float g2z = (n1x * ay - n1y * ax) / l1;
-        float scale = -stiffness * error;
-        d0.set(g0x * scale, g0y * scale, g0z * scale);
-        d2.set(g2x * scale, g2y * scale, g2z * scale);
-        d1.set(-(d0.x + d2.x), -(d0.y + d2.y), -(d0.z + d2.z));
+        // grad_p0(angle) = -(a x n0) / l0, grad_p2(angle) = (a x n1) / l1, grad_p1 = -(grad_p0 + grad_p2)
+        float g0x = -(ay * n0z - az * n0y) / l0;
+        float g0y = -(az * n0x - ax * n0z) / l0;
+        float g0z = -(ax * n0y - ay * n0x) / l0;
+        float g2x = (ay * n1z - az * n1y) / l1;
+        float g2y = (az * n1x - ax * n1z) / l1;
+        float g2z = (ax * n1y - ay * n1x) / l1;
+        float g1x = -(g0x + g2x), g1y = -(g0y + g2y), g1z = -(g0z + g2z);
+        float denom = invMass0 * (g0x * g0x + g0y * g0y + g0z * g0z)
+                + invMass1 * (g1x * g1x + g1y * g1y + g1z * g1z)
+                + invMass2 * (g2x * g2x + g2y * g2y + g2z * g2z);
+        if (denom < EPS) {
+            zero(d0, d1, d2);
+            return;
+        }
+        float s = -stiffness * error / denom;
+        d0.set(g0x * s * invMass0, g0y * s * invMass0, g0z * s * invMass0);
+        d1.set(g1x * s * invMass1, g1y * s * invMass1, g1z * s * invMass1);
+        d2.set(g2x * s * invMass2, g2y * s * invMass2, g2z * s * invMass2);
     }
 
+    /**
+     * Equal-mass form of
+     * {@link #volumeConstraint(Vector3f, float, Vector3f, float, Vector3f, float, Vector3f, float, float, float, Vector3f, Vector3f, Vector3f, Vector3f)}
+     * (all inverse masses 1).
+     */
     public static float volumeConstraint(
             Vector3f p0, Vector3f p1, Vector3f p2, Vector3f p3,
+            float restVolume, float stiffness,
+            Vector3f d0, Vector3f d1, Vector3f d2, Vector3f d3) {
+        return volumeConstraint(p0, 1.0f, p1, 1.0f, p2, 1.0f, p3, 1.0f, restVolume, stiffness, d0, d1, d2, d3);
+    }
+
+    /**
+     * Tetrahedron volume constraint {@code C = V - restVolume}, with the signed volume
+     * {@code V = (p1-p0) . ((p2-p0) x (p3-p0)) / 6}. Writes the corrections
+     * {@code d_i = -k C w_i grad_i(V) / sum_j w_j |grad_j(V)|^2}. The corrections are mass-weighted, so they
+     * conserve linear momentum. Inputs are read before any output is written.
+     *
+     * @return the current signed volume
+     */
+    public static float volumeConstraint(
+            Vector3f p0, float invMass0, Vector3f p1, float invMass1,
+            Vector3f p2, float invMass2, Vector3f p3, float invMass3,
             float restVolume, float stiffness,
             Vector3f d0, Vector3f d1, Vector3f d2, Vector3f d3) {
         float x10 = p1.x - p0.x, y10 = p1.y - p0.y, z10 = p1.z - p0.z;
         float x20 = p2.x - p0.x, y20 = p2.y - p0.y, z20 = p2.z - p0.z;
         float x30 = p3.x - p0.x, y30 = p3.y - p0.y, z30 = p3.z - p0.z;
-        float cx = y20 * z30 - z20 * y30;
-        float cy = z20 * x30 - x20 * z30;
-        float cz = x20 * y30 - y20 * x30;
-        float volume = (x10 * cx + y10 * cy + z10 * cz) / 6.0f;
+        final float sixth = 1.0f / 6.0f;
+        // grad_p1 = (p2-p0) x (p3-p0) / 6, grad_p2 = (p3-p0) x (p1-p0) / 6, grad_p3 = (p1-p0) x (p2-p0) / 6
+        float g1x = (y20 * z30 - z20 * y30) * sixth, g1y = (z20 * x30 - x20 * z30) * sixth, g1z = (x20 * y30 - y20 * x30) * sixth;
+        float g2x = (y30 * z10 - z30 * y10) * sixth, g2y = (z30 * x10 - x30 * z10) * sixth, g2z = (x30 * y10 - y30 * x10) * sixth;
+        float g3x = (y10 * z20 - z10 * y20) * sixth, g3y = (z10 * x20 - x10 * z20) * sixth, g3z = (x10 * y20 - y10 * x20) * sixth;
+        float g0x = -(g1x + g2x + g3x), g0y = -(g1y + g2y + g3y), g0z = -(g1z + g2z + g3z);
+        float volume = x10 * g1x + y10 * g1y + z10 * g1z;
         float c = volume - restVolume;
-
-        gradientVolume(p1, p2, p3, d0);
-        gradientVolume(p2, p3, p0, d1);
-        gradientVolume(p3, p0, p1, d2);
-        gradientVolume(p0, p1, p2, d3);
-
-        float denom = d0.lengthSquared() + d1.lengthSquared() + d2.lengthSquared() + d3.lengthSquared();
-        if (denom < EPS) {
-            d0.set(0.0f, 0.0f, 0.0f);
-            d1.set(0.0f, 0.0f, 0.0f);
-            d2.set(0.0f, 0.0f, 0.0f);
+        float denom = invMass0 * (g0x * g0x + g0y * g0y + g0z * g0z)
+                + invMass1 * (g1x * g1x + g1y * g1y + g1z * g1z)
+                + invMass2 * (g2x * g2x + g2y * g2y + g2z * g2z)
+                + invMass3 * (g3x * g3x + g3y * g3y + g3z * g3z);
+        if (denom < EPS * EPS) {
+            zero(d0, d1, d2);
             d3.set(0.0f, 0.0f, 0.0f);
             return volume;
         }
-        float lambda = -stiffness * c / denom;
-        d0.mul(lambda);
-        d1.mul(lambda);
-        d2.mul(lambda);
-        d3.mul(lambda);
+        float s = -stiffness * c / denom;
+        d0.set(g0x * s * invMass0, g0y * s * invMass0, g0z * s * invMass0);
+        d1.set(g1x * s * invMass1, g1y * s * invMass1, g1z * s * invMass1);
+        d2.set(g2x * s * invMass2, g2y * s * invMass2, g2z * s * invMass2);
+        d3.set(g3x * s * invMass3, g3y * s * invMass3, g3z * s * invMass3);
         return volume;
     }
 
+    /**
+     * Shape-matching goal positions (Mueller et al. 2005). The rotation is the rotational part of the
+     * polar decomposition of {@code A_pq = sum m_i (x_i - c)(x0_i - c0)^T}, extracted with the iterative
+     * method of Mueller et al. 2016, "A Robust Method to Extract the Rotational Part of Deformations". The
+     * iteration starts from a Gram-Schmidt estimate, so large rotations converge too. Goals are
+     * {@code R (x0_i - c0) + c}. This method does not allocate.
+     *
+     * @param rotationOut receives R (column-major, so {@code rotationOut.transform(v)} applies it)
+     */
     public static void shapeMatchingGoal(
             Vector3f[] currentPositions,
             Vector3f[] restPositions,
@@ -141,14 +198,21 @@ public final class PbdConstraintsf {
             Matrix3f rotationOut,
             Vector3f[] goalPositions) {
         int n = currentPositions.length;
+        if (restPositions.length != n || masses.length != n || goalPositions.length != n) {
+            throw new IllegalArgumentException("array lengths differ");
+        }
         float massSum = 0.0f;
-        Vector3f currentCom = new Vector3f();
-        Vector3f restCom = new Vector3f();
+        float ccx = 0.0f, ccy = 0.0f, ccz = 0.0f;
+        float rcx = 0.0f, rcy = 0.0f, rcz = 0.0f;
         for (int i = 0; i < n; i++) {
             float m = masses[i];
             massSum += m;
-            currentCom.fma(m, currentPositions[i]);
-            restCom.fma(m, restPositions[i]);
+            ccx += m * currentPositions[i].x;
+            ccy += m * currentPositions[i].y;
+            ccz += m * currentPositions[i].z;
+            rcx += m * restPositions[i].x;
+            rcy += m * restPositions[i].y;
+            rcz += m * restPositions[i].z;
         }
         if (massSum <= EPS) {
             rotationOut.identity();
@@ -157,62 +221,101 @@ public final class PbdConstraintsf {
             }
             return;
         }
-        currentCom.div(massSum);
-        restCom.div(massSum);
+        float inv = 1.0f / massSum;
+        ccx *= inv; ccy *= inv; ccz *= inv;
+        rcx *= inv; rcy *= inv; rcz *= inv;
 
-        float sxx = 0.0f, sxy = 0.0f, sxz = 0.0f;
-        float syx = 0.0f, syy = 0.0f, syz = 0.0f;
-        float szx = 0.0f, szy = 0.0f, szz = 0.0f;
+        // A_pq, element a<r><c> = sum m p_r q_c (row r, column c)
+        double a00 = 0, a01 = 0, a02 = 0, a10 = 0, a11 = 0, a12 = 0, a20 = 0, a21 = 0, a22 = 0;
         for (int i = 0; i < n; i++) {
-            float m = masses[i];
-            float qx = restPositions[i].x - restCom.x;
-            float qy = restPositions[i].y - restCom.y;
-            float qz = restPositions[i].z - restCom.z;
-            float px = currentPositions[i].x - currentCom.x;
-            float py = currentPositions[i].y - currentCom.y;
-            float pz = currentPositions[i].z - currentCom.z;
-            sxx += m * px * qx;
-            sxy += m * px * qy;
-            sxz += m * px * qz;
-            syx += m * py * qx;
-            syy += m * py * qy;
-            syz += m * py * qz;
-            szx += m * pz * qx;
-            szy += m * pz * qy;
-            szz += m * pz * qz;
+            double m = masses[i];
+            double qx = restPositions[i].x - rcx, qy = restPositions[i].y - rcy, qz = restPositions[i].z - rcz;
+            double px = currentPositions[i].x - ccx, py = currentPositions[i].y - ccy, pz = currentPositions[i].z - ccz;
+            a00 += m * px * qx; a01 += m * px * qy; a02 += m * px * qz;
+            a10 += m * py * qx; a11 += m * py * qy; a12 += m * py * qz;
+            a20 += m * pz * qx; a21 += m * pz * qy; a22 += m * pz * qz;
         }
 
-        Vector3f c0 = new Vector3f(sxx, syx, szx);
-        Vector3f c1 = new Vector3f(sxy, syy, szy);
-        if (c0.lengthSquared() < EPS || c1.lengthSquared() < EPS) {
-            rotationOut.identity();
-        } else {
-            c0.normalize();
-            c1.fma(-c0.dot(c1), c0).normalize();
-            Vector3f c2 = c0.cross(c1, new Vector3f());
-            rotationOut.set(
-                    c0.x, c1.x, c2.x,
-                    c0.y, c1.y, c2.y,
-                    c0.z, c1.z, c2.z);
+        // Initial estimate: Gram-Schmidt on the first two columns of A_pq (identity if degenerate).
+        double qw = 1, qx = 0, qy = 0, qz = 0;
+        double c0x = a00, c0y = a10, c0z = a20;
+        double c1x = a01, c1y = a11, c1z = a21;
+        double c0l = java.lang.Math.sqrt(c0x * c0x + c0y * c0y + c0z * c0z);
+        if (c0l > 1e-12) {
+            c0x /= c0l; c0y /= c0l; c0z /= c0l;
+            double d = c0x * c1x + c0y * c1y + c0z * c1z;
+            c1x -= d * c0x; c1y -= d * c0y; c1z -= d * c0z;
+            double c1l = java.lang.Math.sqrt(c1x * c1x + c1y * c1y + c1z * c1z);
+            if (c1l > 1e-12) {
+                c1x /= c1l; c1y /= c1l; c1z /= c1l;
+                double c2x = c0y * c1z - c0z * c1y, c2y = c0z * c1x - c0x * c1z, c2z = c0x * c1y - c0y * c1x;
+                // rotation matrix (columns c0, c1, c2) -> quaternion (Shepperd)
+                double tr = c0x + c1y + c2z;
+                if (tr > 0) {
+                    double t = java.lang.Math.sqrt(tr + 1.0) * 2;
+                    qw = 0.25 * t; qx = (c1z - c2y) / t; qy = (c2x - c0z) / t; qz = (c0y - c1x) / t;
+                } else if (c0x > c1y && c0x > c2z) {
+                    double t = java.lang.Math.sqrt(1.0 + c0x - c1y - c2z) * 2;
+                    qw = (c1z - c2y) / t; qx = 0.25 * t; qy = (c1x + c0y) / t; qz = (c2x + c0z) / t;
+                } else if (c1y > c2z) {
+                    double t = java.lang.Math.sqrt(1.0 + c1y - c0x - c2z) * 2;
+                    qw = (c2x - c0z) / t; qx = (c1x + c0y) / t; qy = 0.25 * t; qz = (c2y + c1z) / t;
+                } else {
+                    double t = java.lang.Math.sqrt(1.0 + c2z - c0x - c1y) * 2;
+                    qw = (c0y - c1x) / t; qx = (c2x + c0z) / t; qy = (c2y + c1z) / t; qz = 0.25 * t;
+                }
+            }
         }
+
+        // Mueller 2016 iteration: rotate R toward A until sum_k R_k x A_k vanishes.
+        double r00 = 1, r10 = 0, r20 = 0, r01 = 0, r11 = 1, r21 = 0, r02 = 0, r12 = 0, r22 = 1;
+        for (int iter = 0; iter <= SHAPE_MATCH_MAX_ITER; iter++) {
+            double ql = java.lang.Math.sqrt(qw * qw + qx * qx + qy * qy + qz * qz);
+            qw /= ql; qx /= ql; qy /= ql; qz /= ql;
+            r00 = 1 - 2 * (qy * qy + qz * qz); r10 = 2 * (qx * qy + qw * qz); r20 = 2 * (qx * qz - qw * qy);
+            r01 = 2 * (qx * qy - qw * qz); r11 = 1 - 2 * (qx * qx + qz * qz); r21 = 2 * (qy * qz + qw * qx);
+            r02 = 2 * (qx * qz + qw * qy); r12 = 2 * (qy * qz - qw * qx); r22 = 1 - 2 * (qx * qx + qy * qy);
+            if (iter == SHAPE_MATCH_MAX_ITER) {
+                break;
+            }
+            double ox = (r10 * a20 - r20 * a10) + (r11 * a21 - r21 * a11) + (r12 * a22 - r22 * a12);
+            double oy = (r20 * a00 - r00 * a20) + (r21 * a01 - r01 * a21) + (r22 * a02 - r02 * a22);
+            double oz = (r00 * a10 - r10 * a00) + (r01 * a11 - r11 * a01) + (r02 * a12 - r12 * a02);
+            double dot = r00 * a00 + r10 * a10 + r20 * a20 + r01 * a01 + r11 * a11 + r21 * a21
+                    + r02 * a02 + r12 * a12 + r22 * a22;
+            double scale = 1.0 / (java.lang.Math.abs(dot) + 1.0e-9);
+            ox *= scale; oy *= scale; oz *= scale;
+            double w = java.lang.Math.sqrt(ox * ox + oy * oy + oz * oz);
+            if (w < 1.0e-9) {
+                break;
+            }
+            double h = 0.5 * w, sh = java.lang.Math.sin(h) / w;
+            double rw = java.lang.Math.cos(h), rx = ox * sh, ry = oy * sh, rz = oz * sh;
+            // q = r * q
+            double nw = rw * qw - rx * qx - ry * qy - rz * qz;
+            double nx = rw * qx + rx * qw + ry * qz - rz * qy;
+            double ny = rw * qy - rx * qz + ry * qw + rz * qx;
+            double nz = rw * qz + rx * qy - ry * qx + rz * qw;
+            qw = nw; qx = nx; qy = ny; qz = nz;
+        }
+        rotationOut.set(
+                (float) r00, (float) r10, (float) r20,
+                (float) r01, (float) r11, (float) r21,
+                (float) r02, (float) r12, (float) r22);
 
         for (int i = 0; i < n; i++) {
             Vector3f q = restPositions[i];
-            float qx = q.x - restCom.x;
-            float qy = q.y - restCom.y;
-            float qz = q.z - restCom.z;
+            float vx = q.x - rcx, vy = q.y - rcy, vz = q.z - rcz;
             goalPositions[i].set(
-                    rotationOut.m00 * qx + rotationOut.m10 * qy + rotationOut.m20 * qz + currentCom.x,
-                    rotationOut.m01 * qx + rotationOut.m11 * qy + rotationOut.m21 * qz + currentCom.y,
-                    rotationOut.m02 * qx + rotationOut.m12 * qy + rotationOut.m22 * qz + currentCom.z);
+                    rotationOut.m00 * vx + rotationOut.m10 * vy + rotationOut.m20 * vz + ccx,
+                    rotationOut.m01 * vx + rotationOut.m11 * vy + rotationOut.m21 * vz + ccy,
+                    rotationOut.m02 * vx + rotationOut.m12 * vy + rotationOut.m22 * vz + ccz);
         }
     }
 
-    private static void gradientVolume(Vector3f a, Vector3f b, Vector3f c, Vector3f out) {
-        out.set(
-                (b.y - a.y) * (c.z - a.z) - (b.z - a.z) * (c.y - a.y),
-                (b.z - a.z) * (c.x - a.x) - (b.x - a.x) * (c.z - a.z),
-                (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x))
-                .mul(1.0f / 6.0f);
+    private static void zero(Vector3f a, Vector3f b, Vector3f c) {
+        a.set(0.0f, 0.0f, 0.0f);
+        b.set(0.0f, 0.0f, 0.0f);
+        c.set(0.0f, 0.0f, 0.0f);
     }
 }

@@ -53,6 +53,7 @@ public final class StdLayout {
             case VEC2:
                 return 8;
             case VEC3:
+                return 12; // base alignment is 16, but the size is 12: a following scalar packs into the 4th slot
             case VEC4:
                 return 16;
             case MAT4:
@@ -69,6 +70,7 @@ public final class StdLayout {
             case VEC2:
                 return 8;
             case VEC3:
+                return 12; // base alignment is 16, but the size is 12: a following scalar packs into the 4th slot
             case VEC4:
                 return 16;
             case MAT4:
@@ -108,6 +110,10 @@ public final class StdLayout {
         }
     }
 
+    /**
+     * Size of a std140 struct with these members: the end of the last member rounded up to 16 bytes (std140
+     * rounds struct alignment up to that of a vec4).
+     */
     public static int structSizeStd140(Type... types) {
         int[] offsets = offsetsStd140(types);
         if (types.length == 0) {
@@ -117,13 +123,21 @@ public final class StdLayout {
         return roundUp(tail, 16);
     }
 
+    /**
+     * Size of a std430 struct with these members, as used for array strides and nested members: the end of
+     * the last member rounded up to the struct's base alignment (the largest member alignment).
+     */
     public static int structSizeStd430(Type... types) {
         int[] offsets = offsetsStd430(types);
         if (types.length == 0) {
             return 0;
         }
         int tail = offsets[types.length - 1] + sizeStd430(types[types.length - 1]);
-        return tail;
+        int align = 1;
+        for (Type t : types) {
+            align = java.lang.Math.max(align, alignStd430(t));
+        }
+        return roundUp(tail, align);
     }
 
     static int[] offsets(boolean std140, Type... types) {

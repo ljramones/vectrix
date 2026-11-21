@@ -35,6 +35,7 @@ import org.dynamisengine.vectrix.core.Vector3fc;
  */
 public final class LtcEvalf {
     private static final float INV_TWO_PI = (float) (1.0 / (2.0 * java.lang.Math.PI));
+    private static final float INV_PI = (float) (1.0 / java.lang.Math.PI);
 
     private LtcEvalf() {
     }
@@ -63,28 +64,36 @@ public final class LtcEvalf {
     }
 
     /**
-     * Polygon (rectangle) form factor using edge integral on unit direction vectors.
+     * Cosine-weighted form factor of a spherical polygon (Lambert's edge integral, as in Heitz et al. 2016).
+     * Vertices are unit directions from the shading point. The light is one-sided: its front face has
+     * counter-clockwise winding about +z, meaning {@code (v_i x v_(i+1)).z > 0} for a small light at the zenith.
+     * A back-facing polygon yields 0. No horizon clipping is applied; use {@link #formFactorRectClipped} for
+     * lights that may cross the horizon.
      */
     public static float formFactorRect(Vector3fc v0, Vector3fc v1, Vector3fc v2, Vector3fc v3) {
-        Vector3f sum = new Vector3f();
-        integrateEdge(v0, v1, sum);
-        integrateEdge(v1, v2, sum);
-        integrateEdge(v2, v3, sum);
-        integrateEdge(v3, v0, sum);
-        return clamp01(sum.z * INV_TWO_PI);
+        float z = edgeZ(v0.x(), v0.y(), v0.z(), v1.x(), v1.y(), v1.z())
+                + edgeZ(v1.x(), v1.y(), v1.z(), v2.x(), v2.y(), v2.z())
+                + edgeZ(v2.x(), v2.y(), v2.z(), v3.x(), v3.y(), v3.z())
+                + edgeZ(v3.x(), v3.y(), v3.z(), v0.x(), v0.y(), v0.z());
+        return clamp01(z * INV_TWO_PI);
     }
 
     /**
-     * Rectangle form factor with horizon clipping applied to vertex directions before integration.
+     * Rectangle form factor, clipped to the upper hemisphere.
      *
      * @since 1.0.0
      */
     public static float formFactorRectClipped(Vector3fc v0, Vector3fc v1, Vector3fc v2, Vector3fc v3) {
-        return formFactorPolygonClipped(new Vector3fc[] {v0, v1, v2, v3}, 4);
+        Clip c = new Clip();
+        c.add(v0); c.add(v1); c.add(v2); c.add(v3);
+        return c.finish();
     }
 
     /**
-     * Polygon form factor with simple horizon clipping in local space.
+     * Polygon form factor, clipped to the upper hemisphere ({@code z >= 0}) before integration. Each edge
+     * crossing the horizon is cut where its chord meets the plane {@code z = 0}. That point lies on the edge's
+     * great circle, so the clipped spherical polygon is exact. Winding and one-sidedness are as in
+     * {@link #formFactorRect}.
      *
      * @param vertices unit or near-unit direction vectors to polygon vertices
      * @param count number of vertices to integrate (>=3)
@@ -95,53 +104,123 @@ public final class LtcEvalf {
         if (vertices == null || count < 3 || count > vertices.length) {
             throw new IllegalArgumentException("vertices/count");
         }
-        Vector3f[] clipped = new Vector3f[count];
+        Clip c = new Clip();
         for (int i = 0; i < count; i++) {
-            Vector3fc v = vertices[i];
-            clipped[i] = new Vector3f(v.x(), v.y(), horizonClip(v.z()));
-            if (clipped[i].lengthSquared() > 1E-8f) {
-                clipped[i].normalize();
-            }
+            c.add(vertices[i]);
         }
-        Vector3f sum = new Vector3f();
-        for (int i = 0; i < count; i++) {
-            integrateEdge(clipped[i], clipped[(i + 1) % count], sum);
-        }
-        return clamp01(sum.z * INV_TWO_PI);
+        return c.finish();
     }
 
     /**
-     * Disc form factor approximation from center direction and disc angular radius.
+     * Form factor of a uniformly emitting sphere or disc that subtends a cap of angular radius
+     * {@code discAngularRadius}, centred {@code acos(cosThetaCenter)} from the normal. This is exact for a
+     * spherical cap, including caps that cross the horizon (Snyder 1996; Lagarde and de Rousiers 2014). Above
+     * the horizon it reduces to {@code cosTheta * sin^2(alpha)}.
      */
     public static float formFactorDisc(float cosThetaCenter, float discAngularRadius) {
-        float omega = (float) (2.0 * java.lang.Math.PI * (1.0 - java.lang.Math.cos(java.lang.Math.max(0.0f, discAngularRadius))));
-        return clamp01(horizonClip(cosThetaCenter) * omega * INV_TWO_PI);
+        double alpha = java.lang.Math.min(java.lang.Math.max(0.0, discAngularRadius), java.lang.Math.PI / 2);
+        double sinSigma = java.lang.Math.sin(alpha);
+        double sinSigmaSqr = sinSigma * sinSigma;
+        if (sinSigmaSqr <= 0.0) {
+            return 0.0f;
+        }
+        double cosTheta = java.lang.Math.max(-1.0, java.lang.Math.min(1.0, cosThetaCenter));
+        double sinTheta = java.lang.Math.sqrt(1.0 - cosTheta * cosTheta);
+        double e;
+        if (cosTheta * cosTheta >= sinSigmaSqr || sinTheta < 1e-9) {
+            // cap entirely above (or below) the horizon, or centred on the normal
+            e = sinSigmaSqr * java.lang.Math.max(0.0, cosTheta);
+        } else {
+            double x = java.lang.Math.sqrt(1.0 / sinSigmaSqr - 1.0);
+            double y = -x * cosTheta / sinTheta;
+            double sinThetaSqrtY = sinTheta * java.lang.Math.sqrt(java.lang.Math.max(0.0, 1.0 - y * y));
+            e = ((cosTheta * java.lang.Math.acos(y) - x * sinThetaSqrtY) * sinSigmaSqr
+                    + java.lang.Math.atan2(sinThetaSqrtY, x)) / java.lang.Math.PI;
+        }
+        return clamp01((float) e);
     }
 
     /**
-     * Tube/capsule form factor approximation from projected angular width and half-length.
+     * Tube/capsule form factor, approximated as {@code cosTheta * omega / pi} with the small-angle solid angle
+     * {@code omega ~ (2 * angularRadius) * (2 * angularHalfLength)}. It is accurate only for small tubes that do
+     * not cross the horizon.
      */
     public static float formFactorTube(float cosThetaCenter, float angularRadius, float angularHalfLength) {
         float width = 2.0f * java.lang.Math.max(0.0f, angularRadius);
         float length = 2.0f * java.lang.Math.max(0.0f, angularHalfLength);
         float omegaApprox = width * length;
-        return clamp01(horizonClip(cosThetaCenter) * omegaApprox * INV_TWO_PI);
+        return clamp01(horizonClip(cosThetaCenter) * omegaApprox * INV_PI);
     }
 
-    private static void integrateEdge(Vector3fc a, Vector3fc b, Vector3f accum) {
-        float cx = a.y() * b.z() - a.z() * b.y();
-        float cy = a.z() * b.x() - a.x() * b.z();
-        float cz = a.x() * b.y() - a.y() * b.x();
+    /** z-component of Lambert's edge integral for the arc a->b (inputs need not be normalised). */
+    private static float edgeZ(float ax, float ay, float az, float bx, float by, float bz) {
+        float la = (float) java.lang.Math.sqrt(ax * ax + ay * ay + az * az);
+        float lb = (float) java.lang.Math.sqrt(bx * bx + by * by + bz * bz);
+        if (la < 1E-7f || lb < 1E-7f) {
+            return 0.0f;
+        }
+        ax /= la; ay /= la; az /= la;
+        bx /= lb; by /= lb; bz /= lb;
+        float cx = ay * bz - az * by;
+        float cy = az * bx - ax * bz;
+        float cz = ax * by - ay * bx;
         float len = (float) java.lang.Math.sqrt(cx * cx + cy * cy + cz * cz);
         if (len < 1E-7f) {
-            return;
+            return 0.0f;
         }
-        float d = clamp(a.x() * b.x() + a.y() * b.y() + a.z() * b.z(), -1.0f, 1.0f);
-        float angle = (float) java.lang.Math.acos(d);
-        float s = angle / len;
-        accum.x += cx * s;
-        accum.y += cy * s;
-        accum.z += cz * s;
+        float angle = (float) java.lang.Math.atan2(len, ax * bx + ay * by + az * bz);
+        return cz * (angle / len);
+    }
+
+    /** Streaming Sutherland-Hodgman clip against z >= 0 that accumulates the edge integral of the output. */
+    private static final class Clip {
+        private float firstX, firstY, firstZ, prevInX, prevInY, prevInZ, outX, outY, outZ, outFirstX, outFirstY, outFirstZ;
+        private boolean hasIn, hasOut;
+        private int emitted;
+        private float sum;
+
+        void add(Vector3fc v) {
+            float x = v.x(), y = v.y(), z = v.z();
+            if (!hasIn) {
+                firstX = x; firstY = y; firstZ = z;
+                hasIn = true;
+            } else {
+                edge(prevInX, prevInY, prevInZ, x, y, z);
+            }
+            prevInX = x; prevInY = y; prevInZ = z;
+        }
+
+        float finish() {
+            if (hasIn) {
+                edge(prevInX, prevInY, prevInZ, firstX, firstY, firstZ);
+            }
+            if (emitted >= 3) {
+                sum += edgeZ(outX, outY, outZ, outFirstX, outFirstY, outFirstZ);
+            }
+            return emitted >= 3 ? clamp01(sum * INV_TWO_PI) : 0.0f;
+        }
+
+        private void edge(float ax, float ay, float az, float bx, float by, float bz) {
+            boolean aIn = az >= 0.0f, bIn = bz >= 0.0f;
+            if (aIn != bIn) {
+                float t = az / (az - bz);
+                emit(ax + t * (bx - ax), ay + t * (by - ay), 0.0f);
+            }
+            if (bIn) {
+                emit(bx, by, bz);
+            }
+        }
+
+        private void emit(float x, float y, float z) {
+            if (hasOut) {
+                sum += edgeZ(outX, outY, outZ, x, y, z);
+            } else {
+                outFirstX = x; outFirstY = y; outFirstZ = z;
+                hasOut = true;
+            }
+            outX = x; outY = y; outZ = z;
+            emitted++;
+        }
     }
 
     private static float clamp01(float v) {

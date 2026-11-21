@@ -69,6 +69,35 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - The POM `url`/`scm` point to `ljramones/vectrix`; developers are inherited from `dynamis-parent`.
   - The local `sign` profile is removed. It silently disabled the default profile; the parent `release` profile
     handles signing.
+- Physics PBD helpers (review C-3, C-4, H-3):
+  - `PbdConstraintsf.bendConstraint` pushed away from the rest angle, with an unnormalised step of up to
+    ~57 units for centimetre edges. It is now the standard PBD projection
+    `d_i = -k C w_i grad_i / sum w_j |grad_j|^2`, with `atan2` for the angle.
+  - `PbdConstraintsf.volumeConstraint` had sign-flipped gradients for p0 and p2, so it drove the volume the
+    wrong way and did not conserve momentum.
+  - Both constraints gain inverse-mass overloads; the existing signatures are the equal-mass case.
+  - `PbdConstraintsf.shapeMatchingGoal` applied the inverse rotation. Its Gram-Schmidt step was also wrong
+    for any rest shape with a non-diagonal covariance, even under purely rigid motion. It now uses the
+    polar rotation (Mueller et al. 2016 iteration, warm-started by Gram-Schmidt) and no longer allocates.
+- `StdLayout`: a `vec3` has size 12 (alignment 16), so a following scalar packs into its fourth component.
+  `structSizeStd430` rounds up to the largest member alignment (review H-1). `VertexLayoutTest` had pinned
+  the wrong values.
+- `GpuTransformWriteKernels.writeMatrix4fFromPackedAffine` produced an invalid mat4: the translation sat in
+  the bottom row. It now writes a column-major matrix identical to JOML's (review H-2).
+- `ColorSciencef/d.cie1931XyzBar`: added the missing lobe weights of the Wyman–Sloan–Shirley fit. yBar(555 nm)
+  was 1.70 instead of 1.00, and xBar(500 nm) was 1.13 instead of 0.005. The fit is now within 0.015 of the
+  CIE 1931 tables (review H-4).
+- LTC (review H-5, M-5):
+  - `formFactorDisc` was half the correct value. It now uses Snyder's closed form for a spherical cap, which
+    is exact including caps that cross the horizon.
+  - `formFactorTube` was also half the correct value (`Ω/π`, not `Ω/2π`).
+  - `formFactorPolygonClipped`/`formFactorRectClipped` projected vertices instead of clipping edges. Errors
+    were −26 % to +41 %, and a polygon entirely below the horizon gave 0.5. They now use exact streaming
+    Sutherland–Hodgman clipping.
+  - Lights are documented as one-sided: front faces wind counter-clockwise.
+- `SssLutBuilder` now normalises by the profile integral (Penner 2011). Previously the LUT darkened as the
+  profile widened (0.39 and 0.19 instead of 0.97 on a flat surface); a flat surface now reproduces N·L
+  (review M-4).
 - Resolved benchmark execution reliability under named-module `-Pbench` workflow and documented the approach.
 - Closed skinning equivalence ambiguity by introducing and validating the `kernelMatrixTight` path as the fastest measured baseline shape.
 

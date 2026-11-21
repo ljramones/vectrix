@@ -34,6 +34,9 @@ public final class SssLutBuilder {
     /**
      * Build a 2D preintegrated SSS LUT with axes:
      * x = NdotL in [0,1], y = curvature in [0,1] mapped to [0,maxCurvature].
+     * Each texel is the profile-weighted average of {@code max(0, cos(theta + s * curvature))} over the arc
+     * window, normalised by the profile's integral over that window. Only the relative lobe weights of the
+     * profile matter, and a flat surface yields {@code NdotL}.
      *
      * @param width LUT width
      * @param height LUT height
@@ -58,6 +61,7 @@ public final class SssLutBuilder {
         float[] kernelG = new float[sampleCount];
         float[] kernelB = new float[sampleCount];
         float[] p = new float[3];
+        float sumR = 0.0f, sumG = 0.0f, sumB = 0.0f;
         for (int i = 0; i < sampleCount; i++) {
             float s = -maxArcLength + (i + 0.5f) * ds;
             sampleOffsets[i] = s;
@@ -65,6 +69,17 @@ public final class SssLutBuilder {
             kernelR[i] = p[0] * ds;
             kernelG[i] = p[1] * ds;
             kernelB[i] = p[2] * ds;
+            sumR += kernelR[i];
+            sumG += kernelG[i];
+            sumB += kernelB[i];
+        }
+        // Normalise by the integral of the profile over the window (Penner 2011): the LUT is a weighted average
+        // of the shifted clamped cosine, so a flat surface reproduces N.L whatever the profile width. Samples
+        // clamped to zero still count in the denominator.
+        for (int i = 0; i < sampleCount; i++) {
+            kernelR[i] = sumR > 0.0f ? kernelR[i] / sumR : 0.0f;
+            kernelG[i] = sumG > 0.0f ? kernelG[i] / sumG : 0.0f;
+            kernelB[i] = sumB > 0.0f ? kernelB[i] / sumB : 0.0f;
         }
         float[] thetaByX = new float[width];
         for (int x = 0; x < width; x++) {

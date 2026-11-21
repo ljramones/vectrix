@@ -35,6 +35,12 @@ public final class GpuTransformWriteKernels {
     private GpuTransformWriteKernels() {
     }
 
+    /**
+     * Expand packed affines into column-major 4x4 matrices (GLSL {@code mat4} / JOML {@code Matrix4f} order).
+     * Each packed transform is {@code [c0.xyz tx, c1.xyz ty, c2.xyz tz]} (basis columns with the translation
+     * interleaved, see {@link PackedAffineArray}), so the output is
+     * {@code [c0.xyz 0, c1.xyz 0, c2.xyz 0, tx ty tz 1]}.
+     */
     public static void writeMatrix4fFromPackedAffine(PackedAffineArray src, int[] order, float[] out, int count) {
         float[] data = src.raw();
         for (int i = 0; i < count; i++) {
@@ -43,18 +49,18 @@ public final class GpuTransformWriteKernels {
             out[dst] = data[srcBase];
             out[dst + 1] = data[srcBase + 1];
             out[dst + 2] = data[srcBase + 2];
-            out[dst + 3] = data[srcBase + 3];
+            out[dst + 3] = 0.0f;
             out[dst + 4] = data[srcBase + 4];
             out[dst + 5] = data[srcBase + 5];
             out[dst + 6] = data[srcBase + 6];
-            out[dst + 7] = data[srcBase + 7];
+            out[dst + 7] = 0.0f;
             out[dst + 8] = data[srcBase + 8];
             out[dst + 9] = data[srcBase + 9];
             out[dst + 10] = data[srcBase + 10];
-            out[dst + 11] = data[srcBase + 11];
-            out[dst + 12] = 0.0f;
-            out[dst + 13] = 0.0f;
-            out[dst + 14] = 0.0f;
+            out[dst + 11] = 0.0f;
+            out[dst + 12] = data[srcBase + 3];
+            out[dst + 13] = data[srcBase + 7];
+            out[dst + 14] = data[srcBase + 11];
             out[dst + 15] = 1.0f;
         }
     }

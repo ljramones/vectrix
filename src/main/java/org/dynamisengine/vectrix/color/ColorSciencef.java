@@ -37,13 +37,17 @@ public final class ColorSciencef {
     }
 
     /**
-     * Approximate CIE 1931 2-deg color matching functions (xBar, yBar, zBar).
+     * CIE 1931 2-degree colour matching functions (xBar, yBar, zBar), using the multi-lobe piecewise-Gaussian
+     * fit of Wyman, Sloan and Shirley, "Simple Analytic Approximations to the CIE XYZ Color Matching
+     * Functions" (JCGT 2013). The maximum absolute error against the tabulated CIE data is about 0.015.
+     * The wavelength is clamped to [380, 780] nm.
      */
     public static Vector3f cie1931XyzBar(float wavelengthNm, Vector3f dest) {
         float wl = clamp(wavelengthNm, VISIBLE_MIN_NM, VISIBLE_MAX_NM);
-        float x = g(wl, 442.0f, 0.0624f, 0.0374f) + g(wl, 599.8f, 0.0264f, 0.0323f) + g(wl, 501.1f, 0.0490f, 0.0382f);
-        float y = g(wl, 568.8f, 0.0213f, 0.0247f) + g(wl, 530.9f, 0.0613f, 0.0322f);
-        float z = g(wl, 437.0f, 0.0845f, 0.0278f) + g(wl, 459.0f, 0.0385f, 0.0725f);
+        float x = 1.056f * g(wl, 599.8f, 0.0264f, 0.0323f) + 0.362f * g(wl, 442.0f, 0.0624f, 0.0374f)
+                - 0.065f * g(wl, 501.1f, 0.0490f, 0.0382f);
+        float y = 0.821f * g(wl, 568.8f, 0.0213f, 0.0247f) + 0.286f * g(wl, 530.9f, 0.0613f, 0.0322f);
+        float z = 1.217f * g(wl, 437.0f, 0.0845f, 0.0278f) + 0.681f * g(wl, 459.0f, 0.0385f, 0.0725f);
         return dest.set(x, y, z);
     }
 

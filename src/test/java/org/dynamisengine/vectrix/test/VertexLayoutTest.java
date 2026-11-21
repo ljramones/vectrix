@@ -44,13 +44,31 @@ class VertexLayoutTest {
     void std140AndStd430Offsets() {
         int[] std140 = StdLayout.offsetsStd140(StdLayout.Type.VEC3, StdLayout.Type.FLOAT, StdLayout.Type.MAT4);
         int[] std430 = StdLayout.offsetsStd430(StdLayout.Type.VEC3, StdLayout.Type.FLOAT, StdLayout.Type.MAT4);
+        // GLSL 4.60 section 7.6.2.2, rules 1-3 and 5: a vec3 has base alignment 16 but size 12, so a following
+        // float packs into its 4th component; a mat4 is an array of 4 vec4 columns (alignment 16, size 64).
+        // These values previously asserted float@16, mat4@32 and size 96 (review finding H-1).
         assertEquals(0, std140[0]);
-        assertEquals(16, std140[1]);
-        assertEquals(32, std140[2]);
+        assertEquals(12, std140[1]);
+        assertEquals(16, std140[2]);
         assertEquals(0, std430[0]);
-        assertEquals(16, std430[1]);
-        assertEquals(32, std430[2]);
-        assertEquals(96, StdLayout.structSizeStd140(StdLayout.Type.VEC3, StdLayout.Type.FLOAT, StdLayout.Type.MAT4));
-        assertEquals(96, StdLayout.structSizeStd430(StdLayout.Type.VEC3, StdLayout.Type.FLOAT, StdLayout.Type.MAT4));
+        assertEquals(12, std430[1]);
+        assertEquals(16, std430[2]);
+        assertEquals(80, StdLayout.structSizeStd140(StdLayout.Type.VEC3, StdLayout.Type.FLOAT, StdLayout.Type.MAT4));
+        assertEquals(80, StdLayout.structSizeStd430(StdLayout.Type.VEC3, StdLayout.Type.FLOAT, StdLayout.Type.MAT4));
+    }
+
+    @Test
+    void structSizesFollowSpecRounding() {
+        // std140 rounds every struct up to 16; std430 rounds to the largest member alignment.
+        assertEquals(16, StdLayout.structSizeStd140(StdLayout.Type.VEC3, StdLayout.Type.FLOAT));
+        assertEquals(16, StdLayout.structSizeStd430(StdLayout.Type.VEC3, StdLayout.Type.FLOAT));
+        assertEquals(32, StdLayout.structSizeStd430(StdLayout.Type.VEC4, StdLayout.Type.FLOAT));
+        assertEquals(16, StdLayout.structSizeStd430(StdLayout.Type.VEC2, StdLayout.Type.FLOAT));
+        assertEquals(4, StdLayout.structSizeStd430(StdLayout.Type.FLOAT));
+        assertEquals(16, StdLayout.structSizeStd140(StdLayout.Type.FLOAT));
+        int[] o = StdLayout.offsetsStd430(StdLayout.Type.FLOAT, StdLayout.Type.VEC3, StdLayout.Type.FLOAT);
+        assertEquals(0, o[0]);
+        assertEquals(16, o[1]);
+        assertEquals(28, o[2]);
     }
 }
