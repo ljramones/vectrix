@@ -39,7 +39,6 @@ import java.text.NumberFormat;
 public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
 
     private static final long serialVersionUID = 1L;
-    private static final double STRICT_TOLERANCE = 1E-6;
     private static final double ZERO_TOLERANCE = 1E-12;
 
     /**
@@ -1801,7 +1800,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * @since 1.0.0
      */
     public Quaterniond log(Quaterniond dest) {
-        if (CoreConfig.mathMode() == MathMode.STRICT && Math.abs(lengthSquared() - 1.0) > STRICT_TOLERANCE) {
+        if (CoreConfig.mathMode() == MathMode.STRICT && !CoreConfig.withinStrictUnitTolerance(lengthSquared())) {
             throw new IllegalArgumentException("Quaternion logarithm requires unit input");
         }
         double vLen = Math.sqrt(Math.fma(x, x, Math.fma(y, y, z * z)));
@@ -1842,7 +1841,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * @since 1.0.0
      */
     public Quaterniond exp(Quaterniond dest) {
-        if (CoreConfig.mathMode() == MathMode.STRICT && Math.abs(w) > STRICT_TOLERANCE) {
+        if (CoreConfig.mathMode() == MathMode.STRICT && !(Math.abs(w) <= CoreConfig.STRICT_UNIT_TOLERANCE_D)) {
             throw new IllegalArgumentException("Quaternion exponential requires pure input");
         }
         double vLen = Math.sqrt(Math.fma(x, x, Math.fma(y, y, z * z)));
@@ -1922,7 +1921,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     }
 
     public Quaterniond swingTwist(Vector3dc twistAxis, Quaterniond swing, Quaterniond twist) {
-        if (CoreConfig.mathMode() == MathMode.STRICT && Math.abs(lengthSquared() - 1.0) > STRICT_TOLERANCE) {
+        if (CoreConfig.mathMode() == MathMode.STRICT && !CoreConfig.withinStrictUnitTolerance(lengthSquared())) {
             throw new IllegalArgumentException("Swing-twist requires unit quaternion input");
         }
         if (swing == twist) {
@@ -1932,7 +1931,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
         double qx = x, qy = y, qz = z, qw = w;
         double ax = twistAxis.x(), ay = twistAxis.y(), az = twistAxis.z();
         double axisLenSq = Math.fma(ax, ax, Math.fma(ay, ay, az * az));
-        if (CoreConfig.mathMode() == MathMode.STRICT && Math.abs(axisLenSq - 1.0) > STRICT_TOLERANCE) {
+        if (CoreConfig.mathMode() == MathMode.STRICT && !CoreConfig.withinStrictUnitTolerance(axisLenSq)) {
             throw new IllegalArgumentException("Swing-twist requires unit twist axis");
         }
         if (axisLenSq < ZERO_TOLERANCE) {
@@ -1983,8 +1982,8 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
             throw new IllegalArgumentException("dt");
         }
         if (CoreConfig.mathMode() == MathMode.STRICT
-                && (Math.abs(lengthSquared() - 1.0) > STRICT_TOLERANCE
-                || Math.abs(next.lengthSquared() - 1.0) > STRICT_TOLERANCE)) {
+                && (!CoreConfig.withinStrictUnitTolerance(lengthSquared())
+                || !CoreConfig.withinStrictUnitTolerance(next.lengthSquared()))) {
             throw new IllegalArgumentException("Angular velocity requires unit quaternions");
         }
         double nx = next.x(), ny = next.y(), nz = next.z(), nw = next.w();
@@ -2046,7 +2045,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
         int end = offset + length;
         if (CoreConfig.mathMode() == MathMode.STRICT) {
             for (int i = offset; i < end; i++) {
-                if (Math.abs(sequence[i].lengthSquared() - 1.0) > STRICT_TOLERANCE) {
+                if (!CoreConfig.withinStrictUnitTolerance(sequence[i].lengthSquared())) {
                     throw new IllegalArgumentException("Sequence contains non-unit quaternion");
                 }
             }

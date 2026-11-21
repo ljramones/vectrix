@@ -28,7 +28,8 @@ import org.dynamisengine.vectrix.core.Quaternionf;
 import org.dynamisengine.vectrix.core.Vector3fc;
 
 /**
- * Batch kernels for packed affine transforms.
+ * Batch kernels for packed affine transforms in the row-major layout of {@link PackedAffineArray}. The
+ * TRS conversions produce {@code T * R * S}, the same matrix as JOML's {@code translationRotateScale}.
  */
 public final class PackedAffineKernels {
     private PackedAffineKernels() {
@@ -64,15 +65,15 @@ public final class PackedAffineKernels {
             Matrix4f m = matrices[i];
             int o = out.offsetOf(i);
             dst[o] = m.m00();
-            dst[o + 1] = m.m01();
-            dst[o + 2] = m.m02();
+            dst[o + 1] = m.m10();
+            dst[o + 2] = m.m20();
             dst[o + 3] = m.m30();
-            dst[o + 4] = m.m10();
+            dst[o + 4] = m.m01();
             dst[o + 5] = m.m11();
-            dst[o + 6] = m.m12();
+            dst[o + 6] = m.m21();
             dst[o + 7] = m.m31();
-            dst[o + 8] = m.m20();
-            dst[o + 9] = m.m21();
+            dst[o + 8] = m.m02();
+            dst[o + 9] = m.m12();
             dst[o + 10] = m.m22();
             dst[o + 11] = m.m32();
         }
@@ -159,17 +160,17 @@ public final class PackedAffineKernels {
         for (int i = start; i < end; i++) {
             int idx = order[i];
             int o = transforms.offsetOf(idx);
-            float m00 = t[o];
-            float m01 = t[o + 1];
-            float m02 = t[o + 2];
+            float r00 = t[o];
+            float r01 = t[o + 1];
+            float r02 = t[o + 2];
             float tx = t[o + 3];
-            float m10 = t[o + 4];
-            float m11 = t[o + 5];
-            float m12 = t[o + 6];
+            float r10 = t[o + 4];
+            float r11 = t[o + 5];
+            float r12 = t[o + 6];
             float ty = t[o + 7];
-            float m20 = t[o + 8];
-            float m21 = t[o + 9];
-            float m22 = t[o + 10];
+            float r20 = t[o + 8];
+            float r21 = t[o + 9];
+            float r22 = t[o + 10];
             float tz = t[o + 11];
 
             float cx = (minX[idx] + maxX[idx]) * 0.5f;
@@ -179,13 +180,13 @@ public final class PackedAffineKernels {
             float ey = (maxY[idx] - minY[idx]) * 0.5f;
             float ez = (maxZ[idx] - minZ[idx]) * 0.5f;
 
-            float ncx = m00 * cx + m10 * cy + m20 * cz + tx;
-            float ncy = m01 * cx + m11 * cy + m21 * cz + ty;
-            float ncz = m02 * cx + m12 * cy + m22 * cz + tz;
+            float ncx = r00 * cx + r01 * cy + r02 * cz + tx;
+            float ncy = r10 * cx + r11 * cy + r12 * cz + ty;
+            float ncz = r20 * cx + r21 * cy + r22 * cz + tz;
 
-            float nex = java.lang.Math.abs(m00) * ex + java.lang.Math.abs(m10) * ey + java.lang.Math.abs(m20) * ez;
-            float ney = java.lang.Math.abs(m01) * ex + java.lang.Math.abs(m11) * ey + java.lang.Math.abs(m21) * ez;
-            float nez = java.lang.Math.abs(m02) * ex + java.lang.Math.abs(m12) * ey + java.lang.Math.abs(m22) * ez;
+            float nex = java.lang.Math.abs(r00) * ex + java.lang.Math.abs(r01) * ey + java.lang.Math.abs(r02) * ez;
+            float ney = java.lang.Math.abs(r10) * ex + java.lang.Math.abs(r11) * ey + java.lang.Math.abs(r12) * ez;
+            float nez = java.lang.Math.abs(r20) * ex + java.lang.Math.abs(r21) * ey + java.lang.Math.abs(r22) * ez;
 
             outMinX[idx] = ncx - nex;
             outMinY[idx] = ncy - ney;
@@ -248,18 +249,19 @@ public final class PackedAffineKernels {
         float q13 = dqy * qw;
         float q23 = dqz * qw;
 
+        // Row-major R * S: column c of the rotation is scaled by s_c.
         dst[offset] = sx - (q11 + q22) * sx;
-        dst[offset + 1] = (q01 + q23) * sx;
-        dst[offset + 2] = (q02 - q13) * sx;
+        dst[offset + 1] = (q01 - q23) * sy;
+        dst[offset + 2] = (q02 + q13) * sz;
         dst[offset + 3] = tx;
 
-        dst[offset + 4] = (q01 - q23) * sy;
+        dst[offset + 4] = (q01 + q23) * sx;
         dst[offset + 5] = sy - (q22 + q00) * sy;
-        dst[offset + 6] = (q12 + q03) * sy;
+        dst[offset + 6] = (q12 - q03) * sz;
         dst[offset + 7] = ty;
 
-        dst[offset + 8] = (q02 + q13) * sz;
-        dst[offset + 9] = (q12 - q03) * sz;
+        dst[offset + 8] = (q02 - q13) * sx;
+        dst[offset + 9] = (q12 + q03) * sy;
         dst[offset + 10] = sz - (q11 + q00) * sz;
         dst[offset + 11] = tz;
     }

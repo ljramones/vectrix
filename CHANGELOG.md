@@ -35,6 +35,19 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   `long`, and the `(Vector2dc, z, mode)` constructor takes a `double` z. `Vector4L` gains a `(long[])`
   constructor. `Vector2L`/`Vector2Lc.minComponent`/`maxComponent` return `int` (a component index), like every
   other vector type. All of these are source compatible.
+- **Packed affine layout (review M-1).** `PackedAffineArray` now stores rows (`[r00 r01 r02 tx, r10 r11 r12 ty,
+  r20 r21 r22 tz]`), the layout already used by the skinning palette and Vulkan's `VkTransformMatrixKHR`. It
+  previously stored basis columns under the same documentation, so a packed array fed to `skinLbs4MatrixPalette`
+  or uploaded to a row-major consumer applied the inverse rotation. Code that reads `raw()` by index must swap
+  elements 1/4, 2/8 and 6/9. The JOML mapping (`rRC = m.mCR()`) is in `docs/conventions.md`.
+- **One STRICT contract (review M-11).** `MathMode.STRICT` now means: validate inputs and throw, never repair,
+  results bitwise equal to the FAST scalar path for valid inputs, fixed scalar dispatch, and accurate reductions
+  (documented on `MathMode` and in `docs/conventions.md`). As a result:
+  - STRICT `TransformKernels.composeBatch` throws for non-unit, zero or NaN rotations, instead of renormalising
+    the output and replacing a zero product with identity.
+  - The float unit tolerance is now `1e-5` on `|q|^2 - 1` (`CoreConfig.STRICT_UNIT_TOLERANCE_F`). The previous
+    `1e-6` rejected ordinary output of about eight chained float products. Double stays at `1e-6`.
+  - NaN now fails every STRICT unit check; previously `|NaN - 1| > tol` was false, so NaN passed.
 - Runtime/default doctrine is now explicitly benchmark-driven:
   - packed-affine default for bulk transform/update/upload
   - matrix paths retained for fallback/interoperability
@@ -122,7 +135,16 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - `CurveReparameterizer3f/3d.mapArcLengthToT` took the sample count from `table.length`, so oversized or
   reused tables gave a wrong t (0.984 instead of 0.526). It now has a `samples` overload, and NaN propagates
   instead of returning 0 (review M-6).
-
+- `Reduction.sumStrict`/`dotStrict` (STRICT `sum`/`dot`) dropped the per-lane Kahan compensations when it
+  combined lanes, so `{1e8, 3, 3, 3, 3, 0, 0, 0}` gave the FAST answer 100000008 instead of 100000016. Both are now
+  sequential double-double, within one ulp of the exact result (review M-10).
+- `FFT1f` ran its twiddle recurrence in float, losing about 3 digits at large sizes (relative error 2.2e-4 at
+  N = 65536, 2.2e-6 at N = 1024). The recurrence now runs in double; the error is 1.2e-7 to 1.6e-7 (review M-7).
+- `PoissonSampling.Disk` searched only the neighbouring ±1 grid cells, but ±2 are needed at cell size
+  minDist/√2, so samples came as close as about 0.7 × minDist. It also drew the first sample in the unit disk,
+  which threw `ArrayIndexOutOfBoundsException` for radii below 1 (review M-9, upstream JOML).
+- Several benchmarks filled packed-affine and palette arrays by hand in inconsistent orders, some using the
+  always-zero `m03`/`m13`/`m23`. They now use the canonical row-major layout.
 - Resolved benchmark execution reliability under named-module `-Pbench` workflow and documented the approach.
 - Closed skinning equivalence ambiguity by introducing and validating the `kernelMatrixTight` path as the fastest measured baseline shape.
 

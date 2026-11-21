@@ -24,10 +24,19 @@
 package org.dynamisengine.vectrix.affine;
 
 /**
- * Contiguous packed 3x4 affine transform storage.
- *
- * Layout per transform (12 floats):
- * [m00 m01 m02 tx  m10 m11 m12 ty  m20 m21 m22 tz]
+ * Contiguous packed 3x4 affine transform storage, in the engine's canonical {@code AFFINE_3X4_ROW_MAJOR} layout.
+ * <p>
+ * Each transform is 12 floats holding the three rows of the upper 3x4 of the matrix:
+ * <pre>
+ * [r00 r01 r02 tx,  r10 r11 r12 ty,  r20 r21 r22 tz]
+ * </pre>
+ * {@code rRC} is the element in row R, column C (mathematical indices), so a point maps as
+ * {@code x' = r00*x + r01*y + r02*z + tx}, and so on. This is the order of Vulkan's
+ * {@code VkTransformMatrixKHR}, of GLSL {@code vec4 rows[3]} with {@code p' = vec3(dot(rows[0], vec4(p, 1)), ...)},
+ * and of {@link org.dynamisengine.vectrix.soa.SkinningKernels#buildRigidMatrixPalette12 the skinning palette}.
+ * <p>
+ * JOML-style accessors name elements by column first: {@code Matrix4f.mCR()} is column C, row R. The mapping is
+ * therefore {@code rRC = m.mCR()}, for example {@code r01 = m.m10()} and {@code tx = m.m30()}.
  */
 public final class PackedAffineArray {
     public static final int STRIDE_FLOATS = 12;
@@ -57,22 +66,25 @@ public final class PackedAffineArray {
         return index * STRIDE_FLOATS;
     }
 
+    /**
+     * Set transform {@code index} from its rows; see the class documentation for the element meaning.
+     */
     public void set(int index,
-                    float m00, float m01, float m02, float tx,
-                    float m10, float m11, float m12, float ty,
-                    float m20, float m21, float m22, float tz) {
+                    float r00, float r01, float r02, float tx,
+                    float r10, float r11, float r12, float ty,
+                    float r20, float r21, float r22, float tz) {
         int o = offsetOf(index);
-        data[o] = m00;
-        data[o + 1] = m01;
-        data[o + 2] = m02;
+        data[o] = r00;
+        data[o + 1] = r01;
+        data[o + 2] = r02;
         data[o + 3] = tx;
-        data[o + 4] = m10;
-        data[o + 5] = m11;
-        data[o + 6] = m12;
+        data[o + 4] = r10;
+        data[o + 5] = r11;
+        data[o + 6] = r12;
         data[o + 7] = ty;
-        data[o + 8] = m20;
-        data[o + 9] = m21;
-        data[o + 10] = m22;
+        data[o + 8] = r20;
+        data[o + 9] = r21;
+        data[o + 10] = r22;
         data[o + 11] = tz;
     }
 }

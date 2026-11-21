@@ -41,7 +41,8 @@ Current benchmark suites include:
 
 **Explicit contracts, enforced when you want them.**
 - `FAST`: throughput-first, trust valid inputs.
-- `STRICT`: runtime precondition enforcement (for example unit-quaternion checks).
+- `STRICT`: validates preconditions (for example unit quaternions) and throws instead of repairing, keeps FAST
+  scalar results bit for bit, and uses accurate fixed-order reductions. See `docs/conventions.md`.
 
 **Rendering-complete.** Vectrix includes renderer-specific math domains (SH, LTC, FFT/convolution, thin-film/Fresnel optics, LUT builders, low-discrepancy sampling), not just generic linear algebra.
 

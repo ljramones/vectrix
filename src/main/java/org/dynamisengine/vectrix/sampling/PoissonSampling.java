@@ -92,9 +92,9 @@ public class PoissonSampling {
         private void compute(int k, Callback2d callback) {
             float x, y;
             do {
-                x = rnd.nextFloat() * 2.0f - 1.0f;
-                y = rnd.nextFloat() * 2.0f - 1.0f;
-            } while (x * x + y * y > 1.0f);
+                x = (rnd.nextFloat() * 2.0f - 1.0f) * diskRadius;
+                y = (rnd.nextFloat() * 2.0f - 1.0f) * diskRadius;
+            } while (x * x + y * y > diskRadiusSquared);
             Vector2f initial = new Vector2f(x, y);
             processList.add(initial);
             callback.onNewSample(initial.x, initial.y);
@@ -127,16 +127,19 @@ public class PoissonSampling {
             }
         }
 
+        /**
+         * With a cell size of minDist/sqrt(2), a point closer than minDist can lie up to two cells away in each
+         * axis, so the search covers the 5x5 block around the candidate's cell.
+         */
         private boolean searchNeighbors(float px, float py) {
-            float invCellSize = 1.0f / cellSize;
-            int row = (int) ((py + diskRadius) * invCellSize);
-            int col = (int) ((px + diskRadius) * invCellSize);
+            int row = cellIndex(py);
+            int col = cellIndex(px);
             if (grid[row * numCells + col] != null)
                 return true;
-            int minX = Math.max(0, col - 1);
-            int minY = Math.max(0, row - 1);
-            int maxX = Math.min(col + 1, numCells - 1);
-            int maxY = Math.min(row + 1, numCells - 1);
+            int minX = Math.max(0, col - 2);
+            int minY = Math.max(0, row - 2);
+            int maxX = Math.min(col + 2, numCells - 1);
+            int maxY = Math.min(row + 2, numCells - 1);
             for (int y = minY; y <= maxY; y++) {
                 for (int x = minX; x <= maxX; x++) {
                     Vector2f v = grid[y * numCells + x];
@@ -153,10 +156,12 @@ public class PoissonSampling {
         }
 
         private void insert(Vector2f p) {
-            float invCellSize = 1.0f / cellSize;
-            int row = (int) ((p.y + diskRadius) * invCellSize);
-            int col = (int) ((p.x + diskRadius) * invCellSize);
-            grid[row * numCells + col] = p;
+            grid[cellIndex(p.y) * numCells + cellIndex(p.x)] = p;
+        }
+
+        private int cellIndex(float coordinate) {
+            int c = (int) ((coordinate + diskRadius) / cellSize);
+            return Math.min(Math.max(c, 0), numCells - 1);
         }
 
     }

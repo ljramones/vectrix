@@ -37,9 +37,9 @@ public final class GpuTransformWriteKernels {
 
     /**
      * Expand packed affines into column-major 4x4 matrices (GLSL {@code mat4} / JOML {@code Matrix4f} order).
-     * Each packed transform is {@code [c0.xyz tx, c1.xyz ty, c2.xyz tz]} (basis columns with the translation
-     * interleaved, see {@link PackedAffineArray}), so the output is
-     * {@code [c0.xyz 0, c1.xyz 0, c2.xyz 0, tx ty tz 1]}.
+     * Each packed transform holds rows {@code [r00 r01 r02 tx, r10 r11 r12 ty, r20 r21 r22 tz]} (see
+     * {@link PackedAffineArray}), so the output is
+     * {@code [r00 r10 r20 0, r01 r11 r21 0, r02 r12 r22 0, tx ty tz 1]}.
      */
     public static void writeMatrix4fFromPackedAffine(PackedAffineArray src, int[] order, float[] out, int count) {
         float[] data = src.raw();
@@ -47,15 +47,15 @@ public final class GpuTransformWriteKernels {
             int srcBase = src.offsetOf(order[i]);
             int dst = i << 4;
             out[dst] = data[srcBase];
-            out[dst + 1] = data[srcBase + 1];
-            out[dst + 2] = data[srcBase + 2];
+            out[dst + 1] = data[srcBase + 4];
+            out[dst + 2] = data[srcBase + 8];
             out[dst + 3] = 0.0f;
-            out[dst + 4] = data[srcBase + 4];
+            out[dst + 4] = data[srcBase + 1];
             out[dst + 5] = data[srcBase + 5];
-            out[dst + 6] = data[srcBase + 6];
+            out[dst + 6] = data[srcBase + 9];
             out[dst + 7] = 0.0f;
-            out[dst + 8] = data[srcBase + 8];
-            out[dst + 9] = data[srcBase + 9];
+            out[dst + 8] = data[srcBase + 2];
+            out[dst + 9] = data[srcBase + 6];
             out[dst + 10] = data[srcBase + 10];
             out[dst + 11] = 0.0f;
             out[dst + 12] = data[srcBase + 3];
@@ -65,6 +65,10 @@ public final class GpuTransformWriteKernels {
         }
     }
 
+    /**
+     * Copy packed affines in {@code order}, keeping the row-major {@code AFFINE_3X4_ROW_MAJOR} layout of
+     * {@link PackedAffineArray}.
+     */
     public static void writePackedAffine(PackedAffineArray src, int[] order, float[] out, int count) {
         float[] data = src.raw();
         for (int i = 0; i < count; i++) {

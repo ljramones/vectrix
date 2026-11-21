@@ -24,6 +24,7 @@
 package org.dynamisengine.vectrix.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.dynamisengine.vectrix.test.TestUtil.assertMatrix4x3fEquals;
 
@@ -162,7 +163,7 @@ class TransformfTest {
     }
 
     @Test
-    void composeBatchStrictNormalizesQuaternionOutput() {
+    void composeBatchStrictRejectsNonUnitRotationsInsteadOfRepairingThem() {
         MathMode prev = KernelConfig.mathMode();
         boolean prevSimd = KernelConfig.simdEnabled();
         try {
@@ -179,9 +180,10 @@ class TransformfTest {
             l.qy[0] = 0.7f;
             l.qz[0] = 0.2f;
             l.qw[0] = -0.3f;
-            TransformKernels.composeBatch(p, l, o, 1);
-            float len2 = o.qx[0] * o.qx[0] + o.qy[0] * o.qy[0] + o.qz[0] * o.qz[0] + o.qw[0] * o.qw[0];
-            assertEquals(1.0f, len2, 1E-5f);
+            o.qw[0] = 42.0f;
+            // Previously renormalised the product silently; STRICT now validates and never repairs.
+            assertThrows(IllegalArgumentException.class, () -> TransformKernels.composeBatch(p, l, o, 1));
+            assertEquals(42.0f, o.qw[0], "nothing is written when validation fails");
         } finally {
             KernelConfig.setMathMode(prev);
             KernelConfig.setSimdEnabled(prevSimd);

@@ -99,17 +99,17 @@ public class ParallelTransformBenchmark extends ThroughputBenchmark {
             float[] raw = packed.raw();
             int o = i * 12;
             raw[o] = matrices[i].m00();
-            raw[o + 1] = matrices[i].m01();
-            raw[o + 2] = matrices[i].m02();
-            raw[o + 3] = matrices[i].m03();
-            raw[o + 4] = matrices[i].m10();
+            raw[o + 1] = matrices[i].m10();
+            raw[o + 2] = matrices[i].m20();
+            raw[o + 3] = matrices[i].m30();
+            raw[o + 4] = matrices[i].m01();
             raw[o + 5] = matrices[i].m11();
-            raw[o + 6] = matrices[i].m12();
-            raw[o + 7] = matrices[i].m13();
-            raw[o + 8] = matrices[i].m20();
-            raw[o + 9] = matrices[i].m21();
+            raw[o + 6] = matrices[i].m21();
+            raw[o + 7] = matrices[i].m31();
+            raw[o + 8] = matrices[i].m02();
+            raw[o + 9] = matrices[i].m12();
             raw[o + 10] = matrices[i].m22();
-            raw[o + 11] = matrices[i].m23();
+            raw[o + 11] = matrices[i].m32();
         }
 
         pool = new ForkJoinPool(workers);

@@ -194,8 +194,9 @@ public final class SkinningKernels {
     }
 
     /**
-     * Build a rigid matrix palette with 12 floats per joint:
-     * [m00 m01 m02 tx  m10 m11 m12 ty  m20 m21 m22 tz]
+     * Build a rigid matrix palette with 12 floats per joint, in the row-major layout of
+     * {@link org.dynamisengine.vectrix.affine.PackedAffineArray}:
+     * [r00 r01 r02 tx  r10 r11 r12 ty  r20 r21 r22 tz], where rRC is row R, column C
      * for direct use with {@link #skinLbs4MatrixPalette(float[], int[], float[], float[], float[], float[], float[], float[], float[], int)}.
      */
     public static void buildRigidMatrixPalette12(TransformSoA joints, float[] matrixPalette12, int jointCount) {
@@ -238,8 +239,10 @@ public final class SkinningKernels {
 
     /**
      * Stripped matrix-palette skinning kernel for work-equivalence/perf parity studies.
-     * Matrix palette layout per joint is 12 floats:
-     * [m00 m01 m02 tx  m10 m11 m12 ty  m20 m21 m22 tz]
+     * Matrix palette layout per joint is 12 floats, row-major as in
+     * {@link org.dynamisengine.vectrix.affine.PackedAffineArray}:
+     * [r00 r01 r02 tx  r10 r11 r12 ty  r20 r21 r22 tz]. A {@code PackedAffineArray} can be passed directly
+     * through {@code raw()}.
      */
     public static void skinLbs4MatrixPalette(float[] matrixPalette12, int[] jointIndices, float[] jointWeights,
             float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {

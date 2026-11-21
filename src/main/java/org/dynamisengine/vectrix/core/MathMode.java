@@ -24,15 +24,36 @@
 package org.dynamisengine.vectrix.core;
 
 /**
- * Execution mode for math kernels.
+ * Execution mode for math kernels, selected process-wide with {@link CoreConfig#setMathMode} or
+ * {@code -Dvectrix.math.mode}.
+ * <p>
+ * {@link #STRICT} is one contract, applied the same way by every operation that consults the mode:
+ * <ol>
+ * <li><b>Validation.</b> An operation with a documented input domain (unit quaternion, unit axis, pure
+ * quaternion) throws {@link IllegalArgumentException} for inputs outside it, NaN included. A quaternion or
+ * axis counts as unit when {@code |x·x − 1| <= }{@link CoreConfig#STRICT_UNIT_TOLERANCE_F} (float) or
+ * {@link CoreConfig#STRICT_UNIT_TOLERANCE_D} (double); see {@link CoreConfig#withinStrictUnitTolerance(float)}.</li>
+ * <li><b>No repair.</b> STRICT never renormalises, clamps or substitutes values. For valid inputs, element-wise
+ * results are bitwise identical to the scalar {@link #FAST} path.</li>
+ * <li><b>Fixed dispatch.</b> Batch kernels always take their scalar path, whatever SIMD support or
+ * {@code KernelConfig} flags are present, so results do not depend on the host's vector hardware.</li>
+ * <li><b>Accurate reductions.</b> Sums and dot products accumulate in a fixed sequential order with
+ * double-double precision, so the float result is the exact value rounded to float (within one ulp), and is the
+ * same for the same input on every JVM.</li>
+ * </ol>
+ * STRICT does <em>not</em> yet make {@code java.lang.Math} transcendentals ({@code sin}, {@code cos}, ...)
+ * reproducible across CPU architectures, nor override {@code -Djoml.fastmath} / {@code -Djoml.useMathFma}. Those
+ * are covered by the determinism contract (review finding M-12).
  */
 public enum MathMode {
     /**
-     * Prioritize throughput; may use relaxed numerics in specialized kernels.
+     * Prioritize throughput: batch kernels may take SIMD paths, reductions use multiple independent partial
+     * sums, and out-of-domain inputs are not checked.
      */
     FAST,
     /**
-     * Prioritize deterministic/reproducible numerics.
+     * Validate inputs, never repair them, use fixed scalar dispatch and accurate fixed-order reductions. See the
+     * class documentation for the full contract.
      */
     STRICT
 }

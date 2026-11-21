@@ -24,6 +24,7 @@
 package org.dynamisengine.vectrix.affine;
 
 import org.dynamisengine.vectrix.experimental.KernelConfig;
+import org.dynamisengine.vectrix.core.CoreConfig;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.simd.SimdSupport;
 import org.dynamisengine.vectrix.soa.TransformSoA;
@@ -38,7 +39,9 @@ public final class TransformKernels {
     }
 
     /**
-     * Compute {@code out[i] = parents[i] * locals[i]} for {@code count} transforms.
+     * Compute {@code out[i] = parents[i] * locals[i]} for {@code count} transforms. {@code out} may be
+     * {@code parents} or {@code locals}. In {@link MathMode#STRICT} the rotations are validated first (see
+     * {@link #composeBatchScalarStrict}).
      */
     public static void composeBatch(TransformSoA parents, TransformSoA locals, TransformSoA out, int count) {
         if (count <= 0) {
@@ -103,63 +106,25 @@ public final class TransformKernels {
         }
     }
 
+    /**
+     * {@link MathMode#STRICT} compose: every parent and local rotation must be a unit quaternion (see
+     * {@link CoreConfig#withinStrictUnitTolerance(float)}), otherwise {@link IllegalArgumentException} is thrown
+     * before anything is written. The results are then bitwise identical to the FAST scalar path; STRICT does not
+     * renormalise the output.
+     */
     private static void composeBatchScalarStrict(TransformSoA parents, TransformSoA locals, TransformSoA out, int count) {
         for (int i = 0; i < count; i++) {
-            float psx = parents.sx[i];
-            float psy = parents.sy[i];
-            float psz = parents.sz[i];
+            requireUnitRotation(parents, i, "parent");
+            requireUnitRotation(locals, i, "local");
+        }
+        composeBatchScalarFast(parents, locals, out, count);
+    }
 
-            float ltx = locals.tx[i] * psx;
-            float lty = locals.ty[i] * psy;
-            float ltz = locals.tz[i] * psz;
-
-            float pqx = parents.qx[i];
-            float pqy = parents.qy[i];
-            float pqz = parents.qz[i];
-            float pqw = parents.qw[i];
-
-            float tx2 = 2.0f * (pqy * ltz - pqz * lty);
-            float ty2 = 2.0f * (pqz * ltx - pqx * ltz);
-            float tz2 = 2.0f * (pqx * lty - pqy * ltx);
-            float rx = ltx + pqw * tx2 + (pqy * tz2 - pqz * ty2);
-            float ry = lty + pqw * ty2 + (pqz * tx2 - pqx * tz2);
-            float rz = ltz + pqw * tz2 + (pqx * ty2 - pqy * tx2);
-
-            out.tx[i] = parents.tx[i] + rx;
-            out.ty[i] = parents.ty[i] + ry;
-            out.tz[i] = parents.tz[i] + rz;
-
-            float lqx = locals.qx[i];
-            float lqy = locals.qy[i];
-            float lqz = locals.qz[i];
-            float lqw = locals.qw[i];
-
-            float oqx = pqw * lqx + pqx * lqw + pqy * lqz - pqz * lqy;
-            float oqy = pqw * lqy - pqx * lqz + pqy * lqw + pqz * lqx;
-            float oqz = pqw * lqz + pqx * lqy - pqy * lqx + pqz * lqw;
-            float oqw = pqw * lqw - pqx * lqx - pqy * lqy - pqz * lqz;
-
-            float norm = (float) java.lang.Math.sqrt(oqx * oqx + oqy * oqy + oqz * oqz + oqw * oqw);
-            if (norm > 0.0f) {
-                float invNorm = 1.0f / norm;
-                oqx *= invNorm;
-                oqy *= invNorm;
-                oqz *= invNorm;
-                oqw *= invNorm;
-            } else {
-                oqx = 0.0f;
-                oqy = 0.0f;
-                oqz = 0.0f;
-                oqw = 1.0f;
-            }
-            out.qx[i] = oqx;
-            out.qy[i] = oqy;
-            out.qz[i] = oqz;
-            out.qw[i] = oqw;
-
-            out.sx[i] = psx * locals.sx[i];
-            out.sy[i] = psy * locals.sy[i];
-            out.sz[i] = psz * locals.sz[i];
+    private static void requireUnitRotation(TransformSoA t, int i, String role) {
+        float x = t.qx[i], y = t.qy[i], z = t.qz[i], w = t.qw[i];
+        if (!CoreConfig.withinStrictUnitTolerance(x * x + y * y + z * z + w * w)) {
+            throw new IllegalArgumentException("STRICT compose requires unit rotations; " + role + " " + i
+                    + " is (" + x + ", " + y + ", " + z + ", " + w + ")");
         }
     }
 }

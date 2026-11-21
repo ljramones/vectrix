@@ -27,7 +27,9 @@ import org.dynamisengine.vectrix.core.Internal;
 import org.dynamisengine.vectrix.core.MathMode;
 
 /**
- * Deterministic-aware reduction helpers used by batch kernels.
+ * Reduction helpers used by batch kernels. {@link #sum} and {@link #dot} dispatch on
+ * {@link KernelConfig#mathMode()}: FAST uses four independent partial sums, STRICT uses the accurate fixed-order
+ * forms {@link #sumStrict} and {@link #dotStrict}.
  */
 @Internal("Internal reduction utilities for kernel backends.")
 public final class Reduction {
@@ -68,8 +70,21 @@ public final class Reduction {
         return sum;
     }
 
+    /**
+     * {@link MathMode#STRICT} sum: sequential, fixed-order accumulation in double-double precision (Knuth
+     * TwoSum), so the result is the exact sum rounded to float (within one ulp, through double rounding) and does
+     * not depend on lane count, SIMD support or the JVM.
+     */
     public static float sumStrict(float[] values) {
-        return sumKahan(values);
+        double s = 0.0;
+        double c = 0.0;
+        for (float v : values) {
+            double t = s + v;
+            double bp = t - s;
+            c += (s - (t - bp)) + (v - bp);
+            s = t;
+        }
+        return (float) (s + c);
     }
 
     public static float dotFast(float[] a, float[] b) {
@@ -92,112 +107,23 @@ public final class Reduction {
         return sum;
     }
 
+    /**
+     * {@link MathMode#STRICT} dot product. Each float product is exact in double, and the products are summed
+     * as in {@link #sumStrict(float[])}.
+     */
     public static float dotStrict(float[] a, float[] b) {
         if (a.length != b.length) {
             throw new IllegalArgumentException("Mismatched vector lengths");
         }
-        float s0 = 0.0f, s1 = 0.0f, s2 = 0.0f, s3 = 0.0f;
-        float c0 = 0.0f, c1 = 0.0f, c2 = 0.0f, c3 = 0.0f;
-        int i = 0;
-        int upper = a.length & ~3;
-        for (; i < upper; i += 4) {
-            float y0 = a[i] * b[i] - c0;
-            float t0 = s0 + y0;
-            c0 = (t0 - s0) - y0;
-            s0 = t0;
-
-            float y1 = a[i + 1] * b[i + 1] - c1;
-            float t1 = s1 + y1;
-            c1 = (t1 - s1) - y1;
-            s1 = t1;
-
-            float y2 = a[i + 2] * b[i + 2] - c2;
-            float t2 = s2 + y2;
-            c2 = (t2 - s2) - y2;
-            s2 = t2;
-
-            float y3 = a[i + 3] * b[i + 3] - c3;
-            float t3 = s3 + y3;
-            c3 = (t3 - s3) - y3;
-            s3 = t3;
+        double s = 0.0;
+        double c = 0.0;
+        for (int i = 0; i < a.length; i++) {
+            double p = (double) a[i] * b[i];
+            double t = s + p;
+            double bp = t - s;
+            c += (s - (t - bp)) + (p - bp);
+            s = t;
         }
-        float sum = 0.0f;
-        float compensation = 0.0f;
-        float y = s0 - compensation;
-        float t = sum + y;
-        compensation = (t - sum) - y;
-        sum = t;
-        y = s1 - compensation;
-        t = sum + y;
-        compensation = (t - sum) - y;
-        sum = t;
-        y = s2 - compensation;
-        t = sum + y;
-        compensation = (t - sum) - y;
-        sum = t;
-        y = s3 - compensation;
-        t = sum + y;
-        compensation = (t - sum) - y;
-        sum = t;
-        for (; i < a.length; i++) {
-            y = a[i] * b[i] - compensation;
-            t = sum + y;
-            compensation = (t - sum) - y;
-            sum = t;
-        }
-        return sum;
-    }
-
-    static float sumKahan(float[] values) {
-        float s0 = 0.0f, s1 = 0.0f, s2 = 0.0f, s3 = 0.0f;
-        float c0 = 0.0f, c1 = 0.0f, c2 = 0.0f, c3 = 0.0f;
-        int i = 0;
-        int upper = values.length & ~3;
-        for (; i < upper; i += 4) {
-            float y0 = values[i] - c0;
-            float t0 = s0 + y0;
-            c0 = (t0 - s0) - y0;
-            s0 = t0;
-
-            float y1 = values[i + 1] - c1;
-            float t1 = s1 + y1;
-            c1 = (t1 - s1) - y1;
-            s1 = t1;
-
-            float y2 = values[i + 2] - c2;
-            float t2 = s2 + y2;
-            c2 = (t2 - s2) - y2;
-            s2 = t2;
-
-            float y3 = values[i + 3] - c3;
-            float t3 = s3 + y3;
-            c3 = (t3 - s3) - y3;
-            s3 = t3;
-        }
-        float sum = 0.0f;
-        float compensation = 0.0f;
-        float y = s0 - compensation;
-        float t = sum + y;
-        compensation = (t - sum) - y;
-        sum = t;
-        y = s1 - compensation;
-        t = sum + y;
-        compensation = (t - sum) - y;
-        sum = t;
-        y = s2 - compensation;
-        t = sum + y;
-        compensation = (t - sum) - y;
-        sum = t;
-        y = s3 - compensation;
-        t = sum + y;
-        compensation = (t - sum) - y;
-        sum = t;
-        for (; i < values.length; i++) {
-            y = values[i] - compensation;
-            t = sum + y;
-            compensation = (t - sum) - y;
-            sum = t;
-        }
-        return sum;
+        return (float) (s + c);
     }
 }
