@@ -56,4 +56,10 @@
         </Or>
         <Class name="org.dynamisengine.vectrix.sampling.Math"/>
     </Match>
+    <!-- brdf.LightEngineCompat* reproduce DynamisLightEngine's shader BRDF exactly, including its pi written as
+         3.14159; the reference implementations in brdf.Microfacet* use Math.PI. -->
+    <Match>
+        <Bug pattern="CNT_ROUGH_CONSTANT_VALUE"/>
+        <Class name="~org\.dynamisengine\.vectrix\.brdf\.LightEngineCompat[fd]"/>
+    </Match>
 </FindBugsFilter>

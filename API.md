@@ -179,6 +179,25 @@ function `Y(l, m)` is at index `l(l+1)+m`, evaluated on the direction exactly as
 symmetric about the caller's z axis. Coefficients produced before 2026-11-21 used a mixed ordering and must be
 re-projected; the per-index table is in the `ShBasis` Javadoc.
 
+## 7b) BRDF (`org.dynamisengine.vectrix.brdf`, from 2.1.0)
+
+```java
+float alpha = Microfacetf.alphaFromRoughness(perceptualRoughness);           // α = roughness²
+float specular = Microfacetf.dGgx(nDotH, alpha)
+        * Microfacetf.vSmithGgxCorrelated(nDotV, nDotL, alpha)
+        * Microfacetf.fSchlick(0.04f, 1.0f, vDotH);                          // D · V · F
+float diffuse = Diffusef.burley(nDotV, nDotL, lDotH, perceptualRoughness);
+
+float[] dfg = new float[2 * 32 * 32];                                         // split-sum IBL table (a, b)
+DfgLutBuilder.build(32, 1024, DfgLutBuilder.Model.HEIGHT_CORRELATED_SMITH, dfg);
+float comp = Microfacetf.energyCompensation(f0, a, b);                       // Kulla-Conty multiplier
+```
+
+The reference models follow Filament and pbrt (GGX, height-correlated Smith, Schlick, Burley, Oren-Nayar, Charlie
+sheen, Kelemen clearcoat). `LightEngineCompatf/d` reproduce DynamisLightEngine's current shader BRDF exactly (UE4
+separable Schlick-GGX with `k = (roughness + 1)² / 8`), and `DfgLutBuilder.Model.SCHLICK_GGX_KARIS` builds the
+traditional UE4 table, so tools can match today's renderer while it migrates.
+
 ## 8) FFT and Convolution (`org.dynamisengine.vectrix.fft`)
 
 Data is interleaved complex: `data[2*i] = real`, `data[2*i+1] = imag`.

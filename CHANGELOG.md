@@ -13,6 +13,13 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   corrupted planes. `-Dvectrix.culling.simd=false` keeps the scalar kernel.
 
 ### Added
+- `brdf` package (review Part II §15.1): GGX distribution (isotropic and anisotropic), Smith Λ/G1 and
+  height-correlated G2 and visibility, Schlick Fresnel (F0/F90, RGB, roughness-aware), Charlie sheen with Neubelt
+  visibility, Kelemen clearcoat visibility, Kulla-Conty energy compensation, Lambert/Burley/Oren-Nayar diffuse, and
+  `DfgLutBuilder` for split-sum IBL tables (height-correlated Smith or the UE4 Schlick-GGX model; deterministic).
+  `LightEngineCompatf/d` reproduce DynamisLightEngine's current shader BRDF exactly. `BrdfTest` checks normalisation,
+  the weak white furnace, energy bounds and Kulla-Conty, reciprocity, the DFG estimator against quadrature, and the
+  compatibility variants against the shader formulas.
 - `simd` classifier artifact (review §14): the same library with the Vector API batch kernels compiled in, built and
   published with every release. It is not a preview build and needs no JVMCI flags. With
   `--add-modules jdk.incubator.vector` it runs the SIMD kernels; without it, the scalar ones (classpath or module path,
