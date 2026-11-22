@@ -184,8 +184,28 @@ assigns different CPUs to different runs, so compare within the run only. Result
 | `skinLbs4SoAScalarForced` (quaternion LBS) | 104.1 µs | 42.5 µs |
 
 On x86 hardware gathers make the SIMD kernel 1.6× faster than scalar quaternion LBS (on NEON it is 6.8× slower), but
-it is still 1.36× slower than the matrix-palette path that skinning already uses, so it is not promoted. A gather
-version of the matrix-palette kernel is the next candidate.
+it is still 1.36× slower than the matrix-palette path that skinning already uses, so it is not promoted.
+
+**Gather-based matrix-palette skinning** (`GatherPaletteKernel`, benchmark-only, two palette layouts, both bitwise
+equal to `skinLbs4MatrixPalette`, checked in setup). Measured on an AMD EPYC 9V74 (Zen 4, AVX-512), with the
+quaternion kernels re-run alongside. Results in `benchmarks/results/2026-11-22-x86-gather-palette/`.
+
+| 4096 vertices, 64 joints | x86 (EPYC 9V74, AVX-512) | arm64 (M4) |
+|---|---:|---:|
+| `skinLbs4MatrixPaletteTight` (default path) | 50.3 µs | 25.5 µs |
+| `skinLbs4MatrixPaletteGatherAos` (12 gathers per joint from the AoS palette) | 139.0 µs | 520 µs |
+| `skinLbs4MatrixPaletteGatherSoa` (SoA palette, transpose included) | 141.0 µs | 504 µs |
+| `skinLbs4SoAGather` (quaternion gather) | 47.4 µs | 284 µs |
+| `skinLbs4SoAScalarForced` (quaternion scalar) | 88.3 µs | 42.4 µs |
+
+Contiguous and random palette access measure the same, within 1 %. Conclusions:
+- **Matrix-palette gathers are 2.8× slower than the tight kernel even with AVX-512.** They need 48 gathers per
+  lane group, and that costs more than the arithmetic they save.
+- **The quaternion gather is 6 % faster than the default on Zen 4 alone.** It is 1.36× slower on Zen 3 and 11× slower
+  on arm64. That is not worth CPU-specific dispatch.
+
+The tight matrix-palette kernel stays the default, and the gather experiment is closed. The benchmark kernels remain,
+so future CPUs can be re-measured.
 
 ## Historical Snapshot (2026-03-06)
 Superseded by the 2026-11-21 snapshot above; kept for the decision history. Its SIMD figures measured scalar code
