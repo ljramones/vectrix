@@ -727,7 +727,8 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
      * Set the values of this vector by reading 4 double values from off-heap memory,
      * starting at the given address.
      * <p>
-     * This method will throw an {@link UnsupportedOperationException} when JOML is used with `-Djoml.nounsafe`.
+     * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
+     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      * 
@@ -736,9 +737,9 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
      * @return this
      */
     public Vector4d setFromAddress(long address) {
-        if (!MemUtil.unsafeAddressApi())
-            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
-        MemUtil.MemUtilUnsafe.get(this, address);
+        if (!MemUtil.addressApi())
+            throw new UnsupportedOperationException(MemUtil.ADDRESS_API_UNAVAILABLE);
+        MemUtil.AddressAccess.get(this, address);
         return this;
     }
 //#endif
@@ -815,9 +816,9 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
 
 //#ifdef __HAS_UNSAFE__
     public Vector4dc getToAddress(long address) {
-        if (!MemUtil.unsafeAddressApi())
-            throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
-        MemUtil.MemUtilUnsafe.put(this, address);
+        if (!MemUtil.addressApi())
+            throw new UnsupportedOperationException(MemUtil.ADDRESS_API_UNAVAILABLE);
+        MemUtil.AddressAccess.put(this, address);
         return this;
     }
 //#endif

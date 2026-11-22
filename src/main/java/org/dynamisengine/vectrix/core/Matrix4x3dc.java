@@ -682,7 +682,8 @@ public interface Matrix4x3dc {
     /**
      * Store this matrix in column-major order at the given off-heap address.
      * <p>
-     * This method will throw an {@link UnsupportedOperationException} when JOML is used with `-Djoml.nounsafe`.
+     * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
+     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      * 
@@ -695,7 +696,8 @@ public interface Matrix4x3dc {
     /**
      * Store this matrix in row-major order at the given off-heap address.
      * <p>
-     * This method will throw an {@link UnsupportedOperationException} when JOML is used with `-Djoml.nounsafe`.
+     * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
+     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      *

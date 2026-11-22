@@ -38,8 +38,9 @@ Types come in float (`f`), double (`d`), int (`i`), and long (`L`) variants. All
 
 ### Key Internal Classes
 
-- `MemUtil` — buffer transfers via bounds-checked FFM `MemorySegment`s (default; never touches `sun.misc.Unsafe`), `sun.misc.Unsafe` (`-Djoml.noffm=true` or `-Djoml.forceUnsafe=true`; prints the JDK deprecation warning), or plain NIO (`-Djoml.noffm=true -Djoml.nounsafe=true`). The raw-address API (`getToAddress`/`setFromAddress`) still uses Unsafe and initialises it lazily. All backends honour NIO semantics (limit checks, slices, read-only and heap buffers).
+- `MemUtil` — buffer transfers via bounds-checked FFM `MemorySegment`s (default; never touches `sun.misc.Unsafe`), `sun.misc.Unsafe` (`-Djoml.noffm=true` or `-Djoml.forceUnsafe=true`; prints the JDK deprecation warning), or plain NIO (`-Djoml.noffm=true -Djoml.nounsafe=true`). The raw-address API (`getToAddress`/`setFromAddress`) uses an FFM segment over the whole address space (needs `--enable-native-access`, otherwise the JDK warns once), falling back to Unsafe with `-Djoml.forceUnsafe`/`-Djoml.noffm` or when native access is denied; see `MemUtil.AddressAccess`. All backends honour NIO semantics (limit checks, slices, read-only and heap buffers).
 - `Math` — fast math with sin/cos lookup tables, configurable via `-Djoml.fastmath`
+- `CoreConfig` — math mode: process-wide default (`setMathMode`) plus per-task overrides (`runWithMathMode`/`callWithMathMode`, a `ScopedValue`)
 - `Options` — JVM system property configuration (`-Djoml.debug`, `-Djoml.nounsafe`, `-Djoml.forceUnsafe`, `-Djoml.forceFfm`, `-Djoml.noffm`, `-Dvectrix.strictMath`)
 - `AccurateMath` — the only place transcendentals choose `java.lang.Math` vs `StrictMath`; never call those directly (a test enforces it). See `docs/determinism.md`.
 
@@ -56,6 +57,12 @@ The `Vector2L`/`Vector3L`/`Vector4L` classes (with corresponding `*Lc` read-only
   classes, with primitive, array and value-type parameters. A new mismatch is usually a real bug in one of the two;
   exempt a method only for a documented input domain. Never let it drive the raw-address API (it would crash the JVM).
 - Hot-path APIs must not allocate; `HotPathAllocationTest` measures bytes per call.
+- `CrossPlatformDeterminismTest` hashes every public method's results under `-Dvectrix.strictMath=true` and compares
+  them with `src/test/resources/determinism/golden.txt`; CI runs it on x86_64 and arm64 in both profiles. An
+  intended change to results means re-recording the golden (command in `docs/determinism.md`); an unintended one
+  is a determinism bug. New methods are reported, not failed.
+- `ByteOrderTest` and `AddressApiTest` check that every buffer and raw-address writer produces the same bytes on
+  every backend and byte order.
 - `AliasingTest` runs every `R op(..., R dest)` method with `dest` aliased to `this` and each argument, and checks the
   result does not depend on `dest`'s previous contents. New destination-style methods are covered automatically;
   read every input into locals before writing `dest`.

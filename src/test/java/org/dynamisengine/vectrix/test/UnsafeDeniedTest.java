@@ -68,11 +68,11 @@ class UnsafeDeniedTest {
             } catch (IndexOutOfBoundsException e) {
                 System.out.println("bounds=checked");
             }
-            try {
-                m.getToAddress(0L);
-                System.out.println("address=returned");
-            } catch (UnsupportedOperationException e) {
-                System.out.println("address=unsupported");
+            // the raw-address API runs on FFM, so it keeps working when Unsafe is denied
+            try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
+                long address = arena.allocate(64, 16).address();
+                m.getToAddress(address);
+                System.out.println("address=" + (new Matrix4f().setFromAddress(address).equals(m) ? "works" : "wrong"));
             }
         }
     }
@@ -92,7 +92,7 @@ class UnsafeDeniedTest {
         assertTrue(out.contains("backend=MemUtilFFM"), out);
         assertTrue(out.contains("roundtrip=true"), out);
         assertTrue(out.contains("bounds=checked"), out);
-        assertTrue(out.contains("address=unsupported"), out);
+        assertTrue(out.contains("address=works"), out);
     }
 
     @Test

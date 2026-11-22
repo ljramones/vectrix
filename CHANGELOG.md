@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 ### Added
+- Per-task math mode: `CoreConfig.runWithMathMode(mode, task)` / `callWithMathMode(mode, task)` override the
+  process-wide mode for one task on the calling thread (and its `StructuredTaskScope` subtasks) through a
+  `ScopedValue`, so a STRICT simulation step can run next to FAST rendering threads. `defaultMathMode()` reports
+  the process-wide value; `mathMode()` and `determinismFingerprint()` report the one in effect.
+- `CrossPlatformDeterminismTest`: hashes the results of every public method (about 8 200) and of the batch kernels
+  under `-Dvectrix.strictMath=true` and compares them with a recorded golden. CI now runs `mvn verify` on x86_64
+  Linux, arm64 Linux and arm64 macOS, in both the default and experimental profiles (it ran `mvn test` on x86_64
+  Linux only).
+- `AddressApiTest`: the raw-address API writes the same bytes as the `ByteBuffer` API and reads back what it
+  wrote, for every type, on the FFM path, the Unsafe path and with each of them denied.
 - JaCoCo coverage report and a ratcheting gate (now line ≥ 78 %, branch ≥ 53 %; review M-17). Coverage rose from
   18.4 % / 17.5 % at the review to 78.4 % / 53.4 % (66.5 % / 42.4 % after Batch 5), mainly through
   `TwinParityTest` (originally `FloatDoubleParityTest`), which drives about 8 400 float/double method pairs with identical random inputs, plus
@@ -48,6 +58,12 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - Pass B/C/E decision/findings memos and subsystem integration memo
 
 ### Changed
+- The raw-address API (`getToAddress`, `setFromAddress` and their transposed forms) runs on FFM by default, through
+  one segment spanning the address space, so it keeps working once `sun.misc.Unsafe` memory access is denied.
+  Without `--enable-native-access=org.dynamisengine.vectrix` (or `ALL-UNNAMED`) the JDK prints a one-time
+  "restricted method" warning instead of the Unsafe deprecation warning. `-Djoml.forceUnsafe`, `-Djoml.noffm` or
+  denied native access select the Unsafe path. Loops of transfers are faster than with Unsafe (93 vs 175 ns for 16
+  `Matrix4f` writes and reads, 1.2 vs 3.2 µs for 256); a single transfer costs about 4 ns more.
 - Benchmarks re-measured after the review fixes (`BENCHMARKS.md`, "Current Published Snapshot (2026-11-21)"); the
   earlier snapshots are kept as history, since their SIMD figures measured scalar code. The showcase and
   state-of-the-union docs carry dated corrections.
@@ -131,6 +147,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     (all now call `Runtime.formatNumbers`). Output is unchanged.
 
 ### Fixed
+- `Matrix2f.getTransposed(FloatBuffer)` and `getTransposed(ByteBuffer)` wrote the matrix untransposed: they
+  delegated to `get` instead of `getTransposed` (upstream JOML). Found by `AddressApiTest`.
 - Byte order and backend consistency (new `ByteOrderTest`, which checks 179 buffer writers in big-endian,
   little-endian and native direct buffers on every backend):
   - `Quaternionf.getAsMatrix4f(ByteBuffer)` put the 1.0 in m32 instead of m33 for big-endian buffers, the default

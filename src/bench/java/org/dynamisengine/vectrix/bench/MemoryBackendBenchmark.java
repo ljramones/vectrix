@@ -35,6 +35,38 @@ public class MemoryBackendBenchmark extends ThroughputBenchmark {
         }
         bb = ByteBuffer.allocateDirect(matrices * 16 * Float.BYTES).order(ByteOrder.nativeOrder());
         fb = bb.asFloatBuffer();
+        address = java.lang.foreign.MemorySegment.ofBuffer(bb).address();
+    }
+
+    private long address;
+
+    private void writeAndReadAddress() {
+        long a = address;
+        for (int i = 0; i < matrices; i++) {
+            src[i].getToAddress(a);
+            a += 16 * Float.BYTES;
+        }
+        a = address;
+        for (int i = 0; i < matrices; i++) {
+            src[i].setFromAddress(a);
+            a += 16 * Float.BYTES;
+        }
+    }
+
+    /** Raw-address API on its default FFM path: {@code matrices} writes, then {@code matrices} reads. */
+    @Benchmark
+    @Fork(value = 3, jvmArgsAppend = {"--enable-native-access=ALL-UNNAMED"})
+    public Matrix4f addressFfm() {
+        writeAndReadAddress();
+        return src[0];
+    }
+
+    /** Raw-address API on the Unsafe fallback. */
+    @Benchmark
+    @Fork(value = 3, jvmArgsAppend = {"-Djoml.forceUnsafe=true"})
+    public Matrix4f addressUnsafe() {
+        writeAndReadAddress();
+        return src[0];
     }
 
     @Benchmark

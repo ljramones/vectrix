@@ -24,7 +24,12 @@
 package org.dynamisengine.vectrix.core;
 
 /**
- * Global runtime configuration for math behavior used in core primitives.
+ * Runtime configuration for math behavior used in core primitives.
+ * <p>
+ * The math mode has a process-wide default ({@link #setMathMode}, or {@code -Dvectrix.math.mode}) and can be
+ * overridden for one task with {@link #runWithMathMode} / {@link #callWithMathMode}. An override is visible only to
+ * the thread running the task (and to tasks it forks with {@code StructuredTaskScope}, which inherit scoped values);
+ * other threads keep the default. Overrides nest, and end when the task returns or throws.
  */
 public final class CoreConfig {
     /** System property selecting the initial math mode ({@code FAST} or {@code STRICT}). */
@@ -43,13 +48,77 @@ public final class CoreConfig {
 
     private static volatile MathMode mathMode = parseMathMode(System.getProperty(PROP_MATH_MODE));
 
+    /** The current task's override, bound by {@link #runWithMathMode} / {@link #callWithMathMode}. */
+    private static final ScopedValue<MathMode> SCOPED_MODE = ScopedValue.newInstance();
+
+    /**
+     * Number of override scopes active in any thread. While it is zero, {@link #mathMode()} skips the scoped-value
+     * lookup and costs one extra volatile read.
+     */
+    private static final java.util.concurrent.atomic.AtomicInteger ACTIVE_OVERRIDES =
+            new java.util.concurrent.atomic.AtomicInteger();
+
     private CoreConfig() {
     }
 
+    /**
+     * The math mode in effect for the calling thread: the innermost {@link #runWithMathMode} /
+     * {@link #callWithMathMode} override if one is active, otherwise the process-wide default.
+     */
     public static MathMode mathMode() {
+        // JDK 25's ScopedValue.orElse rejects null, so the default is passed as the fallback
+        return ACTIVE_OVERRIDES.get() != 0 ? SCOPED_MODE.orElse(mathMode) : mathMode;
+    }
+
+    /** The process-wide default math mode, ignoring any override active on the calling thread. */
+    public static MathMode defaultMathMode() {
         return mathMode;
     }
 
+    /**
+     * Runs {@code task} with {@code mode} as the math mode for the calling thread, without changing the mode other
+     * threads see.
+     *
+     * @throws IllegalArgumentException if {@code mode} or {@code task} is null
+     */
+    public static void runWithMathMode(MathMode mode, Runnable task) {
+        if (task == null) {
+            throw new IllegalArgumentException("task");
+        }
+        callWithMathMode(mode, () -> {
+            task.run();
+            return null;
+        });
+    }
+
+    /**
+     * Calls {@code task} with {@code mode} as the math mode for the calling thread and returns its result, without
+     * changing the mode other threads see. Checked exceptions thrown by {@code task} propagate unchanged.
+     *
+     * @throws IllegalArgumentException if {@code mode} or {@code task} is null
+     */
+    public static <T, X extends Throwable> T callWithMathMode(MathMode mode, ScopedValue.CallableOp<? extends T, X> task)
+            throws X {
+        if (mode == null) {
+            throw new IllegalArgumentException("mode");
+        }
+        if (task == null) {
+            throw new IllegalArgumentException("task");
+        }
+        ACTIVE_OVERRIDES.incrementAndGet();
+        try {
+            return ScopedValue.where(SCOPED_MODE, mode).call(task);
+        } finally {
+            ACTIVE_OVERRIDES.decrementAndGet();
+        }
+    }
+
+    /**
+     * Sets the process-wide default math mode. Overrides active through {@link #runWithMathMode} /
+     * {@link #callWithMathMode} keep their mode until they end.
+     *
+     * @throws IllegalArgumentException if {@code mode} is null
+     */
     public static void setMathMode(MathMode mode) {
         if (mode == null) {
             throw new IllegalArgumentException("mode");
@@ -88,7 +157,7 @@ public final class CoreConfig {
      * {@code vectrix.strictMath} is false. See {@code docs/determinism.md}.
      */
     public static String determinismFingerprint() {
-        return "vectrix.math.mode=" + mathMode
+        return "vectrix.math.mode=" + mathMode()
                 + ";vectrix.strictMath=" + Options.STRICT_MATH
                 + ";joml.fastmath=" + Options.FASTMATH
                 + ";joml.sinLookup=" + Options.SIN_LOOKUP + "/" + Options.SIN_LOOKUP_BITS

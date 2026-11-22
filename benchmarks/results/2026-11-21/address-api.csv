@@ -1,0 +1,7 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: matrices"
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressFfm","avgt",1,10,9.918501,0.223400,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressFfm","avgt",1,10,93.392308,2.382072,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressFfm","avgt",1,10,1200.470894,16.777650,"ns/op",256
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressUnsafe","avgt",1,10,5.786620,0.322659,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressUnsafe","avgt",1,10,174.991710,1.965292,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressUnsafe","avgt",1,10,3154.846242,41.580235,"ns/op",256

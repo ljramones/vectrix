@@ -70,26 +70,53 @@ abstract class MemUtil {
     }
 //#ifdef __HAS_UNSAFE__
     /**
-     * Whether the raw-address API ({@code getToAddress}/{@code setFromAddress}) can be used: Unsafe is neither
-     * disabled with {@code -Djoml.nounsafe} nor denied by the JVM (for example
-     * {@code --sun-misc-unsafe-memory-access=deny}). When false, those methods throw
-     * {@link UnsupportedOperationException} instead of failing with {@link NoClassDefFoundError}.
+     * Whether the raw-address API ({@code getToAddress}/{@code setFromAddress} and their transposed forms) can be
+     * used. It runs on FFM by default: a segment spanning the whole address space, which needs native access
+     * ({@code --enable-native-access=org.dynamisengine.vectrix}, or {@code ALL-UNNAMED} on the class path; without
+     * it the JDK prints a one-time "restricted method" warning). It falls back to {@code sun.misc.Unsafe} with
+     * {@code -Djoml.forceUnsafe} or {@code -Djoml.noffm}, or when native access is denied
+     * ({@code --illegal-native-access=deny}). When neither is available, those methods throw
+     * {@link UnsupportedOperationException}.
      * <p>
-     * Evaluated lazily, on the first raw-address call, so that programs which never use that API never touch
-     * {@code sun.misc.Unsafe} and never see the JDK's terminal-deprecation warning.
+     * Evaluated lazily, on the first raw-address call, so programs which never use that API never request native
+     * access or touch {@code sun.misc.Unsafe}.
      */
-    static boolean unsafeAddressApi() {
-        return UnsafeProbe.FUNCTIONAL;
+    static boolean addressApi() {
+        return AddressAccess.AVAILABLE;
     }
 
-    static final String UNSAFE_ADDRESS_API_UNAVAILABLE =
-            "Not supported: sun.misc.Unsafe is disabled (-Djoml.nounsafe) or denied by the JVM";
+    static final String ADDRESS_API_UNAVAILABLE =
+            "Not supported: native access is denied and sun.misc.Unsafe is disabled (-Djoml.nounsafe) or denied";
 
-    private static final class UnsafeProbe {
-        static final boolean FUNCTIONAL = !Options.NO_UNSAFE && unsafeFunctional();
+    /** The raw-address API: FFM over the whole address space, or Unsafe (see {@link #addressApi()}). */
+    static final class AddressAccess {
+//#ifdef __HAS_FFM__
+        /**
+         * Spans the whole address space; {@code null} when the Unsafe path is used. Accessed directly: taking an
+         * {@code asSlice(address, size)} per call (as the buffer path does) measured 40 % slower here.
+         */
+        private static final MemorySegment ADDRESS_SPACE = addressSpace();
+//#endif
+        static final boolean AVAILABLE =
+//#ifdef __HAS_FFM__
+                ADDRESS_SPACE != null ||
+//#endif
+                (!Options.NO_UNSAFE && unsafeFunctional());
 
-        private UnsafeProbe() {
+        private AddressAccess() {
         }
+//#ifdef __HAS_FFM__
+
+        private static MemorySegment addressSpace() {
+            if (Options.FORCE_UNSAFE || Options.NO_FFM)
+                return null;
+            try {
+                return MemorySegment.NULL.reinterpret(Long.MAX_VALUE);
+            } catch (IllegalCallerException | UnsupportedOperationException e) {
+                return null;
+            }
+        }
+//#endif
 
         private static boolean unsafeFunctional() {
             try {
@@ -97,6 +124,583 @@ abstract class MemUtil {
             } catch (Throwable e) {
                 return false;
             }
+        }
+
+        static void put(Matrix4f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(m, address);
+        }
+        static void put(Matrix4x3f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(m, address);
+        }
+        static void putTransposed(Matrix4f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.putTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.putTransposed(m, address);
+        }
+        static void putTransposed(Matrix4x3f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.putTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.putTransposed(m, address);
+        }
+        static void putTransposed(Matrix3f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.putTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.putTransposed(m, address);
+        }
+        static void putTransposed(Matrix3x2f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.putTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.putTransposed(m, address);
+        }
+        static void putTransposed(Matrix2f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.putTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.putTransposed(m, address);
+        }
+        static void put(Matrix4d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(m, address);
+        }
+        static void put(Matrix4x3d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(m, address);
+        }
+        static void putTransposed(Matrix4d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.putTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.putTransposed(m, address);
+        }
+        static void putTransposed(Matrix4x3d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.putTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.putTransposed(m, address);
+        }
+        static void putTransposed(Matrix3d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.putTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.putTransposed(m, address);
+        }
+        static void putTransposed(Matrix3x2d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.putTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.putTransposed(m, address);
+        }
+        static void putTransposed(Matrix2d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.putTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.putTransposed(m, address);
+        }
+        static void put(Matrix3f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(m, address);
+        }
+        static void put(Matrix3d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(m, address);
+        }
+        static void put(Matrix3x2f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(m, address);
+        }
+        static void put(Matrix3x2d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(m, address);
+        }
+        static void put(Matrix2f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(m, address);
+        }
+        static void put(Matrix2d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(m, address);
+        }
+        static void put(Vector4d src, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(src, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(src, address);
+        }
+        static void put(Vector4f src, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(src, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(src, address);
+        }
+        static void put(Vector4i src, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(src, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(src, address);
+        }
+        static void put(Vector4L src, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(src, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(src, address);
+        }
+        static void put(Vector3f src, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(src, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(src, address);
+        }
+        static void put(Vector3d src, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(src, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(src, address);
+        }
+        static void put(Vector3i src, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(src, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(src, address);
+        }
+        static void put(Vector3L src, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(src, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(src, address);
+        }
+        static void put(Vector2f src, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(src, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(src, address);
+        }
+        static void put(Vector2d src, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(src, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(src, address);
+        }
+        static void put(Vector2i src, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(src, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(src, address);
+        }
+        static void put(Vector2L src, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.put(src, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.put(src, address);
+        }
+        static void get(Matrix4f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(m, address);
+        }
+        static void getTransposed(Matrix4f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.getTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.getTransposed(m, address);
+        }
+        static void getTransposed(Matrix3f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.getTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.getTransposed(m, address);
+        }
+        static void getTransposed(Matrix4x3f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.getTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.getTransposed(m, address);
+        }
+        static void getTransposed(Matrix3x2f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.getTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.getTransposed(m, address);
+        }
+        static void getTransposed(Matrix2f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.getTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.getTransposed(m, address);
+        }
+        static void getTransposed(Matrix2d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.getTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.getTransposed(m, address);
+        }
+        static void getTransposed(Matrix4x3d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.getTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.getTransposed(m, address);
+        }
+        static void getTransposed(Matrix3x2d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.getTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.getTransposed(m, address);
+        }
+        static void getTransposed(Matrix3d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.getTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.getTransposed(m, address);
+        }
+        static void getTransposed(Matrix4d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.getTransposed(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.getTransposed(m, address);
+        }
+        static void get(Matrix4x3f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(m, address);
+        }
+        static void get(Matrix4d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(m, address);
+        }
+        static void get(Matrix4x3d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(m, address);
+        }
+        static void get(Matrix3f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(m, address);
+        }
+        static void get(Matrix3d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(m, address);
+        }
+        static void get(Matrix3x2f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(m, address);
+        }
+        static void get(Matrix3x2d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(m, address);
+        }
+        static void get(Matrix2f m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(m, address);
+        }
+        static void get(Matrix2d m, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(m, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(m, address);
+        }
+        static void get(Vector4d dst, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(dst, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(dst, address);
+        }
+        static void get(Vector4f dst, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(dst, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(dst, address);
+        }
+        static void get(Vector4i dst, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(dst, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(dst, address);
+        }
+        static void get(Vector4L dst, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(dst, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(dst, address);
+        }
+        static void get(Vector3f dst, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(dst, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(dst, address);
+        }
+        static void get(Vector3d dst, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(dst, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(dst, address);
+        }
+        static void get(Vector3i dst, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(dst, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(dst, address);
+        }
+        static void get(Vector3L dst, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(dst, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(dst, address);
+        }
+        static void get(Vector2f dst, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(dst, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(dst, address);
+        }
+        static void get(Vector2d dst, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(dst, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(dst, address);
+        }
+        static void get(Vector2i dst, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(dst, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(dst, address);
+        }
+        static void get(Vector2L dst, long address) {
+//#ifdef __HAS_FFM__
+            if (ADDRESS_SPACE != null) {
+                MemUtilFFM.get(dst, ADDRESS_SPACE, address);
+                return;
+            }
+//#endif
+            MemUtilUnsafe.get(dst, address);
         }
     }
 //#endif
@@ -4494,6 +5098,111 @@ abstract class MemUtil {
              ._m01(unpackLo(l2))._m11(unpackHi(l2))._m21(unpackLo(l3))._m31(unpackHi(l3))
              ._m02(unpackLo(l4))._m12(unpackHi(l4))._m22(unpackLo(l5))._m32(unpackHi(l5))
              ._m03(unpackLo(l6))._m13(unpackHi(l6))._m23(unpackLo(l7))._m33(unpackHi(l7));
+        }
+
+        public static void getTransposed(Matrix3f m, MemorySegment s, long o) {
+            m._m00(s.get(JAVA_FLOAT, o))
+             ._m10(s.get(JAVA_FLOAT, o + 4))
+             ._m20(s.get(JAVA_FLOAT, o + 8))
+             ._m01(s.get(JAVA_FLOAT, o + 12))
+             ._m11(s.get(JAVA_FLOAT, o + 16))
+             ._m21(s.get(JAVA_FLOAT, o + 20))
+             ._m02(s.get(JAVA_FLOAT, o + 24))
+             ._m12(s.get(JAVA_FLOAT, o + 28))
+             ._m22(s.get(JAVA_FLOAT, o + 32));
+        }
+
+        public static void getTransposed(Matrix4x3f m, MemorySegment s, long o) {
+            m._m00(s.get(JAVA_FLOAT, o))
+             ._m10(s.get(JAVA_FLOAT, o + 4))
+             ._m20(s.get(JAVA_FLOAT, o + 8))
+             ._m30(s.get(JAVA_FLOAT, o + 12))
+             ._m01(s.get(JAVA_FLOAT, o + 16))
+             ._m11(s.get(JAVA_FLOAT, o + 20))
+             ._m21(s.get(JAVA_FLOAT, o + 24))
+             ._m31(s.get(JAVA_FLOAT, o + 28))
+             ._m02(s.get(JAVA_FLOAT, o + 32))
+             ._m12(s.get(JAVA_FLOAT, o + 36))
+             ._m22(s.get(JAVA_FLOAT, o + 40))
+             ._m32(s.get(JAVA_FLOAT, o + 44));
+        }
+
+        public static void getTransposed(Matrix3x2f m, MemorySegment s, long o) {
+            m._m00(s.get(JAVA_FLOAT, o))
+             ._m10(s.get(JAVA_FLOAT, o + 4))
+             ._m20(s.get(JAVA_FLOAT, o + 8))
+             ._m01(s.get(JAVA_FLOAT, o + 12))
+             ._m11(s.get(JAVA_FLOAT, o + 16))
+             ._m21(s.get(JAVA_FLOAT, o + 20));
+        }
+
+        public static void getTransposed(Matrix2f m, MemorySegment s, long o) {
+            m._m00(s.get(JAVA_FLOAT, o))
+             ._m10(s.get(JAVA_FLOAT, o + 4))
+             ._m01(s.get(JAVA_FLOAT, o + 8))
+             ._m11(s.get(JAVA_FLOAT, o + 12));
+        }
+
+        public static void getTransposed(Matrix2d m, MemorySegment s, long o) {
+            m._m00(s.get(JAVA_DOUBLE, o))
+             ._m10(s.get(JAVA_DOUBLE, o + 8))
+             ._m01(s.get(JAVA_DOUBLE, o + 16))
+             ._m11(s.get(JAVA_DOUBLE, o + 24));
+        }
+
+        public static void getTransposed(Matrix4x3d m, MemorySegment s, long o) {
+            m._m00(s.get(JAVA_DOUBLE, o))
+             ._m10(s.get(JAVA_DOUBLE, o + 8))
+             ._m20(s.get(JAVA_DOUBLE, o + 16))
+             ._m30(s.get(JAVA_DOUBLE, o + 24))
+             ._m01(s.get(JAVA_DOUBLE, o + 32))
+             ._m11(s.get(JAVA_DOUBLE, o + 40))
+             ._m21(s.get(JAVA_DOUBLE, o + 48))
+             ._m31(s.get(JAVA_DOUBLE, o + 56))
+             ._m02(s.get(JAVA_DOUBLE, o + 64))
+             ._m12(s.get(JAVA_DOUBLE, o + 72))
+             ._m22(s.get(JAVA_DOUBLE, o + 80))
+             ._m32(s.get(JAVA_DOUBLE, o + 88));
+        }
+
+        public static void getTransposed(Matrix3x2d m, MemorySegment s, long o) {
+            m._m00(s.get(JAVA_DOUBLE, o))
+             ._m10(s.get(JAVA_DOUBLE, o + 8))
+             ._m20(s.get(JAVA_DOUBLE, o + 16))
+             ._m01(s.get(JAVA_DOUBLE, o + 24))
+             ._m11(s.get(JAVA_DOUBLE, o + 32))
+             ._m21(s.get(JAVA_DOUBLE, o + 40));
+        }
+
+        public static void getTransposed(Matrix3d m, MemorySegment s, long o) {
+            m._m00(s.get(JAVA_DOUBLE, o))
+             ._m10(s.get(JAVA_DOUBLE, o + 8))
+             ._m20(s.get(JAVA_DOUBLE, o + 16))
+             ._m01(s.get(JAVA_DOUBLE, o + 24))
+             ._m11(s.get(JAVA_DOUBLE, o + 32))
+             ._m21(s.get(JAVA_DOUBLE, o + 40))
+             ._m02(s.get(JAVA_DOUBLE, o + 48))
+             ._m12(s.get(JAVA_DOUBLE, o + 56))
+             ._m22(s.get(JAVA_DOUBLE, o + 64));
+        }
+
+        public static void getTransposed(Matrix4d m, MemorySegment s, long o) {
+            m._m00(s.get(JAVA_DOUBLE, o))
+             ._m10(s.get(JAVA_DOUBLE, o + 8))
+             ._m20(s.get(JAVA_DOUBLE, o + 16))
+             ._m30(s.get(JAVA_DOUBLE, o + 24))
+             ._m01(s.get(JAVA_DOUBLE, o + 32))
+             ._m11(s.get(JAVA_DOUBLE, o + 40))
+             ._m21(s.get(JAVA_DOUBLE, o + 48))
+             ._m31(s.get(JAVA_DOUBLE, o + 56))
+             ._m02(s.get(JAVA_DOUBLE, o + 64))
+             ._m12(s.get(JAVA_DOUBLE, o + 72))
+             ._m22(s.get(JAVA_DOUBLE, o + 80))
+             ._m32(s.get(JAVA_DOUBLE, o + 88))
+             ._m03(s.get(JAVA_DOUBLE, o + 96))
+             ._m13(s.get(JAVA_DOUBLE, o + 104))
+             ._m23(s.get(JAVA_DOUBLE, o + 112))
+             ._m33(s.get(JAVA_DOUBLE, o + 120));
         }
 
         // ============ Vector get helpers ============
