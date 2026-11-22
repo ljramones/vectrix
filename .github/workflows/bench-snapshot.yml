@@ -42,9 +42,15 @@ jobs:
         if: inputs.jmh_args == ''
         run: ./scripts/bench-snapshot.sh bench-out
 
+      # The input goes through an environment variable, not ${{ }} in the script: inlined, its parentheses and pipes
+      # were parsed as shell syntax (and inlined inputs can inject commands). Word splitting still separates the args.
       - name: Run targeted benchmarks
         if: inputs.jmh_args != ''
-        run: java -jar target/benchmarks.jar ${{ inputs.jmh_args }} -rf csv -rff bench-out/targeted.csv | tee bench-out/targeted.txt
+        env:
+          JMH_ARGS: ${{ inputs.jmh_args }}
+        run: |
+          set -o noglob
+          java -jar target/benchmarks.jar $JMH_ARGS -rf csv -rff bench-out/targeted.csv | tee bench-out/targeted.txt
 
       - name: Upload results
         uses: actions/upload-artifact@v4
