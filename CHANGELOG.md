@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
+## [Unreleased]
+### Added
+- `linalg` package (review Part II §16): symmetric 3×3 eigen-decomposition (cyclic Jacobi, sorted, right-handed
+  eigenvectors), signed 3×3 SVD (McAdams et al.: rotations U and V, reflection carried by σ₂), polar decomposition,
+  Householder QR (3×3, 4×4), Cholesky, LDLᵀ and pivoted LU solvers (3×3, 4×4), 2-norm and 1-norm condition numbers,
+  SO(3)/SE(3) exponential and logarithm maps (exact up to π), and least squares by QR with plane and line fits.
+  Float and double APIs share double-precision kernels with per-thread scratch, so the fixed-size operations do not
+  allocate. `InertiaTensorf.principalAxes` uses the eigen-decomposition. `LinalgTest` checks reconstruction and
+  structure on random, repeated-eigenvalue, rank-deficient and reflecting matrices, the polar rotation against
+  Higham's iteration, solver residuals and failure detection, and the Lie maps against axis-angle rotations.
+
 ## [2.1.0] - 2026-11-22
 New in this release: the `simd` classifier jar with the Vector API kernels, SIMD frustum culling by default, and
 the rendering-math packages of the review's Part II X3: `brdf` (§15.1), Monte-Carlo sampling (§15.2) and the colour

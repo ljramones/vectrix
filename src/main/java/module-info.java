@@ -18,6 +18,7 @@ module org.dynamisengine.vectrix {
     exports org.dynamisengine.vectrix.gpu;
     exports org.dynamisengine.vectrix.renderingmath;
     exports org.dynamisengine.vectrix.optics;
+    exports org.dynamisengine.vectrix.linalg;
     exports org.dynamisengine.vectrix.ltc;
     exports org.dynamisengine.vectrix.sh;
 

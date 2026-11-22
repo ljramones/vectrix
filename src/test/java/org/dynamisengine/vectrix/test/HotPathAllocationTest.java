@@ -123,6 +123,19 @@ class HotPathAllocationTest {
         assertNoAllocation("ShProjection.accumulateSampleL2 (d)", () -> ShProjection.accumulateSampleL2(dird, rgbd, 0.01, c9d));
         assertNoAllocation("ShConvolution.evaluateL3 (d)", () -> ShConvolution.evaluateL3(c16d, dird, outd));
 
+        // linalg: per-frame users (shape matching, deformation) call these per cluster or element
+        org.dynamisengine.vectrix.core.Matrix3f m3 = new org.dynamisengine.vectrix.core.Matrix3f().rotateXYZ(0.3f, 0.2f, 0.1f)
+                .scale(2f, 1f, 0.5f);
+        org.dynamisengine.vectrix.core.Matrix3f u3 = new org.dynamisengine.vectrix.core.Matrix3f();
+        org.dynamisengine.vectrix.core.Matrix3f v3 = new org.dynamisengine.vectrix.core.Matrix3f();
+        Vector3f s3 = new Vector3f(0.1f, 0.2f, 0.3f);
+        assertNoAllocation("Svd3f.decompose", () -> org.dynamisengine.vectrix.linalg.Svd3f.decompose(m3, u3, s3, v3));
+        assertNoAllocation("Eigen3f.symmetric", () -> org.dynamisengine.vectrix.linalg.Eigen3f.symmetric(m3, s3, u3));
+        assertNoAllocation("Polar3f.decompose", () -> org.dynamisengine.vectrix.linalg.Polar3f.decompose(m3, u3, v3));
+        assertNoAllocation("Solversf.solve", () -> org.dynamisengine.vectrix.linalg.Solversf.solve(m3, s3, s3));
+        assertNoAllocation("Lie3f.logSo3", () -> org.dynamisengine.vectrix.linalg.Lie3f.logSo3(
+                org.dynamisengine.vectrix.linalg.Lie3f.expSo3(s3, u3), s3));
+
         // Table builders allocate two vectors per table (setup cost), no longer one per sample.
         float[] table = new float[257];
         double perTable = bytesPerCall(() -> CurveReparameterizer3f.buildArcLengthTableForBezier(p0, p1, p2, p3, 256, table));

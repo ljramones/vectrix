@@ -57,6 +57,7 @@ public class ModuleInfoGenerator implements Opcodes {
         mv.visitExport("org/dynamisengine/vectrix/geometry", 0, (String[]) null);
         mv.visitExport("org/dynamisengine/vectrix/gpu", 0, (String[]) null);
         mv.visitExport("org/dynamisengine/vectrix/hash", 0, (String[]) null);
+        mv.visitExport("org/dynamisengine/vectrix/linalg", 0, (String[]) null);
         mv.visitExport("org/dynamisengine/vectrix/ltc", 0, (String[]) null);
         mv.visitExport("org/dynamisengine/vectrix/optics", 0, (String[]) null);
         mv.visitExport("org/dynamisengine/vectrix/physics", 0, (String[]) null);

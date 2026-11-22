@@ -87,4 +87,16 @@ public final class InertiaTensorf {
         float ixz = mass * (3.0f * r2 / 20.0f + 3.0f * h2 / 80.0f);
         return dest.set(ixz, iy, ixz);
     }
+
+    /**
+     * Principal axes of a full inertia tensor (symmetric 3×3): the principal moments in descending order into
+     * {@code moments} and the matching axes into the columns of {@code axes} (a proper rotation), so that
+     * {@code inertia = axes · diag(moments) · axesᵀ}. Uses {@link org.dynamisengine.vectrix.linalg.Eigen3f}.
+     *
+     * @return {@code moments}
+     */
+    public static Vector3f principalAxes(org.dynamisengine.vectrix.core.Matrix3fc inertia, Vector3f moments,
+            org.dynamisengine.vectrix.core.Matrix3f axes) {
+        return org.dynamisengine.vectrix.linalg.Eigen3f.symmetric(inertia, moments, axes);
+    }
 }

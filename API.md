@@ -231,6 +231,21 @@ white implied by `ColorMath`'s sRGB matrix, so sRGB stays consistent with the re
 display-referred linear values in [0, 1]: ACES (Hill and Narkowicz fits), AgX, Khronos PBR Neutral, Uchimura, Lottes,
 extended Reinhard, and `lightEngineExponential`, DynamisLightEngine's current curve.
 
+## 7e) Linear algebra (`org.dynamisengine.vectrix.linalg`)
+
+```java
+Vector3f moments = Eigen3f.symmetric(covariance, new Vector3f(), axes);   // descending, axes a rotation
+Vector3f sigma = Svd3f.decompose(a, u, new Vector3f(), v);                 // signed SVD: U, V rotations
+Matrix3f r = Polar3f.rotation(deformationGradient, new Matrix3f());        // closest rotation (shape matching)
+boolean ok = Solversf.solve(a, b, x);                                      // pivoted LU; cholesky / ldlt for symmetric
+Matrix3f rot = Lie3f.expSo3(omega.mul(dt, new Vector3f()), new Matrix3f()); // integrate angular velocity
+Vector4f plane = LeastSquaresf.fitPlane(points, count, new Vector4f());
+```
+
+Every kernel computes in double precision (the float classes convert at the boundary) and uses per-thread scratch,
+so the 3×3 and 4×4 operations do not allocate (checked by `HotPathAllocationTest`). Least-squares solves on
+arbitrary row counts allocate scratch proportional to the input.
+
 ## 8) FFT and Convolution (`org.dynamisengine.vectrix.fft`)
 
 Data is interleaved complex: `data[2*i] = real`, `data[2*i+1] = imag`.
