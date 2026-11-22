@@ -108,11 +108,11 @@ Full methodology/results: [`BENCHMARKS.md`](BENCHMARKS.md).
 <dependency>
     <groupId>org.dynamisengine</groupId>
     <artifactId>vectrix</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 
-**SIMD build (from 2.1.0).** The `simd` classifier is the same library with the Vector API batch kernels compiled
+**SIMD build.** The `simd` classifier is the same library with the Vector API batch kernels compiled
 in (transform compose, frustum culling, reductions). Use it instead of the plain jar, and run with
 `--add-modules jdk.incubator.vector` to enable them:
 

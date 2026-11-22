@@ -4,7 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
-## [Unreleased]
+## [2.1.0] - 2026-11-22
+New in this release: the `simd` classifier jar with the Vector API kernels, SIMD frustum culling by default, and
+the rendering-math packages of the review's Part II X3: `brdf` (§15.1), Monte-Carlo sampling (§15.2) and the colour
+pipeline (§15.4). No breaking changes from 2.0.0.
+
 ### Changed
 - `CullingKernels.frustumCullAabbBatch` uses the Vector API kernel by default (with the `simd` artifact and
   `--add-modules jdk.incubator.vector`, FAST mode, 64 to 32768 boxes): 2.7× faster than scalar on AVX-512 x86 and

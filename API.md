@@ -179,7 +179,7 @@ function `Y(l, m)` is at index `l(l+1)+m`, evaluated on the direction exactly as
 symmetric about the caller's z axis. Coefficients produced before 2026-11-21 used a mixed ordering and must be
 re-projected; the per-index table is in the `ShBasis` Javadoc.
 
-## 7b) BRDF (`org.dynamisengine.vectrix.brdf`, from 2.1.0)
+## 7b) BRDF (`org.dynamisengine.vectrix.brdf`)
 
 ```java
 float alpha = Microfacetf.alphaFromRoughness(perceptualRoughness);           // α = roughness²
@@ -198,7 +198,7 @@ sheen, Kelemen clearcoat). `LightEngineCompatf/d` reproduce DynamisLightEngine's
 separable Schlick-GGX with `k = (roughness + 1)² / 8`), and `DfgLutBuilder.Model.SCHLICK_GGX_KARIS` builds the
 traditional UE4 table, so tools can match today's renderer while it migrates.
 
-## 7c) Sampling for Monte-Carlo rendering (`org.dynamisengine.vectrix.sampling`, from 2.1.0)
+## 7c) Sampling for Monte-Carlo rendering (`org.dynamisengine.vectrix.sampling`)
 
 ```java
 Vector3f d = Warpf.squareToCosineHemisphere(u1, u2, new Vector3f());   // pdf = Warpf.pdfCosineHemisphere(d.z)
@@ -215,7 +215,7 @@ Vector2d r2 = R2Sequence.r2(index, new Vector2d());                          // 
 Directions use a local frame with the normal on `+z`; densities are per unit solid angle. `SamplingTest` checks
 that every density integrates to 1 and that every warp passes a chi-square goodness-of-fit test.
 
-## 7d) Colour pipeline (`org.dynamisengine.vectrix.color`, from 2.1.0)
+## 7d) Colour pipeline (`org.dynamisengine.vectrix.color`)
 
 ```java
 Vector3f acescg = ColorSpacesf.convert(srgb, ColorGamut.SRGB, ColorGamut.ACES_CG, new Vector3f()); // Bradford
@@ -314,7 +314,7 @@ float sumStrict = Reduction.sumStrict(values);
 boolean simd = SimdSupport.isVectorApiAvailable();
 ```
 
-The Vector API kernels ship in the `simd` classifier jar (from 2.1.0) and are active only when the application runs
+The Vector API kernels ship in the `simd` classifier jar and are active only when the application runs
 with `--add-modules jdk.incubator.vector`; otherwise, and in the plain jar, the scalar kernels run.
 `SimdSupport.backend()` returns `VECTOR_API` or `SCALAR`, and `-Dvectrix.simd.enabled=false` forces scalar. STRICT mode
 always uses the scalar kernels.
