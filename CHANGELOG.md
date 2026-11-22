@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
 ## [Unreleased]
+### Changed
+- `CullingKernels.frustumCullAabbBatch` uses the Vector API kernel by default (with the `simd` artifact and
+  `--add-modules jdk.incubator.vector`, FAST mode, 64 to 32768 boxes): 2.7× faster than scalar on AVX-512 x86 and
+  13–21 % faster on arm64. It classifies every box exactly like scalar; the NaN-bounds difference that kept it
+  opt-in was fixed in 2.0.0, and `SimdPathTest` now checks NaN, infinite, signed-zero and inverted bounds and
+  corrupted planes. `-Dvectrix.culling.simd=false` keeps the scalar kernel.
+
 ### Added
 - `simd` classifier artifact (review §14): the same library with the Vector API batch kernels compiled in, built and
   published with every release. It is not a preview build and needs no JVMCI flags. With

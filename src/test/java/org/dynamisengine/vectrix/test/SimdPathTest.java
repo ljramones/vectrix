@@ -128,6 +128,52 @@ class SimdPathTest {
         }
     }
 
+    /**
+     * SIMD culling is the default dispatch, so it must classify exactly like scalar for every input, including NaN,
+     * infinite, signed-zero and inverted bounds and corrupted planes (a NaN mismatch was fixed in review batch 4b).
+     * Under the {@code test-simd} run this exercises the Vector API kernel at the preferred vector width.
+     */
+    @Test
+    void simdCullingMatchesScalarForSpecialValues() {
+        float[] special = {Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY, 0f, -0f, 1e30f, -1e30f,
+            Float.MIN_VALUE};
+        SplittableRandom rnd = new SplittableRandom(7);
+        Matrix4f viewProj = new Matrix4f().perspective(1.1f, 1.3f, 0.5f, 80f).lookAt(3, 4, 12, 0, 0, 0, 0, 1, 0);
+        for (int trial = 0; trial < 300; trial++) {
+            FrustumPlanes fp = new FrustumPlanes().set(viewProj, trial % 2 == 0);
+            if (trial % 5 == 0) {
+                int p = rnd.nextInt(FrustumPlanes.COUNT);
+                float v = special[rnd.nextInt(special.length)];
+                float[][] comps = {fp.x, fp.y, fp.z, fp.w};
+                comps[rnd.nextInt(4)][p] = v;
+            }
+            int n = 64 + rnd.nextInt(300);
+            AABBSoA boxes = new AABBSoA(n);
+            for (int i = 0; i < n; i++) {
+                float cx = (float) rnd.nextDouble(-60, 60), cy = (float) rnd.nextDouble(-60, 60);
+                float cz = (float) rnd.nextDouble(-90, 30), e = (float) rnd.nextDouble(0, 8);
+                float[] v = {cx - e, cy - e, cz - e, cx + e, cy + e, cz + e};
+                if (rnd.nextInt(4) == 0) {
+                    v[rnd.nextInt(6)] = special[rnd.nextInt(special.length)];
+                }
+                if (rnd.nextInt(10) == 0) {
+                    float t = v[0];
+                    v[0] = v[3];
+                    v[3] = t;
+                }
+                boxes.set(i, v[0], v[1], v[2], v[3], v[4], v[5]);
+            }
+            int[] scalar = new int[n];
+            int[] simd = new int[n];
+            int[] dispatched = new int[n];
+            CullingKernels.frustumCullAabbBatchScalar(fp, boxes, scalar, n);
+            CullingKernels.frustumCullAabbBatchSimd(fp, boxes, simd, n);
+            CullingKernels.frustumCullAabbBatch(fp, boxes, dispatched, n);
+            assertArrayEquals(scalar, simd, "SIMD vs scalar, trial " + trial);
+            assertArrayEquals(scalar, dispatched, "default dispatch vs scalar, trial " + trial);
+        }
+    }
+
     @Test
     void simdCullingMatchesScalarCulling() {
         FrustumPlanes fp = new FrustumPlanes().set(new Matrix4f().perspective(1.2f, 1.5f, 0.1f, 100f).lookAt(0, 0, 5, 0, 0, 0, 0, 1, 0), false);

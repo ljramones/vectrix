@@ -39,10 +39,15 @@ import jdk.incubator.vector.VectorSpecies;
  * Scalar batch culling kernels.
  */
 public final class CullingKernels {
-    private static final String PROP_EXPERIMENTAL_CULLING_SIMD = "vectrix.culling.simd";
+    /**
+     * {@code -Dvectrix.culling.simd=false} keeps {@link #frustumCullAabbBatch} on the scalar kernel. The SIMD kernel is
+     * the default since it classifies every box exactly like the scalar one, NaN and infinite bounds included
+     * ({@code SimdPathTest}); it is 2.7&times; faster on AVX-512 x86 and about 15 % faster on arm64 (BENCHMARKS.md).
+     */
+    private static final String PROP_CULLING_SIMD = "vectrix.culling.simd";
     private static final int SIMD_BATCH_THRESHOLD = 64;
     private static final int SIMD_BATCH_MAX = 32768;
-    private static final boolean EXPERIMENTAL_CULLING_SIMD = KernelConfig.parseBoolean(System.getProperty(PROP_EXPERIMENTAL_CULLING_SIMD), false);
+    private static final boolean CULLING_SIMD = KernelConfig.parseBoolean(System.getProperty(PROP_CULLING_SIMD), true);
 
     private CullingKernels() {
     }
@@ -50,6 +55,10 @@ public final class CullingKernels {
     /**
      * Compute per-AABB frustum classification into {@code outResult}.
      * Result values are from {@link FrustumIntersection}: {@code INSIDE}, {@code INTERSECT}, {@code OUTSIDE}.
+     * <p>
+     * Uses the Vector API kernel when it is available (the {@code simd} artifact with
+     * {@code --add-modules jdk.incubator.vector}), the math mode is FAST and {@code count} is between 64 and 32768;
+     * otherwise the scalar kernel. Both give identical results.
      */
     public static void frustumCullAabbBatch(FrustumPlanes frustum, AABBSoA bounds, int[] outResult, int count) {
         if (count <= 0) {
@@ -58,7 +67,7 @@ public final class CullingKernels {
         if (KernelConfig.mathMode() == MathMode.STRICT || !KernelConfig.simdEnabled()
                 || SimdSupport.backend() != SimdSupport.Backend.VECTOR_API
                 || count < SIMD_BATCH_THRESHOLD || count > SIMD_BATCH_MAX
-                || !EXPERIMENTAL_CULLING_SIMD) {
+                || !CULLING_SIMD) {
             frustumCullAabbBatchScalar(frustum, bounds, outResult, count);
             return;
         }

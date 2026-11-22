@@ -164,7 +164,7 @@ public final class CoreConfig {
                 + ";joml.useMathFma=" + Options.USE_MATH_FMA
                 + ";vectrix.simd.enabled=" + System.getProperty("vectrix.simd.enabled", "true")
                 + ";vectrix.skinning.simd=" + System.getProperty("vectrix.skinning.simd", "false")
-                + ";vectrix.culling.simd=" + System.getProperty("vectrix.culling.simd", "false")
+                + ";vectrix.culling.simd=" + System.getProperty("vectrix.culling.simd", "true")
                 + ";os.arch=" + System.getProperty("os.arch")
                 + ";java.vm.version=" + System.getProperty("java.vm.version");
     }

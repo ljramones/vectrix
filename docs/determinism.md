@@ -10,7 +10,7 @@ across machines.
 
 ```
 vectrix.math.mode=FAST;vectrix.strictMath=true;joml.fastmath=false;joml.sinLookup=false/14;joml.useMathFma=true;
-vectrix.simd.enabled=true;vectrix.skinning.simd=false;vectrix.culling.simd=false;os.arch=aarch64;java.vm.version=25.0.4+...
+vectrix.simd.enabled=true;vectrix.skinning.simd=false;vectrix.culling.simd=true;os.arch=aarch64;java.vm.version=25.0.4+...
 ```
 
 Store it in replay files and compare it on playback. Two runs can only be expected to agree bitwise when their
@@ -27,7 +27,8 @@ false.
 | `-Djoml.useMathFma` | true | Whether `Math.fma(a, b, c)` is fused (`java.lang.Math.fma`) or `a * b + c`. Both are exactly specified, so each setting is reproducible, but the two settings differ in the last bit. Every type, including `Affine4f`, follows this flag. |
 | `vectrix.math.mode` / `CoreConfig.setMathMode` | FAST | `STRICT` forces scalar kernels and accurate fixed-order reductions; see `MathMode` and `docs/conventions.md`. This is the process-wide default; `CoreConfig.runWithMathMode` / `callWithMathMode` override it for one task on one thread (see below). |
 | `-Dvectrix.simd.enabled` | true | Whether batch kernels may take their Vector API path. Vector API kernels perform the scalar operations in the same order, so FAST compose is bitwise identical either way. |
-| `-Dvectrix.skinning.simd`, `-Dvectrix.culling.simd` | false | Opt-in experimental SIMD dispatch. Skinning has no SIMD path (the gather kernel was slower); culling classifies identically except for NaN bounds. |
+| `-Dvectrix.skinning.simd` | false | Opt-in SIMD skinning dispatch. Skinning has no SIMD kernel (the gather kernel was slower on arm64), so it has no effect. |
+| `-Dvectrix.culling.simd` | true | Whether `CullingKernels.frustumCullAabbBatch` may take its Vector API kernel. It classifies every box exactly like scalar, NaN and infinite bounds included, so results do not depend on this setting. |
 
 Settings that do **not** change output bits:
 - The memory backend (FFM by default; `-Djoml.noffm`, `-Djoml.forceUnsafe`, `-Djoml.nounsafe`): every backend writes the same bytes, including the raw-address API.

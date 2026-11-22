@@ -149,9 +149,11 @@ machines.
 | `TransformKernels.composeBatch` (SoA) | 16384 | 63 160 | 213 577 | 3.4× | bimodal |
 | `CullingKernels.frustumCullAabbBatch` | 16384 | 69 097 (`SimdForced`) | 187 977 | 2.7× | 1.15× |
 
-AVX-512 gives the SIMD kernels much more headroom than NEON. Culling's default dispatch (`batchKernelAuto`, 189 199)
-still takes the scalar path, because SIMD culling is opt-in (`-Dvectrix.culling.simd=true`): it classifies
-identically except for NaN bounds. On x86 that leaves a 2.7× speed-up unused by default.
+AVX-512 gives the SIMD kernels much more headroom than NEON. In this run culling's default dispatch
+(`batchKernelAuto`, 189 199) still took the scalar path, because SIMD culling was opt-in. It has since become the
+default: its only documented difference from scalar (NaN bounds) had already been fixed, and a special-values parity
+test (`SimdPathTest`) confirms identical classification. On the M4 the default is now 13–21 % faster than scalar at
+64 to 16384 boxes (190 vs 241 ns at 64, 48.3 vs 55.2 µs at 16384).
 
 **Memory backends** (ns per call, one `Matrix4f` per transfer):
 
