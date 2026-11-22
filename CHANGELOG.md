@@ -4,7 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
-## [Unreleased]
+## [2.3.0] - 2026-11-22
+New in this release: rendering math II (spherical functions, camera, atmosphere: review Part II §15.3, §15.5,
+§15.6), animation math (§18, without IK), large-world precision (§12), and spectral colour from the official CIE
+tables with Jakob-Hanika upsampling. New packages: `spherical`, `camera`, `atmosphere`, `animation`, `world`.
+Fixes the double-precision SH constants and dual quaternion normalization, and deprecates the single-precision
+`renderingmath` atmosphere builder. No breaking changes from 2.2.0. Licensing: `color.CieData` carries the CIE's
+1 nm tables under CC BY-SA 4.0 (see `NOTICE`); everything else remains MIT.
+
 ### Added
 - `sh.ShRotation` (review Part II §15.3): rotation of L2 and L3 RGB coefficient sets, float and double, by
   projection onto fixed sample directions (exact for the `ShBasis` conventions, no Wigner recurrences to get wrong).
