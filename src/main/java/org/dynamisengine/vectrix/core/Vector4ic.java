@@ -256,6 +256,7 @@ public interface Vector4ic {
      * Return the length squared of this vector.
      *
      * @return the length squared
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     long lengthSquared();
 
@@ -297,6 +298,7 @@ public interface Vector4ic {
      * @param v
      *          the other vector
      * @return the grid distance
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     long gridDistance(Vector4ic v);
 
@@ -313,6 +315,7 @@ public interface Vector4ic {
      * @param w
      *          the w component of the other vector
      * @return the grid distance
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     long gridDistance(int x, int y, int z, int w);
 
@@ -322,6 +325,7 @@ public interface Vector4ic {
      * @param v
      *          the other vector
      * @return the squared of the distance
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     long distanceSquared(Vector4ic v);
 
@@ -338,6 +342,7 @@ public interface Vector4ic {
      * @param w
      *          the w component of the other vector
      * @return the square of the distance
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     long distanceSquared(int x, int y, int z, int w);
 

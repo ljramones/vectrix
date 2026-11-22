@@ -1,0 +1,5 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: count"
+"org.dynamisengine.vectrix.bench.ShBenchmark.evaluateL3","avgt",1,5,37680.764884,521.493970,"ns/op",4096
+"org.dynamisengine.vectrix.bench.ShBenchmark.projectL3","avgt",1,5,54951.632413,18679.856514,"ns/op",4096
+"org.dynamisengine.vectrix.bench.ShHotPathBenchmark.evaluateIrradianceZeroAllocLoop","avgt",1,5,19398.275688,229.339997,"ns/op",4096
+"org.dynamisengine.vectrix.bench.ShHotPathBenchmark.projectSampleZeroAllocLoop","avgt",1,5,32993.898923,484.746763,"ns/op",4096

@@ -646,4 +646,23 @@ public class Math {
     public static int signum(long v) {
         return Long.signum(v);
     }
+
+    /**
+     * {@code a*a + b*b} in exact long arithmetic, for the squared lengths and distances of the int and long vectors.
+     *
+     * @throws ArithmeticException if the result does not fit in a long
+     */
+    static long sumOfSquaresExact(long a, long b) {
+        return java.lang.Math.addExact(java.lang.Math.multiplyExact(a, a), java.lang.Math.multiplyExact(b, b));
+    }
+
+    /** {@code a*a + b*b + c*c}, exact; see {@link #sumOfSquaresExact(long, long)}. */
+    static long sumOfSquaresExact(long a, long b, long c) {
+        return java.lang.Math.addExact(sumOfSquaresExact(a, b), java.lang.Math.multiplyExact(c, c));
+    }
+
+    /** {@code a*a + b*b + c*c + d*d}, exact; see {@link #sumOfSquaresExact(long, long)}. */
+    static long sumOfSquaresExact(long a, long b, long c, long d) {
+        return java.lang.Math.addExact(sumOfSquaresExact(a, b, c), java.lang.Math.multiplyExact(d, d));
+    }
 }

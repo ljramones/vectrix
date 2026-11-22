@@ -35,8 +35,97 @@ This document defines the benchmark methodology and records current baseline res
 - Normalize per-item metrics:
   - `./scripts/bench-normalize.py benchmarks/results/YYYY-MM-DD/full.json`
 
-## Current Published Snapshot (2026-03-06)
-This is the current, prominent benchmark snapshot used for runtime policy decisions.
+## Current Published Snapshot (2026-11-21)
+Measured after the code-review fixes (see `CHANGELOG.md`). It replaces the earlier snapshots below, which predate
+three changes that invalidate their numbers:
+
+1. **SIMD never ran.** `SimdSupport` failed to detect the Vector API and the benchmark forks did not add
+   `--add-modules jdk.incubator.vector`, so every earlier "SIMD" or "Vector API" result measured scalar code.
+2. **Packed affine layout.** `PackedAffineArray` changed from basis columns to the row-major
+   `AFFINE_3X4_ROW_MAJOR` layout (review M-1); earlier packed-affine numbers used the old layout.
+3. **Memory backend.** The default is now the bounds-checked FFM backend, not Unsafe.
+
+Environment: Apple M4 Max, macOS 27.0.1 (Darwin 27.0.0 arm64), Temurin OpenJDK 25.0.4 LTS.
+Profile: `quick` (`-f 1 -wi 3 -w 1s -i 5 -r 1s`, AverageTime), one fork per configuration, so treat differences
+under about 5 % as noise. Raw results: `benchmarks/results/2026-11-21/*.{csv,txt}`.
+
+All values are ns per call; "per item" divides by the batch size.
+
+**Memory backends** (`MemoryBackendBenchmark`, one call per matrix, `Matrix4f` into a direct buffer):
+
+| Matrices per loop | FFM, ByteBuffer | FFM, FloatBuffer | Unsafe, ByteBuffer | Unsafe, FloatBuffer |
+|---|---:|---:|---:|---:|
+| 1 | 3.33 | 2.79 | 2.15 | 2.05 |
+| 16 | 29.6 | 29.5 | 32.3 | 28.3 |
+| 256 | 457 | 473 | 511 | 449 |
+
+FFM (the default) matches or beats Unsafe for loops of transfers; an isolated transfer costs about 1 ns more.
+
+**Transform compose** (`TransformComposeBenchmark`, per batch):
+
+| Batch | SoA, Vector API | SoA, scalar | Affine4f | Transformf objects | Matrix4f |
+|---|---:|---:|---:|---:|---:|
+| 64 | 77.9 | 279 | 316 | 339 | 388 |
+| 1024 | 1 232 | 4 450 | 7 312 | 7 427 | 9 278 |
+| 16384 | 71 097 | 80 000 – 396 000 (bimodal across forks) | 120 860 | 136 242 | 165 719 |
+
+The SoA Vector API kernel is 3.6× faster than scalar up to 1024 transforms and bitwise identical to it.
+
+**Culling, skinning, bounds and upload:**
+
+| Benchmark | Shape | ns per batch | ns per item |
+|---|---|---:|---:|
+| `FrustumCullingBenchmark.batchKernelSimdForced` | 16384 AABBs | 47 679 | 2.91 |
+| `FrustumCullingBenchmark.batchKernelScalarForced` | 16384 AABBs | 54 962 | 3.35 |
+| `FrustumCullingBenchmark.frustumIntersectionLoop` | 16384 AABBs | 85 411 | 5.21 |
+| `SkinningKernelBenchmark.skinLbs4MatrixPaletteTight` | 4096 vertices, 64 joints | 25 335 | 6.19 |
+| `SkinningKernelBenchmark.skinLbs4` (quaternion LBS) | 4096 vertices, 64 joints | 41 504 | 10.13 |
+| `SkinningKernelBenchmark.skinDualQuat4` | 4096 vertices, 64 joints | 46 306 | 11.31 |
+| `TransformAabbBenchmark.transformAabbBatch` packedAffine | 16384 boxes | 65 477 | 4.00 |
+| `TransformAabbBenchmark.transformAabbBatch` matrix4f | 16384 boxes | 139 974 | 8.54 |
+| `InstanceUploadBenchmark.instanceUploadPackedAffine` | 16384 instances | 35 881 | 2.19 |
+| `InstanceUploadBenchmark.instanceUploadMatrix4f` | 16384 instances | 89 568 | 5.47 |
+| `PackedAffineConversionBenchmark.trsToPackedAffineBatch` | 4096 | 13 318 | 3.25 |
+
+`skinLbs4SoASimdForced` and `skinLbs4Vector` now run the scalar kernel (41.8 and 41.4 µs, the same as scalar): a
+gather-based Vector API kernel measured 6.8× slower on arm64, where NEON has no gather instruction.
+
+**Rendering math** (count 4096; FFT complex count 1024):
+
+| Benchmark | ns per batch | ns per item |
+|---|---:|---:|
+| `CurveBenchmark.bezierEvaluateLoop` | 8 078 | 1.97 |
+| `CurveBenchmark.mapArcLengthLoop` | 17 872 | 4.36 |
+| `OpticsBenchmark.fresnelDielectricLoop` | 8 727 | 2.13 |
+| `OpticsBenchmark.thinFilmRgbLoop` | 108 233 | 26.4 |
+| `ShBenchmark.evaluateL3` | 37 681 | 9.20 |
+| `ShBenchmark.projectL3` | 54 952 | 13.4 |
+| `ShHotPathBenchmark.evaluateIrradianceZeroAllocLoop` | 19 398 | 4.74 |
+| `ShHotPathBenchmark.projectSampleZeroAllocLoop` | 32 994 | 8.06 |
+| `LtcBenchmark.ltcTableSampleLoop` | 41 436 | 10.1 |
+| `LtcBenchmark.ltcFormFactorRectClippedLoop` | 137 550 | 33.6 |
+| `QuaternionRotationBenchmark.swingTwistLoop` | 28 784 | 7.03 |
+| `QuaternionRotationBenchmark.angularVelocityLoop` | 49 960 | 12.2 |
+| `LowDiscrepancyBenchmark.sobolScrambledLoop` | 67 233 | 16.4 |
+| `FftBenchmark.forwardInverse` | 14 044 | 13.7 |
+| `FftBenchmark.circularConvolution` | 21 546 | 21.0 |
+
+Compared with the February snapshot, per item:
+- `angularVelocityLoop` is about 25 % slower (12.2 vs 9.7 ns): `atan2` replaced `acos(w)`, which returned 0 for slow
+  rotations in float (review H-7). This is the price of the accuracy fix.
+- The FFT is faster (13.7 vs 15.8 ns for `forwardInverse`, 21.0 vs 24.4 for `circularConvolution`): the twiddle is
+  now computed once per stage, which more than pays for running the recurrence in double (review M-7).
+- `ltcFormFactorRectClippedLoop` is about 27 % faster (33.6 vs 45.7 ns): exact streaming clipping replaced vertex
+  projection (review M-5).
+- SH evaluation and projection are back at their February cost. The first run of this snapshot found them 2× slower
+  after a refactor that computed the basis through a per-index switch; the straight-line code was restored, with a
+  test (`ShConsistencyTest`) that keeps every copy of the formulas bit-identical. SH and FFT rows above are the
+  re-measured values (`sh-after-fix`, `fft-after-fix`).
+- Other differences are within about 15 % and mostly within run-to-run noise for a single fork.
+
+## Historical Snapshot (2026-03-06)
+Superseded by the 2026-11-21 snapshot above; kept for the decision history. Its SIMD figures measured scalar code
+and its packed-affine figures used the old column layout.
 
 - Environment:
   - Apple M4 Max, macOS 26.3 (Darwin 25.3.0 arm64)
@@ -128,7 +217,9 @@ Acquisition path for the current suite index above:
   - `benchmarks/results/YYYY-MM-DD/*.json`
   - `benchmarks/results/YYYY-MM-DD/*.normalized.csv`
 
-## Current Baseline
+## Historical Baseline (2026-02-22)
+Superseded; see the 2026-11-21 snapshot. Same caveats as the 2026-03-06 snapshot.
+
 Baseline capture profile used:
 - `BENCH_REGEX='org.dynamisengine.vectrix.bench.(CurveBenchmark|ShBenchmark|FftBenchmark|OpticsBenchmark).*'`
 - `FORKS=1 WARMUP_ITERS=1 MEASURE_ITERS=1 THREADS=1 TIME_UNIT=ns`
@@ -191,7 +282,9 @@ Interpretation notes:
 - FFT paths (`forwardInverse`, `circularConvolution`) also rise with problem size as expected for increasing memory/compute pressure.
 - `mapArcLengthLoop` and `projectL3` do not regress with larger counts; both trend slightly cheaper per call at scale.
 
-## Full Coverage Pass (Latest)
+## Historical Coverage Pass (2026-02-22)
+Superseded; see the 2026-11-21 snapshot. The `skinLbs4SoASimdForced` row measured scalar code.
+
 Latest end-to-end capture profile:
 - `BENCH_REGEX='org.dynamisengine.vectrix.bench.(CurveBenchmark|FftBenchmark|OpticsBenchmark|ShBenchmark|QuaternionRotationBenchmark|ShHotPathBenchmark|LtcBenchmark|LowDiscrepancyBenchmark|SkinningKernelBenchmark).*'`
 - `FORKS=1 WARMUP_ITERS=1 MEASURE_ITERS=1 THREADS=1 TIME_UNIT=ns`

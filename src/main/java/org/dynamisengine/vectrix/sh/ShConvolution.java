@@ -91,18 +91,7 @@ public final class ShConvolution {
     }
 
     public static Vector3f evaluateL2(ShCoeffs9f coeffs, Vector3fc dir, Vector3f dest) {
-        float x = dir.x(), y = dir.y(), z = dir.z();
-        float r = 0.0f;
-        float g = 0.0f;
-        float bl = 0.0f;
-        for (int i = 0; i < 9; i++) {
-            int o = i * 3;
-            float bi = ShBasis.basis(i, x, y, z);
-            r += coeffs.c[o] * bi;
-            g += coeffs.c[o + 1] * bi;
-            bl += coeffs.c[o + 2] * bi;
-        }
-        return dest.set(r, g, bl);
+        return ShBasis.dot9(coeffs.c, dir.x(), dir.y(), dir.z(), dest);
     }
 
     /**
@@ -133,48 +122,15 @@ public final class ShConvolution {
     }
 
     public static Vector3d evaluateL2(ShCoeffs9d coeffs, Vector3dc dir, Vector3d dest) {
-        double x = dir.x(), y = dir.y(), z = dir.z();
-        double r = 0.0;
-        double g = 0.0;
-        double bl = 0.0;
-        for (int i = 0; i < 9; i++) {
-            int o = i * 3;
-            double bi = ShBasis.basis(i, x, y, z);
-            r += coeffs.c[o] * bi;
-            g += coeffs.c[o + 1] * bi;
-            bl += coeffs.c[o + 2] * bi;
-        }
-        return dest.set(r, g, bl);
+        return ShBasis.dot9(coeffs.c, dir.x(), dir.y(), dir.z(), dest);
     }
 
     public static Vector3f evaluateL3(ShCoeffs16f coeffs, Vector3fc dir, Vector3f dest) {
-        float x = dir.x(), y = dir.y(), z = dir.z();
-        float r = 0.0f;
-        float g = 0.0f;
-        float bl = 0.0f;
-        for (int i = 0; i < 16; i++) {
-            int o = i * 3;
-            float bi = ShBasis.basis(i, x, y, z);
-            r += coeffs.c[o] * bi;
-            g += coeffs.c[o + 1] * bi;
-            bl += coeffs.c[o + 2] * bi;
-        }
-        return dest.set(r, g, bl);
+        return ShBasis.dot16(coeffs.c, dir.x(), dir.y(), dir.z(), dest);
     }
 
     public static Vector3d evaluateL3(ShCoeffs16d coeffs, Vector3dc dir, Vector3d dest) {
-        double x = dir.x(), y = dir.y(), z = dir.z();
-        double r = 0.0;
-        double g = 0.0;
-        double bl = 0.0;
-        for (int i = 0; i < 16; i++) {
-            int o = i * 3;
-            double bi = ShBasis.basis(i, x, y, z);
-            r += coeffs.c[o] * bi;
-            g += coeffs.c[o + 1] * bi;
-            bl += coeffs.c[o + 2] * bi;
-        }
-        return dest.set(r, g, bl);
+        return ShBasis.dot16(coeffs.c, dir.x(), dir.y(), dir.z(), dest);
     }
 
     /**

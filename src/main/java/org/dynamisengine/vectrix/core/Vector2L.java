@@ -597,7 +597,7 @@ public class Vector2L implements Externalizable, Cloneable, Vector2Lc {
     }
 
     public long lengthSquared() {
-        return x * x + y * y;
+        return Math.sumOfSquaresExact(x, y); // exact: throws ArithmeticException instead of wrapping
     }
 
     /**
@@ -607,9 +607,10 @@ public class Vector2L implements Externalizable, Cloneable, Vector2Lc {
      * @param y The vector's y component
      *
      * @return the length squared of the given vector
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     public static long lengthSquared(long x, long y) {
-        return x * x + y * y;
+        return Math.sumOfSquaresExact(x, y); // exact: throws ArithmeticException instead of wrapping
     }
 
     public double length() {
@@ -641,23 +642,23 @@ public class Vector2L implements Externalizable, Cloneable, Vector2Lc {
     }
 
     public long distanceSquared(Vector2Lc v) {
-        long dx = this.x - v.x();
-        long dy = this.y - v.y();
-        return dx * dx + dy * dy;
+        long dx = java.lang.Math.subtractExact(this.x, v.x());
+        long dy = java.lang.Math.subtractExact(this.y, v.y());
+        return Math.sumOfSquaresExact(dx, dy); // exact: throws ArithmeticException instead of wrapping
     }
 
     public long distanceSquared(long x, long y) {
-        long dx = this.x - x;
-        long dy = this.y - y;
-        return dx * dx + dy * dy;
+        long dx = java.lang.Math.subtractExact(this.x, x);
+        long dy = java.lang.Math.subtractExact(this.y, y);
+        return Math.sumOfSquaresExact(dx, dy); // exact: throws ArithmeticException instead of wrapping
     }
 
     public long gridDistance(Vector2Lc v) {
-        return Math.abs(v.x() - x()) + Math.abs(v.y() - y());
+        return java.lang.Math.addExact(java.lang.Math.absExact(java.lang.Math.subtractExact(v.x(), x())), java.lang.Math.absExact(java.lang.Math.subtractExact(v.y(), y()))); // exact: throws ArithmeticException instead of wrapping
     }
 
     public long gridDistance(long x, long y) {
-        return Math.abs(x - x()) + Math.abs(y - y());
+        return java.lang.Math.addExact(java.lang.Math.absExact(java.lang.Math.subtractExact(x, x())), java.lang.Math.absExact(java.lang.Math.subtractExact(y, y()))); // exact: throws ArithmeticException instead of wrapping
     }
 
     /**
@@ -691,11 +692,12 @@ public class Vector2L implements Externalizable, Cloneable, Vector2Lc {
      * @param y2
      *          the y component of the second vector
      * @return the euclidean distance squared
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     public static long distanceSquared(long x1, long y1, long x2, long y2) {
-        long dx = x1 - x2;
-        long dy = y1 - y2;
-        return dx * dx + dy * dy;
+        long dx = java.lang.Math.subtractExact(x1, x2);
+        long dy = java.lang.Math.subtractExact(y1, y2);
+        return Math.sumOfSquaresExact(dx, dy); // exact: throws ArithmeticException instead of wrapping
     }
     
     /**

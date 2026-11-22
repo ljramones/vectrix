@@ -175,6 +175,7 @@ class LowFindingsTest {
         Vector3f viaScience = ColorSciencef.linearSrgbToXyz(0.2f, 0.5f, 0.9f, new Vector3f());
         Vector3f viaMath = ColorMathf.linearSrgbToXyz(new Vector3f(0.2f, 0.5f, 0.9f), new Vector3f());
         assertEquals(viaMath, viaScience);
+        assertEquals(viaMath.y, ColorMathf.luminanceLinear(0.2f, 0.5f, 0.9f), 0f, "luminance is the XYZ Y row");
         Vector3f back = ColorSciencef.xyzToLinearSrgb(viaScience.x, viaScience.y, viaScience.z, new Vector3f());
         // the 7-digit pair round-trips to float precision; the old 4-digit pair was off by about 1e-4
         assertEquals(0.2f, back.x, 2e-6f);

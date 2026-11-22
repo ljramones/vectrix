@@ -847,7 +847,7 @@ public class Vector3i implements Externalizable, Cloneable, Vector3ic {
     }
 
     public long lengthSquared() {
-        return (long) x * x + (long) y * y + (long) z * z;
+        return Math.sumOfSquaresExact(x, y, z); // exact: throws ArithmeticException instead of wrapping
     }
 
     /**
@@ -858,9 +858,10 @@ public class Vector3i implements Externalizable, Cloneable, Vector3ic {
      * @param z The vector's z component
      *
      * @return the length squared of the given vector
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     public static long lengthSquared(int x, int y, int z) {
-        return (long) x * x + (long) y * y + (long) z * z;
+        return Math.sumOfSquaresExact(x, y, z); // exact: throws ArithmeticException instead of wrapping
     }
 
     public double length() {
@@ -895,25 +896,25 @@ public class Vector3i implements Externalizable, Cloneable, Vector3ic {
     }
 
     public long gridDistance(Vector3ic v) {
-        return Math.abs(v.x() - x()) + Math.abs(v.y() - y())  + Math.abs(v.z() - z());
+        return java.lang.Math.abs((long) v.x() - x()) + java.lang.Math.abs((long) v.y() - y()) + java.lang.Math.abs((long) v.z() - z()); // in long: the int difference and sum overflowed
     }
 
     public long gridDistance(int x, int y, int z) {
-        return Math.abs(x - x()) + Math.abs(y - y()) + Math.abs(z - z());
+        return java.lang.Math.abs((long) x - x()) + java.lang.Math.abs((long) y - y()) + java.lang.Math.abs((long) z - z()); // in long: the int difference and sum overflowed
     }
 
     public long distanceSquared(Vector3ic v) {
         long dx = (long) this.x - v.x();
         long dy = (long) this.y - v.y();
         long dz = (long) this.z - v.z();
-        return (long) dx * dx + (long) dy * dy + (long) dz * dz;
+        return Math.sumOfSquaresExact(dx, dy, dz); // exact: throws ArithmeticException instead of wrapping
     }
 
     public long distanceSquared(int x, int y, int z) {
         long dx = (long) this.x - x;
         long dy = (long) this.y - y;
         long dz = (long) this.z - z;
-        return (long) dx * dx + (long) dy * dy + (long) dz * dz;
+        return Math.sumOfSquaresExact(dx, dy, dz); // exact: throws ArithmeticException instead of wrapping
     }
 
     /**
@@ -953,12 +954,13 @@ public class Vector3i implements Externalizable, Cloneable, Vector3ic {
      * @param z2
      *          the z component of the second vector
      * @return the euclidean distance squared
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     public static long distanceSquared(int x1, int y1, int z1, int x2, int y2, int z2) {
         long dx = (long) x1 - x2;
         long dy = (long) y1 - y2;
         long dz = (long) z1 - z2;
-        return dx * dx + dy * dy + dz * dz;
+        return Math.sumOfSquaresExact(dx, dy, dz); // exact: throws ArithmeticException instead of wrapping
     }
 
     /**

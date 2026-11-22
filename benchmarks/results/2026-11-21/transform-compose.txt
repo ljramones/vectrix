@@ -1,0 +1,465 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeAffineBatch
+# Parameters: (size = 64)
+
+# Run progress: 0.00% complete, ETA 00:01:36
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 319.880 ns/op
+# Warmup Iteration   2: 314.227 ns/op
+# Warmup Iteration   3: 320.066 ns/op
+Iteration   1: 316.268 ns/op
+Iteration   2: 318.631 ns/op
+Iteration   3: 317.401 ns/op
+Iteration   4: 315.270 ns/op
+Iteration   5: 310.289 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeAffineBatch":
+  315.572 ±(99.9%) 12.357 ns/op [Average]
+  (min, avg, max) = (310.289, 315.572, 318.631), stdev = 3.209
+  CI (99.9%): [303.215, 327.928] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeAffineBatch
+# Parameters: (size = 1024)
+
+# Run progress: 8.33% complete, ETA 00:01:30
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 6821.032 ns/op
+# Warmup Iteration   2: 6946.113 ns/op
+# Warmup Iteration   3: 7500.748 ns/op
+Iteration   1: 7335.553 ns/op
+Iteration   2: 7342.280 ns/op
+Iteration   3: 7334.656 ns/op
+Iteration   4: 7188.317 ns/op
+Iteration   5: 7360.794 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeAffineBatch":
+  7312.320 ±(99.9%) 269.977 ns/op [Average]
+  (min, avg, max) = (7188.317, 7312.320, 7360.794), stdev = 70.112
+  CI (99.9%): [7042.343, 7582.297] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeAffineBatch
+# Parameters: (size = 16384)
+
+# Run progress: 16.67% complete, ETA 00:01:21
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 118320.893 ns/op
+# Warmup Iteration   2: 117659.258 ns/op
+# Warmup Iteration   3: 117648.673 ns/op
+Iteration   1: 115710.126 ns/op
+Iteration   2: 121835.139 ns/op
+Iteration   3: 122493.582 ns/op
+Iteration   4: 122606.982 ns/op
+Iteration   5: 121655.157 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeAffineBatch":
+  120860.197 ±(99.9%) 11197.515 ns/op [Average]
+  (min, avg, max) = (115710.126, 120860.197, 122606.982), stdev = 2907.959
+  CI (99.9%): [109662.682, 132057.713] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeMatrixBatch
+# Parameters: (size = 64)
+
+# Run progress: 25.00% complete, ETA 00:01:13
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 394.838 ns/op
+# Warmup Iteration   2: 386.286 ns/op
+# Warmup Iteration   3: 391.092 ns/op
+Iteration   1: 383.069 ns/op
+Iteration   2: 384.829 ns/op
+Iteration   3: 389.525 ns/op
+Iteration   4: 390.190 ns/op
+Iteration   5: 390.192 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeMatrixBatch":
+  387.561 ±(99.9%) 12.963 ns/op [Average]
+  (min, avg, max) = (383.069, 387.561, 390.192), stdev = 3.366
+  CI (99.9%): [374.598, 400.524] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeMatrixBatch
+# Parameters: (size = 1024)
+
+# Run progress: 33.33% complete, ETA 00:01:05
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 9073.251 ns/op
+# Warmup Iteration   2: 9208.867 ns/op
+# Warmup Iteration   3: 9105.745 ns/op
+Iteration   1: 9145.186 ns/op
+Iteration   2: 9216.136 ns/op
+Iteration   3: 9354.868 ns/op
+Iteration   4: 9323.802 ns/op
+Iteration   5: 9348.901 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeMatrixBatch":
+  9277.779 ±(99.9%) 357.612 ns/op [Average]
+  (min, avg, max) = (9145.186, 9277.779, 9354.868), stdev = 92.871
+  CI (99.9%): [8920.166, 9635.391] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeMatrixBatch
+# Parameters: (size = 16384)
+
+# Run progress: 41.67% complete, ETA 00:00:57
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 170533.546 ns/op
+# Warmup Iteration   2: 171586.719 ns/op
+# Warmup Iteration   3: 167398.817 ns/op
+Iteration   1: 170242.279 ns/op
+Iteration   2: 174006.184 ns/op
+Iteration   3: 163342.543 ns/op
+Iteration   4: 158117.162 ns/op
+Iteration   5: 162885.129 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeMatrixBatch":
+  165718.659 ±(99.9%) 24399.519 ns/op [Average]
+  (min, avg, max) = (158117.162, 165718.659, 174006.184), stdev = 6336.478
+  CI (99.9%): [141319.140, 190118.178] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeObjectBatch
+# Parameters: (size = 64)
+
+# Run progress: 50.00% complete, ETA 00:00:49
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 339.512 ns/op
+# Warmup Iteration   2: 337.244 ns/op
+# Warmup Iteration   3: 340.191 ns/op
+Iteration   1: 337.983 ns/op
+Iteration   2: 339.232 ns/op
+Iteration   3: 338.693 ns/op
+Iteration   4: 338.084 ns/op
+Iteration   5: 338.529 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeObjectBatch":
+  338.504 ±(99.9%) 1.939 ns/op [Average]
+  (min, avg, max) = (337.983, 338.504, 339.232), stdev = 0.504
+  CI (99.9%): [336.565, 340.444] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeObjectBatch
+# Parameters: (size = 1024)
+
+# Run progress: 58.33% complete, ETA 00:00:40
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 7383.769 ns/op
+# Warmup Iteration   2: 7236.225 ns/op
+# Warmup Iteration   3: 7450.885 ns/op
+Iteration   1: 7414.517 ns/op
+Iteration   2: 7408.677 ns/op
+Iteration   3: 7439.380 ns/op
+Iteration   4: 7391.489 ns/op
+Iteration   5: 7482.006 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeObjectBatch":
+  7427.214 ±(99.9%) 135.201 ns/op [Average]
+  (min, avg, max) = (7391.489, 7427.214, 7482.006), stdev = 35.111
+  CI (99.9%): [7292.012, 7562.415] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeObjectBatch
+# Parameters: (size = 16384)
+
+# Run progress: 66.67% complete, ETA 00:00:32
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 136899.657 ns/op
+# Warmup Iteration   2: 138552.088 ns/op
+# Warmup Iteration   3: 134039.633 ns/op
+Iteration   1: 135622.676 ns/op
+Iteration   2: 134054.916 ns/op
+Iteration   3: 136893.141 ns/op
+Iteration   4: 137499.412 ns/op
+Iteration   5: 137140.287 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeObjectBatch":
+  136242.087 ±(99.9%) 5438.443 ns/op [Average]
+  (min, avg, max) = (134054.916, 136242.087, 137499.412), stdev = 1412.346
+  CI (99.9%): [130803.643, 141680.530] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeSoABatch
+# Parameters: (size = 64)
+
+# Run progress: 75.00% complete, ETA 00:00:24
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 84.023 ns/op
+# Warmup Iteration   2: 78.923 ns/op
+# Warmup Iteration   3: 77.701 ns/op
+Iteration   1: 78.105 ns/op
+Iteration   2: 77.760 ns/op
+Iteration   3: 77.742 ns/op
+Iteration   4: 78.145 ns/op
+Iteration   5: 77.803 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeSoABatch":
+  77.911 ±(99.9%) 0.759 ns/op [Average]
+  (min, avg, max) = (77.742, 77.911, 78.145), stdev = 0.197
+  CI (99.9%): [77.152, 78.670] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeSoABatch
+# Parameters: (size = 1024)
+
+# Run progress: 83.33% complete, ETA 00:00:16
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 1458.953 ns/op
+# Warmup Iteration   2: 1224.175 ns/op
+# Warmup Iteration   3: 1237.087 ns/op
+Iteration   1: 1228.192 ns/op
+Iteration   2: 1234.455 ns/op
+Iteration   3: 1230.163 ns/op
+Iteration   4: 1239.101 ns/op
+Iteration   5: 1228.655 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeSoABatch":
+  1232.113 ±(99.9%) 17.797 ns/op [Average]
+  (min, avg, max) = (1228.192, 1232.113, 1239.101), stdev = 4.622
+  CI (99.9%): [1214.316, 1249.910] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeSoABatch
+# Parameters: (size = 16384)
+
+# Run progress: 91.67% complete, ETA 00:00:08
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 93942.757 ns/op
+# Warmup Iteration   2: 72520.300 ns/op
+# Warmup Iteration   3: 72527.947 ns/op
+Iteration   1: 72288.397 ns/op
+Iteration   2: 72312.717 ns/op
+Iteration   3: 69965.932 ns/op
+Iteration   4: 70363.150 ns/op
+Iteration   5: 70553.430 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeSoABatch":
+  71096.725 ±(99.9%) 4309.760 ns/op [Average]
+  (min, avg, max) = (69965.932, 71096.725, 72312.717), stdev = 1119.231
+  CI (99.9%): [66786.965, 75406.486] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:01:38
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                                     (size)  Mode  Cnt       Score       Error  Units
+TransformComposeBenchmark.composeAffineBatch      64  avgt    5     315.572 ±    12.357  ns/op
+TransformComposeBenchmark.composeAffineBatch    1024  avgt    5    7312.320 ±   269.977  ns/op
+TransformComposeBenchmark.composeAffineBatch   16384  avgt    5  120860.197 ± 11197.515  ns/op
+TransformComposeBenchmark.composeMatrixBatch      64  avgt    5     387.561 ±    12.963  ns/op
+TransformComposeBenchmark.composeMatrixBatch    1024  avgt    5    9277.779 ±   357.612  ns/op
+TransformComposeBenchmark.composeMatrixBatch   16384  avgt    5  165718.659 ± 24399.519  ns/op
+TransformComposeBenchmark.composeObjectBatch      64  avgt    5     338.504 ±     1.939  ns/op
+TransformComposeBenchmark.composeObjectBatch    1024  avgt    5    7427.214 ±   135.201  ns/op
+TransformComposeBenchmark.composeObjectBatch   16384  avgt    5  136242.087 ±  5438.443  ns/op
+TransformComposeBenchmark.composeSoABatch         64  avgt    5      77.911 ±     0.759  ns/op
+TransformComposeBenchmark.composeSoABatch       1024  avgt    5    1232.113 ±    17.797  ns/op
+TransformComposeBenchmark.composeSoABatch      16384  avgt    5   71096.725 ±  4309.760  ns/op
+
+Benchmark result is saved to benchmarks/results/2026-11-21/transform-compose.csv

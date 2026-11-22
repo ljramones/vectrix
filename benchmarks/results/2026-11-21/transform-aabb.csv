@@ -1,0 +1,7 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: accessPattern","Param: chunkSize","Param: count","Param: dataDistribution","Param: representation","Param: traversalMode"
+"org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatch","avgt",1,5,139974.094836,13617.900016,"ns/op",hot,256,16384,uniform,matrix4f,SEQUENTIAL
+"org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatch","avgt",1,5,141051.848234,13430.039868,"ns/op",hot,256,16384,uniform,affine4x3,SEQUENTIAL
+"org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatch","avgt",1,5,65476.828252,2349.217230,"ns/op",hot,256,16384,uniform,packedAffine,SEQUENTIAL
+"org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatchChunked","avgt",1,5,143816.515909,13816.695815,"ns/op",hot,256,16384,uniform,matrix4f,SEQUENTIAL
+"org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatchChunked","avgt",1,5,144209.213779,12563.344701,"ns/op",hot,256,16384,uniform,affine4x3,SEQUENTIAL
+"org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatchChunked","avgt",1,5,67811.586999,2704.548131,"ns/op",hot,256,16384,uniform,packedAffine,SEQUENTIAL

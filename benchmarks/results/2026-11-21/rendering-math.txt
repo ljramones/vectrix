@@ -1,0 +1,576 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.CurveBenchmark.bezierEvaluateLoop
+# Parameters: (count = 4096)
+
+# Run progress: 0.00% complete, ETA 00:02:00
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 8209.812 ns/op
+# Warmup Iteration   2: 8030.840 ns/op
+# Warmup Iteration   3: 8135.316 ns/op
+Iteration   1: 8064.568 ns/op
+Iteration   2: 8079.878 ns/op
+Iteration   3: 8102.424 ns/op
+Iteration   4: 8046.830 ns/op
+Iteration   5: 8094.596 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.CurveBenchmark.bezierEvaluateLoop":
+  8077.659 ±(99.9%) 86.680 ns/op [Average]
+  (min, avg, max) = (8046.830, 8077.659, 8102.424), stdev = 22.511
+  CI (99.9%): [7990.979, 8164.339] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.CurveBenchmark.mapArcLengthLoop
+# Parameters: (count = 4096)
+
+# Run progress: 6.67% complete, ETA 00:01:54
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 17943.723 ns/op
+# Warmup Iteration   2: 17688.809 ns/op
+# Warmup Iteration   3: 17528.628 ns/op
+Iteration   1: 17489.178 ns/op
+Iteration   2: 18013.024 ns/op
+Iteration   3: 18011.169 ns/op
+Iteration   4: 17760.511 ns/op
+Iteration   5: 18087.700 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.CurveBenchmark.mapArcLengthLoop":
+  17872.316 ±(99.9%) 952.527 ns/op [Average]
+  (min, avg, max) = (17489.178, 17872.316, 18087.700), stdev = 247.368
+  CI (99.9%): [16919.789, 18824.844] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.LowDiscrepancyBenchmark.sobolScrambledBatch2DLoop
+# Parameters: (count = 4096)
+
+# Run progress: 13.33% complete, ETA 00:01:46
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 75123.769 ns/op
+# Warmup Iteration   2: 67883.896 ns/op
+# Warmup Iteration   3: 70974.760 ns/op
+Iteration   1: 72518.131 ns/op
+Iteration   2: 67390.992 ns/op
+Iteration   3: 67728.163 ns/op
+Iteration   4: 67601.844 ns/op
+Iteration   5: 72504.083 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.LowDiscrepancyBenchmark.sobolScrambledBatch2DLoop":
+  69548.642 ±(99.9%) 10423.821 ns/op [Average]
+  (min, avg, max) = (67390.992, 69548.642, 72518.131), stdev = 2707.033
+  CI (99.9%): [59124.821, 79972.464] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.LowDiscrepancyBenchmark.sobolScrambledLoop
+# Parameters: (count = 4096)
+
+# Run progress: 20.00% complete, ETA 00:01:38
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 70425.695 ns/op
+# Warmup Iteration   2: 68596.020 ns/op
+# Warmup Iteration   3: 67379.674 ns/op
+Iteration   1: 65825.379 ns/op
+Iteration   2: 68065.690 ns/op
+Iteration   3: 68571.306 ns/op
+Iteration   4: 66870.804 ns/op
+Iteration   5: 66832.546 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.LowDiscrepancyBenchmark.sobolScrambledLoop":
+  67233.145 ±(99.9%) 4199.401 ns/op [Average]
+  (min, avg, max) = (65825.379, 67233.145, 68571.306), stdev = 1090.571
+  CI (99.9%): [63033.743, 71432.546] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.LtcBenchmark.ltcFormFactorRectClippedLoop
+# Parameters: (count = 4096)
+
+# Run progress: 26.67% complete, ETA 00:01:29
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 140291.579 ns/op
+# Warmup Iteration   2: 137102.751 ns/op
+# Warmup Iteration   3: 139301.920 ns/op
+Iteration   1: 136640.037 ns/op
+Iteration   2: 138114.980 ns/op
+Iteration   3: 136853.775 ns/op
+Iteration   4: 138868.512 ns/op
+Iteration   5: 137271.679 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.LtcBenchmark.ltcFormFactorRectClippedLoop":
+  137549.797 ±(99.9%) 3575.038 ns/op [Average]
+  (min, avg, max) = (136640.037, 137549.797, 138868.512), stdev = 928.426
+  CI (99.9%): [133974.758, 141124.835] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.LtcBenchmark.ltcTableSampleLoop
+# Parameters: (count = 4096)
+
+# Run progress: 33.33% complete, ETA 00:01:21
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 41652.546 ns/op
+# Warmup Iteration   2: 41376.385 ns/op
+# Warmup Iteration   3: 41257.851 ns/op
+Iteration   1: 41530.789 ns/op
+Iteration   2: 41248.645 ns/op
+Iteration   3: 41459.076 ns/op
+Iteration   4: 41300.188 ns/op
+Iteration   5: 41640.017 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.LtcBenchmark.ltcTableSampleLoop":
+  41435.743 ±(99.9%) 622.944 ns/op [Average]
+  (min, avg, max) = (41248.645, 41435.743, 41640.017), stdev = 161.776
+  CI (99.9%): [40812.799, 42058.686] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.OpticsBenchmark.fresnelDielectricLoop
+# Parameters: (count = 4096)
+
+# Run progress: 40.00% complete, ETA 00:01:13
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 7896.562 ns/op
+# Warmup Iteration   2: 8189.680 ns/op
+# Warmup Iteration   3: 8631.652 ns/op
+Iteration   1: 8798.796 ns/op
+Iteration   2: 8634.126 ns/op
+Iteration   3: 8768.543 ns/op
+Iteration   4: 8678.050 ns/op
+Iteration   5: 8756.325 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.OpticsBenchmark.fresnelDielectricLoop":
+  8727.168 ±(99.9%) 263.719 ns/op [Average]
+  (min, avg, max) = (8634.126, 8727.168, 8798.796), stdev = 68.487
+  CI (99.9%): [8463.449, 8990.887] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.OpticsBenchmark.thinFilmRgbLoop
+# Parameters: (count = 4096)
+
+# Run progress: 46.67% complete, ETA 00:01:05
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 106115.060 ns/op
+# Warmup Iteration   2: 102284.256 ns/op
+# Warmup Iteration   3: 107850.963 ns/op
+Iteration   1: 104846.976 ns/op
+Iteration   2: 109709.268 ns/op
+Iteration   3: 107136.926 ns/op
+Iteration   4: 108631.309 ns/op
+Iteration   5: 110838.755 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.OpticsBenchmark.thinFilmRgbLoop":
+  108232.647 ±(99.9%) 8988.288 ns/op [Average]
+  (min, avg, max) = (104846.976, 108232.647, 110838.755), stdev = 2334.230
+  CI (99.9%): [99244.359, 117220.935] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.QuaternionRotationBenchmark.angularVelocityLoop
+# Parameters: (count = 4096)
+
+# Run progress: 53.33% complete, ETA 00:00:57
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 49042.974 ns/op
+# Warmup Iteration   2: 48167.455 ns/op
+# Warmup Iteration   3: 48799.751 ns/op
+Iteration   1: 47959.123 ns/op
+Iteration   2: 48673.911 ns/op
+Iteration   3: 50164.073 ns/op
+Iteration   4: 51739.265 ns/op
+Iteration   5: 51263.786 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.QuaternionRotationBenchmark.angularVelocityLoop":
+  49960.032 ±(99.9%) 6257.985 ns/op [Average]
+  (min, avg, max) = (47959.123, 49960.032, 51739.265), stdev = 1625.179
+  CI (99.9%): [43702.047, 56218.016] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.QuaternionRotationBenchmark.integrateAngularVelocityLoop
+# Parameters: (count = 4096)
+
+# Run progress: 60.00% complete, ETA 00:00:48
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 17269.156 ns/op
+# Warmup Iteration   2: 17227.822 ns/op
+# Warmup Iteration   3: 17133.229 ns/op
+Iteration   1: 21295.311 ns/op
+Iteration   2: 21550.966 ns/op
+Iteration   3: 21307.746 ns/op
+Iteration   4: 21805.426 ns/op
+Iteration   5: 21273.028 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.QuaternionRotationBenchmark.integrateAngularVelocityLoop":
+  21446.495 ±(99.9%) 886.368 ns/op [Average]
+  (min, avg, max) = (21273.028, 21446.495, 21805.426), stdev = 230.187
+  CI (99.9%): [20560.127, 22332.864] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.QuaternionRotationBenchmark.swingTwistLoop
+# Parameters: (count = 4096)
+
+# Run progress: 66.67% complete, ETA 00:00:40
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 25848.021 ns/op
+# Warmup Iteration   2: 25283.772 ns/op
+# Warmup Iteration   3: 26231.736 ns/op
+Iteration   1: 28593.644 ns/op
+Iteration   2: 29100.717 ns/op
+Iteration   3: 28591.303 ns/op
+Iteration   4: 28992.589 ns/op
+Iteration   5: 28644.220 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.QuaternionRotationBenchmark.swingTwistLoop":
+  28784.495 ±(99.9%) 936.751 ns/op [Average]
+  (min, avg, max) = (28591.303, 28784.495, 29100.717), stdev = 243.271
+  CI (99.9%): [27847.743, 29721.246] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.ShBenchmark.evaluateL3
+# Parameters: (count = 4096)
+
+# Run progress: 73.33% complete, ETA 00:00:32
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 77524.325 ns/op
+# Warmup Iteration   2: 77171.565 ns/op
+# Warmup Iteration   3: 77557.040 ns/op
+Iteration   1: 77730.160 ns/op
+Iteration   2: 78243.592 ns/op
+Iteration   3: 76052.234 ns/op
+Iteration   4: 77565.159 ns/op
+Iteration   5: 76658.103 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.ShBenchmark.evaluateL3":
+  77249.850 ±(99.9%) 3391.021 ns/op [Average]
+  (min, avg, max) = (76052.234, 77249.850, 78243.592), stdev = 880.637
+  CI (99.9%): [73858.829, 80640.871] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.ShBenchmark.projectL3
+# Parameters: (count = 4096)
+
+# Run progress: 80.00% complete, ETA 00:00:24
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 107150.121 ns/op
+# Warmup Iteration   2: 105062.507 ns/op
+# Warmup Iteration   3: 106102.612 ns/op
+Iteration   1: 106218.585 ns/op
+Iteration   2: 105640.461 ns/op
+Iteration   3: 104688.322 ns/op
+Iteration   4: 107593.205 ns/op
+Iteration   5: 104488.678 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.ShBenchmark.projectL3":
+  105725.850 ±(99.9%) 4849.424 ns/op [Average]
+  (min, avg, max) = (104488.678, 105725.850, 107593.205), stdev = 1259.380
+  CI (99.9%): [100876.426, 110575.274] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.ShHotPathBenchmark.evaluateIrradianceZeroAllocLoop
+# Parameters: (count = 4096)
+
+# Run progress: 86.67% complete, ETA 00:00:16
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 42378.979 ns/op
+# Warmup Iteration   2: 41559.988 ns/op
+# Warmup Iteration   3: 41940.222 ns/op
+Iteration   1: 41201.280 ns/op
+Iteration   2: 39858.694 ns/op
+Iteration   3: 41007.259 ns/op
+Iteration   4: 41934.980 ns/op
+Iteration   5: 41034.444 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.ShHotPathBenchmark.evaluateIrradianceZeroAllocLoop":
+  41007.331 ±(99.9%) 2867.534 ns/op [Average]
+  (min, avg, max) = (39858.694, 41007.331, 41934.980), stdev = 744.690
+  CI (99.9%): [38139.797, 43874.866] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.ShHotPathBenchmark.projectSampleZeroAllocLoop
+# Parameters: (count = 4096)
+
+# Run progress: 93.33% complete, ETA 00:00:08
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 39428.241 ns/op
+# Warmup Iteration   2: 37891.029 ns/op
+# Warmup Iteration   3: 39367.336 ns/op
+Iteration   1: 38246.992 ns/op
+Iteration   2: 38710.562 ns/op
+Iteration   3: 40369.702 ns/op
+Iteration   4: 42154.816 ns/op
+Iteration   5: 40657.858 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.ShHotPathBenchmark.projectSampleZeroAllocLoop":
+  40027.986 ±(99.9%) 6071.471 ns/op [Average]
+  (min, avg, max) = (38246.992, 40027.986, 42154.816), stdev = 1576.742
+  CI (99.9%): [33956.515, 46099.457] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:02:02
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                                                 (count)  Mode  Cnt       Score       Error  Units
+CurveBenchmark.bezierEvaluateLoop                            4096  avgt    5    8077.659 ±    86.680  ns/op
+CurveBenchmark.mapArcLengthLoop                              4096  avgt    5   17872.316 ±   952.527  ns/op
+LowDiscrepancyBenchmark.sobolScrambledBatch2DLoop            4096  avgt    5   69548.642 ± 10423.821  ns/op
+LowDiscrepancyBenchmark.sobolScrambledLoop                   4096  avgt    5   67233.145 ±  4199.401  ns/op
+LtcBenchmark.ltcFormFactorRectClippedLoop                    4096  avgt    5  137549.797 ±  3575.038  ns/op
+LtcBenchmark.ltcTableSampleLoop                              4096  avgt    5   41435.743 ±   622.944  ns/op
+OpticsBenchmark.fresnelDielectricLoop                        4096  avgt    5    8727.168 ±   263.719  ns/op
+OpticsBenchmark.thinFilmRgbLoop                              4096  avgt    5  108232.647 ±  8988.288  ns/op
+QuaternionRotationBenchmark.angularVelocityLoop              4096  avgt    5   49960.032 ±  6257.985  ns/op
+QuaternionRotationBenchmark.integrateAngularVelocityLoop     4096  avgt    5   21446.495 ±   886.368  ns/op
+QuaternionRotationBenchmark.swingTwistLoop                   4096  avgt    5   28784.495 ±   936.751  ns/op
+ShBenchmark.evaluateL3                                       4096  avgt    5   77249.850 ±  3391.021  ns/op
+ShBenchmark.projectL3                                        4096  avgt    5  105725.850 ±  4849.424  ns/op
+ShHotPathBenchmark.evaluateIrradianceZeroAllocLoop           4096  avgt    5   41007.331 ±  2867.534  ns/op
+ShHotPathBenchmark.projectSampleZeroAllocLoop                4096  avgt    5   40027.986 ±  6071.471  ns/op
+
+Benchmark result is saved to benchmarks/results/2026-11-21/rendering-math.csv

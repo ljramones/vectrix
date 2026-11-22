@@ -951,7 +951,7 @@ public class Vector4i implements Externalizable, Cloneable, Vector4ic {
     }
 
     public long lengthSquared() {
-        return (long) x * x + (long) y * y + (long) z * z + (long) w * w;
+        return Math.sumOfSquaresExact(x, y, z, w); // exact: throws ArithmeticException instead of wrapping
     }
 
     /**
@@ -963,9 +963,10 @@ public class Vector4i implements Externalizable, Cloneable, Vector4ic {
      * @param w The vector's w component
      *
      * @return the length squared of the given vector
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     public static long lengthSquared(int x, int y, int z, int w) {
-        return (long) x * x + (long) y * y + (long) z * z + (long) w * w;
+        return Math.sumOfSquaresExact(x, y, z, w); // exact: throws ArithmeticException instead of wrapping
     }
 
     public double length() {
@@ -999,15 +1000,19 @@ public class Vector4i implements Externalizable, Cloneable, Vector4ic {
     }
 
     public long gridDistance(Vector4ic v) {
-        return Math.abs(v.x() - x()) + Math.abs(v.y() - y())  + Math.abs(v.z() - z())  + Math.abs(v.w() - w());
+        return java.lang.Math.abs((long) v.x() - x()) + java.lang.Math.abs((long) v.y() - y()) + java.lang.Math.abs((long) v.z() - z()) + java.lang.Math.abs((long) v.w() - w()); // in long: the int difference and sum overflowed
     }
 
     public long gridDistance(int x, int y, int z, int w) {
-        return Math.abs(x - x()) + Math.abs(y - y()) + Math.abs(z - z()) + Math.abs(w - w());
+        return java.lang.Math.abs((long) x - x()) + java.lang.Math.abs((long) y - y()) + java.lang.Math.abs((long) z - z()) + java.lang.Math.abs((long) w - w()); // in long: the int difference and sum overflowed
     }
 
     public long distanceSquared(Vector4ic v) {
-        return distanceSquared(v.x(), v.y(), v.z(), v.w());
+        long dx = (long) this.x - v.x();
+        long dy = (long) this.y - v.y();
+        long dz = (long) this.z - v.z();
+        long dw = (long) this.w - v.w();
+        return Math.sumOfSquaresExact(dx, dy, dz, dw); // exact: throws ArithmeticException instead of wrapping
     }
 
     public long distanceSquared(int x, int y, int z, int w) {
@@ -1015,7 +1020,7 @@ public class Vector4i implements Externalizable, Cloneable, Vector4ic {
         long dy = (long) this.y - y;
         long dz = (long) this.z - z;
         long dw = (long) this.w - w;
-        return (long) dx * dx + (long) dy * dy + (long) dz * dz + (long) dw * dw;
+        return Math.sumOfSquaresExact(dx, dy, dz, dw); // exact: throws ArithmeticException instead of wrapping
     }
 
     /**
@@ -1067,13 +1072,14 @@ public class Vector4i implements Externalizable, Cloneable, Vector4ic {
      * @param w2
      *          the w component of the second vector
      * @return the euclidean distance squared
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     public static long distanceSquared(int x1, int y1, int z1, int w1, int x2, int y2, int z2, int w2) {
         long dx = (long) x1 - x2;
         long dy = (long) y1 - y2;
         long dz = (long) z1 - z2;
         long dw = (long) w1 - w2;
-        return (long) dx * dx + (long) dy * dy + (long) dz * dz + (long) dw * dw;
+        return Math.sumOfSquaresExact(dx, dy, dz, dw); // exact: throws ArithmeticException instead of wrapping
     }
 
     public long dot(Vector4ic v) {

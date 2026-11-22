@@ -57,7 +57,8 @@ public final class ColorMathd {
     }
 
     public static double luminanceLinear(double r, double g, double b) {
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        // the Y row of linearSrgbToXyz, so luminance and XYZ agree (it used the 4-digit Rec. 709 weights)
+        return 0.2126729 * r + 0.7151522 * g + 0.0721750 * b;
     }
 
     public static double luminanceLinear(Vector3dc linearRgb) {

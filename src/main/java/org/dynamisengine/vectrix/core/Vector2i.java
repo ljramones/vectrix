@@ -555,7 +555,7 @@ public class Vector2i implements Externalizable, Cloneable, Vector2ic {
     }
 
     public long lengthSquared() {
-        return (long) x * x + (long) y * y;
+        return Math.sumOfSquaresExact(x, y); // exact: throws ArithmeticException instead of wrapping
     }
 
     /**
@@ -565,9 +565,10 @@ public class Vector2i implements Externalizable, Cloneable, Vector2ic {
      * @param y The vector's y component
      *
      * @return the length squared of the given vector
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     public static long lengthSquared(int x, int y) {
-        return (long) x * x + (long) y * y;
+        return Math.sumOfSquaresExact(x, y); // exact: throws ArithmeticException instead of wrapping
     }
 
     public double length() {
@@ -601,21 +602,21 @@ public class Vector2i implements Externalizable, Cloneable, Vector2ic {
     public long distanceSquared(Vector2ic v) {
         long dx = (long) this.x - v.x();
         long dy = (long) this.y - v.y();
-        return (long) dx * dx + (long) dy * dy;
+        return Math.sumOfSquaresExact(dx, dy); // exact: throws ArithmeticException instead of wrapping
     }
 
     public long distanceSquared(int x, int y) {
         long dx = (long) this.x - x;
         long dy = (long) this.y - y;
-        return (long) dx * dx + (long) dy * dy;
+        return Math.sumOfSquaresExact(dx, dy); // exact: throws ArithmeticException instead of wrapping
     }
 
     public long gridDistance(Vector2ic v) {
-        return Math.abs(v.x() - x()) + Math.abs(v.y() - y());
+        return java.lang.Math.abs((long) v.x() - x()) + java.lang.Math.abs((long) v.y() - y()); // in long: the int difference and sum overflowed
     }
 
     public long gridDistance(int x, int y) {
-        return Math.abs(x - x()) + Math.abs(y - y());
+        return java.lang.Math.abs((long) x - x()) + java.lang.Math.abs((long) y - y()); // in long: the int difference and sum overflowed
     }
 
     /**
@@ -649,11 +650,12 @@ public class Vector2i implements Externalizable, Cloneable, Vector2ic {
      * @param y2
      *          the y component of the second vector
      * @return the euclidean distance squared
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     public static long distanceSquared(int x1, int y1, int x2, int y2) {
         long dx = (long) x1 - x2;
         long dy = (long) y1 - y2;
-        return (long) dx * dx + (long) dy * dy;
+        return Math.sumOfSquaresExact(dx, dy); // exact: throws ArithmeticException instead of wrapping
     }
     
     /**

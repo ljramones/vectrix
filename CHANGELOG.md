@@ -6,8 +6,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 ### Added
-- JaCoCo coverage report and a ratcheting gate (now line ≥ 75 %, branch ≥ 47 %; review M-17). Coverage rose from
-  18.4 % / 17.5 % at the review to 75.4 % / 47.8 % (66.5 % / 42.4 % after Batch 5), mainly through
+- JaCoCo coverage report and a ratcheting gate (now line ≥ 78 %, branch ≥ 53 %; review M-17). Coverage rose from
+  18.4 % / 17.5 % at the review to 78.4 % / 53.4 % (66.5 % / 42.4 % after Batch 5), mainly through
   `TwinParityTest` (originally `FloatDoubleParityTest`), which drives about 8 400 float/double method pairs with identical random inputs, plus
   behavioural tests for the matrix stacks, `SimplexNoise`, `FrustumRayBuilder`, `InstanceSubmissionPipeline`,
   `QuaterniondInterpolator`, the sampling helpers and every B-spline variant.
@@ -48,6 +48,15 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - Pass B/C/E decision/findings memos and subsystem integration memo
 
 ### Changed
+- Benchmarks re-measured after the review fixes (`BENCHMARKS.md`, "Current Published Snapshot (2026-11-21)"); the
+  earlier snapshots are kept as history, since their SIMD figures measured scalar code. The showcase and
+  state-of-the-union docs carry dated corrections.
+- `FFT1f/d` compute each twiddle once per stage instead of once per block (bit-identical results): `forwardInverse`
+  at 1024 points is 13.7 ns per element, faster than both the float-recurrence original (15.8) and the
+  double-recurrence fix (20.1).
+- The SH basis is evaluated in straight-line code again. The allocation-free refactor computed it through a per-index
+  switch that the JIT did not fold, doubling the cost of projection and evaluation; `ShConsistencyTest` now keeps
+  every copy of the formulas bit-identical.
 - **FFM is the default memory backend.** Buffer transfers use bounds-checked `MemorySegment` views and never touch
   `sun.misc.Unsafe`, so consumers no longer get the JDK's "terminally deprecated method in sun.misc.Unsafe" warning
   at startup. Measured on arm64: loops of 16–256 `Matrix4f` transfers equal or beat Unsafe; a single isolated
@@ -122,6 +131,25 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     (all now call `Runtime.formatNumbers`). Output is unchanged.
 
 ### Fixed
+- Byte order and backend consistency (new `ByteOrderTest`, which checks 179 buffer writers in big-endian,
+  little-endian and native direct buffers on every backend):
+  - `Quaternionf.getAsMatrix4f(ByteBuffer)` put the 1.0 in m32 instead of m33 for big-endian buffers, the default
+    for `ByteBuffer.allocate`: the NIO path wrote two floats as one `putLong`, which follows the buffer's order.
+  - The FFM and Unsafe backends packed float and int pairs into 64-bit writes assuming a little-endian CPU. The
+    packing now follows the native byte order (`MemUtil.pairInts`), so big-endian JVMs get the same results.
+  - Unsafe `Matrix2d.getTransposed` wrote `m00, m10, m10, m10` and `getTransposedFloats` wrote `m00` four times
+    (upstream JOML); only `-Djoml.forceUnsafe` used them after FFM became the default.
+  - `Quaternionf.getAsMatrix3f/4f/4x3f` produced slightly different values (one ulp) on the FFM/Unsafe paths than on
+    the NIO path, which used a different but equivalent formula. All backends now evaluate the same expressions.
+- `RayAabIntersection.test` missed hits for rays with a zero x component and positive y and z (`OPP`), and for zero
+  y with positive x and z (`POP`): their slope inequalities were reversed (upstream JOML). Found by comparing with
+  `Intersectionf.testRayAab` (new `GeometryEquivalenceTest`, which also checks `FrustumIntersection`, `Affine4f`,
+  `GeometryUtils` and axis-angle conversions against independent references).
+- `lengthSquared`, `distanceSquared` and (long vectors) `gridDistance` of the int and long vectors compute exactly
+  and throw `ArithmeticException` when the result does not fit in a long, instead of wrapping to a negative value.
+  `Vector2i/3i/4i.gridDistance` summed int differences and overflowed; it now uses long arithmetic.
+- `ColorMathf/d.luminanceLinear` uses the Y row of the sRGB/XYZ matrix (7 digits) instead of the 4-digit Rec. 709
+  weights, so luminance and XYZ agree.
 - Found by widening the parity test to int/long vector twins, same-class float/double overloads, and `int` and array
   parameters (about 9 900 calls):
   - `Vector2i/3i/4i.length()` and `distance()` returned doubles computed in float precision (`Math.sqrt(long)`

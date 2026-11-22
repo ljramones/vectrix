@@ -1,0 +1,16 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: count"
+"org.dynamisengine.vectrix.bench.CurveBenchmark.bezierEvaluateLoop","avgt",1,5,8077.659274,86.680059,"ns/op",4096
+"org.dynamisengine.vectrix.bench.CurveBenchmark.mapArcLengthLoop","avgt",1,5,17872.316386,952.527299,"ns/op",4096
+"org.dynamisengine.vectrix.bench.LowDiscrepancyBenchmark.sobolScrambledBatch2DLoop","avgt",1,5,69548.642353,10423.821404,"ns/op",4096
+"org.dynamisengine.vectrix.bench.LowDiscrepancyBenchmark.sobolScrambledLoop","avgt",1,5,67233.144965,4199.401499,"ns/op",4096
+"org.dynamisengine.vectrix.bench.LtcBenchmark.ltcFormFactorRectClippedLoop","avgt",1,5,137549.796790,3575.038369,"ns/op",4096
+"org.dynamisengine.vectrix.bench.LtcBenchmark.ltcTableSampleLoop","avgt",1,5,41435.742887,622.943568,"ns/op",4096
+"org.dynamisengine.vectrix.bench.OpticsBenchmark.fresnelDielectricLoop","avgt",1,5,8727.168080,263.719173,"ns/op",4096
+"org.dynamisengine.vectrix.bench.OpticsBenchmark.thinFilmRgbLoop","avgt",1,5,108232.647006,8988.287878,"ns/op",4096
+"org.dynamisengine.vectrix.bench.QuaternionRotationBenchmark.angularVelocityLoop","avgt",1,5,49960.031502,6257.984681,"ns/op",4096
+"org.dynamisengine.vectrix.bench.QuaternionRotationBenchmark.integrateAngularVelocityLoop","avgt",1,5,21446.495281,886.368333,"ns/op",4096
+"org.dynamisengine.vectrix.bench.QuaternionRotationBenchmark.swingTwistLoop","avgt",1,5,28784.494530,936.751357,"ns/op",4096
+"org.dynamisengine.vectrix.bench.ShBenchmark.evaluateL3","avgt",1,5,77249.849710,3391.020916,"ns/op",4096
+"org.dynamisengine.vectrix.bench.ShBenchmark.projectL3","avgt",1,5,105725.850090,4849.423861,"ns/op",4096
+"org.dynamisengine.vectrix.bench.ShHotPathBenchmark.evaluateIrradianceZeroAllocLoop","avgt",1,5,41007.331243,2867.534370,"ns/op",4096
+"org.dynamisengine.vectrix.bench.ShHotPathBenchmark.projectSampleZeroAllocLoop","avgt",1,5,40027.986114,6071.471250,"ns/op",4096

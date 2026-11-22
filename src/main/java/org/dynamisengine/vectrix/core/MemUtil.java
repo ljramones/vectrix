@@ -40,6 +40,34 @@ import java.lang.foreign.ValueLayout;
  */
 abstract class MemUtil {
     public static final MemUtil INSTANCE = createInstance();
+
+    private static final boolean NATIVE_LITTLE_ENDIAN = ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN;
+
+    /**
+     * A 64-bit word that, stored in native byte order, puts {@code first} at the lower address and {@code second} at
+     * the higher one. The raw-memory backends write element pairs this way; building the word as
+     * {@code second << 32 | first} only holds on little-endian CPUs.
+     */
+    static long pairInts(int first, int second) {
+        return NATIVE_LITTLE_ENDIAN
+                ? ((long) second << 32) | (first & 0xFFFFFFFFL)
+                : ((long) first << 32) | (second & 0xFFFFFFFFL);
+    }
+
+    /** The int at the lower address of a native-order word (see {@link #pairInts}). */
+    static int firstInt(long word) {
+        return NATIVE_LITTLE_ENDIAN ? (int) word : (int) (word >>> 32);
+    }
+
+    /** The int at the higher address of a native-order word (see {@link #pairInts}). */
+    static int secondInt(long word) {
+        return NATIVE_LITTLE_ENDIAN ? (int) (word >>> 32) : (int) word;
+    }
+
+    /** Two floats as one native-order word, {@code first} at the lower address. */
+    static long pairFloats(float first, float second) {
+        return pairInts(Float.floatToRawIntBits(first), Float.floatToRawIntBits(second));
+    }
 //#ifdef __HAS_UNSAFE__
     /**
      * Whether the raw-address API ({@code getToAddress}/{@code setFromAddress}) can be used: Unsafe is neither
@@ -3887,7 +3915,10 @@ abstract class MemUtil {
             .putFloat(position + 40, z2 - y2 - x2 + w2)
             .putFloat(position + 44, 0.0f)
             .putLong(position + 48, 0L)
-            .putLong(position + 56, 0x3F80000000000000L);
+            // two floats, not one long: putLong follows the buffer's byte order, so the long constant wrote
+            // m32 = 1, m33 = 0 into big-endian buffers (the default for ByteBuffer.allocate)
+            .putFloat(position + 56, 0.0f)
+            .putFloat(position + 60, 1.0f);
         }
 
         public void putMatrix4f(Quaternionf q, int position, FloatBuffer dest) {
@@ -4010,16 +4041,16 @@ abstract class MemUtil {
             return false;
         }
         private static long packFloats(float a, float b) {
-            return ((long) Float.floatToRawIntBits(b) << 32) | (Float.floatToRawIntBits(a) & 0xFFFFFFFFL);
+            return pairFloats(a, b);
         }
         private static float unpackLo(long packed) {
-            return Float.intBitsToFloat((int) packed);
+            return Float.intBitsToFloat(firstInt(packed));
         }
         private static float unpackHi(long packed) {
-            return Float.intBitsToFloat((int) (packed >>> 32));
+            return Float.intBitsToFloat(secondInt(packed));
         }
         private static long packInts(int a, int b) {
-            return ((long) b << 32) | (a & 0xFFFFFFFFL);
+            return pairInts(a, b);
         }
 
         // ============ Static put helpers ============
@@ -4476,7 +4507,7 @@ abstract class MemUtil {
         }
         public static void get(Vector4i dst, MemorySegment s, long o) {
             long l0 = s.get(JAVA_LONG, o), l1 = s.get(JAVA_LONG, o + 8);
-            dst.x = (int) l0; dst.y = (int) (l0 >>> 32); dst.z = (int) l1; dst.w = (int) (l1 >>> 32);
+            dst.x = firstInt(l0); dst.y = secondInt(l0); dst.z = firstInt(l1); dst.w = secondInt(l1);
         }
         public static void get(Vector4L dst, MemorySegment s, long o) {
             dst.x = s.get(JAVA_LONG, o); dst.y = s.get(JAVA_LONG, o + 8); dst.z = s.get(JAVA_LONG, o + 16); dst.w = s.get(JAVA_LONG, o + 24);
@@ -4490,7 +4521,7 @@ abstract class MemUtil {
         }
         public static void get(Vector3i dst, MemorySegment s, long o) {
             long l0 = s.get(JAVA_LONG, o);
-            dst.x = (int) l0; dst.y = (int) (l0 >>> 32); dst.z = s.get(JAVA_INT, o + 8);
+            dst.x = firstInt(l0); dst.y = secondInt(l0); dst.z = s.get(JAVA_INT, o + 8);
         }
         public static void get(Vector3L dst, MemorySegment s, long o) {
             dst.x = s.get(JAVA_LONG, o); dst.y = s.get(JAVA_LONG, o + 8); dst.z = s.get(JAVA_LONG, o + 16);
@@ -4504,7 +4535,7 @@ abstract class MemUtil {
         }
         public static void get(Vector2i dst, MemorySegment s, long o) {
             long l0 = s.get(JAVA_LONG, o);
-            dst.x = (int) l0; dst.y = (int) (l0 >>> 32);
+            dst.x = firstInt(l0); dst.y = secondInt(l0);
         }
         public static void get(Vector2L dst, MemorySegment s, long o) {
             dst.x = s.get(JAVA_LONG, o); dst.y = s.get(JAVA_LONG, o + 8);
@@ -4513,40 +4544,46 @@ abstract class MemUtil {
         // ============ Quaternion static helpers ============
 
         public static void putMatrix3f(Quaternionf q, MemorySegment s, long o) {
-            float dx = q.x + q.x, dy = q.y + q.y, dz = q.z + q.z;
-            float q00 = dx * q.x, q11 = dy * q.y, q22 = dz * q.z;
-            float q01 = dx * q.y, q02 = dx * q.z, q03 = dx * q.w;
-            float q12 = dy * q.z, q13 = dy * q.w, q23 = dz * q.w;
-            s.set(JAVA_LONG, o,      packFloats(1.0f - q11 - q22, q01 + q23));
-            s.set(JAVA_LONG, o + 8,  packFloats(q02 - q13, q01 - q23));
-            s.set(JAVA_LONG, o + 16, packFloats(1.0f - q22 - q00, q12 + q03));
-            s.set(JAVA_LONG, o + 24, packFloats(q02 + q13, q12 - q03));
-            s.set(JAVA_FLOAT, o + 32, 1.0f - q11 - q00);
+            // Same expressions as the NIO path and in the same order, so every backend writes identical bytes.
+            float w2 = q.w * q.w, x2 = q.x * q.x, y2 = q.y * q.y, z2 = q.z * q.z;
+            float zw = q.z * q.w, xy = q.x * q.y, xz = q.x * q.z, yw = q.y * q.w, yz = q.y * q.z, xw = q.x * q.w;
+            float m00 = w2 + x2 - z2 - y2, m01 = xy + zw + zw + xy, m02 = xz - yw + xz - yw;
+            float m10 = -zw + xy - zw + xy, m11 = y2 - z2 + w2 - x2, m12 = yz + yz + xw + xw;
+            float m20 = yw + xz + xz + yw, m21 = yz + yz - xw - xw, m22 = z2 - y2 - x2 + w2;
+            s.set(JAVA_LONG, o + 0, packFloats(m00, m01));
+            s.set(JAVA_LONG, o + 8, packFloats(m02, m10));
+            s.set(JAVA_LONG, o + 16, packFloats(m11, m12));
+            s.set(JAVA_LONG, o + 24, packFloats(m20, m21));
+            s.set(JAVA_FLOAT, o + 32, m22);
         }
         public static void putMatrix4f(Quaternionf q, MemorySegment s, long o) {
-            float dx = q.x + q.x, dy = q.y + q.y, dz = q.z + q.z;
-            float q00 = dx * q.x, q11 = dy * q.y, q22 = dz * q.z;
-            float q01 = dx * q.y, q02 = dx * q.z, q03 = dx * q.w;
-            float q12 = dy * q.z, q13 = dy * q.w, q23 = dz * q.w;
-            s.set(JAVA_LONG, o,      packFloats(1.0f - q11 - q22, q01 + q23));
-            s.set(JAVA_LONG, o + 8,  packFloats(q02 - q13, 0.0f));
-            s.set(JAVA_LONG, o + 16, packFloats(q01 - q23, 1.0f - q22 - q00));
-            s.set(JAVA_LONG, o + 24, packFloats(q12 + q03, 0.0f));
-            s.set(JAVA_LONG, o + 32, packFloats(q02 + q13, q12 - q03));
-            s.set(JAVA_LONG, o + 40, packFloats(1.0f - q11 - q00, 0.0f));
+            // Same expressions as the NIO path and in the same order, so every backend writes identical bytes.
+            float w2 = q.w * q.w, x2 = q.x * q.x, y2 = q.y * q.y, z2 = q.z * q.z;
+            float zw = q.z * q.w, xy = q.x * q.y, xz = q.x * q.z, yw = q.y * q.w, yz = q.y * q.z, xw = q.x * q.w;
+            float m00 = w2 + x2 - z2 - y2, m01 = xy + zw + zw + xy, m02 = xz - yw + xz - yw;
+            float m10 = -zw + xy - zw + xy, m11 = y2 - z2 + w2 - x2, m12 = yz + yz + xw + xw;
+            float m20 = yw + xz + xz + yw, m21 = yz + yz - xw - xw, m22 = z2 - y2 - x2 + w2;
+            s.set(JAVA_LONG, o + 0, packFloats(m00, m01));
+            s.set(JAVA_LONG, o + 8, packFloats(m02, 0.0f));
+            s.set(JAVA_LONG, o + 16, packFloats(m10, m11));
+            s.set(JAVA_LONG, o + 24, packFloats(m12, 0.0f));
+            s.set(JAVA_LONG, o + 32, packFloats(m20, m21));
+            s.set(JAVA_LONG, o + 40, packFloats(m22, 0.0f));
             s.set(JAVA_LONG, o + 48, packFloats(0.0f, 0.0f));
             s.set(JAVA_LONG, o + 56, packFloats(0.0f, 1.0f));
         }
         public static void putMatrix4x3f(Quaternionf q, MemorySegment s, long o) {
-            float dx = q.x + q.x, dy = q.y + q.y, dz = q.z + q.z;
-            float q00 = dx * q.x, q11 = dy * q.y, q22 = dz * q.z;
-            float q01 = dx * q.y, q02 = dx * q.z, q03 = dx * q.w;
-            float q12 = dy * q.z, q13 = dy * q.w, q23 = dz * q.w;
-            s.set(JAVA_LONG, o,      packFloats(1.0f - q11 - q22, q01 + q23));
-            s.set(JAVA_LONG, o + 8,  packFloats(q02 - q13, q01 - q23));
-            s.set(JAVA_LONG, o + 16, packFloats(1.0f - q22 - q00, q12 + q03));
-            s.set(JAVA_LONG, o + 24, packFloats(q02 + q13, q12 - q03));
-            s.set(JAVA_LONG, o + 32, packFloats(1.0f - q11 - q00, 0.0f));
+            // Same expressions as the NIO path and in the same order, so every backend writes identical bytes.
+            float w2 = q.w * q.w, x2 = q.x * q.x, y2 = q.y * q.y, z2 = q.z * q.z;
+            float zw = q.z * q.w, xy = q.x * q.y, xz = q.x * q.z, yw = q.y * q.w, yz = q.y * q.z, xw = q.x * q.w;
+            float m00 = w2 + x2 - z2 - y2, m01 = xy + zw + zw + xy, m02 = xz - yw + xz - yw;
+            float m10 = -zw + xy - zw + xy, m11 = y2 - z2 + w2 - x2, m12 = yz + yz + xw + xw;
+            float m20 = yw + xz + xz + yw, m21 = yz + yz - xw - xw, m22 = z2 - y2 - x2 + w2;
+            s.set(JAVA_LONG, o + 0, packFloats(m00, m01));
+            s.set(JAVA_LONG, o + 8, packFloats(m02, m10));
+            s.set(JAVA_LONG, o + 16, packFloats(m11, m12));
+            s.set(JAVA_LONG, o + 24, packFloats(m20, m21));
+            s.set(JAVA_LONG, o + 32, packFloats(m22, 0.0f));
             s.set(JAVA_LONG, o + 40, packFloats(0.0f, 0.0f));
         }
 
@@ -5399,7 +5436,7 @@ abstract class MemUtil {
         public static void put4x4(Matrix4x3f m, long destAddr) {
             for (int i = 0; i < 4; i++) {
                 UNSAFE.putLong(null, destAddr + (i << 4), UNSAFE.getLong(m, Matrix4x3f_m00 + 12 * i));
-                long lng = UNSAFE.getInt(m, Matrix4x3f_m00 + 8 + 12 * i) & 0xFFFFFFFFL;
+                long lng = pairInts(UNSAFE.getInt(m, Matrix4x3f_m00 + 8 + 12 * i), 0);
                 UNSAFE.putLong(null, destAddr + 8 + (i << 4), lng);
             }
             UNSAFE.putFloat(null, destAddr + 60, 1.0f);
@@ -5440,9 +5477,9 @@ abstract class MemUtil {
             u.putLong(null, destAddr+16, u.getLong(m, Matrix3x2f_m00+8));
             u.putLong(null, destAddr+24, 0L);
             u.putLong(null, destAddr+32, 0L);
-            u.putLong(null, destAddr+40, 0x3F800000L);
+            u.putLong(null, destAddr+40, pairFloats(1.0f, 0.0f));
             u.putLong(null, destAddr+48, u.getLong(m, Matrix3x2f_m00+16));
-            u.putLong(null, destAddr+56, 0x3F80000000000000L);
+            u.putLong(null, destAddr+56, pairFloats(0.0f, 1.0f));
         }
 
         public static void put4x4(Matrix3x2d m, long destAddr) {
@@ -5702,10 +5739,11 @@ abstract class MemUtil {
         }
 
         public static void putTransposed(Matrix2d m, long destAddr) {
+            // was m00, m10, m10, m10
             UNSAFE.putDouble(null, destAddr,      m.m00());
             UNSAFE.putDouble(null, destAddr + 8,  m.m10());
-            UNSAFE.putDouble(null, destAddr + 16, m.m10());
-            UNSAFE.putDouble(null, destAddr + 24, m.m10());
+            UNSAFE.putDouble(null, destAddr + 16, m.m01());
+            UNSAFE.putDouble(null, destAddr + 24, m.m11());
         }
 
         public static void putfTransposed(Matrix4x3d m, long destAddr) {
@@ -5748,10 +5786,11 @@ abstract class MemUtil {
         }
 
         public static void putfTransposed(Matrix2d m, long destAddr) {
+            // was m00 four times
             UNSAFE.putFloat(null, destAddr,      (float)m.m00());
-            UNSAFE.putFloat(null, destAddr + 4,  (float)m.m00());
-            UNSAFE.putFloat(null, destAddr + 8,  (float)m.m00());
-            UNSAFE.putFloat(null, destAddr + 12, (float)m.m00());
+            UNSAFE.putFloat(null, destAddr + 4,  (float)m.m10());
+            UNSAFE.putFloat(null, destAddr + 8,  (float)m.m01());
+            UNSAFE.putFloat(null, destAddr + 12, (float)m.m11());
         }
 
         public static void putf(Matrix4d m, long destAddr) {
@@ -6302,81 +6341,69 @@ abstract class MemUtil {
         }
 
         public static void putMatrix3f(Quaternionf q, long addr) {
-            float dx = q.x + q.x;
-            float dy = q.y + q.y;
-            float dz = q.z + q.z;
-            float q00 = dx * q.x;
-            float q11 = dy * q.y;
-            float q22 = dz * q.z;
-            float q01 = dx * q.y;
-            float q02 = dx * q.z;
-            float q03 = dx * q.w;
-            float q12 = dy * q.z;
-            float q13 = dy * q.w;
-            float q23 = dz * q.w;
+            // Same expressions as the NIO path and in the same order, so every backend writes identical bytes.
+            float w2 = q.w * q.w, x2 = q.x * q.x, y2 = q.y * q.y, z2 = q.z * q.z;
+            float zw = q.z * q.w, xy = q.x * q.y, xz = q.x * q.z, yw = q.y * q.w, yz = q.y * q.z, xw = q.x * q.w;
+            float m00 = w2 + x2 - z2 - y2, m01 = xy + zw + zw + xy, m02 = xz - yw + xz - yw;
+            float m10 = -zw + xy - zw + xy, m11 = y2 - z2 + w2 - x2, m12 = yz + yz + xw + xw;
+            float m20 = yw + xz + xz + yw, m21 = yz + yz - xw - xw, m22 = z2 - y2 - x2 + w2;
             sun.misc.Unsafe u = UNSAFE;
-            u.putFloat(null, addr, 1.0f - q11 - q22);
-            u.putFloat(null, addr + 4, q01 + q23);
-            u.putFloat(null, addr + 8, q02 - q13);
-            u.putFloat(null, addr + 12, q01 - q23);
-            u.putFloat(null, addr + 16, 1.0f - q22 - q00);
-            u.putFloat(null, addr + 20, q12 + q03);
-            u.putFloat(null, addr + 24, q02 + q13);
-            u.putFloat(null, addr + 28, q12 - q03);
-            u.putFloat(null, addr + 32, 1.0f - q11 - q00); 
+            u.putFloat(null, addr + 0, m00);
+            u.putFloat(null, addr + 4, m01);
+            u.putFloat(null, addr + 8, m02);
+            u.putFloat(null, addr + 12, m10);
+            u.putFloat(null, addr + 16, m11);
+            u.putFloat(null, addr + 20, m12);
+            u.putFloat(null, addr + 24, m20);
+            u.putFloat(null, addr + 28, m21);
+            u.putFloat(null, addr + 32, m22);
         }
 
         public static void putMatrix4f(Quaternionf q, long addr) {
-            float dx = q.x + q.x;
-            float dy = q.y + q.y;
-            float dz = q.z + q.z;
-            float q00 = dx * q.x;
-            float q11 = dy * q.y;
-            float q22 = dz * q.z;
-            float q01 = dx * q.y;
-            float q02 = dx * q.z;
-            float q03 = dx * q.w;
-            float q12 = dy * q.z;
-            float q13 = dy * q.w;
-            float q23 = dz * q.w;
+            // Same expressions as the NIO path and in the same order, so every backend writes identical bytes.
+            float w2 = q.w * q.w, x2 = q.x * q.x, y2 = q.y * q.y, z2 = q.z * q.z;
+            float zw = q.z * q.w, xy = q.x * q.y, xz = q.x * q.z, yw = q.y * q.w, yz = q.y * q.z, xw = q.x * q.w;
+            float m00 = w2 + x2 - z2 - y2, m01 = xy + zw + zw + xy, m02 = xz - yw + xz - yw;
+            float m10 = -zw + xy - zw + xy, m11 = y2 - z2 + w2 - x2, m12 = yz + yz + xw + xw;
+            float m20 = yw + xz + xz + yw, m21 = yz + yz - xw - xw, m22 = z2 - y2 - x2 + w2;
             sun.misc.Unsafe u = UNSAFE;
-            u.putFloat(null, addr, 1.0f - q11 - q22);
-            u.putFloat(null, addr + 4, q01 + q23);
-            u.putLong(null, addr + 8, Float.floatToRawIntBits(q02 - q13) & 0xFFFFFFFFL);
-            u.putFloat(null, addr + 16, q01 - q23);
-            u.putFloat(null, addr + 20, 1.0f - q22 - q00);
-            u.putLong(null, addr + 24, Float.floatToRawIntBits(q12 + q03) & 0xFFFFFFFFL);
-            u.putFloat(null, addr + 32, q02 + q13);
-            u.putFloat(null, addr + 36, q12 - q03);
-            u.putLong(null, addr + 40, Float.floatToRawIntBits(1.0f - q11 - q00) & 0xFFFFFFFFL);
-            u.putLong(null, addr + 48, 0L);
-            u.putLong(null, addr + 56, 0x3F80000000000000L);
+            u.putFloat(null, addr + 0, m00);
+            u.putFloat(null, addr + 4, m01);
+            u.putFloat(null, addr + 8, m02);
+            u.putFloat(null, addr + 12, 0.0f);
+            u.putFloat(null, addr + 16, m10);
+            u.putFloat(null, addr + 20, m11);
+            u.putFloat(null, addr + 24, m12);
+            u.putFloat(null, addr + 28, 0.0f);
+            u.putFloat(null, addr + 32, m20);
+            u.putFloat(null, addr + 36, m21);
+            u.putFloat(null, addr + 40, m22);
+            u.putFloat(null, addr + 44, 0.0f);
+            u.putFloat(null, addr + 48, 0.0f);
+            u.putFloat(null, addr + 52, 0.0f);
+            u.putFloat(null, addr + 56, 0.0f);
+            u.putFloat(null, addr + 60, 1.0f);
         }
 
         public static void putMatrix4x3f(Quaternionf q, long addr) {
-            float dx = q.x + q.x;
-            float dy = q.y + q.y;
-            float dz = q.z + q.z;
-            float q00 = dx * q.x;
-            float q11 = dy * q.y;
-            float q22 = dz * q.z;
-            float q01 = dx * q.y;
-            float q02 = dx * q.z;
-            float q03 = dx * q.w;
-            float q12 = dy * q.z;
-            float q13 = dy * q.w;
-            float q23 = dz * q.w;
+            // Same expressions as the NIO path and in the same order, so every backend writes identical bytes.
+            float w2 = q.w * q.w, x2 = q.x * q.x, y2 = q.y * q.y, z2 = q.z * q.z;
+            float zw = q.z * q.w, xy = q.x * q.y, xz = q.x * q.z, yw = q.y * q.w, yz = q.y * q.z, xw = q.x * q.w;
+            float m00 = w2 + x2 - z2 - y2, m01 = xy + zw + zw + xy, m02 = xz - yw + xz - yw;
+            float m10 = -zw + xy - zw + xy, m11 = y2 - z2 + w2 - x2, m12 = yz + yz + xw + xw;
+            float m20 = yw + xz + xz + yw, m21 = yz + yz - xw - xw, m22 = z2 - y2 - x2 + w2;
             sun.misc.Unsafe u = UNSAFE;
-            u.putFloat(null, addr, 1.0f - q11 - q22);
-            u.putFloat(null, addr + 4, q01 + q23);
-            u.putFloat(null, addr + 8, q02 - q13);
-            u.putFloat(null, addr + 12, q01 - q23);
-            u.putFloat(null, addr + 16, 1.0f - q22 - q00);
-            u.putFloat(null, addr + 20, q12 + q03);
-            u.putFloat(null, addr + 24, q02 + q13);
-            u.putFloat(null, addr + 28, q12 - q03);
-            u.putFloat(null, addr + 32, 1.0f - q11 - q00);
-            u.putLong(null, addr + 36, 0L);
+            u.putFloat(null, addr + 0, m00);
+            u.putFloat(null, addr + 4, m01);
+            u.putFloat(null, addr + 8, m02);
+            u.putFloat(null, addr + 12, m10);
+            u.putFloat(null, addr + 16, m11);
+            u.putFloat(null, addr + 20, m12);
+            u.putFloat(null, addr + 24, m20);
+            u.putFloat(null, addr + 28, m21);
+            u.putFloat(null, addr + 32, m22);
+            u.putFloat(null, addr + 36, 0.0f);
+            u.putFloat(null, addr + 40, 0.0f);
             u.putFloat(null, addr + 44, 0.0f);
         }
 

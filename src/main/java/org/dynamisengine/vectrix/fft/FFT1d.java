@@ -74,14 +74,13 @@ public final class FFT1d {
             double wLenR = org.dynamisengine.vectrix.core.AccurateMath.cos(angle);
             double wLenI = org.dynamisengine.vectrix.core.AccurateMath.sin(angle);
             int half = len >>> 1;
-            for (int i = 0; i < n; i += len) {
-                double wR = 1.0;
-                double wI = 0.0;
-                for (int k = 0; k < half; k++) {
-                    int u = i + k;
-                    int v = u + half;
-                    int uo = u << 1;
-                    int vo = v << 1;
+            // k outer: each twiddle is computed once per stage instead of once per block (bit-identical results).
+            double wR = 1.0;
+            double wI = 0.0;
+            for (int k = 0; k < half; k++) {
+                for (int i = k; i < n; i += len) {
+                    int uo = i << 1;
+                    int vo = (i + half) << 1;
 
                     double vr = data[vo];
                     double vi = data[vo + 1];
@@ -94,12 +93,11 @@ public final class FFT1d {
                     data[uo + 1] = ui + ti;
                     data[vo] = ur - tr;
                     data[vo + 1] = ui - ti;
-
-                    double nextWR = wR * wLenR - wI * wLenI;
-                    double nextWI = wR * wLenI + wI * wLenR;
-                    wR = nextWR;
-                    wI = nextWI;
                 }
+                double nextWR = wR * wLenR - wI * wLenI;
+                double nextWI = wR * wLenI + wI * wLenR;
+                wR = nextWR;
+                wI = nextWI;
             }
         }
 

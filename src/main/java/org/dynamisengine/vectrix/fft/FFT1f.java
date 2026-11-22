@@ -76,16 +76,16 @@ public final class FFT1f {
             double wLenR = org.dynamisengine.vectrix.core.AccurateMath.cos(angle);
             double wLenI = org.dynamisengine.vectrix.core.AccurateMath.sin(angle);
             int half = len >>> 1;
-            for (int i = 0; i < n; i += len) {
-                double w64R = 1.0;
-                double w64I = 0.0;
-                for (int k = 0; k < half; k++) {
-                    float wR = (float) w64R;
-                    float wI = (float) w64I;
-                    int u = i + k;
-                    int v = u + half;
-                    int uo = u << 1;
-                    int vo = v << 1;
+            // k outer: each twiddle is computed once per stage instead of once per block. The twiddle sequence is
+            // the same and butterflies within a stage touch disjoint elements, so results are bit-identical.
+            double w64R = 1.0;
+            double w64I = 0.0;
+            for (int k = 0; k < half; k++) {
+                float wR = (float) w64R;
+                float wI = (float) w64I;
+                for (int i = k; i < n; i += len) {
+                    int uo = i << 1;
+                    int vo = (i + half) << 1;
 
                     float vr = data[vo];
                     float vi = data[vo + 1];
@@ -98,12 +98,11 @@ public final class FFT1f {
                     data[uo + 1] = ui + ti;
                     data[vo] = ur - tr;
                     data[vo + 1] = ui - ti;
-
-                    double nextWR = w64R * wLenR - w64I * wLenI;
-                    double nextWI = w64R * wLenI + w64I * wLenR;
-                    w64R = nextWR;
-                    w64I = nextWI;
                 }
+                double nextWR = w64R * wLenR - w64I * wLenI;
+                double nextWI = w64R * wLenI + w64I * wLenR;
+                w64R = nextWR;
+                w64I = nextWI;
             }
         }
 

@@ -57,7 +57,8 @@ public final class ColorMathf {
     }
 
     public static float luminanceLinear(float r, float g, float b) {
-        return 0.2126f * r + 0.7152f * g + 0.0722f * b;
+        // the Y row of linearSrgbToXyz, so luminance and XYZ agree (it used the 4-digit Rec. 709 weights)
+        return 0.2126729f * r + 0.7151522f * g + 0.0721750f * b;
     }
 
     public static float luminanceLinear(Vector3fc linearRgb) {

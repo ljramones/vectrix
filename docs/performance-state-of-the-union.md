@@ -1,6 +1,20 @@
 # Performance State Of The Union
 
-Date: 2026-03-06
+Date: 2026-03-06 (updated 2026-11-21)
+
+## Update (2026-11-21)
+Re-measured after the code-review fixes; current numbers are in `BENCHMARKS.md` ("Current Published Snapshot
+(2026-11-21)"). Corrections to the 2026-03-06 picture below:
+1. **SIMD had never run.** `SimdSupport` failed to detect the Vector API and the benchmark forks lacked
+   `--add-modules jdk.incubator.vector`, so the "vector" variants measured scalar code. With real SIMD:
+   - `TransformKernels.composeBatch` (SoA) is 3.6× faster than scalar up to 1024 transforms, bitwise identical.
+   - SIMD frustum culling is about 13 % faster than scalar (2.91 vs 3.35 ns per AABB at 16384).
+   - SIMD skinning is **resolved, not parked**: a real gather kernel was 6.8× slower than scalar on arm64 (NEON has
+     no gather), so `skinLbs4Vector` and `skinLbs4SoASimd` now run the scalar kernel.
+2. **Packed affine** is now the row-major `AFFINE_3X4_ROW_MAJOR` layout (review M-1). The doctrine is unchanged and
+   still measured: packed-affine AABB transform 4.00 vs 8.54 ns per box, upload 2.19 vs 5.47 ns per instance.
+3. **Matrix-palette tight LBS** remains the fastest CPU skinning path (6.19 ns per vertex vs 10.1 for quaternion LBS).
+4. **Memory backend:** the bounds-checked FFM backend is the default; loops of transfers equal or beat Unsafe.
 
 ## What Is Settled
 1. Packed-affine is the default bulk transform execution form.

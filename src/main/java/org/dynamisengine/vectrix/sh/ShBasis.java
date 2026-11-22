@@ -24,6 +24,8 @@
 package org.dynamisengine.vectrix.sh;
 
 import org.dynamisengine.vectrix.core.Vector3dc;
+import org.dynamisengine.vectrix.core.Vector3d;
+import org.dynamisengine.vectrix.core.Vector3f;
 import org.dynamisengine.vectrix.core.Vector3fc;
 
 /**
@@ -55,27 +57,27 @@ import org.dynamisengine.vectrix.core.Vector3fc;
   * @since 1.0.0
   */
 public final class ShBasis {
-    private static final float C0 = 0.2820947918f;
-    private static final float C1 = 0.4886025119f;
-    private static final float C2 = 1.0925484306f;
-    private static final float C3 = 0.3153915653f;
-    private static final float C4 = 0.5462742153f;
-    private static final float C5 = -0.5900435899f;
-    private static final float C6 = 2.8906114426f;
-    private static final float C7 = -0.4570457995f;
-    private static final float C8 = 0.3731763325f;
-    private static final float C9 = 1.4453057213f;
+    static final float C0 = 0.2820947918f;
+    static final float C1 = 0.4886025119f;
+    static final float C2 = 1.0925484306f;
+    static final float C3 = 0.3153915653f;
+    static final float C4 = 0.5462742153f;
+    static final float C5 = -0.5900435899f;
+    static final float C6 = 2.8906114426f;
+    static final float C7 = -0.4570457995f;
+    static final float C8 = 0.3731763325f;
+    static final float C9 = 1.4453057213f;
 
-    private static final double D0 = 0.2820947918;
-    private static final double D1 = 0.4886025119;
-    private static final double D2 = 1.0925484306;
-    private static final double D3 = 0.3153915653;
-    private static final double D4 = 0.5462742153;
-    private static final double D5 = -0.5900435899;
-    private static final double D6 = 2.8906114426;
-    private static final double D7 = -0.4570457995;
-    private static final double D8 = 0.3731763325;
-    private static final double D9 = 1.4453057213;
+    static final double D0 = 0.2820947918;
+    static final double D1 = 0.4886025119;
+    static final double D2 = 1.0925484306;
+    static final double D3 = 0.3153915653;
+    static final double D4 = 0.5462742153;
+    static final double D5 = -0.5900435899;
+    static final double D6 = 2.8906114426;
+    static final double D7 = -0.4570457995;
+    static final double D8 = 0.3731763325;
+    static final double D9 = 1.4453057213;
 
     private ShBasis() {
     }
@@ -88,9 +90,15 @@ public final class ShBasis {
         if (dest9.length < 9) {
             throw new IllegalArgumentException("dest9");
         }
-        for (int i = 0; i < 9; i++) {
-            dest9[i] = basis(i, x, y, z);
-        }
+        dest9[0] = C0;
+        dest9[1] = C1 * y;
+        dest9[2] = C1 * z;
+        dest9[3] = C1 * x;
+        dest9[4] = C2 * x * y;
+        dest9[5] = C2 * y * z;
+        dest9[6] = C3 * (3.0f * y * y - 1.0f);
+        dest9[7] = C2 * x * z;
+        dest9[8] = C4 * (x * x - z * z);
         return dest9;
     }
 
@@ -102,9 +110,15 @@ public final class ShBasis {
         if (dest9.length < 9) {
             throw new IllegalArgumentException("dest9");
         }
-        for (int i = 0; i < 9; i++) {
-            dest9[i] = basis(i, x, y, z);
-        }
+        dest9[0] = D0;
+        dest9[1] = D1 * y;
+        dest9[2] = D1 * z;
+        dest9[3] = D1 * x;
+        dest9[4] = D2 * x * y;
+        dest9[5] = D2 * y * z;
+        dest9[6] = D3 * (3.0 * y * y - 1.0);
+        dest9[7] = D2 * x * z;
+        dest9[8] = D4 * (x * x - z * z);
         return dest9;
     }
 
@@ -116,9 +130,22 @@ public final class ShBasis {
         if (dest16.length < 16) {
             throw new IllegalArgumentException("dest16");
         }
-        for (int i = 0; i < 16; i++) {
-            dest16[i] = basis(i, x, y, z);
-        }
+        dest16[0] = C0;
+        dest16[1] = C1 * y;
+        dest16[2] = C1 * z;
+        dest16[3] = C1 * x;
+        dest16[4] = C2 * x * y;
+        dest16[5] = C2 * y * z;
+        dest16[6] = C3 * (3.0f * y * y - 1.0f);
+        dest16[7] = C2 * x * z;
+        dest16[8] = C4 * (x * x - z * z);
+        dest16[9] = C5 * z * (3.0f * x * x - z * z);
+        dest16[10] = C6 * x * y * z;
+        dest16[11] = C7 * z * (5.0f * y * y - 1.0f);
+        dest16[12] = C8 * y * (5.0f * y * y - 3.0f);
+        dest16[13] = C7 * x * (5.0f * y * y - 1.0f);
+        dest16[14] = C9 * y * (x * x - z * z);
+        dest16[15] = C5 * x * (x * x - 3.0f * z * z);
         return dest16;
     }
 
@@ -130,59 +157,470 @@ public final class ShBasis {
         if (dest16.length < 16) {
             throw new IllegalArgumentException("dest16");
         }
-        for (int i = 0; i < 16; i++) {
-            dest16[i] = basis(i, x, y, z);
-        }
+        dest16[0] = D0;
+        dest16[1] = D1 * y;
+        dest16[2] = D1 * z;
+        dest16[3] = D1 * x;
+        dest16[4] = D2 * x * y;
+        dest16[5] = D2 * y * z;
+        dest16[6] = D3 * (3.0 * y * y - 1.0);
+        dest16[7] = D2 * x * z;
+        dest16[8] = D4 * (x * x - z * z);
+        dest16[9] = D5 * z * (3.0 * x * x - z * z);
+        dest16[10] = D6 * x * y * z;
+        dest16[11] = D7 * z * (5.0 * y * y - 1.0);
+        dest16[12] = D8 * y * (5.0 * y * y - 3.0);
+        dest16[13] = D7 * x * (5.0 * y * y - 1.0);
+        dest16[14] = D9 * y * (x * x - z * z);
+        dest16[15] = D5 * x * (x * x - 3.0 * z * z);
         return dest16;
     }
 
-    /**
-     * Basis function {@code i} (0..15, see the class documentation for the ordering). The single source of the
-     * formulas: the array fillers and the allocation-free projection and evaluation loops in this package all use
-     * it, and with a constant index the JIT folds the switch away.
-     */
-    static float basis(int i, float x, float y, float z) {
-        switch (i) {
-            case 0: return C0;
-            case 1: return C1 * y;
-            case 2: return C1 * z;
-            case 3: return C1 * x;
-            case 4: return C2 * x * y;
-            case 5: return C2 * y * z;
-            case 6: return C3 * (3.0f * y * y - 1.0f);
-            case 7: return C2 * x * z;
-            case 8: return C4 * (x * x - z * z);
-            case 9: return C5 * z * (3.0f * x * x - z * z);
-            case 10: return C6 * x * y * z;
-            case 11: return C7 * z * (5.0f * y * y - 1.0f);
-            case 12: return C8 * y * (5.0f * y * y - 3.0f);
-            case 13: return C7 * x * (5.0f * y * y - 1.0f);
-            case 14: return C9 * y * (x * x - z * z);
-            case 15: return C5 * x * (x * x - 3.0f * z * z);
-            default: throw new IllegalArgumentException("SH basis index " + i);
-        }
+    /** Adds the weighted sample {@code (rw, gw, bw)} times each of the first 9 basis functions to {@code c}. */
+    static void accumulate9(float x, float y, float z, float rw, float gw, float bw, float[] c) {
+        float b0 = C0;
+        float b1 = C1 * y;
+        float b2 = C1 * z;
+        float b3 = C1 * x;
+        float b4 = C2 * x * y;
+        float b5 = C2 * y * z;
+        float b6 = C3 * (3.0f * y * y - 1.0f);
+        float b7 = C2 * x * z;
+        float b8 = C4 * (x * x - z * z);
+        c[0] += rw * b0;
+        c[1] += gw * b0;
+        c[2] += bw * b0;
+        c[3] += rw * b1;
+        c[4] += gw * b1;
+        c[5] += bw * b1;
+        c[6] += rw * b2;
+        c[7] += gw * b2;
+        c[8] += bw * b2;
+        c[9] += rw * b3;
+        c[10] += gw * b3;
+        c[11] += bw * b3;
+        c[12] += rw * b4;
+        c[13] += gw * b4;
+        c[14] += bw * b4;
+        c[15] += rw * b5;
+        c[16] += gw * b5;
+        c[17] += bw * b5;
+        c[18] += rw * b6;
+        c[19] += gw * b6;
+        c[20] += bw * b6;
+        c[21] += rw * b7;
+        c[22] += gw * b7;
+        c[23] += bw * b7;
+        c[24] += rw * b8;
+        c[25] += gw * b8;
+        c[26] += bw * b8;
     }
 
-    /** Double-precision {@link #basis(int, float, float, float)}. */
-    static double basis(int i, double x, double y, double z) {
-        switch (i) {
-            case 0: return D0;
-            case 1: return D1 * y;
-            case 2: return D1 * z;
-            case 3: return D1 * x;
-            case 4: return D2 * x * y;
-            case 5: return D2 * y * z;
-            case 6: return D3 * (3.0 * y * y - 1.0);
-            case 7: return D2 * x * z;
-            case 8: return D4 * (x * x - z * z);
-            case 9: return D5 * z * (3.0 * x * x - z * z);
-            case 10: return D6 * x * y * z;
-            case 11: return D7 * z * (5.0 * y * y - 1.0);
-            case 12: return D8 * y * (5.0 * y * y - 3.0);
-            case 13: return D7 * x * (5.0 * y * y - 1.0);
-            case 14: return D9 * y * (x * x - z * z);
-            case 15: return D5 * x * (x * x - 3.0 * z * z);
-            default: throw new IllegalArgumentException("SH basis index " + i);
-        }
+    /** {@code dest = sum_i c_i * Y_i(x, y, z)} over the first 9 basis functions, per RGB channel. */
+    static Vector3f dot9(float[] c, float x, float y, float z, Vector3f dest) {
+        float b0 = C0;
+        float b1 = C1 * y;
+        float b2 = C1 * z;
+        float b3 = C1 * x;
+        float b4 = C2 * x * y;
+        float b5 = C2 * y * z;
+        float b6 = C3 * (3.0f * y * y - 1.0f);
+        float b7 = C2 * x * z;
+        float b8 = C4 * (x * x - z * z);
+        float r = 0.0f;
+        float g = 0.0f;
+        float bl = 0.0f;
+        r += c[0] * b0;
+        g += c[1] * b0;
+        bl += c[2] * b0;
+        r += c[3] * b1;
+        g += c[4] * b1;
+        bl += c[5] * b1;
+        r += c[6] * b2;
+        g += c[7] * b2;
+        bl += c[8] * b2;
+        r += c[9] * b3;
+        g += c[10] * b3;
+        bl += c[11] * b3;
+        r += c[12] * b4;
+        g += c[13] * b4;
+        bl += c[14] * b4;
+        r += c[15] * b5;
+        g += c[16] * b5;
+        bl += c[17] * b5;
+        r += c[18] * b6;
+        g += c[19] * b6;
+        bl += c[20] * b6;
+        r += c[21] * b7;
+        g += c[22] * b7;
+        bl += c[23] * b7;
+        r += c[24] * b8;
+        g += c[25] * b8;
+        bl += c[26] * b8;
+        return dest.set(r, g, bl);
+    }
+
+    /** Adds the weighted sample {@code (rw, gw, bw)} times each of the first 16 basis functions to {@code c}. */
+    static void accumulate16(float x, float y, float z, float rw, float gw, float bw, float[] c) {
+        float b0 = C0;
+        float b1 = C1 * y;
+        float b2 = C1 * z;
+        float b3 = C1 * x;
+        float b4 = C2 * x * y;
+        float b5 = C2 * y * z;
+        float b6 = C3 * (3.0f * y * y - 1.0f);
+        float b7 = C2 * x * z;
+        float b8 = C4 * (x * x - z * z);
+        float b9 = C5 * z * (3.0f * x * x - z * z);
+        float b10 = C6 * x * y * z;
+        float b11 = C7 * z * (5.0f * y * y - 1.0f);
+        float b12 = C8 * y * (5.0f * y * y - 3.0f);
+        float b13 = C7 * x * (5.0f * y * y - 1.0f);
+        float b14 = C9 * y * (x * x - z * z);
+        float b15 = C5 * x * (x * x - 3.0f * z * z);
+        c[0] += rw * b0;
+        c[1] += gw * b0;
+        c[2] += bw * b0;
+        c[3] += rw * b1;
+        c[4] += gw * b1;
+        c[5] += bw * b1;
+        c[6] += rw * b2;
+        c[7] += gw * b2;
+        c[8] += bw * b2;
+        c[9] += rw * b3;
+        c[10] += gw * b3;
+        c[11] += bw * b3;
+        c[12] += rw * b4;
+        c[13] += gw * b4;
+        c[14] += bw * b4;
+        c[15] += rw * b5;
+        c[16] += gw * b5;
+        c[17] += bw * b5;
+        c[18] += rw * b6;
+        c[19] += gw * b6;
+        c[20] += bw * b6;
+        c[21] += rw * b7;
+        c[22] += gw * b7;
+        c[23] += bw * b7;
+        c[24] += rw * b8;
+        c[25] += gw * b8;
+        c[26] += bw * b8;
+        c[27] += rw * b9;
+        c[28] += gw * b9;
+        c[29] += bw * b9;
+        c[30] += rw * b10;
+        c[31] += gw * b10;
+        c[32] += bw * b10;
+        c[33] += rw * b11;
+        c[34] += gw * b11;
+        c[35] += bw * b11;
+        c[36] += rw * b12;
+        c[37] += gw * b12;
+        c[38] += bw * b12;
+        c[39] += rw * b13;
+        c[40] += gw * b13;
+        c[41] += bw * b13;
+        c[42] += rw * b14;
+        c[43] += gw * b14;
+        c[44] += bw * b14;
+        c[45] += rw * b15;
+        c[46] += gw * b15;
+        c[47] += bw * b15;
+    }
+
+    /** {@code dest = sum_i c_i * Y_i(x, y, z)} over the first 16 basis functions, per RGB channel. */
+    static Vector3f dot16(float[] c, float x, float y, float z, Vector3f dest) {
+        float b0 = C0;
+        float b1 = C1 * y;
+        float b2 = C1 * z;
+        float b3 = C1 * x;
+        float b4 = C2 * x * y;
+        float b5 = C2 * y * z;
+        float b6 = C3 * (3.0f * y * y - 1.0f);
+        float b7 = C2 * x * z;
+        float b8 = C4 * (x * x - z * z);
+        float b9 = C5 * z * (3.0f * x * x - z * z);
+        float b10 = C6 * x * y * z;
+        float b11 = C7 * z * (5.0f * y * y - 1.0f);
+        float b12 = C8 * y * (5.0f * y * y - 3.0f);
+        float b13 = C7 * x * (5.0f * y * y - 1.0f);
+        float b14 = C9 * y * (x * x - z * z);
+        float b15 = C5 * x * (x * x - 3.0f * z * z);
+        float r = 0.0f;
+        float g = 0.0f;
+        float bl = 0.0f;
+        r += c[0] * b0;
+        g += c[1] * b0;
+        bl += c[2] * b0;
+        r += c[3] * b1;
+        g += c[4] * b1;
+        bl += c[5] * b1;
+        r += c[6] * b2;
+        g += c[7] * b2;
+        bl += c[8] * b2;
+        r += c[9] * b3;
+        g += c[10] * b3;
+        bl += c[11] * b3;
+        r += c[12] * b4;
+        g += c[13] * b4;
+        bl += c[14] * b4;
+        r += c[15] * b5;
+        g += c[16] * b5;
+        bl += c[17] * b5;
+        r += c[18] * b6;
+        g += c[19] * b6;
+        bl += c[20] * b6;
+        r += c[21] * b7;
+        g += c[22] * b7;
+        bl += c[23] * b7;
+        r += c[24] * b8;
+        g += c[25] * b8;
+        bl += c[26] * b8;
+        r += c[27] * b9;
+        g += c[28] * b9;
+        bl += c[29] * b9;
+        r += c[30] * b10;
+        g += c[31] * b10;
+        bl += c[32] * b10;
+        r += c[33] * b11;
+        g += c[34] * b11;
+        bl += c[35] * b11;
+        r += c[36] * b12;
+        g += c[37] * b12;
+        bl += c[38] * b12;
+        r += c[39] * b13;
+        g += c[40] * b13;
+        bl += c[41] * b13;
+        r += c[42] * b14;
+        g += c[43] * b14;
+        bl += c[44] * b14;
+        r += c[45] * b15;
+        g += c[46] * b15;
+        bl += c[47] * b15;
+        return dest.set(r, g, bl);
+    }
+
+    /** Adds the weighted sample {@code (rw, gw, bw)} times each of the first 9 basis functions to {@code c}. */
+    static void accumulate9(double x, double y, double z, double rw, double gw, double bw, double[] c) {
+        double b0 = D0;
+        double b1 = D1 * y;
+        double b2 = D1 * z;
+        double b3 = D1 * x;
+        double b4 = D2 * x * y;
+        double b5 = D2 * y * z;
+        double b6 = D3 * (3.0 * y * y - 1.0);
+        double b7 = D2 * x * z;
+        double b8 = D4 * (x * x - z * z);
+        c[0] += rw * b0;
+        c[1] += gw * b0;
+        c[2] += bw * b0;
+        c[3] += rw * b1;
+        c[4] += gw * b1;
+        c[5] += bw * b1;
+        c[6] += rw * b2;
+        c[7] += gw * b2;
+        c[8] += bw * b2;
+        c[9] += rw * b3;
+        c[10] += gw * b3;
+        c[11] += bw * b3;
+        c[12] += rw * b4;
+        c[13] += gw * b4;
+        c[14] += bw * b4;
+        c[15] += rw * b5;
+        c[16] += gw * b5;
+        c[17] += bw * b5;
+        c[18] += rw * b6;
+        c[19] += gw * b6;
+        c[20] += bw * b6;
+        c[21] += rw * b7;
+        c[22] += gw * b7;
+        c[23] += bw * b7;
+        c[24] += rw * b8;
+        c[25] += gw * b8;
+        c[26] += bw * b8;
+    }
+
+    /** {@code dest = sum_i c_i * Y_i(x, y, z)} over the first 9 basis functions, per RGB channel. */
+    static Vector3d dot9(double[] c, double x, double y, double z, Vector3d dest) {
+        double b0 = D0;
+        double b1 = D1 * y;
+        double b2 = D1 * z;
+        double b3 = D1 * x;
+        double b4 = D2 * x * y;
+        double b5 = D2 * y * z;
+        double b6 = D3 * (3.0 * y * y - 1.0);
+        double b7 = D2 * x * z;
+        double b8 = D4 * (x * x - z * z);
+        double r = 0.0;
+        double g = 0.0;
+        double bl = 0.0;
+        r += c[0] * b0;
+        g += c[1] * b0;
+        bl += c[2] * b0;
+        r += c[3] * b1;
+        g += c[4] * b1;
+        bl += c[5] * b1;
+        r += c[6] * b2;
+        g += c[7] * b2;
+        bl += c[8] * b2;
+        r += c[9] * b3;
+        g += c[10] * b3;
+        bl += c[11] * b3;
+        r += c[12] * b4;
+        g += c[13] * b4;
+        bl += c[14] * b4;
+        r += c[15] * b5;
+        g += c[16] * b5;
+        bl += c[17] * b5;
+        r += c[18] * b6;
+        g += c[19] * b6;
+        bl += c[20] * b6;
+        r += c[21] * b7;
+        g += c[22] * b7;
+        bl += c[23] * b7;
+        r += c[24] * b8;
+        g += c[25] * b8;
+        bl += c[26] * b8;
+        return dest.set(r, g, bl);
+    }
+
+    /** Adds the weighted sample {@code (rw, gw, bw)} times each of the first 16 basis functions to {@code c}. */
+    static void accumulate16(double x, double y, double z, double rw, double gw, double bw, double[] c) {
+        double b0 = D0;
+        double b1 = D1 * y;
+        double b2 = D1 * z;
+        double b3 = D1 * x;
+        double b4 = D2 * x * y;
+        double b5 = D2 * y * z;
+        double b6 = D3 * (3.0 * y * y - 1.0);
+        double b7 = D2 * x * z;
+        double b8 = D4 * (x * x - z * z);
+        double b9 = D5 * z * (3.0 * x * x - z * z);
+        double b10 = D6 * x * y * z;
+        double b11 = D7 * z * (5.0 * y * y - 1.0);
+        double b12 = D8 * y * (5.0 * y * y - 3.0);
+        double b13 = D7 * x * (5.0 * y * y - 1.0);
+        double b14 = D9 * y * (x * x - z * z);
+        double b15 = D5 * x * (x * x - 3.0 * z * z);
+        c[0] += rw * b0;
+        c[1] += gw * b0;
+        c[2] += bw * b0;
+        c[3] += rw * b1;
+        c[4] += gw * b1;
+        c[5] += bw * b1;
+        c[6] += rw * b2;
+        c[7] += gw * b2;
+        c[8] += bw * b2;
+        c[9] += rw * b3;
+        c[10] += gw * b3;
+        c[11] += bw * b3;
+        c[12] += rw * b4;
+        c[13] += gw * b4;
+        c[14] += bw * b4;
+        c[15] += rw * b5;
+        c[16] += gw * b5;
+        c[17] += bw * b5;
+        c[18] += rw * b6;
+        c[19] += gw * b6;
+        c[20] += bw * b6;
+        c[21] += rw * b7;
+        c[22] += gw * b7;
+        c[23] += bw * b7;
+        c[24] += rw * b8;
+        c[25] += gw * b8;
+        c[26] += bw * b8;
+        c[27] += rw * b9;
+        c[28] += gw * b9;
+        c[29] += bw * b9;
+        c[30] += rw * b10;
+        c[31] += gw * b10;
+        c[32] += bw * b10;
+        c[33] += rw * b11;
+        c[34] += gw * b11;
+        c[35] += bw * b11;
+        c[36] += rw * b12;
+        c[37] += gw * b12;
+        c[38] += bw * b12;
+        c[39] += rw * b13;
+        c[40] += gw * b13;
+        c[41] += bw * b13;
+        c[42] += rw * b14;
+        c[43] += gw * b14;
+        c[44] += bw * b14;
+        c[45] += rw * b15;
+        c[46] += gw * b15;
+        c[47] += bw * b15;
+    }
+
+    /** {@code dest = sum_i c_i * Y_i(x, y, z)} over the first 16 basis functions, per RGB channel. */
+    static Vector3d dot16(double[] c, double x, double y, double z, Vector3d dest) {
+        double b0 = D0;
+        double b1 = D1 * y;
+        double b2 = D1 * z;
+        double b3 = D1 * x;
+        double b4 = D2 * x * y;
+        double b5 = D2 * y * z;
+        double b6 = D3 * (3.0 * y * y - 1.0);
+        double b7 = D2 * x * z;
+        double b8 = D4 * (x * x - z * z);
+        double b9 = D5 * z * (3.0 * x * x - z * z);
+        double b10 = D6 * x * y * z;
+        double b11 = D7 * z * (5.0 * y * y - 1.0);
+        double b12 = D8 * y * (5.0 * y * y - 3.0);
+        double b13 = D7 * x * (5.0 * y * y - 1.0);
+        double b14 = D9 * y * (x * x - z * z);
+        double b15 = D5 * x * (x * x - 3.0 * z * z);
+        double r = 0.0;
+        double g = 0.0;
+        double bl = 0.0;
+        r += c[0] * b0;
+        g += c[1] * b0;
+        bl += c[2] * b0;
+        r += c[3] * b1;
+        g += c[4] * b1;
+        bl += c[5] * b1;
+        r += c[6] * b2;
+        g += c[7] * b2;
+        bl += c[8] * b2;
+        r += c[9] * b3;
+        g += c[10] * b3;
+        bl += c[11] * b3;
+        r += c[12] * b4;
+        g += c[13] * b4;
+        bl += c[14] * b4;
+        r += c[15] * b5;
+        g += c[16] * b5;
+        bl += c[17] * b5;
+        r += c[18] * b6;
+        g += c[19] * b6;
+        bl += c[20] * b6;
+        r += c[21] * b7;
+        g += c[22] * b7;
+        bl += c[23] * b7;
+        r += c[24] * b8;
+        g += c[25] * b8;
+        bl += c[26] * b8;
+        r += c[27] * b9;
+        g += c[28] * b9;
+        bl += c[29] * b9;
+        r += c[30] * b10;
+        g += c[31] * b10;
+        bl += c[32] * b10;
+        r += c[33] * b11;
+        g += c[34] * b11;
+        bl += c[35] * b11;
+        r += c[36] * b12;
+        g += c[37] * b12;
+        bl += c[38] * b12;
+        r += c[39] * b13;
+        g += c[40] * b13;
+        bl += c[41] * b13;
+        r += c[42] * b14;
+        g += c[43] * b14;
+        bl += c[44] * b14;
+        r += c[45] * b15;
+        g += c[46] * b15;
+        bl += c[47] * b15;
+        return dest.set(r, g, bl);
     }
 }

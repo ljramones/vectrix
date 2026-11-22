@@ -1,0 +1,169 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.FrustumCullingBenchmark.batchKernelAuto
+# Parameters: (count = 16384)
+
+# Run progress: 0.00% complete, ETA 00:00:32
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 56541.845 ns/op
+# Warmup Iteration   2: 54601.290 ns/op
+# Warmup Iteration   3: 56392.530 ns/op
+Iteration   1: 54563.956 ns/op
+Iteration   2: 55161.729 ns/op
+Iteration   3: 54574.322 ns/op
+Iteration   4: 54810.633 ns/op
+Iteration   5: 54362.377 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.FrustumCullingBenchmark.batchKernelAuto":
+  54694.603 ±(99.9%) 1176.780 ns/op [Average]
+  (min, avg, max) = (54362.377, 54694.603, 55161.729), stdev = 305.606
+  CI (99.9%): [53517.824, 55871.383] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.FrustumCullingBenchmark.batchKernelScalarForced
+# Parameters: (count = 16384)
+
+# Run progress: 25.00% complete, ETA 00:00:24
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 56556.917 ns/op
+# Warmup Iteration   2: 54465.582 ns/op
+# Warmup Iteration   3: 55083.662 ns/op
+Iteration   1: 55465.047 ns/op
+Iteration   2: 54784.605 ns/op
+Iteration   3: 55058.593 ns/op
+Iteration   4: 54721.362 ns/op
+Iteration   5: 54778.019 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.FrustumCullingBenchmark.batchKernelScalarForced":
+  54961.525 ±(99.9%) 1195.578 ns/op [Average]
+  (min, avg, max) = (54721.362, 54961.525, 55465.047), stdev = 310.488
+  CI (99.9%): [53765.947, 56157.103] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.FrustumCullingBenchmark.batchKernelSimdForced
+# Parameters: (count = 16384)
+
+# Run progress: 50.00% complete, ETA 00:00:16
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 61200.456 ns/op
+# Warmup Iteration   2: 47628.386 ns/op
+# Warmup Iteration   3: 47130.047 ns/op
+Iteration   1: 47470.125 ns/op
+Iteration   2: 47746.988 ns/op
+Iteration   3: 47608.771 ns/op
+Iteration   4: 47723.441 ns/op
+Iteration   5: 47847.487 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.FrustumCullingBenchmark.batchKernelSimdForced":
+  47679.362 ±(99.9%) 556.500 ns/op [Average]
+  (min, avg, max) = (47470.125, 47679.362, 47847.487), stdev = 144.521
+  CI (99.9%): [47122.862, 48235.862] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.FrustumCullingBenchmark.frustumIntersectionLoop
+# Parameters: (count = 16384)
+
+# Run progress: 75.00% complete, ETA 00:00:08
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 86277.805 ns/op
+# Warmup Iteration   2: 85286.841 ns/op
+# Warmup Iteration   3: 86364.384 ns/op
+Iteration   1: 85030.686 ns/op
+Iteration   2: 84952.258 ns/op
+Iteration   3: 84944.115 ns/op
+Iteration   4: 86646.272 ns/op
+Iteration   5: 85483.258 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.FrustumCullingBenchmark.frustumIntersectionLoop":
+  85411.318 ±(99.9%) 2792.833 ns/op [Average]
+  (min, avg, max) = (84944.115, 85411.318, 86646.272), stdev = 725.290
+  CI (99.9%): [82618.485, 88204.150] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:00:32
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                                        (count)  Mode  Cnt      Score      Error  Units
+FrustumCullingBenchmark.batchKernelAuto            16384  avgt    5  54694.603 ± 1176.780  ns/op
+FrustumCullingBenchmark.batchKernelScalarForced    16384  avgt    5  54961.525 ± 1195.578  ns/op
+FrustumCullingBenchmark.batchKernelSimdForced      16384  avgt    5  47679.362 ±  556.500  ns/op
+FrustumCullingBenchmark.frustumIntersectionLoop    16384  avgt    5  85411.318 ± 2792.833  ns/op
+
+Benchmark result is saved to benchmarks/results/2026-11-21/frustum-culling.csv

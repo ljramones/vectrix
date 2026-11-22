@@ -1,0 +1,5 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: count"
+"org.dynamisengine.vectrix.bench.FrustumCullingBenchmark.batchKernelAuto","avgt",1,5,54694.603414,1176.779645,"ns/op",16384
+"org.dynamisengine.vectrix.bench.FrustumCullingBenchmark.batchKernelScalarForced","avgt",1,5,54961.525013,1195.577999,"ns/op",16384
+"org.dynamisengine.vectrix.bench.FrustumCullingBenchmark.batchKernelSimdForced","avgt",1,5,47679.362434,556.499973,"ns/op",16384
+"org.dynamisengine.vectrix.bench.FrustumCullingBenchmark.frustumIntersectionLoop","avgt",1,5,85411.317628,2792.832827,"ns/op",16384

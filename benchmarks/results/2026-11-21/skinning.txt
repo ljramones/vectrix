@@ -1,0 +1,280 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinDualQuat4
+# Parameters: (paletteAccess = contiguous, paletteSize = 64, vertices = 4096)
+
+# Run progress: 0.00% complete, ETA 00:00:56
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 46871.779 ns/op
+# Warmup Iteration   2: 46403.103 ns/op
+# Warmup Iteration   3: 46135.488 ns/op
+Iteration   1: 46172.937 ns/op
+Iteration   2: 46177.999 ns/op
+Iteration   3: 46535.844 ns/op
+Iteration   4: 46139.522 ns/op
+Iteration   5: 46505.126 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinDualQuat4":
+  46306.286 ±(99.9%) 756.247 ns/op [Average]
+  (min, avg, max) = (46139.522, 46306.286, 46535.844), stdev = 196.395
+  CI (99.9%): [45550.038, 47062.533] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4
+# Parameters: (paletteAccess = contiguous, paletteSize = 64, vertices = 4096)
+
+# Run progress: 14.29% complete, ETA 00:00:49
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 41641.209 ns/op
+# Warmup Iteration   2: 41845.845 ns/op
+# Warmup Iteration   3: 41475.842 ns/op
+Iteration   1: 41683.990 ns/op
+Iteration   2: 41327.852 ns/op
+Iteration   3: 41498.024 ns/op
+Iteration   4: 41561.699 ns/op
+Iteration   5: 41446.584 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4":
+  41503.630 ±(99.9%) 509.702 ns/op [Average]
+  (min, avg, max) = (41327.852, 41503.630, 41683.990), stdev = 132.368
+  CI (99.9%): [40993.927, 42013.332] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4MatrixPaletteTight
+# Parameters: (paletteAccess = contiguous, paletteSize = 64, vertices = 4096)
+
+# Run progress: 28.57% complete, ETA 00:00:40
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 26151.685 ns/op
+# Warmup Iteration   2: 25489.814 ns/op
+# Warmup Iteration   3: 25274.238 ns/op
+Iteration   1: 25382.103 ns/op
+Iteration   2: 25415.911 ns/op
+Iteration   3: 25240.662 ns/op
+Iteration   4: 25411.522 ns/op
+Iteration   5: 25226.029 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4MatrixPaletteTight":
+  25335.245 ±(99.9%) 362.221 ns/op [Average]
+  (min, avg, max) = (25226.029, 25335.245, 25415.911), stdev = 94.068
+  CI (99.9%): [24973.025, 25697.466] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4SoAAuto
+# Parameters: (paletteAccess = contiguous, paletteSize = 64, vertices = 4096)
+
+# Run progress: 42.86% complete, ETA 00:00:32
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 41732.077 ns/op
+# Warmup Iteration   2: 41439.369 ns/op
+# Warmup Iteration   3: 41564.928 ns/op
+Iteration   1: 41308.948 ns/op
+Iteration   2: 41957.850 ns/op
+Iteration   3: 41515.471 ns/op
+Iteration   4: 41828.232 ns/op
+Iteration   5: 42211.291 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4SoAAuto":
+  41764.358 ±(99.9%) 1375.780 ns/op [Average]
+  (min, avg, max) = (41308.948, 41764.358, 42211.291), stdev = 357.286
+  CI (99.9%): [40388.578, 43140.138] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4SoAScalarForced
+# Parameters: (paletteAccess = contiguous, paletteSize = 64, vertices = 4096)
+
+# Run progress: 57.14% complete, ETA 00:00:24
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 42137.714 ns/op
+# Warmup Iteration   2: 41280.021 ns/op
+# Warmup Iteration   3: 41893.051 ns/op
+Iteration   1: 42212.810 ns/op
+Iteration   2: 41888.291 ns/op
+Iteration   3: 41634.901 ns/op
+Iteration   4: 41615.696 ns/op
+Iteration   5: 41814.700 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4SoAScalarForced":
+  41833.280 ±(99.9%) 931.568 ns/op [Average]
+  (min, avg, max) = (41615.696, 41833.280, 42212.810), stdev = 241.925
+  CI (99.9%): [40901.712, 42764.847] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4SoASimdForced
+# Parameters: (paletteAccess = contiguous, paletteSize = 64, vertices = 4096)
+
+# Run progress: 71.43% complete, ETA 00:00:16
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 42017.614 ns/op
+# Warmup Iteration   2: 41979.308 ns/op
+# Warmup Iteration   3: 41726.604 ns/op
+Iteration   1: 41582.759 ns/op
+Iteration   2: 41397.288 ns/op
+Iteration   3: 41624.203 ns/op
+Iteration   4: 42091.608 ns/op
+Iteration   5: 42286.851 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4SoASimdForced":
+  41796.542 ±(99.9%) 1443.702 ns/op [Average]
+  (min, avg, max) = (41397.288, 41796.542, 42286.851), stdev = 374.925
+  CI (99.9%): [40352.840, 43240.244] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.4, OpenJDK 64-Bit Server VM, 25.0.4+7-LTS
+# VM invoker: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4Vector
+# Parameters: (paletteAccess = contiguous, paletteSize = 64, vertices = 4096)
+
+# Run progress: 85.71% complete, ETA 00:00:08
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/Users/larrymitchell/Dynamis/Layer1-Foundation/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 42104.798 ns/op
+# Warmup Iteration   2: 42058.070 ns/op
+# Warmup Iteration   3: 41674.039 ns/op
+Iteration   1: 41339.425 ns/op
+Iteration   2: 41330.879 ns/op
+Iteration   3: 41481.495 ns/op
+Iteration   4: 41289.431 ns/op
+Iteration   5: 41342.360 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4Vector":
+  41356.718 ±(99.9%) 280.791 ns/op [Average]
+  (min, avg, max) = (41289.431, 41356.718, 41481.495), stdev = 72.920
+  CI (99.9%): [41075.927, 41637.509] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:00:57
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                                           (paletteAccess)  (paletteSize)  (vertices)  Mode  Cnt      Score      Error  Units
+SkinningKernelBenchmark.skinDualQuat4                    contiguous             64        4096  avgt    5  46306.286 ±  756.247  ns/op
+SkinningKernelBenchmark.skinLbs4                         contiguous             64        4096  avgt    5  41503.630 ±  509.702  ns/op
+SkinningKernelBenchmark.skinLbs4MatrixPaletteTight       contiguous             64        4096  avgt    5  25335.245 ±  362.221  ns/op
+SkinningKernelBenchmark.skinLbs4SoAAuto                  contiguous             64        4096  avgt    5  41764.358 ± 1375.780  ns/op
+SkinningKernelBenchmark.skinLbs4SoAScalarForced          contiguous             64        4096  avgt    5  41833.280 ±  931.568  ns/op
+SkinningKernelBenchmark.skinLbs4SoASimdForced            contiguous             64        4096  avgt    5  41796.542 ± 1443.702  ns/op
+SkinningKernelBenchmark.skinLbs4Vector                   contiguous             64        4096  avgt    5  41356.718 ±  280.791  ns/op
+
+Benchmark result is saved to benchmarks/results/2026-11-21/skinning.csv

@@ -1,0 +1,19 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: matrices"
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioByteBuffer","avgt",1,5,3.319376,0.133220,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioByteBuffer","avgt",1,5,29.627216,0.622207,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioByteBuffer","avgt",1,5,453.723645,4.492599,"ns/op",256
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioFloatBuffer","avgt",1,5,2.785585,0.136946,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioFloatBuffer","avgt",1,5,29.522419,0.573372,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioFloatBuffer","avgt",1,5,471.192246,8.795670,"ns/op",256
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathByteBuffer","avgt",1,5,3.330206,0.112283,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathByteBuffer","avgt",1,5,29.647561,1.188043,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathByteBuffer","avgt",1,5,457.197851,22.518568,"ns/op",256
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathFloatBuffer","avgt",1,5,2.787596,0.114341,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathFloatBuffer","avgt",1,5,29.507229,0.953086,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathFloatBuffer","avgt",1,5,472.681218,7.486818,"ns/op",256
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathByteBuffer","avgt",1,5,2.146908,0.074270,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathByteBuffer","avgt",1,5,32.343184,1.117463,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathByteBuffer","avgt",1,5,510.772078,25.694933,"ns/op",256
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathFloatBuffer","avgt",1,5,2.052725,0.026941,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathFloatBuffer","avgt",1,5,28.316850,1.148739,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathFloatBuffer","avgt",1,5,449.175476,21.603068,"ns/op",256

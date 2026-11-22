@@ -250,6 +250,7 @@ public interface Vector3ic {
      * Return the length squared of this vector.
      *
      * @return the length squared
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     long lengthSquared();
 
@@ -290,6 +291,7 @@ public interface Vector3ic {
      * @param v
      *          the other vector
      * @return the grid distance
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     long gridDistance(Vector3ic v);
 
@@ -304,6 +306,7 @@ public interface Vector3ic {
      * @param z
      *          the y component of the other vector
      * @return the grid distance
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     long gridDistance(int x, int y, int z);
 
@@ -313,6 +316,7 @@ public interface Vector3ic {
      * @param v
      *          the other vector
      * @return the squared of the distance
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     long distanceSquared(Vector3ic v);
 
@@ -326,6 +330,7 @@ public interface Vector3ic {
      * @param z
      *          the z component of the other vector
      * @return the square of the distance
+     * @throws ArithmeticException if the exact result does not fit in a long
      */
     long distanceSquared(int x, int y, int z);
 

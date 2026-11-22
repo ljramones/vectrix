@@ -1,6 +1,22 @@
 # Vectrix Performance Showcase
 
-Date: 2026-03-06
+Date: 2026-03-06 (updated 2026-11-21)
+
+## Update (2026-11-21)
+The numbers below are from 2026-03-06. They predate three changes (SIMD detection, which had never worked; the
+row-major packed-affine layout; and FFM as the default memory backend), so read them as history. The current,
+re-measured numbers are in `BENCHMARKS.md` ("Current Published Snapshot (2026-11-21)"). Headlines from it:
+
+| Path | Current (ns per item) | Comparison |
+|---|---:|---|
+| Instance upload, packed affine (16384) | 2.19 | `Matrix4f` 5.47 |
+| AABB transform, packed affine (16384) | 4.00 | `Matrix4f` 8.54 |
+| CPU skinning, matrix-palette tight (4096 vertices) | 6.19 | quaternion LBS 10.1, dual quaternion 11.3 |
+| SoA transform compose, Vector API (1024) | 1.20 | scalar 4.35 |
+| Frustum culling, SIMD kernel (16384) | 2.91 | scalar kernel 3.35, `FrustumIntersection` loop 5.21 |
+
+The runtime defaults (packed-affine bulk paths, matrix-palette skinning, `Matrix4f` as the interoperability format)
+still hold. Vector API skinning was resolved as not worthwhile on arm64 and now runs the scalar kernel.
 
 ## Executive Summary
 Vectrix is now running with benchmark-driven runtime defaults, not ad-hoc hot-path choices.

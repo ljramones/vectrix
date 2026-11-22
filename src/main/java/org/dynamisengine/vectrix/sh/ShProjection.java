@@ -159,54 +159,18 @@ public final class ShProjection {
     }
 
     private static void accumulate9(float x, float y, float z, float r, float g, float b, float solidAngle, float[] c) {
-        float rw = r * solidAngle;
-        float gw = g * solidAngle;
-        float bw = b * solidAngle;
-        for (int i = 0; i < 9; i++) {
-            float bi = ShBasis.basis(i, x, y, z);
-            int o = i * 3;
-            c[o] += rw * bi;
-            c[o + 1] += gw * bi;
-            c[o + 2] += bw * bi;
-        }
+        ShBasis.accumulate9(x, y, z, r * solidAngle, g * solidAngle, b * solidAngle, c);
     }
 
     private static void accumulate16(float x, float y, float z, float r, float g, float b, float solidAngle, float[] c) {
-        float rw = r * solidAngle;
-        float gw = g * solidAngle;
-        float bw = b * solidAngle;
-        for (int i = 0; i < 16; i++) {
-            float bi = ShBasis.basis(i, x, y, z);
-            int o = i * 3;
-            c[o] += rw * bi;
-            c[o + 1] += gw * bi;
-            c[o + 2] += bw * bi;
-        }
+        ShBasis.accumulate16(x, y, z, r * solidAngle, g * solidAngle, b * solidAngle, c);
     }
 
     private static void accumulate9(double x, double y, double z, double r, double g, double b, double solidAngle, double[] c) {
-        double rw = r * solidAngle;
-        double gw = g * solidAngle;
-        double bw = b * solidAngle;
-        for (int i = 0; i < 9; i++) {
-            double bi = ShBasis.basis(i, x, y, z);
-            int o = i * 3;
-            c[o] += rw * bi;
-            c[o + 1] += gw * bi;
-            c[o + 2] += bw * bi;
-        }
+        ShBasis.accumulate9(x, y, z, r * solidAngle, g * solidAngle, b * solidAngle, c);
     }
 
     private static void accumulate16(double x, double y, double z, double r, double g, double b, double solidAngle, double[] c) {
-        double rw = r * solidAngle;
-        double gw = g * solidAngle;
-        double bw = b * solidAngle;
-        for (int i = 0; i < 16; i++) {
-            double bi = ShBasis.basis(i, x, y, z);
-            int o = i * 3;
-            c[o] += rw * bi;
-            c[o + 1] += gw * bi;
-            c[o + 2] += bw * bi;
-        }
+        ShBasis.accumulate16(x, y, z, r * solidAngle, g * solidAngle, b * solidAngle, c);
     }
 }
