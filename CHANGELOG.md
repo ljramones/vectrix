@@ -11,6 +11,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   `--add-modules jdk.incubator.vector` it runs the SIMD kernels; without it, the scalar ones (classpath or module path,
   checked). `mvn verify` runs the whole test suite a second time against it with the Vector API enabled, including the
   determinism golden, which it matches bit for bit.
+- `scripts/bench-snapshot.sh`, the benchmark groups behind the `BENCHMARKS.md` snapshot, and a manually triggered
+  `Benchmark Snapshot` workflow that runs it on a GitHub-hosted x86_64 or arm64 runner.
 - Test fixtures (`ValueFixtures`) fill and compare primitive-array state, so array-backed types (`ShCoeffs*`,
   `FrustumPlanes`) are now driven by `TwinParityTest`, `AliasingTest` and the determinism golden. The golden gains 32
   entries, among them every `ShProjection` and `ShConvolution` method; nothing already in it changed.
@@ -18,7 +20,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - `FfmAccessBenchmark`: isolates the layers of an FFM transfer. It shows FFM's extra ~1 ns on a single transfer is
   a fixed per-call cost (segment creation from the buffer), not slower stores; see `BENCHMARKS.md`.
 
-## [2.0.0] - Unreleased
+## [2.0.0] - 2026-11-22
 Major version: several changes alter results or reject inputs that 1.10.13 accepted. See the **Breaking** entries
 below and `docs/conventions.md` before upgrading: the packed-affine layout is row-major, STRICT mode validates
 inputs, integer vector distances throw on overflow, the SH basis follows the standard ordering, and colour

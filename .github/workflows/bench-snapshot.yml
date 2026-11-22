@@ -1,0 +1,45 @@
+name: Benchmark Snapshot
+
+# Runs scripts/bench-snapshot.sh (the groups behind BENCHMARKS.md) on a GitHub-hosted runner and uploads the results
+# with the CPU description. Shared runners are noisier than dedicated hardware: compare ratios, not absolute times.
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: "Runner label (ubuntu-latest is x86_64, ubuntu-24.04-arm is arm64)"
+        default: ubuntu-latest
+
+jobs:
+  snapshot:
+    name: Snapshot (${{ inputs.runner }})
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Build benchmark uber-jar
+        run: mvn -B -q clean package -Pbench -DskipTests
+
+      - name: Record environment
+        run: |
+          mkdir -p bench-out
+          { uname -a; echo; lscpu 2>/dev/null || sysctl -a 2>/dev/null | grep -i machdep.cpu; echo; java -version 2>&1; } > bench-out/environment.txt
+          java --add-modules jdk.incubator.vector -cp target/benchmarks.jar -XshowSettings:properties -version 2>&1 | grep -E "os.arch|java.vm.version" >> bench-out/environment.txt || true
+          cat bench-out/environment.txt
+
+      - name: Run snapshot
+        run: ./scripts/bench-snapshot.sh bench-out
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-snapshot-${{ inputs.runner }}
+          path: bench-out
