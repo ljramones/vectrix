@@ -55,20 +55,15 @@ public final class ColorSciencef {
      * Convert XYZ to linear sRGB.
      */
     public static Vector3f xyzToLinearSrgb(float x, float y, float z, Vector3f dest) {
-        float r = 3.2406f * x - 1.5372f * y - 0.4986f * z;
-        float g = -0.9689f * x + 1.8758f * y + 0.0415f * z;
-        float b = 0.0557f * x - 0.2040f * y + 1.0570f * z;
-        return dest.set(r, g, b);
+        // Single source with ColorMath (7-digit IEC 61966-2-1 matrix); this used to keep a 4-digit copy.
+        return ColorMathf.xyzToLinearSrgb(x, y, z, dest);
     }
 
     /**
      * Convert linear sRGB to XYZ.
      */
     public static Vector3f linearSrgbToXyz(float r, float g, float b, Vector3f dest) {
-        float x = 0.4124f * r + 0.3576f * g + 0.1805f * b;
-        float y = 0.2126f * r + 0.7152f * g + 0.0722f * b;
-        float z = 0.0193f * r + 0.1192f * g + 0.9505f * b;
-        return dest.set(x, y, z);
+        return ColorMathf.linearSrgbToXyz(r, g, b, dest);
     }
 
     private static float g(float wl, float mu, float sigmaLo, float sigmaHi) {
@@ -79,6 +74,10 @@ public final class ColorSciencef {
     /**
      * Approximate blackbody (Planckian locus) color for a given color temperature
      * using the Tanner Helland algorithm, returned in linear sRGB.
+     * <p>
+     * The Helland fit is piecewise at 6600 K, so the result has a visible step there: in linear RGB, green drops from
+     * 1.000 to 0.970 and blue rises from 0.978 to 1.000. Time-of-day sweeps that cross 6600 K show it. The fit is kept as
+     * is because it matches the widely used reference implementation; blend across the step if it matters.
      *
      * @param kelvin color temperature in Kelvin; clamped to [1000, 40000]
      * @param dest   destination vector to store the linear RGB result

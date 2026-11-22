@@ -66,11 +66,17 @@ public final class CatmullRom3d {
     }
 
     public static void evaluateBatch(Vector3dc p0, Vector3dc p1, Vector3dc p2, Vector3dc p3, double tension, double[] tValues, int tOffset, int length, double[] outX, int outXOffset, double[] outY, int outYOffset, double[] outZ, int outZOffset) {
+        double m1x = CubicCurveMath.cardinalTangent(p0.x(), p2.x(), tension), m2x = CubicCurveMath.cardinalTangent(p1.x(), p3.x(), tension);
+        double ax = p1.x(), bx = p2.x();
+        double m1y = CubicCurveMath.cardinalTangent(p0.y(), p2.y(), tension), m2y = CubicCurveMath.cardinalTangent(p1.y(), p3.y(), tension);
+        double ay = p1.y(), by = p2.y();
+        double m1z = CubicCurveMath.cardinalTangent(p0.z(), p2.z(), tension), m2z = CubicCurveMath.cardinalTangent(p1.z(), p3.z(), tension);
+        double az = p1.z(), bz = p2.z();
         for (int i = 0; i < length; i++) {
-            Vector3d v = evaluate(p0, p1, p2, p3, tValues[tOffset + i], tension, new Vector3d());
-            outX[outXOffset + i] = v.x;
-            outY[outYOffset + i] = v.y;
-            outZ[outZOffset + i] = v.z;
+            double t = tValues[tOffset + i];
+            outX[outXOffset + i] = CubicCurveMath.hermite(ax, m1x, bx, m2x, t);
+            outY[outYOffset + i] = CubicCurveMath.hermite(ay, m1y, by, m2y, t);
+            outZ[outZOffset + i] = CubicCurveMath.hermite(az, m1z, bz, m2z, t);
         }
     }
 }

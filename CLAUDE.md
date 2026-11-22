@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-JOML++ is a fork of JOML (Java OpenGL Math Library) — a Java math library for OpenGL/Vulkan rendering. It extends JOML with long-typed vector classes (`Vector2L`, `Vector3L`, `Vector4L`). The library is allocation-free, thread-safe, and requires JDK 25 or newer (enforced by `maven-enforcer-plugin`).
+Vectrix (package `org.dynamisengine.vectrix`) is a fork of JOML (Java OpenGL Math Library) — a Java math library for OpenGL/Vulkan rendering. It extends JOML with long-typed vectors (`Vector2L`, `Vector3L`, `Vector4L`) and rendering, animation, GPU-layout and physics math packages. The library is allocation-free, thread-safe, and requires JDK 25 or newer (enforced by `maven-enforcer-plugin`).
 
 ## Build Commands
 
 ```bash
-mvn verify                       # Compile, test, checkstyle, assemble JAR
+mvn verify                       # Compile, test, checkstyle, SpotBugs, JaCoCo coverage gate, assemble JAR
 mvn test                         # Run JUnit 5 tests only
 mvn package -DskipTests          # Build JAR without tests
 mvn clean verify -Pexperimental  # Experimental profile (Vector API, FFM, JVMCI; also runs the experimental tests)
@@ -31,9 +31,9 @@ Types come in float (`f`), double (`d`), int (`i`), and long (`L`) variants. All
 
 ### Source Layout
 
-- `src/main/java/org/joml/` — Core library (~100 Java files): matrices, vectors, quaternions, intersections, sampling, noise
-- `src/test/java/org/joml/test/` — JUnit 5 tests
-- `src/jmh/java/org/joml/jmh/` — JMH benchmarks (experimental profile only)
+- `src/main/java/org/dynamisengine/vectrix/` — about 236 Java files in 19 top-level packages: `core` (JOML-derived vectors, matrices, quaternions), `affine`, `soa`, `simd`, `curve`, `geometry`, `gpu`, `sampling`, `sh`, `fft`, `optics`, `ltc`, `renderingmath`, `color`, `easing`, `sdf`, `hash`, `physics`, `experimental`
+- `src/test/java/org/dynamisengine/vectrix/test/` — JUnit 5 tests
+- `src/bench/java/org/dynamisengine/vectrix/bench/` — JMH benchmarks (`-Pbench`); `src/jmh/java/org/dynamisengine/vectrix/jmh/` — legacy JOML JMH benchmarks (experimental profile)
 - `buildhelper/` — ASM-based post-compile tool `ModuleInfoGenerator` (generates `module-info.class`)
 
 ### Key Internal Classes
@@ -43,9 +43,17 @@ Types come in float (`f`), double (`d`), int (`i`), and long (`L`) variants. All
 - `Options` — JVM system property configuration (`-Djoml.debug`, `-Djoml.nounsafe`, `-Djoml.forceUnsafe`, `-Djoml.forceFfm`, `-Djoml.noffm`, `-Dvectrix.strictMath`)
 - `AccurateMath` — the only place transcendentals choose `java.lang.Math` vs `StrictMath`; never call those directly (a test enforces it). See `docs/determinism.md`.
 
-### JOML++ Additions
+### Vectrix Additions
 
 The `Vector2L`/`Vector3L`/`Vector4L` classes (with corresponding `*Lc` read-only interfaces) are the primary additions over upstream JOML, providing long-typed vectors for cases requiring integer precision beyond `int` range.
+
+## Testing
+
+- JaCoCo runs in the default profile; the report is in `target/site/jacoco/`. `vectrix.coverage.line.min` and
+  `vectrix.coverage.branch.min` in `pom.xml` are a ratchet: raise them when coverage grows, never lower them.
+- `FloatDoubleParityTest` drives every public method of each float type next to its double twin with the same random
+  inputs. A new mismatch is usually a real bug in one of the two; exempt a method only for a documented input domain.
+- Hot-path APIs must not allocate; `HotPathAllocationTest` measures bytes per call.
 
 ## Code Style
 

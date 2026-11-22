@@ -2,11 +2,11 @@
 
 ## Project Structure & Module Organization
 `vectrix` is a rendering-first math library forked from JOML and now organized by capability:
-- `src/main/java/org/vectrix/core`: scalar-safe vector/matrix/quaternion primitives.
-- `src/main/java/org/vectrix/affine`, `.../soa`, `.../simd`: transform kernels, SoA containers, Vector API paths.
-- `src/main/java/org/vectrix/geometry`, `.../gpu`, `.../experimental`: culling/intersections, packing/compression/layouts, opt-in fast modes.
-- `src/test/java/org/vectrix/test`: unit and parity tests.
-- `src/bench/java/org/vectrix/bench` and `src/jmh/java`: JMH benchmarks.
+- `src/main/java/org/dynamisengine/vectrix/core`: scalar-safe vector/matrix/quaternion primitives.
+- `src/main/java/org/dynamisengine/vectrix/affine`, `.../soa`, `.../simd`: transform kernels, SoA containers, Vector API paths.
+- `src/main/java/org/dynamisengine/vectrix/geometry`, `.../gpu`, `.../experimental`: culling/intersections, packing/compression/layouts, opt-in fast modes.
+- `src/test/java/org/dynamisengine/vectrix/test`: unit and parity tests.
+- `src/bench/java/org/dynamisengine/vectrix/bench` and `src/jmh/java`: JMH benchmarks.
 
 ## Build, Test, and Development Commands
 - `mvn -q test`: run all JUnit tests.
@@ -26,7 +26,7 @@
 - Framework: JUnit 5 (Surefire).
 - Name tests `*Test` and colocate coverage with changed APIs.
 - For SIMD or fast-mode changes, add scalar parity tests and edge-case coverage (NaN, zero-length, opposite vectors, large batches).
-- Performance-sensitive changes should include/extend JMH benchmarks in `src/bench/java/org/vectrix/bench`.
+- Performance-sensitive changes should include/extend JMH benchmarks in `src/bench/java/org/dynamisengine/vectrix/bench`.
 
 ## Commit & Pull Request Guidelines
 - Commit messages: imperative and scoped (example: `Add Affine4f SIMD multiply benchmark`).

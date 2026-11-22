@@ -40,9 +40,9 @@ Define the default transform representations for runtime kernels, staging paths,
   - composed packed pipeline outperformed composed matrix pipeline, especially at large count.
 
 See:
-- `docs/performance-phase2-decision-memo.md`
-- `docs/performance-phaseB-decision-memo.md`
-- `docs/performance-phaseB-packed-affine-postmortem.md`
-- `docs/performance-integration-slice-findings.md`
+- `docs/archive/performance-phase2-decision-memo.md`
+- `docs/archive/performance-phaseB-decision-memo.md`
+- `docs/archive/performance-phaseB-packed-affine-postmortem.md`
+- `docs/archive/performance-integration-slice-findings.md`
 - `benchmarks/results/2026-03-05/phase2-summary.csv`
 - `benchmarks/results/2026-03-06/phaseB-summary.csv`

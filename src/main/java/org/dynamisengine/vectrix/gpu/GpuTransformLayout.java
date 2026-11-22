@@ -66,12 +66,18 @@ public final class GpuTransformLayout {
         return new GpuTransformLayout(28, 0, 12, 20, RotationEncoding.QUAT_SMALLEST3_16, ScaleEncoding.HALF3);
     }
 
+    /**
+     * Bytes needed for {@code count} transforms.
+     *
+     * @throws ArithmeticException if the size does not fit in an {@code int} (a {@link ByteBuffer} limit); this
+     *         used to overflow silently, e.g. {@code requiredBytes(100_000_000)} returned -1494967296
+     */
     public int requiredBytes(int count) {
-        return count * strideBytes;
+        return java.lang.Math.multiplyExact(count, strideBytes);
     }
 
     public void writeFloatTrs(ByteBuffer dst, int index, Transformf transform) {
-        int base = index * strideBytes;
+        int base = java.lang.Math.multiplyExact(index, strideBytes); // a wrapped offset could be a valid one
         dst.putFloat(base + translationOffset, transform.translation.x);
         dst.putFloat(base + translationOffset + 4, transform.translation.y);
         dst.putFloat(base + translationOffset + 8, transform.translation.z);
@@ -85,7 +91,7 @@ public final class GpuTransformLayout {
     }
 
     public void writeCompactTrs(ByteBuffer dst, int index, Transformf transform) {
-        int base = index * strideBytes;
+        int base = java.lang.Math.multiplyExact(index, strideBytes); // a wrapped offset could be a valid one
         dst.putFloat(base + translationOffset, transform.translation.x);
         dst.putFloat(base + translationOffset + 4, transform.translation.y);
         dst.putFloat(base + translationOffset + 8, transform.translation.z);

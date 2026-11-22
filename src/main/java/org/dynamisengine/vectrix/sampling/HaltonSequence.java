@@ -37,7 +37,7 @@ public final class HaltonSequence {
     }
 
     public static float halton(int index, int base) {
-        return (float) haltonDouble(index, base);
+        return toUnitFloat(haltonDouble(index, base));
     }
 
     public static double haltonDouble(int index, int base) {
@@ -103,4 +103,14 @@ public final class HaltonSequence {
             throw new IllegalArgumentException("output bounds");
         }
     }
+
+    /**
+     * Narrow a [0, 1) double to float without leaving [0, 1): rounding to float sends values within half an ulp
+     * of 1 up to exactly 1.0f.
+     */
+    private static float toUnitFloat(double v) {
+        return java.lang.Math.min((float) v, ONE_BELOW_F);
+    }
+
+    private static final float ONE_BELOW_F = java.lang.Math.nextDown(1.0f);
 }

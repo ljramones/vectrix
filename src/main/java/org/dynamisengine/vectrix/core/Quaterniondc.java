@@ -1423,70 +1423,61 @@ public interface Quaterniondc {
     Quaterniond slerp(Quaterniondc target, double alpha, Quaterniond dest);
 
     /**
-     * Compute the logarithm of this unit quaternion and store the result in <code>dest</code>.
+     * Compute the logarithm of this unit quaternion and store the result in <code>dest</code>: the pure quaternion
+     * {@code (axis * angle / 2, 0)}. It is accurate for every rotation angle, including very small ones.
      * <p>
-     * The result is a pure quaternion with <code>w = 0</code>.
+     * The rotation by 2&pi; ({@code q = (0, 0, 0, -1)}) has a zero vector part and no defined axis; its logarithm
+     * is returned as {@code (0, 0, 0, 0)}, so {@code exp(log(q))} gives {@code (0, 0, 0, 1)}: the same rotation,
+     * but the opposite quaternion.
+     * <p>
+     * In {@link MathMode#STRICT} a non-unit (or NaN) input throws {@link IllegalArgumentException}.
+     * <code>dest</code> may be <code>this</code>.
      *
      * @param dest
      *          will hold the result
-     * @return dest
-     */
-    /**
-     * Compute the quaternion logarithm of this unit quaternion.
-     * <p>
-     * Input must be unit-length. Output is a pure quaternion ({@code w=0}) in tangent space.
-     *
-     * @param dest will receive the logarithm result
      * @return dest
      * @since 1.0.0
      */
     Quaterniond log(Quaterniond dest);
 
     /**
-     * Compute the exponential of this pure quaternion and store the result in <code>dest</code>.
+     * Compute the exponential of this pure quaternion ({@code w = 0}) and store the unit-quaternion result in
+     * <code>dest</code>. This is the inverse of {@link #log(Quaterniond)}.
      * <p>
-     * The result is a unit quaternion.
+     * In {@link MathMode#STRICT} an input with {@code w != 0} (or NaN) throws {@link IllegalArgumentException}.
+     * <code>dest</code> may be <code>this</code>.
      *
      * @param dest
      *          will hold the result
-     * @return dest
-     */
-    /**
-     * Compute the quaternion exponential of this pure quaternion.
-     * <p>
-     * Input is expected to be pure ({@code w=0}). Output is unit-length.
-     *
-     * @param dest will receive the exponential result
      * @return dest
      * @since 1.0.0
      */
     Quaterniond exp(Quaterniond dest);
 
     /**
-     * Compute the SQUAD inner control point for this quaternion and store the result in <code>dest</code>.
+     * Compute the inner SQUAD control point for this key quaternion {@code q_i}, using its neighbours
+     * {@code q_{i-1}} and {@code q_{i+1}}, and store the result in <code>dest</code>. The neighbours are flipped
+     * into this quaternion's hemisphere first.
+     * <p>
+     * Allocation-free. <code>dest</code> may be <code>this</code>, <code>prev</code> or <code>next</code>.
      *
      * @param prev
-     *          the previous quaternion
+     *          the previous key quaternion ({@code q_{i-1}})
      * @param next
-     *          the next quaternion
+     *          the next key quaternion ({@code q_{i+1}})
      * @param dest
-     *          will hold the result
-     * @return dest
-     */
-    /**
-     * Compute the inner SQUAD control point for this key quaternion {@code q_i} using neighbors
-     * {@code q_{i-1}} and {@code q_{i+1}}.
-     *
-     * @param prev previous key quaternion ({@code q_{i-1}})
-     * @param next next key quaternion ({@code q_{i+1}})
-     * @param dest will receive the control point
+     *          will hold the control point
      * @return dest
      * @since 1.0.0
      */
     Quaterniond squadControlPoint(Quaterniondc prev, Quaterniondc next, Quaterniond dest);
 
     /**
-     * Compute the SQUAD interpolation between this quaternion and <code>q1</code>, and store the result in <code>dest</code>.
+     * Evaluate SQUAD interpolation from this quaternion {@code q0} to <code>q1</code>, using the control points
+     * <code>s0</code> and <code>s1</code> (see {@link #squadControlPoint}), and store the result in
+     * <code>dest</code>.
+     * <p>
+     * Allocation-free. <code>dest</code> may be any of the inputs.
      *
      * @param q1
      *          the end quaternion
@@ -1499,25 +1490,18 @@ public interface Quaterniondc {
      * @param dest
      *          will hold the result
      * @return dest
-     */
-    /**
-     * Evaluate SQUAD interpolation from this start quaternion {@code q0} to {@code q1}
-     * using control points {@code s0} and {@code s1}.
-     *
-     * @param q1 end quaternion
-     * @param s0 control quaternion at start
-     * @param s1 control quaternion at end
-     * @param t interpolation parameter in [0,1]
-     * @param dest will receive the interpolated quaternion
-     * @return dest
      * @since 1.0.0
      */
     Quaterniond squad(Quaterniondc q1, Quaterniondc s0, Quaterniondc s1, double t, Quaterniond dest);
 
     /**
-     * Decompose this unit quaternion into swing and twist relative to the given twist axis.
+     * Decompose this unit quaternion into a swing and a twist about <code>twistAxis</code>, so that
+     * {@code this = swing * twist}. The twist is the rotation about the axis; the swing rotates the axis.
      * <p>
-     * The result satisfies: <code>this = swing * twist</code>.
+     * <code>swing</code> or <code>twist</code> may be <code>this</code>, but they must be different objects
+     * ({@link IllegalArgumentException} otherwise). In {@link MathMode#STRICT} a non-unit quaternion or axis
+     * throws {@link IllegalArgumentException}; otherwise the axis is normalised, and a zero axis gives
+     * {@code swing = this} and an identity twist.
      *
      * @param twistAxis
      *          the twist axis
@@ -1526,19 +1510,25 @@ public interface Quaterniondc {
      * @param twist
      *          will hold the twist component
      * @return swing
+     * @since 1.0.0
      */
     Quaterniond swingTwist(Vector3dc twistAxis, Quaterniond swing, Quaterniond twist);
 
     /**
-     * Compute angular velocity that rotates this quaternion to <code>next</code> over <code>dt</code> seconds.
+     * Compute the angular velocity, in radians per second, that rotates this orientation to <code>next</code> over
+     * <code>dt</code> seconds along the shortest arc, and store it in <code>dest</code>: the axis scaled by the
+     * angle divided by <code>dt</code>. It is accurate for very slow rotations (it uses {@code atan2}).
+     * <p>
+     * <code>dest</code> is a vector, so it cannot alias the quaternion inputs.
      *
      * @param next
      *          target orientation
      * @param dt
      *          time step in seconds
      * @param dest
-     *          will hold angular velocity in radians/second
+     *          will hold the angular velocity in radians/second
      * @return dest
+     * @since 1.0.0
      */
     Vector3d angularVelocity(Quaterniondc next, double dt, Vector3d dest);
 

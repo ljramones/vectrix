@@ -3323,7 +3323,7 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
 
     public Matrix4x3d rotateAround(Quaterniondc quat, double ox, double oy, double oz, Matrix4x3d dest) {
         if ((properties & PROPERTY_IDENTITY) != 0)
-            return rotationAround(quat, ox, oy, oz);
+            return dest.rotationAround(quat, ox, oy, oz); // was this.rotationAround(...): dest was ignored
         return rotateAroundAffine(quat, ox, oy, oz, dest);
     }
 

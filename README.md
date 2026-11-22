@@ -202,7 +202,7 @@ Compare benchmark outputs:
 ## Project Layout
 
 ```text
-src/main/java/org/vectrix/
+src/main/java/org/dynamisengine/vectrix/
   core/           vectors, matrices, quaternions, numeric utilities
   affine/         TRS/rigid/dual-quat transforms
   soa/            SoA containers and skinning kernels
@@ -220,7 +220,8 @@ src/main/java/org/vectrix/
   easing/         easing functions
   sdf/            signed distance functions
   hash/           hash utilities
-  experimental/   opt-in experimental controls and kernels
+  physics/        inertia tensors and PBD constraint helpers
+  experimental/   opt-in experimental controls and kernels (@Internal, not exported)
 ```
 
 ---
@@ -234,7 +235,7 @@ src/main/java/org/vectrix/
 | [`docs/technology-explainer.md`](docs/technology-explainer.md) | Educational deep dive for non-expert users |
 | [`docs/performance-showcase.md`](docs/performance-showcase.md) | Concise performance evidence summary and runtime doctrine |
 | [`docs/why-vectrix-is-fast.md`](docs/why-vectrix-is-fast.md) | Short technical explainer of why the current kernels are fast |
-| [`docs/benchmark-dashboard-summary.md`](docs/benchmark-dashboard-summary.md) | Quick scorecard of current defaults, deltas, and gate coverage |
+| [`docs/archive/benchmark-dashboard-summary.md`](docs/archive/benchmark-dashboard-summary.md) | Quick scorecard of current defaults, deltas, and gate coverage |
 | [`BENCHMARKS.md`](BENCHMARKS.md) | Benchmark methodology and normalized results |
 | [`docs/conventions.md`](docs/conventions.md) | API and math conventions |
 | [`docs/api-policy.md`](docs/api-policy.md) | Stability and compatibility policy |

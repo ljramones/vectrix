@@ -73,6 +73,6 @@ Success criteria (any one qualifies):
 ## Deliverables
 - Code changes for Track A and Track B
 - Updated benchmark artifacts under `benchmarks/results/<date>/`
-- `docs/performance-passH-geometry-findings.md`
-- `docs/performance-passH-lut-findings.md`
-- `docs/performance-passH-summary.md`
+- `docs/archive/performance-passH-geometry-findings.md`
+- `docs/archive/performance-passH-lut-findings.md`
+- `docs/archive/performance-passH-summary.md`

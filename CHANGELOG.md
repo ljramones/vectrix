@@ -6,6 +6,15 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 ### Added
+- JaCoCo coverage report and a ratcheting gate (line ≥ 66 %, branch ≥ 42 %; review M-17). Coverage rose from
+  18.4 % / 17.5 % at the review to 66.5 % / 42.4 % (`core`: 15.5 % to 65.6 %), mainly through
+  `FloatDoubleParityTest`, which drives about 8 400 float/double method pairs with identical random inputs, plus
+  behavioural tests for the matrix stacks, `SimplexNoise`, `FrustumRayBuilder`, `InstanceSubmissionPipeline`,
+  `QuaterniondInterpolator`, the sampling helpers and every B-spline variant.
+- `ColorScienced.kelvinToLinearRgb` (double parity), `Quaterniond.angularError`, and
+  `FrustumPlanes.set(m, normalize, zZeroToOne)` for [0, 1] clip depth (Vulkan / Direct3D).
+- `ColorMathf/d.linearSrgbToXyz` and `xyzToLinearSrgb` scalar overloads, the single source of the sRGB/XYZ
+  matrices.
 - `AccurateMath`: the single place where transcendental functions choose between `java.lang.Math` and
   `StrictMath`. `-Dvectrix.strictMath=true` makes every transcendental in the library bitwise reproducible across
   platforms, overriding `joml.fastmath` (review M-12). All 72 direct `java.lang.Math` transcendental calls now go
@@ -39,6 +48,24 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - Pass B/C/E decision/findings memos and subsystem integration memo
 
 ### Changed
+- Namespace and coordinates: packages moved from `org.vectrix` to `org.dynamisengine.vectrix`, and the build
+  adopted `dynamis-parent` (2026-03-06, previously unrecorded). `ColorSciencef.kelvinToLinearRgb` was added
+  upstream from DynamisSky.
+- `ColorSciencef/d` sRGB/XYZ conversions delegate to `ColorMath`'s 7-digit matrices instead of a 4-digit copy;
+  results change by about 1e-4 and the two directions are now accurate inverses.
+- `Fresnelf/d.conductor` is the exact conductor Fresnel equation (pbrt-v3). It used the pbrt-v2 approximation,
+  off by up to 0.099 (n = 1.5, k = 0, 79°), without saying so. `dielectric` with a negative cosine now swaps the
+  indices (a ray leaving the medium) instead of returning about 1.
+- `Quaternionf/d.integrateAngularVelocity` keeps small rates: it returned the identity below 1e-4 rad/s (float) or
+  1e-6 rad/s (double), less than Earth's rotation. `angularError` likewise no longer zeroes errors below 2e-6 rad.
+- `UniformBSpline*` copies its control points, so later changes to the caller's array or vectors do not move the
+  curve.
+- `ShBasis` documents its 16-term ordering index by index; band 1 is Z-up ordered while the zonal terms of bands
+  2–3 are Y-up, so external SH data must follow the table.
+- Working memos (performance passes, phases, namespace migration) moved to `docs/archive/`, with a note that their
+  SIMD numbers measured scalar code.
+- JVMCI code blobs (experimental profile) are disabled on Windows pending verification: they appear to use stack
+  below RSP, and Win64 has no red zone. `-Dvectrix.jvmci.allowWindows=true` re-enables them.
 - **Memory backends (review H-9).** The FFM backend now accesses buffers through bounds-checked
   `MemorySegment.ofBuffer` views. It no longer uses Unsafe, raw addresses or restricted methods, and checks
   limits, slices and read-only buffers like NIO. It is compiled into the default jar and is the fallback when
@@ -90,6 +117,47 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     (all now call `Runtime.formatNumbers`). Output is unchanged.
 
 ### Fixed
+- Bugs inherited from JOML, found by the new float/double parity test (review M-17):
+  - `Vector2f.mulPosition(Matrix3x2fc)` and `mulDirection(Matrix3x2fc)` computed y from the already-updated x, so
+    every in-place call was wrong.
+  - `Quaterniond.rotationX` built `(sin, 0, cos, 0)`, which is not a rotation about x.
+  - `Matrix4f.set(Quaterniondc)` left `m23` unchanged, and `Matrix4x3f.set(Quaterniondc)` left the translation.
+  - `Matrix4d.rotateAround(q, ox, oy, oz, dest)` wrote into `this` and ignored `dest`; the identity shortcut did
+    the same in `Matrix4f/4d/4x3f/4x3d`. `Matrix3x2f/d.scaleAround(factor, ox, oy, dest)` and
+    `Matrix4f/4d/4x3f.withLookAtUp(up, dest)` also ignored `dest`.
+  - `Quaternionf/d.nlerpIterative` looped forever for a threshold of 1 or more (|dot| never exceeds 1); it now stops
+    after 32 halvings, below float/double resolution.
+  - `Quaternionf/d.angle()` and `get(AxisAngle4f/4d)` used `2 acos(w)`, which is 0 in float below about 5e-4 rad;
+    the axis was also returned unnormalised below `sqrt(1 - w^2) = 0.001`. Both now use `atan2` and a unit axis.
+- `Epsilonf/d.equals` treated an infinity as equal to any other value (the tolerance became infinite too).
+- Hot-path allocation (review M-14): `squad`/`squadControlPoint` (eight quaternions per call), the SH projection and
+  evaluation convenience overloads, and every curve `evaluateBatch` (one vector per sample) no longer allocate;
+  arc-length table builders no longer allocate per sample. Results are bitwise unchanged, and `squad` and
+  `squadControlPoint` are now alias-safe for every argument.
+- The FFM backend checks a transfer's whole range once with `asSlice` instead of on every store. Measured A/B on
+  arm64 (3 forks, `MemoryBackendBenchmark`): loops of 16 and 256 `Matrix4f` transfers are 11–27 % faster and now
+  equal or beat Unsafe (256 into a ByteBuffer: 461 ns vs 523 ns); a single isolated transfer is about 0.2 ns slower
+  than before (2.8–3.3 ns, Unsafe 2.1 ns). A public `get(MemorySegment, long)` and a batched transfer API were
+  prototyped and dropped: neither was faster (the batch loop was 10–30 % slower).
+- `CatmullRom4f.derivative` evaluated the curve into `dest` first, corrupting the result when `dest` aliased a
+  control point.
+- `MeshMath.barycentric` and `winding2D` tested an area that scales with length⁴ (length²) against an absolute
+  epsilon, so triangles below about 3 cm were degenerate (a 1 mm triangle gave NaN). The tests are now relative.
+- `Intersectionf.intersectRayAar` used `<=` where every other ray test and `Intersectiond` use `<` (upstream).
+- SIMD frustum culling classified NaN bounds as inside, unlike the scalar path.
+- `GpuTransformLayout.requiredBytes` and the write offsets overflowed `int` silently
+  (`requiredBytes(100_000_000)` was −1494967296); they now throw `ArithmeticException`.
+- `SobolSequence`/`HaltonSequence` float outputs could round up to 1.0f, outside the documented [0, 1).
+- `Sdf3f/d.capsule` with `a == b` returned NaN; it is now a sphere.
+- `Convolutionf/d.linear` with an empty input threw `ArrayIndexOutOfBoundsException`; it now throws
+  `IllegalArgumentException`.
+- `Epsilonf/d.equals(+Inf, +Inf)` returned false.
+- `LtcTablef/d.sample*` rejects NaN roughness or `ndotv` instead of returning NaN.
+- JVMCI fast paths (experimental) crashed the JVM on a null `dest`; they now throw `NullPointerException` first.
+- `Quaternionfc`/`Quaterniondc` had two stacked Javadoc blocks on `log`, `exp`, `squad` and `squadControlPoint`;
+  each now has one, including aliasing rules, STRICT behaviour and the `log(-1)` convention.
+- Build: removed the invalid `includeTestSourceRoots` Checkstyle parameter (a warning on every build). Stale
+  `org/joml` and `org/vectrix` paths fixed in `CLAUDE.md`, `AGENTS.md` and the README layout.
 - `SimdSupport` never detected the Vector API: it called `length()` through the non-public species class, got
   `IllegalAccessException`, and reported `SCALAR` even with `--add-modules jdk.incubator.vector`. No SIMD path had
   ever run. It now uses the public `VectorSpecies` interface (review M-15).
@@ -189,6 +257,21 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ## [1.10.13] - 2026-02-25
 ### Fixed
 - Fixes invalid consumer POM metadata (`systemPath` profile removed).
+
+## [1.10.12] - 2026-02-24
+Reconstructed from git history; this release shipped without a changelog entry.
+### Added
+- `org.vectrix.physics` package: `InertiaTensorf`, `PbdConstraintsf`, `PdControllersf`, `SpringDamperf`
+  (now `org.dynamisengine.vectrix.physics`).
+- `Quaternionf.angularError(from, to, dest)` and `Math.atan(float/double)`.
+
+## [1.10.11]
+Not released (the version was skipped).
+
+## [1.10.10] - 2026-02-24
+Reconstructed from git history.
+### Changed
+- The JPMS module exports the `color` package.
 
 ## [1.10.9] - 2026-02-22
 ### Added

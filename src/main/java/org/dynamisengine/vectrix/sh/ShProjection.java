@@ -37,7 +37,7 @@ public final class ShProjection {
     }
 
     public static void accumulateSampleL2(Vector3fc dir, Vector3fc rgb, float solidAngleWeight, ShCoeffs9f dest) {
-        projectSample(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, new float[9], dest);
+        accumulate9(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, dest.c);
     }
 
     /**
@@ -62,7 +62,7 @@ public final class ShProjection {
     }
 
     public static void accumulateSampleL2(Vector3dc dir, Vector3dc rgb, double solidAngleWeight, ShCoeffs9d dest) {
-        projectSample(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, new double[9], dest);
+        accumulate9(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, dest.c);
     }
 
     /**
@@ -87,7 +87,7 @@ public final class ShProjection {
     }
 
     public static void accumulateSampleL3(Vector3fc dir, Vector3fc rgb, float solidAngleWeight, ShCoeffs16f dest) {
-        projectSampleL3(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, new float[16], dest);
+        accumulate16(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, dest.c);
     }
 
     /**
@@ -123,7 +123,7 @@ public final class ShProjection {
     }
 
     public static void accumulateSampleL3(Vector3dc dir, Vector3dc rgb, double solidAngleWeight, ShCoeffs16d dest) {
-        projectSampleL3(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, new double[16], dest);
+        accumulate16(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, dest.c);
     }
 
     /**
@@ -155,6 +155,58 @@ public final class ShProjection {
             dest.c[o] += rw * bi;
             dest.c[o + 1] += gw * bi;
             dest.c[o + 2] += bw * bi;
+        }
+    }
+
+    private static void accumulate9(float x, float y, float z, float r, float g, float b, float solidAngle, float[] c) {
+        float rw = r * solidAngle;
+        float gw = g * solidAngle;
+        float bw = b * solidAngle;
+        for (int i = 0; i < 9; i++) {
+            float bi = ShBasis.basis(i, x, y, z);
+            int o = i * 3;
+            c[o] += rw * bi;
+            c[o + 1] += gw * bi;
+            c[o + 2] += bw * bi;
+        }
+    }
+
+    private static void accumulate16(float x, float y, float z, float r, float g, float b, float solidAngle, float[] c) {
+        float rw = r * solidAngle;
+        float gw = g * solidAngle;
+        float bw = b * solidAngle;
+        for (int i = 0; i < 16; i++) {
+            float bi = ShBasis.basis(i, x, y, z);
+            int o = i * 3;
+            c[o] += rw * bi;
+            c[o + 1] += gw * bi;
+            c[o + 2] += bw * bi;
+        }
+    }
+
+    private static void accumulate9(double x, double y, double z, double r, double g, double b, double solidAngle, double[] c) {
+        double rw = r * solidAngle;
+        double gw = g * solidAngle;
+        double bw = b * solidAngle;
+        for (int i = 0; i < 9; i++) {
+            double bi = ShBasis.basis(i, x, y, z);
+            int o = i * 3;
+            c[o] += rw * bi;
+            c[o + 1] += gw * bi;
+            c[o + 2] += bw * bi;
+        }
+    }
+
+    private static void accumulate16(double x, double y, double z, double r, double g, double b, double solidAngle, double[] c) {
+        double rw = r * solidAngle;
+        double gw = g * solidAngle;
+        double bw = b * solidAngle;
+        for (int i = 0; i < 16; i++) {
+            double bi = ShBasis.basis(i, x, y, z);
+            int o = i * 3;
+            c[o] += rw * bi;
+            c[o + 1] += gw * bi;
+            c[o + 2] += bw * bi;
         }
     }
 }

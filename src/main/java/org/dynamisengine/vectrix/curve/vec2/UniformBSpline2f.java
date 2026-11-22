@@ -37,7 +37,12 @@ public final class UniformBSpline2f {
 
     public UniformBSpline2f(Vector2fc[] controlPoints) {
         if (controlPoints.length < 4) throw new IllegalArgumentException("controlPoints");
-        this.controlPoints = controlPoints;
+        // Defensive copy: later changes to the caller's array or vectors do not alter the curve.
+        Vector2fc[] copy = new Vector2fc[controlPoints.length];
+        for (int k = 0; k < copy.length; k++) {
+            copy[k] = new Vector2f(controlPoints[k]);
+        }
+        this.controlPoints = copy;
     }
 
     public int segmentCount() { return controlPoints.length - 3; }
@@ -58,10 +63,13 @@ public final class UniformBSpline2f {
                 CubicCurveMath.bsplineSecondDerivative(controlPoints[i].y(), controlPoints[i+1].y(), controlPoints[i+2].y(), controlPoints[i+3].y(), t));
     }
     public void evaluateBatch(int segmentIndex, float[] tValues, int tOffset, int length, float[] outX, int outXOffset, float[] outY, int outYOffset) {
+        int s = checkedSegment(segmentIndex);
+        float c0x = controlPoints[s].x(), c1x = controlPoints[s + 1].x(), c2x = controlPoints[s + 2].x(), c3x = controlPoints[s + 3].x();
+        float c0y = controlPoints[s].y(), c1y = controlPoints[s + 1].y(), c2y = controlPoints[s + 2].y(), c3y = controlPoints[s + 3].y();
         for (int i = 0; i < length; i++) {
-            Vector2f v = evaluate(segmentIndex, tValues[tOffset+i], new Vector2f());
-            outX[outXOffset+i] = v.x;
-            outY[outYOffset+i] = v.y;
+            float t = tValues[tOffset + i];
+            outX[outXOffset + i] = CubicCurveMath.bspline(c0x, c1x, c2x, c3x, t);
+            outY[outYOffset + i] = CubicCurveMath.bspline(c0y, c1y, c2y, c3y, t);
         }
     }
     private int checkedSegment(int segmentIndex) { if (segmentIndex < 0 || segmentIndex >= segmentCount()) throw new IllegalArgumentException("segmentIndex"); return segmentIndex; }

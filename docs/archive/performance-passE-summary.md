@@ -30,7 +30,7 @@ Date: 2026-03-06
 2. Keep GPU layout suite in regression checks with packed-affine and matrix fallback baselines.
 
 ## References
-1. `docs/performance-passE-gpu-layout-decision.md`
-2. `docs/performance-passE-skinning-resolution.md`
-3. `docs/engine-runtime-defaults.md`
-4. `docs/performance-state-of-the-union.md`
+1. `docs/archive/performance-passE-gpu-layout-decision.md`
+2. `docs/archive/performance-passE-skinning-resolution.md`
+3. `../engine-runtime-defaults.md`
+4. `../performance-state-of-the-union.md`

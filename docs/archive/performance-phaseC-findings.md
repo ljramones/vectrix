@@ -12,7 +12,7 @@ Scope: focused skinning pass (`skinLbs4Vector`, palette locality variants, work-
 3. Added parity test:
    - `SkinningKernelsTest.lbsPackedScalarAndVectorMatch`
 4. Added audit doc:
-   - `docs/skinning-work-equivalence-audit.md`
+   - `docs/archive/skinning-work-equivalence-audit.md`
 5. Added skinning regression gate script:
    - `scripts/bench-regression-skinning.sh`
 

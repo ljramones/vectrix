@@ -20,7 +20,7 @@ Date: 2026-03-05
 
 ## Status
 - Harness and benchmark classes are in place for Phase 2 measurements.
-- Named-module JMH packaging blocker is resolved (see `docs/benchmark-modulepath-resolution.md`).
+- Named-module JMH packaging blocker is resolved (see `../benchmark-modulepath-resolution.md`).
 - Constrained `bench-full` run completed for:
   - `BatchMatrixBenchmark`
   - `TransformComposeBenchmark`
@@ -30,7 +30,7 @@ Date: 2026-03-05
   - `SkinningBenchmark`
   - `SkinningKernelBenchmark`
 - Decision-quality memo and normalized summary produced:
-  - `docs/performance-phase2-decision-memo.md`
+  - `docs/archive/performance-phase2-decision-memo.md`
   - `benchmarks/results/2026-03-05/phase2-summary.csv`
 
 ## Next Measurement Pass

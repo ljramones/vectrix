@@ -54,7 +54,7 @@ public final class SobolSequence {
     }
 
     public static float sobol(int index, int dimension) {
-        return (float) sobolDouble(index, dimension);
+        return toUnitFloat(sobolDouble(index, dimension));
     }
 
     public static double sobolDouble(int index, int dimension) {
@@ -64,7 +64,7 @@ public final class SobolSequence {
     }
 
     public static float sobolScrambled(int index, int dimension, int seed) {
-        return (float) sobolScrambledDouble(index, dimension, seed);
+        return toUnitFloat(sobolScrambledDouble(index, dimension, seed));
     }
 
     public static double sobolScrambledDouble(int index, int dimension, int seed) {
@@ -209,4 +209,14 @@ public final class SobolSequence {
             throw new IllegalArgumentException("output bounds");
         }
     }
+
+    /**
+     * Narrow a [0, 1) double to float without leaving [0, 1): rounding to float sends values within half an ulp
+     * of 1 up to exactly 1.0f.
+     */
+    private static float toUnitFloat(double v) {
+        return java.lang.Math.min((float) v, ONE_BELOW_F);
+    }
+
+    private static final float ONE_BELOW_F = java.lang.Math.nextDown(1.0f);
 }

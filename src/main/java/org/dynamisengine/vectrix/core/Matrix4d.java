@@ -1207,6 +1207,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
 //#ifdef __HAS_JVMCI__
         else if (JvmciCode.canUseJvmci && right instanceof Matrix4d) {
             Matrix4d mright = (Matrix4d) right;
+            java.util.Objects.requireNonNull(dest, "dest"); // the installed machine code would crash the JVM on null
             JvmciCode.__Matrix4d_mul(this, mright, dest);
             dest.properties = properties & mright.properties & (PROPERTY_AFFINE | PROPERTY_ORTHONORMAL);
             return dest;
@@ -5103,10 +5104,10 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
 
     public Matrix4d rotateAround(Quaterniondc quat, double ox, double oy, double oz, Matrix4d dest) {
         if ((properties & PROPERTY_IDENTITY) != 0)
-            return rotationAround(quat, ox, oy, oz);
+            return dest.rotationAround(quat, ox, oy, oz); // was this.rotationAround(...): dest was ignored
         else if ((properties & PROPERTY_AFFINE) != 0)
-            return rotateAroundAffine(quat, ox, oy, oz, this);
-        return rotateAroundGeneric(quat, ox, oy, oz, this);
+            return rotateAroundAffine(quat, ox, oy, oz, dest); // was this: dest was ignored
+        return rotateAroundGeneric(quat, ox, oy, oz, dest);
     }
     private Matrix4d rotateAroundGeneric(Quaterniondc quat, double ox, double oy, double oz, Matrix4d dest) {
         double w2 = quat.w() * quat.w(), x2 = quat.x() * quat.x();
@@ -16188,7 +16189,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Matrix4d withLookAtUp(Vector3dc up, Matrix4d dest) {
-        return withLookAtUp(up.x(), up.y(), up.z());
+        return withLookAtUp(up.x(), up.y(), up.z(), dest); // dest was ignored
     }
 
     /**

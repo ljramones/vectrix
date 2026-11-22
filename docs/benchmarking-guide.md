@@ -91,4 +91,4 @@ Use together with `-Pbench` when building benchmark artifacts.
 
 ## Perfasm Notes
 - For assembly-level follow-up on selected kernels, see:
-  - [perfasm-notes.md](/Users/larrymitchell/Dynamis/vectrix/docs/perfasm-notes.md)
+  - [archive/perfasm-notes.md](/Users/larrymitchell/Dynamis/vectrix/docs/archive/perfasm-notes.md)

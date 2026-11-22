@@ -65,7 +65,14 @@ public final class ColorMathf {
     }
 
     public static Vector3f linearSrgbToXyz(Vector3fc linearRgb, Vector3f dest) {
-        float r = linearRgb.x(), g = linearRgb.y(), b = linearRgb.z();
+        return linearSrgbToXyz(linearRgb.x(), linearRgb.y(), linearRgb.z(), dest);
+    }
+
+    /**
+     * Linear sRGB (D65) to CIE XYZ. This and {@link #xyzToLinearSrgb(float, float, float, Vector3f)} are the library's single
+     * source for the sRGB/XYZ matrices; {@code ColorScience} delegates here.
+     */
+    public static Vector3f linearSrgbToXyz(float r, float g, float b, Vector3f dest) {
         return dest.set(
                 0.4124564f * r + 0.3575761f * g + 0.1804375f * b,
                 0.2126729f * r + 0.7151522f * g + 0.0721750f * b,
@@ -73,7 +80,11 @@ public final class ColorMathf {
     }
 
     public static Vector3f xyzToLinearSrgb(Vector3fc xyz, Vector3f dest) {
-        float x = xyz.x(), y = xyz.y(), z = xyz.z();
+        return xyzToLinearSrgb(xyz.x(), xyz.y(), xyz.z(), dest);
+    }
+
+    /** CIE XYZ to linear sRGB (D65); the inverse of {@link #linearSrgbToXyz(float, float, float, Vector3f)}. */
+    public static Vector3f xyzToLinearSrgb(float x, float y, float z, Vector3f dest) {
         return dest.set(
                 3.2404542f * x - 1.5371385f * y - 0.4985314f * z,
                 -0.9692660f * x + 1.8760108f * y + 0.0415560f * z,

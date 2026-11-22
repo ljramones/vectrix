@@ -284,7 +284,8 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     }
 
     public double angle() {
-        return 2.0 * Math.safeAcos(w);
+        // atan2 of the vector part: accurate for small angles, unlike 2 * acos(w)
+        return 2.0 * AccurateMath.atan2(Math.sqrt(Math.fma(x, x, Math.fma(y, y, z * z))), w);
     }
 
     public Matrix3d get(Matrix3d dest) {
@@ -315,17 +316,19 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
             z *= invNorm;
             w *= invNorm;
         }
-        dest.angle = (float) (2.0 * Math.acos(w));
-        double s = Math.sqrt(1.0 - w * w);
-        if (s < 0.001) {
+        // Angle from atan2 and a unit axis from the vector part: acos(w) lost the angle for small rotations, and
+        // below sqrt(1 - w^2) = 0.001 the axis was the raw (non-unit) vector part.
+        double vLen = Math.sqrt(Math.fma(x, x, Math.fma(y, y, z * z)));
+        dest.angle = (float) (2.0 * AccurateMath.atan2(vLen, w));
+        if (vLen == 0) {
             dest.x = (float) x;
             dest.y = (float) y;
             dest.z = (float) z;
         } else {
-            s = 1.0 / s;
-            dest.x = (float) (x * s);
-            dest.y = (float) (y * s);
-            dest.z = (float) (z * s);
+            double inv = 1 / vLen;
+            dest.x = (float) (x * inv);
+            dest.y = (float) (y * inv);
+            dest.z = (float) (z * inv);
         }
         return dest;
     }
@@ -342,17 +345,19 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
             z *= invNorm;
             w *= invNorm;
         }
-        dest.angle = 2.0 * Math.acos(w);
-        double s = Math.sqrt(1.0 - w * w);
-        if (s < 0.001) {
+        // Angle from atan2 and a unit axis from the vector part: acos(w) is inaccurate for small rotations, and
+        // below sqrt(1 - w^2) = 0.001 the axis was the raw (non-unit) vector part.
+        double vLen = Math.sqrt(Math.fma(x, x, Math.fma(y, y, z * z)));
+        dest.angle = 2.0 * AccurateMath.atan2(vLen, w);
+        if (vLen == 0) {
             dest.x = x;
             dest.y = y;
             dest.z = z;
         } else {
-            s = 1.0 / s;
-            dest.x = x * s;
-            dest.y = y * s;
-            dest.z = z * s;
+            double inv = 1 / vLen;
+            dest.x = x * inv;
+            dest.y = y * inv;
+            dest.z = z * inv;
         }
         return dest;
     }
@@ -1759,7 +1764,12 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     }
 
     public Quaterniond slerp(Quaterniondc target, double alpha, Quaterniond dest) {
-        double cosom = Math.fma(x, target.x(), Math.fma(y, target.y(), Math.fma(z, target.z(), w * target.w())));
+        return slerp(x, y, z, w, target.x(), target.y(), target.z(), target.w(), alpha, dest);
+    }
+
+    /** {@link #slerp(Quaterniondc, double, Quaterniond)} on components, so callers can blend without temporaries. */
+    private static Quaterniond slerp(double ax, double ay, double az, double aw, double bx, double by, double bz, double bw, double alpha, Quaterniond dest) {
+        double cosom = Math.fma(ax, bx, Math.fma(ay, by, Math.fma(az, bz, aw * bw)));
         double absCosom = Math.abs(cosom);
         double scale0, scale1;
         if (1.0 - absCosom > 1E-6) {
@@ -1773,10 +1783,10 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
             scale1 = alpha;
         }
         scale1 = cosom >= 0.0 ? scale1 : -scale1;
-        dest.x = Math.fma(scale0, x, scale1 * target.x());
-        dest.y = Math.fma(scale0, y, scale1 * target.y());
-        dest.z = Math.fma(scale0, z, scale1 * target.z());
-        dest.w = Math.fma(scale0, w, scale1 * target.w());
+        dest.x = Math.fma(scale0, ax, scale1 * bx);
+        dest.y = Math.fma(scale0, ay, scale1 * by);
+        dest.z = Math.fma(scale0, az, scale1 * bz);
+        dest.w = Math.fma(scale0, aw, scale1 * bw);
         return dest;
     }
 
@@ -1863,6 +1873,37 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     }
 
     /**
+     * Compute the shortest-arc angular difference from {@code from} to {@code to}, returned as axis-angle in a vector.
+     * <p>
+     * The resulting vector direction is the rotation axis and its length is the signed rotation angle in radians.
+     * Double-precision counterpart of {@link Quaternionf#angularError(Quaternionfc, Quaternionfc, Vector3f)}.
+     *
+     * @param from source orientation
+     * @param to target orientation
+     * @param dest will hold the axis-angle vector
+     * @return dest
+     */
+    public static Vector3d angularError(Quaterniondc from, Quaterniondc to, Vector3d dest) {
+        double fw = from.w(), fx = from.x(), fy = from.y(), fz = from.z();
+        double tw = to.w(), tx = to.x(), ty = to.y(), tz = to.z();
+        // delta = to * conjugate(from)
+        double dx = -tw * fx + tx * fw - ty * fz + tz * fy;
+        double dy = -tw * fy + tx * fz + ty * fw - tz * fx;
+        double dz = -tw * fz - tx * fy + ty * fx + tz * fw;
+        double dw = tw * fw + tx * fx + ty * fy + tz * fz;
+        double sinHalfAngle = Math.sqrt(Math.fma(dx, dx, Math.fma(dy, dy, dz * dz)));
+        if (sinHalfAngle == 0.0) {
+            return dest.set(0.0, 0.0, 0.0);
+        }
+        double angle = 2.0 * AccurateMath.atan2(sinHalfAngle, Math.abs(dw));
+        if (dw < 0.0) {
+            angle = -angle;
+        }
+        double scale = angle / sinHalfAngle;
+        return dest.set(dx * scale, dy * scale, dz * scale);
+    }
+
+    /**
      * Compute the inner SQUAD control point for this key quaternion {@code q_i}
      * given neighbors {@code q_{i-1}} and {@code q_{i+1}}.
      * Neighbor hemisphere correction is applied internally.
@@ -1888,18 +1929,18 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
             nextZ = -nextZ;
             nextW = -nextW;
         }
-        Quaterniond invThis = invert(new Quaterniond());
-        Quaterniond relPrev = invThis.mul(new Quaterniond(prevX, prevY, prevZ, prevW), new Quaterniond());
-        Quaterniond relNext = invThis.mul(new Quaterniond(nextX, nextY, nextZ, nextW), new Quaterniond());
-        Quaterniond logPrev = relPrev.log(new Quaterniond());
-        Quaterniond logNext = relNext.log(new Quaterniond());
-        Quaterniond tangent = new Quaterniond(
-                (logPrev.x + logNext.x) * -0.25,
-                (logPrev.y + logNext.y) * -0.25,
-                (logPrev.z + logNext.z) * -0.25,
-                0.0);
-        Quaterniond expTangent = tangent.exp(new Quaterniond());
-        return mul(expTangent, dest).normalize();
+        // Allocation-free (review M-14), using dest as the only scratch quaternion. The operation sequence is the
+        // same as the previous version, which allocated eight quaternions, so results are unchanged. This, prev and
+        // next are read into locals first, so dest may alias any of them.
+        double tx = x, ty = y, tz = z, tw = w;
+        dest.set(tx, ty, tz, tw).invert(dest);
+        double ix = dest.x, iy = dest.y, iz = dest.z, iw = dest.w;
+        dest.mul(prevX, prevY, prevZ, prevW, dest).log(dest);
+        double lpx = dest.x, lpy = dest.y, lpz = dest.z;
+        dest.set(ix, iy, iz, iw).mul(nextX, nextY, nextZ, nextW, dest).log(dest);
+        dest.set((lpx + dest.x) * -0.25, (lpy + dest.y) * -0.25, (lpz + dest.z) * -0.25, 0.0).exp(dest);
+        double ex = dest.x, ey = dest.y, ez = dest.z, ew = dest.w;
+        return dest.set(tx, ty, tz, tw).mul(ex, ey, ez, ew, dest).normalize();
     }
 
     /**
@@ -1914,10 +1955,14 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * @since 1.0.0
      */
     public Quaterniond squad(Quaterniondc q1, Quaterniondc s0, Quaterniondc s1, double t, Quaterniond dest) {
-        Quaterniond endpointBlend = slerp(q1, t, new Quaterniond());
-        Quaterniond controlBlend = new Quaterniond(s0).slerp(s1, t, new Quaterniond());
+        // Allocation-free (review M-14): every input is read first, so dest may alias any of them.
+        double ax = x, ay = y, az = z, aw = w;
+        double bx = q1.x(), by = q1.y(), bz = q1.z(), bw = q1.w();
+        slerp(s0.x(), s0.y(), s0.z(), s0.w(), s1.x(), s1.y(), s1.z(), s1.w(), t, dest);
+        double cx = dest.x, cy = dest.y, cz = dest.z, cw = dest.w;
+        slerp(ax, ay, az, aw, bx, by, bz, bw, t, dest);
         double k = 2.0 * t * (1.0 - t);
-        return endpointBlend.slerp(controlBlend, k, dest);
+        return slerp(dest.x, dest.y, dest.z, dest.w, cx, cy, cz, cw, k, dest);
     }
 
     public Quaterniond swingTwist(Vector3dc twistAxis, Quaterniond swing, Quaterniond twist) {
@@ -2016,10 +2061,20 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
         return dest.set(dqX * scale, dqY * scale, dqZ * scale);
     }
 
+    /**
+     * The rotation produced by turning at angular velocity <code>omega</code> (radians per second, axis scaled by
+     * rate) for <code>dt</code> seconds: the inverse of {@link #angularVelocity}. Small rates are kept exactly;
+     * only a zero rate or zero <code>dt</code> gives the identity.
+     *
+     * @param omega angular velocity in radians/second
+     * @param dt time step in seconds
+     * @param dest will hold the rotation
+     * @return dest
+     */
     public static Quaterniond integrateAngularVelocity(Vector3dc omega, double dt, Quaterniond dest) {
         double ox = omega.x(), oy = omega.y(), oz = omega.z();
         double omegaLenSq = Math.fma(ox, ox, Math.fma(oy, oy, oz * oz));
-        if (omegaLenSq < ZERO_TOLERANCE || dt == 0.0) {
+        if (omegaLenSq == 0.0 || dt == 0.0) { // was < ZERO_TOLERANCE, which dropped rates below 1e-6 rad/s
             return dest.identity();
         }
         double omegaLen = Math.sqrt(omegaLenSq);
@@ -2252,7 +2307,9 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
             return dest.set(this);
         }
         double alphaN = alpha;
-        while (absDot < dotThreshold) {
+        // Each iteration halves the arc, so 32 take it below float/double resolution. Without the cap a threshold
+        // >= 1 (|dot| never exceeds 1), or one that rounding cannot reach, looped forever.
+        for (int iteration = 0; absDot < dotThreshold && iteration < 32; iteration++) {
             double scale0 = 0.5;
             double scale1 = dot >= 0.0 ? 0.5 : -0.5;
             if (alphaN < 0.5) {
@@ -2763,7 +2820,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     public Quaterniond rotationX(double angle) {
         double sin = Math.sin(angle * 0.5);
         double cos = Math.cosFromSin(sin, angle * 0.5);
-        return set(sin, 0, cos, 0);
+        return set(sin, 0, 0, cos); // was set(sin, 0, cos, 0): not a rotation about x
     }
 
     /**

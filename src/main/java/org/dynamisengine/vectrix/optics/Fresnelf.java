@@ -36,11 +36,19 @@ public final class Fresnelf {
     /**
      * Unpolarized dielectric Fresnel reflectance.
      *
-     * @param cosThetaI cosine of incident angle in [0,1]
+     * @param cosThetaI cosine of the incident angle; a negative value means the ray arrives from the {@code etaT}
+     *                  side, and the indices are swapped
      */
     public static float dielectric(float cosThetaI, float etaI, float etaT) {
         if (etaI <= 0.0f || etaT <= 0.0f) {
             throw new IllegalArgumentException("eta");
+        }
+        if (cosThetaI < 0.0f) {
+            // Leaving the medium: swap the indices, as in pbrt (it used to clamp to grazing incidence and return ~1).
+            float tmp = etaI;
+            etaI = etaT;
+            etaT = tmp;
+            cosThetaI = -cosThetaI;
         }
         float c = clamp01(cosThetaI);
         float eta = etaI / etaT;
@@ -55,7 +63,7 @@ public final class Fresnelf {
     }
 
     /**
-     * Unpolarized conductor Fresnel reflectance with complex relative IOR {@code n + i k}.
+     * Unpolarized conductor Fresnel reflectance with complex relative IOR {@code n + i k} (exact).
      * The incident medium is assumed to have IOR 1.
      */
     public static float conductor(float cosThetaI, Complexf eta) {
@@ -63,24 +71,27 @@ public final class Fresnelf {
     }
 
     /**
-     * Unpolarized conductor Fresnel reflectance with complex relative IOR {@code n + i k}.
+     * Unpolarized conductor Fresnel reflectance with complex relative IOR {@code n + i k} (exact).
      * The incident medium is assumed to have IOR 1.
      */
     public static float conductor(float cosThetaI, float n, float k) {
         if (n < 0.0f || k < 0.0f) {
             throw new IllegalArgumentException("n/k");
         }
+        // Exact unpolarized conductor Fresnel (pbrt-v3 FrConductor, incident IOR 1). The previous pbrt-v2
+        // approximation was off by up to 0.099 (n = 1.5, k = 0, 79 degrees); for k = 0 this equals dielectric().
         float c = clamp01(cosThetaI);
         float c2 = c * c;
-        float n2k2 = n * n + k * k;
-
-        float rsNum = n2k2 - 2.0f * n * c + c2;
-        float rsDen = n2k2 + 2.0f * n * c + c2;
-        float rs = rsNum / rsDen;
-
-        float rpNum = n2k2 * c2 - 2.0f * n * c + 1.0f;
-        float rpDen = n2k2 * c2 + 2.0f * n * c + 1.0f;
-        float rp = rpNum / rpDen;
+        float s2 = 1.0f - c2;
+        float t0 = n * n - k * k - s2;
+        float a2b2 = (float) java.lang.Math.sqrt(t0 * t0 + 4.0f * n * n * k * k);
+        float a = (float) java.lang.Math.sqrt(java.lang.Math.max(0.0f, 0.5f * (a2b2 + t0)));
+        float t1 = a2b2 + c2;
+        float t2 = 2.0f * a * c;
+        float rs = (t1 - t2) / (t1 + t2);
+        float t3 = c2 * a2b2 + s2 * s2;
+        float t4 = t2 * s2;
+        float rp = rs * (t3 - t4) / (t3 + t4);
         return 0.5f * (rs + rp);
     }
 

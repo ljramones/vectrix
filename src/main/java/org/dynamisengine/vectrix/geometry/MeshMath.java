@@ -32,6 +32,11 @@ import org.dynamisengine.vectrix.core.Vector3fc;
  * Mesh-oriented geometric helpers used by render and mesh pipelines.
  */
 public final class MeshMath {
+    /** Triangles with sin^2 of the angle at a below this are degenerate for {@link #barycentric}. */
+    private static final float DEGENERATE_SIN2 = 1e-6f;
+    /** Relative signed-area tolerance for {@link #winding2D}. */
+    private static final float DEGENERATE_SIN = 1e-6f;
+
     private MeshMath() {
     }
 
@@ -58,7 +63,9 @@ public final class MeshMath {
         float d21 = dot(v2x, v2y, v2z, v1x, v1y, v1z);
 
         float denom = d00 * d11 - d01 * d01;
-        if (Epsilonf.isZero(denom)) {
+        // denom = |e0 x e1|^2 = d00 * d11 * sin^2(angle) scales with length^4, so the degeneracy test is relative:
+        // an absolute epsilon rejected every triangle smaller than about 3 cm (a 1 mm triangle gave NaN).
+        if (!(denom > DEGENERATE_SIN2 * d00 * d11)) {
             return dest.set(Float.NaN, Float.NaN, Float.NaN);
         }
 
@@ -155,10 +162,13 @@ public final class MeshMath {
      */
     public static int winding2D(Vector2fc a, Vector2fc b, Vector2fc c) {
         float s = signedArea2(a, b, c);
-        if (s > Epsilonf.ABSOLUTE) {
+        // Relative to the edge lengths, so the classification does not depend on the triangle's scale.
+        float abx = b.x() - a.x(), aby = b.y() - a.y(), acx = c.x() - a.x(), acy = c.y() - a.y();
+        float tol = DEGENERATE_SIN * (abx * abx + aby * aby + acx * acx + acy * acy);
+        if (s > tol) {
             return 1;
         }
-        if (s < -Epsilonf.ABSOLUTE) {
+        if (s < -tol) {
             return -1;
         }
         return 0;

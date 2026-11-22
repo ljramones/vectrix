@@ -52,6 +52,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Minimum supported JDK. Bytecode level comes from dynamis-parent (maven.compiler.release=25). -->
         <vectrix.min.jdk>25</vectrix.min.jdk>
+        <!-- JaCoCo coverage floors (ratchet: raise, never lower) -->
+        <vectrix.coverage.line.min>0.66</vectrix.coverage.line.min>
+        <vectrix.coverage.branch.min>0.42</vectrix.coverage.branch.min>
         <asm.version>9.7</asm.version>
         <junit.version>5.10.3</junit.version>
         <jcp.version>7.3.0</jcp.version>
@@ -268,7 +271,6 @@
                         <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
                     </sourceDirectories>
                     <excludes>**/module-info.java</excludes>
-                    <includeTestSourceRoots>false</includeTestSourceRoots>
                 </configuration>
             </plugin>
 
@@ -319,6 +321,55 @@
                                 <__HAS_FFM__>true</__HAS_FFM__>
                             </vars>
                         </configuration>
+                    </plugin>
+
+                    <!-- Test coverage (review M-17): report in target/site/jacoco, and a ratchet that fails the
+                         build if coverage drops below the recorded floor. Raise the floors as coverage grows. -->
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <version>0.8.14</version>
+                        <executions>
+                            <execution>
+                                <id>jacoco-prepare</id>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>jacoco-report</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>jacoco-check</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <configuration>
+                                    <rules>
+                                        <rule>
+                                            <element>BUNDLE</element>
+                                            <limits>
+                                                <limit>
+                                                    <counter>LINE</counter>
+                                                    <value>COVEREDRATIO</value>
+                                                    <minimum>${vectrix.coverage.line.min}</minimum>
+                                                </limit>
+                                                <limit>
+                                                    <counter>BRANCH</counter>
+                                                    <value>COVEREDRATIO</value>
+                                                    <minimum>${vectrix.coverage.branch.min}</minimum>
+                                                </limit>
+                                            </limits>
+                                        </rule>
+                                    </rules>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
 
                     <!-- Copy ASM jar for buildhelper compilation -->

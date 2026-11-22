@@ -55,13 +55,13 @@ Decision:
 
 ## Artifacts
 - Plan:
-  - `docs/performance-passH-plan.md`
+  - `docs/archive/performance-passH-plan.md`
 - Geometry:
-  - `docs/performance-passH-geometry-findings.md`
+  - `docs/archive/performance-passH-geometry-findings.md`
   - `benchmarks/results/2026-03-06/passH-geometry-aabb.*`
   - `benchmarks/results/2026-03-06/passH-prof-geometry-aabb.*`
 - LUT:
-  - `docs/performance-passH-lut-findings.md`
+  - `docs/archive/performance-passH-lut-findings.md`
   - `benchmarks/results/2026-03-06/passH-rendering-lut.*`
   - `benchmarks/results/2026-03-06/passH-prof-rendering-lut.*`
 

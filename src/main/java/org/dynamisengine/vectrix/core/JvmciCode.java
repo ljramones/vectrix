@@ -337,6 +337,12 @@ class JvmciCode {
     boolean _canUseJvmci = false;
     try {
       boolean _isWindows = System.getProperty("os.name").contains("Windows");
+      // The Windows blobs appear to use stack space below RSP, and Win64 has no red zone (review finding, section 7).
+      // Until they are verified, JVMCI acceleration is off on Windows. Note also that the blobs use vrcpss plus one
+      // Newton step, whose result is vendor-dependent, so JVMCI results are not bitwise reproducible.
+      // Opt back in with -Dvectrix.jvmci.allowWindows=true once the blobs are verified on the target machine.
+      if (_isWindows && !Boolean.getBoolean("vectrix.jvmci.allowWindows"))
+        throw new AssertionError("JVMCI code blobs are disabled on Windows pending verification");
       JVMCIRuntime jvmciRuntime = JVMCI.getRuntime();
       JVMCIBackend jvmciBackend = jvmciRuntime.getHostJVMCIBackend();
       TargetDescription targetDesc = jvmciBackend.getTarget();

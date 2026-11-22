@@ -53,14 +53,17 @@ public final class CurveReparameterizer3f {
         checkSamples(samples);
         if (dest.length < samples + 1) throw new IllegalArgumentException("dest");
         Vector3f prev = Bezier3f.evaluate(p0, p1, p2, p3, 0.0f, new Vector3f());
+        Vector3f curr = new Vector3f();
         dest[0] = 0.0f;
         float acc = 0.0f;
         for (int i = 1; i <= samples; i++) {
             float t = (float) i / (float) samples;
-            Vector3f curr = Bezier3f.evaluate(p0, p1, p2, p3, t, new Vector3f());
+            Bezier3f.evaluate(p0, p1, p2, p3, t, curr);
             acc += prev.distance(curr);
             dest[i] = acc;
-            prev.set(curr);
+            Vector3f swap = prev;
+            prev = curr;
+            curr = swap;
         }
         normalize(dest, samples, acc);
         return dest;
@@ -70,14 +73,17 @@ public final class CurveReparameterizer3f {
         checkSamples(samples);
         if (dest.length < samples + 1) throw new IllegalArgumentException("dest");
         Vector3f prev = curve.evaluate(segmentIndex, 0.0f, new Vector3f());
+        Vector3f curr = new Vector3f();
         dest[0] = 0.0f;
         float acc = 0.0f;
         for (int i = 1; i <= samples; i++) {
             float t = (float) i / (float) samples;
-            Vector3f curr = curve.evaluate(segmentIndex, t, new Vector3f());
+            curve.evaluate(segmentIndex, t, curr);
             acc += prev.distance(curr);
             dest[i] = acc;
-            prev.set(curr);
+            Vector3f swap = prev;
+            prev = curr;
+            curr = swap;
         }
         normalize(dest, samples, acc);
         return dest;
@@ -92,14 +98,17 @@ public final class CurveReparameterizer3f {
         checkSamples(samples);
         if (dest.length < samples + 1) throw new IllegalArgumentException("dest");
         Vector3f prev = Hermite3f.evaluate(p0, m0, p1, m1, 0.0f, new Vector3f());
+        Vector3f curr = new Vector3f();
         dest[0] = 0.0f;
         float acc = 0.0f;
         for (int i = 1; i <= samples; i++) {
             float t = (float) i / (float) samples;
-            Vector3f curr = Hermite3f.evaluate(p0, m0, p1, m1, t, new Vector3f());
+            Hermite3f.evaluate(p0, m0, p1, m1, t, curr);
             acc += prev.distance(curr);
             dest[i] = acc;
-            prev.set(curr);
+            Vector3f swap = prev;
+            prev = curr;
+            curr = swap;
         }
         normalize(dest, samples, acc);
         return dest;
@@ -115,14 +124,17 @@ public final class CurveReparameterizer3f {
         checkSamples(samples);
         if (dest.length < samples + 1) throw new IllegalArgumentException("dest");
         Vector3f prev = CatmullRom3f.evaluate(p0, p1, p2, p3, 0.0f, tension, new Vector3f());
+        Vector3f curr = new Vector3f();
         dest[0] = 0.0f;
         float acc = 0.0f;
         for (int i = 1; i <= samples; i++) {
             float t = (float) i / (float) samples;
-            Vector3f curr = CatmullRom3f.evaluate(p0, p1, p2, p3, t, tension, new Vector3f());
+            CatmullRom3f.evaluate(p0, p1, p2, p3, t, tension, curr);
             acc += prev.distance(curr);
             dest[i] = acc;
-            prev.set(curr);
+            Vector3f swap = prev;
+            prev = curr;
+            curr = swap;
         }
         normalize(dest, samples, acc);
         return dest;

@@ -64,6 +64,10 @@ public final class Convolutiond {
         checkInterleaved(dest, "dest");
         int na = a.length >>> 1;
         int nb = b.length >>> 1;
+        if (na == 0 || nb == 0) {
+            // used to fail with ArrayIndexOutOfBoundsException from arraycopy
+            throw new IllegalArgumentException("linear convolution needs non-empty inputs");
+        }
         int out = na + nb - 1;
         if ((dest.length >>> 1) < out) {
             throw new IllegalArgumentException("dest");

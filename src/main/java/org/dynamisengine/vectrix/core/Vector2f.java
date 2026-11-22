@@ -1025,8 +1025,11 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
     }
 
     public Vector2f mulPosition(Matrix3x2fc mat, Vector2f dest) {
-        dest.x = mat.m00() * x + mat.m10() * y + mat.m20();
-        dest.y = mat.m01() * x + mat.m11() * y + mat.m21();
+        // compute both before writing: mulPosition(mat) passes this as dest, and y needs the old x
+        float rx = mat.m00() * x + mat.m10() * y + mat.m20();
+        float ry = mat.m01() * x + mat.m11() * y + mat.m21();
+        dest.x = rx;
+        dest.y = ry;
         return dest;
     }
 
@@ -1044,8 +1047,10 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
     }
 
     public Vector2f mulDirection(Matrix3x2fc mat, Vector2f dest) {
-        dest.x = mat.m00() * x + mat.m10() * y;
-        dest.y = mat.m01() * x + mat.m11() * y;
+        float rx = mat.m00() * x + mat.m10() * y;
+        float ry = mat.m01() * x + mat.m11() * y;
+        dest.x = rx;
+        dest.y = ry;
         return dest;
     }
 

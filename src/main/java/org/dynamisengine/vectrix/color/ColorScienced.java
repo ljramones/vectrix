@@ -50,22 +50,56 @@ public final class ColorScienced {
     }
 
     public static Vector3d xyzToLinearSrgb(double x, double y, double z, Vector3d dest) {
-        double r = 3.2406 * x - 1.5372 * y - 0.4986 * z;
-        double g = -0.9689 * x + 1.8758 * y + 0.0415 * z;
-        double b = 0.0557 * x - 0.2040 * y + 1.0570 * z;
-        return dest.set(r, g, b);
+        // Single source with ColorMath (7-digit IEC 61966-2-1 matrix); this used to keep a 4-digit copy.
+        return ColorMathd.xyzToLinearSrgb(x, y, z, dest);
     }
 
     public static Vector3d linearSrgbToXyz(double r, double g, double b, Vector3d dest) {
-        double x = 0.4124 * r + 0.3576 * g + 0.1805 * b;
-        double y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        double z = 0.0193 * r + 0.1192 * g + 0.9505 * b;
-        return dest.set(x, y, z);
+        return ColorMathd.linearSrgbToXyz(r, g, b, dest);
     }
 
     private static double g(double wl, double mu, double sigmaLo, double sigmaHi) {
         double d = (wl - mu) * (wl < mu ? sigmaLo : sigmaHi);
         return org.dynamisengine.vectrix.core.AccurateMath.exp(-0.5 * d * d);
+    }
+
+    /**
+     * Double-precision {@link ColorSciencef#kelvinToLinearRgb(float, org.dynamisengine.vectrix.core.Vector3f)}:
+     * approximate blackbody color (Tanner Helland fit) in linear sRGB.
+     * <p>
+     * The Helland fit is piecewise at 6600 K, so the result has a visible step there: in linear RGB, green drops from
+     * 1.000 to 0.970 and blue rises from 0.978 to 1.000. Time-of-day sweeps that cross 6600 K show it. The fit is kept as
+     * is because it matches the widely used reference implementation; blend across the step if it matters.
+     *
+     * @param kelvin color temperature in Kelvin; clamped to [1000, 40000]
+     * @param dest   destination vector to store the linear RGB result
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code dest} is null, or kelvin is non-finite or &lt;= 0
+     */
+    public static Vector3d kelvinToLinearRgb(double kelvin, Vector3d dest) {
+        if (dest == null) {
+            throw new IllegalArgumentException("dest is required");
+        }
+        if (!Double.isFinite(kelvin) || kelvin <= 0.0) {
+            throw new IllegalArgumentException("kelvin must be finite and > 0");
+        }
+        double temperature = clamp(kelvin, 1000.0, 40000.0) / 100.0;
+        double red;
+        double green;
+        double blue;
+        if (temperature <= 66.0) {
+            red = 255.0;
+            green = 99.4708025861 * org.dynamisengine.vectrix.core.AccurateMath.log(temperature) - 161.1195681661;
+            blue = temperature <= 19.0
+                    ? 0.0
+                    : 138.5177312231 * org.dynamisengine.vectrix.core.AccurateMath.log(temperature - 10.0) - 305.0447927307;
+        } else {
+            red = 329.698727446 * org.dynamisengine.vectrix.core.AccurateMath.pow(temperature - 60.0, -0.1332047592);
+            green = 288.1221695283 * org.dynamisengine.vectrix.core.AccurateMath.pow(temperature - 60.0, -0.0755148492);
+            blue = 255.0;
+        }
+        dest.set(clamp(red / 255.0, 0.0, 1.0), clamp(green / 255.0, 0.0, 1.0), clamp(blue / 255.0, 0.0, 1.0));
+        return ColorMathd.srgbToLinear(dest, dest);
     }
 
     private static double clamp(double v, double lo, double hi) {

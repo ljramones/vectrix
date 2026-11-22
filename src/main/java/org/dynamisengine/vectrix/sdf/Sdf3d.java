@@ -50,7 +50,9 @@ public final class Sdf3d {
     public static double capsule(Vector3dc p, Vector3dc a, Vector3dc b, double radius) {
         double pax = p.x() - a.x(), pay = p.y() - a.y(), paz = p.z() - a.z();
         double bax = b.x() - a.x(), bay = b.y() - a.y(), baz = b.z() - a.z();
-        double h = java.lang.Math.max(0.0, java.lang.Math.min(1.0, (pax * bax + pay * bay + paz * baz) / (bax * bax + bay * bay + baz * baz)));
+        double len2 = bax * bax + bay * bay + baz * baz;
+        // a == b is a sphere; the projection was 0/0 = NaN, which min/max pass through.
+        double h = len2 > 0.0 ? java.lang.Math.max(0.0, java.lang.Math.min(1.0, (pax * bax + pay * bay + paz * baz) / len2)) : 0.0;
         double dx = pax - bax * h, dy = pay - bay * h, dz = paz - baz * h;
         return java.lang.Math.sqrt(dx * dx + dy * dy + dz * dz) - radius;
     }

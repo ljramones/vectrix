@@ -52,12 +52,12 @@ Method naming rules:
 2. Use Tier B and Tier C to identify scaling and memory-layout bottlenecks.
 3. Confirm architecture choices with Tier D kernel benchmarks.
 4. Record selected policies and thresholds in dedicated docs:
-   - `docs/transform-representation-policy.md`
-   - `docs/transform-materialization-audit.md`
+   - `../transform-representation-policy.md`
+   - `docs/archive/transform-materialization-audit.md`
    - `docs/memory-backend-policy.md`
-   - `docs/skinning-runtime-policy.md`
-   - `docs/hot-path-policy.md`
-   - `docs/engine-runtime-defaults.md`
+   - `../skinning-runtime-policy.md`
+   - `../hot-path-policy.md`
+   - `../engine-runtime-defaults.md`
 
 ## Golden Kernels
 These kernels are currently treated as architecture-defining hot paths and should remain explicitly protected by regression gates:

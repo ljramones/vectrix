@@ -91,8 +91,18 @@ public final class ShConvolution {
     }
 
     public static Vector3f evaluateL2(ShCoeffs9f coeffs, Vector3fc dir, Vector3f dest) {
-        float[] b = ShBasis.evaluateL2(dir, new float[9]);
-        return evaluateIrradiance(coeffs, b, dest);
+        float x = dir.x(), y = dir.y(), z = dir.z();
+        float r = 0.0f;
+        float g = 0.0f;
+        float bl = 0.0f;
+        for (int i = 0; i < 9; i++) {
+            int o = i * 3;
+            float bi = ShBasis.basis(i, x, y, z);
+            r += coeffs.c[o] * bi;
+            g += coeffs.c[o + 1] * bi;
+            bl += coeffs.c[o + 2] * bi;
+        }
+        return dest.set(r, g, bl);
     }
 
     /**
@@ -123,18 +133,28 @@ public final class ShConvolution {
     }
 
     public static Vector3d evaluateL2(ShCoeffs9d coeffs, Vector3dc dir, Vector3d dest) {
-        double[] b = ShBasis.evaluateL2(dir, new double[9]);
-        return evaluateIrradiance(coeffs, b, dest);
+        double x = dir.x(), y = dir.y(), z = dir.z();
+        double r = 0.0;
+        double g = 0.0;
+        double bl = 0.0;
+        for (int i = 0; i < 9; i++) {
+            int o = i * 3;
+            double bi = ShBasis.basis(i, x, y, z);
+            r += coeffs.c[o] * bi;
+            g += coeffs.c[o + 1] * bi;
+            bl += coeffs.c[o + 2] * bi;
+        }
+        return dest.set(r, g, bl);
     }
 
     public static Vector3f evaluateL3(ShCoeffs16f coeffs, Vector3fc dir, Vector3f dest) {
-        float[] b = ShBasis.evaluateL3(dir, new float[16]);
+        float x = dir.x(), y = dir.y(), z = dir.z();
         float r = 0.0f;
         float g = 0.0f;
         float bl = 0.0f;
         for (int i = 0; i < 16; i++) {
             int o = i * 3;
-            float bi = b[i];
+            float bi = ShBasis.basis(i, x, y, z);
             r += coeffs.c[o] * bi;
             g += coeffs.c[o + 1] * bi;
             bl += coeffs.c[o + 2] * bi;
@@ -143,13 +163,13 @@ public final class ShConvolution {
     }
 
     public static Vector3d evaluateL3(ShCoeffs16d coeffs, Vector3dc dir, Vector3d dest) {
-        double[] b = ShBasis.evaluateL3(dir, new double[16]);
+        double x = dir.x(), y = dir.y(), z = dir.z();
         double r = 0.0;
         double g = 0.0;
         double bl = 0.0;
         for (int i = 0; i < 16; i++) {
             int o = i * 3;
-            double bi = b[i];
+            double bi = ShBasis.basis(i, x, y, z);
             r += coeffs.c[o] * bi;
             g += coeffs.c[o + 1] * bi;
             bl += coeffs.c[o + 2] * bi;
@@ -184,31 +204,5 @@ public final class ShConvolution {
         destRgb[2] = bl;
     }
 
-    private static Vector3f evaluateIrradiance(ShCoeffs9f coeffs, float[] basis, Vector3f dest) {
-        float r = 0.0f;
-        float g = 0.0f;
-        float bl = 0.0f;
-        for (int i = 0; i < 9; i++) {
-            int o = i * 3;
-            float bi = basis[i];
-            r += coeffs.c[o] * bi;
-            g += coeffs.c[o + 1] * bi;
-            bl += coeffs.c[o + 2] * bi;
-        }
-        return dest.set(r, g, bl);
-    }
 
-    private static Vector3d evaluateIrradiance(ShCoeffs9d coeffs, double[] basis, Vector3d dest) {
-        double r = 0.0;
-        double g = 0.0;
-        double bl = 0.0;
-        for (int i = 0; i < 9; i++) {
-            int o = i * 3;
-            double bi = basis[i];
-            r += coeffs.c[o] * bi;
-            g += coeffs.c[o + 1] * bi;
-            bl += coeffs.c[o + 2] * bi;
-        }
-        return dest.set(r, g, bl);
-    }
 }

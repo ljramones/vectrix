@@ -57,10 +57,14 @@ public final class CatmullRom2f {
         return dest.set(CubicCurveMath.hermiteSecondDerivative(p1.x(), m1x, p2.x(), m2x, t), CubicCurveMath.hermiteSecondDerivative(p1.y(), m1y, p2.y(), m2y, t));
     }
     public static void evaluateBatch(Vector2fc p0, Vector2fc p1, Vector2fc p2, Vector2fc p3, float tension, float[] tValues, int tOffset, int length, float[] outX, int outXOffset, float[] outY, int outYOffset) {
+        float m1x = CubicCurveMath.cardinalTangent(p0.x(), p2.x(), tension), m2x = CubicCurveMath.cardinalTangent(p1.x(), p3.x(), tension);
+        float ax = p1.x(), bx = p2.x();
+        float m1y = CubicCurveMath.cardinalTangent(p0.y(), p2.y(), tension), m2y = CubicCurveMath.cardinalTangent(p1.y(), p3.y(), tension);
+        float ay = p1.y(), by = p2.y();
         for (int i = 0; i < length; i++) {
-            Vector2f v = evaluate(p0, p1, p2, p3, tValues[tOffset + i], tension, new Vector2f());
-            outX[outXOffset + i] = v.x;
-            outY[outYOffset + i] = v.y;
+            float t = tValues[tOffset + i];
+            outX[outXOffset + i] = CubicCurveMath.hermite(ax, m1x, bx, m2x, t);
+            outY[outYOffset + i] = CubicCurveMath.hermite(ay, m1y, by, m2y, t);
         }
     }
 }

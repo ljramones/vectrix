@@ -41,6 +41,12 @@ public final class Epsilond {
     }
 
     public static boolean equals(double a, double b) {
+        if (a == b) {
+            return true; // exact equality, including equal infinities (Inf - Inf is NaN)
+        }
+        if (Double.isInfinite(a) || Double.isInfinite(b)) {
+            return false; // the tolerance below is itself infinite when either value is, which made Inf equal 5
+        }
         double diff = java.lang.Math.abs(a - b);
         double scale = java.lang.Math.max(java.lang.Math.max(java.lang.Math.abs(a), java.lang.Math.abs(b)), 1.0);
         return diff <= ABSOLUTE + RELATIVE * scale;

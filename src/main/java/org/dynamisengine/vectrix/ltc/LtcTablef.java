@@ -40,6 +40,9 @@ public final class LtcTablef {
         if (table == null || dest9 == null || dest9.length < 9 || width <= 1 || height <= 1 || table.length < width * height * 9) {
             throw new IllegalArgumentException("table/dest");
         }
+        if (Float.isNaN(roughness) || Float.isNaN(ndotv)) {
+            throw new IllegalArgumentException("roughness/ndotv is NaN"); // was silently NaN output
+        }
         float x = clamp01(roughness) * (width - 1);
         float y = clamp01(ndotv) * (height - 1);
         int x0 = (int) java.lang.Math.floor(x);
@@ -64,6 +67,9 @@ public final class LtcTablef {
     public static void sampleVec4(float[] table, int width, int height, float roughness, float ndotv, float[] dest4) {
         if (table == null || dest4 == null || dest4.length < 4 || width <= 1 || height <= 1 || table.length < width * height * 4) {
             throw new IllegalArgumentException("table/dest");
+        }
+        if (Float.isNaN(roughness) || Float.isNaN(ndotv)) {
+            throw new IllegalArgumentException("roughness/ndotv is NaN"); // was silently NaN output
         }
         float x = clamp01(roughness) * (width - 1);
         float y = clamp01(ndotv) * (height - 1);

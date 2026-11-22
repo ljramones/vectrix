@@ -47,11 +47,27 @@ public class FrustumPlanes {
     }
 
     public FrustumPlanes set(Matrix4fc m, boolean normalize) {
+        return set(m, normalize, false);
+    }
+
+    /**
+     * Extract the six planes of a view-projection matrix.
+     *
+     * @param zZeroToOne {@code true} for clip-space depth in [0, 1] (Vulkan, Direct3D, JOML's {@code zZeroToOne}
+     *                   projections): the near plane is then {@code z >= 0} rather than {@code z >= -w}. With the
+     *                   default [-1, 1] extraction such a frustum gets a near plane behind the real one, which is
+     *                   conservative but culls nothing near the camera.
+     */
+    public FrustumPlanes set(Matrix4fc m, boolean normalize, boolean zZeroToOne) {
         setPlane(PLANE_NX, m.m03() + m.m00(), m.m13() + m.m10(), m.m23() + m.m20(), m.m33() + m.m30(), normalize);
         setPlane(PLANE_PX, m.m03() - m.m00(), m.m13() - m.m10(), m.m23() - m.m20(), m.m33() - m.m30(), normalize);
         setPlane(PLANE_NY, m.m03() + m.m01(), m.m13() + m.m11(), m.m23() + m.m21(), m.m33() + m.m31(), normalize);
         setPlane(PLANE_PY, m.m03() - m.m01(), m.m13() - m.m11(), m.m23() - m.m21(), m.m33() - m.m31(), normalize);
-        setPlane(PLANE_NZ, m.m03() + m.m02(), m.m13() + m.m12(), m.m23() + m.m22(), m.m33() + m.m32(), normalize);
+        if (zZeroToOne) {
+            setPlane(PLANE_NZ, m.m02(), m.m12(), m.m22(), m.m32(), normalize);
+        } else {
+            setPlane(PLANE_NZ, m.m03() + m.m02(), m.m13() + m.m12(), m.m23() + m.m22(), m.m33() + m.m32(), normalize);
+        }
         setPlane(PLANE_PZ, m.m03() - m.m02(), m.m13() - m.m12(), m.m23() - m.m22(), m.m33() - m.m32(), normalize);
         return this;
     }

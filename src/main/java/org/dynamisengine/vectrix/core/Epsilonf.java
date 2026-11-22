@@ -41,6 +41,12 @@ public final class Epsilonf {
     }
 
     public static boolean equals(float a, float b) {
+        if (a == b) {
+            return true; // exact equality, including equal infinities (Inf - Inf is NaN)
+        }
+        if (Float.isInfinite(a) || Float.isInfinite(b)) {
+            return false; // the tolerance below is itself infinite when either value is, which made Inf equal 5
+        }
         float diff = java.lang.Math.abs(a - b);
         float scale = java.lang.Math.max(java.lang.Math.max(java.lang.Math.abs(a), java.lang.Math.abs(b)), 1.0f);
         return diff <= ABSOLUTE + RELATIVE * scale;

@@ -4218,7 +4218,7 @@ public class Intersectionf {
         tNear = tymin > tNear || Float.isNaN(tNear) ? tymin : tNear;
         tFar = tymax < tFar || Float.isNaN(tFar) ? tymax : tFar;
         int side = -1; // no intersection side
-        if (tNear <= tFar && tFar >= 0.0f) {
+        if (tNear < tFar && tFar >= 0.0f) { // strict, like every other ray test here and Intersectiond
             float px = originX + tNear * dirX;
             float py = originY + tNear * dirY;
             result.x = tNear;

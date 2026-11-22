@@ -1068,6 +1068,7 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         _m20((float) (yw + xz + xz + yw)).
         _m21((float) (yz + yz - xw - xw)).
         _m22((float) (z2 - y2 - x2 + w2)).
+        _m23(0.0f). // was missing: a stale m23 survived in a matrix flagged affine
         _m30(0.0f).
         _m31(0.0f).
         _m32(0.0f).
@@ -1153,6 +1154,7 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
 //#ifdef __HAS_JVMCI__
         else if (JvmciCode.canUseJvmci && right instanceof Matrix4f) {
             Matrix4f mright = (Matrix4f) right;
+            java.util.Objects.requireNonNull(dest, "dest"); // the installed machine code would crash the JVM on null
             JvmciCode.__Matrix4f_mul(this, mright, dest);
             dest.properties = properties & mright.properties & (PROPERTY_AFFINE | PROPERTY_ORTHONORMAL);
             return dest;
@@ -2555,6 +2557,7 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
             return invertOrthonormal(dest);
 //#ifdef __HAS_JVMCI__
         else if (JvmciCode.canUseJvmci) {
+            java.util.Objects.requireNonNull(dest, "dest"); // the installed machine code would crash the JVM on null
             JvmciCode.__Matrix4f_invert(this, dest);
             dest.properties = properties & PROPERTY_AFFINE;
             return dest;
@@ -2964,6 +2967,7 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
             return dest.identity();
 //#ifdef __HAS_JVMCI__
         else if (JvmciCode.canUseJvmci) {
+            java.util.Objects.requireNonNull(dest, "dest"); // the installed machine code would crash the JVM on null
             JvmciCode.__Matrix4f_transpose(this, dest);
             dest.properties = PROPERTY_UNKNOWN;
             return dest;
@@ -11633,7 +11637,7 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
 
     public Matrix4f rotateAround(Quaternionfc quat, float ox, float oy, float oz, Matrix4f dest) {
         if ((properties & PROPERTY_IDENTITY) != 0)
-            return rotationAround(quat, ox, oy, oz);
+            return dest.rotationAround(quat, ox, oy, oz); // was this.rotationAround(...): dest was ignored
         else if ((properties & PROPERTY_AFFINE) != 0)
             return rotateAroundAffine(quat, ox, oy, oz, dest);
         return rotateAroundGeneric(quat, ox, oy, oz, dest);
@@ -14930,7 +14934,7 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
     }
 
     public Matrix4f withLookAtUp(Vector3fc up, Matrix4f dest) {
-        return withLookAtUp(up.x(), up.y(), up.z());
+        return withLookAtUp(up.x(), up.y(), up.z(), dest); // dest was ignored
     }
 
     /**

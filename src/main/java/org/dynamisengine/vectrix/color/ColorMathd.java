@@ -65,7 +65,14 @@ public final class ColorMathd {
     }
 
     public static Vector3d linearSrgbToXyz(Vector3dc linearRgb, Vector3d dest) {
-        double r = linearRgb.x(), g = linearRgb.y(), b = linearRgb.z();
+        return linearSrgbToXyz(linearRgb.x(), linearRgb.y(), linearRgb.z(), dest);
+    }
+
+    /**
+     * Linear sRGB (D65) to CIE XYZ. This and {@link #xyzToLinearSrgb(double, double, double, Vector3d)} are the library's single
+     * source for the sRGB/XYZ matrices; {@code ColorScience} delegates here.
+     */
+    public static Vector3d linearSrgbToXyz(double r, double g, double b, Vector3d dest) {
         return dest.set(
                 0.4124564 * r + 0.3575761 * g + 0.1804375 * b,
                 0.2126729 * r + 0.7151522 * g + 0.0721750 * b,
@@ -73,7 +80,11 @@ public final class ColorMathd {
     }
 
     public static Vector3d xyzToLinearSrgb(Vector3dc xyz, Vector3d dest) {
-        double x = xyz.x(), y = xyz.y(), z = xyz.z();
+        return xyzToLinearSrgb(xyz.x(), xyz.y(), xyz.z(), dest);
+    }
+
+    /** CIE XYZ to linear sRGB (D65); the inverse of {@link #linearSrgbToXyz(double, double, double, Vector3d)}. */
+    public static Vector3d xyzToLinearSrgb(double x, double y, double z, Vector3d dest) {
         return dest.set(
                 3.2404542 * x - 1.5371385 * y - 0.4985314 * z,
                 -0.9692660 * x + 1.8760108 * y + 0.0415560 * z,

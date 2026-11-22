@@ -1596,7 +1596,7 @@ public class Matrix3x2d implements Matrix3x2dc, Cloneable, Externalizable {
      * @return this
      */
     public Matrix3x2d scaleAround(double factor, double ox, double oy, Matrix3x2d dest) {
-        return scaleAround(factor, factor, ox, oy, this);
+        return scaleAround(factor, factor, ox, oy, dest); // was this: dest was ignored
     }
 
     /**

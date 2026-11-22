@@ -31,6 +31,7 @@ import org.dynamisengine.vectrix.soa.AABBSoA;
 //#ifdef __HAS_VECTOR_API__
 import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.VectorMask;
+import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
 //#endif
 
@@ -272,32 +273,32 @@ public final class CullingKernels {
                 FloatVector dMax = (nxNegX ? minXv : maxXv).mul(nxXv).add((nxNegY ? minYv : maxYv).mul(nxYv)).add((nxNegZ ? minZv : maxZv).mul(nxZv)).add(nxWv);
                 outsideMask = outsideMask.or(dMax.lt(0.0f));
                 FloatVector dMin = (nxNegX ? maxXv : minXv).mul(nxXv).add((nxNegY ? maxYv : minYv).mul(nxYv)).add((nxNegZ ? maxZv : minZv).mul(nxZv)).add(nxWv);
-                insideMask = insideMask.and(dMin.lt(0.0f).not());
+                insideMask = insideMask.and(dMin.compare(VectorOperators.GE, 0.0f));
 
                 dMax = (pxNegX ? minXv : maxXv).mul(pxXv).add((pxNegY ? minYv : maxYv).mul(pxYv)).add((pxNegZ ? minZv : maxZv).mul(pxZv)).add(pxWv);
                 outsideMask = outsideMask.or(dMax.lt(0.0f));
                 dMin = (pxNegX ? maxXv : minXv).mul(pxXv).add((pxNegY ? maxYv : minYv).mul(pxYv)).add((pxNegZ ? maxZv : minZv).mul(pxZv)).add(pxWv);
-                insideMask = insideMask.and(dMin.lt(0.0f).not());
+                insideMask = insideMask.and(dMin.compare(VectorOperators.GE, 0.0f));
 
                 dMax = (nyNegX ? minXv : maxXv).mul(nyXv).add((nyNegY ? minYv : maxYv).mul(nyYv)).add((nyNegZ ? minZv : maxZv).mul(nyZv)).add(nyWv);
                 outsideMask = outsideMask.or(dMax.lt(0.0f));
                 dMin = (nyNegX ? maxXv : minXv).mul(nyXv).add((nyNegY ? maxYv : minYv).mul(nyYv)).add((nyNegZ ? maxZv : minZv).mul(nyZv)).add(nyWv);
-                insideMask = insideMask.and(dMin.lt(0.0f).not());
+                insideMask = insideMask.and(dMin.compare(VectorOperators.GE, 0.0f));
 
                 dMax = (pyNegX ? minXv : maxXv).mul(pyXv).add((pyNegY ? minYv : maxYv).mul(pyYv)).add((pyNegZ ? minZv : maxZv).mul(pyZv)).add(pyWv);
                 outsideMask = outsideMask.or(dMax.lt(0.0f));
                 dMin = (pyNegX ? maxXv : minXv).mul(pyXv).add((pyNegY ? maxYv : minYv).mul(pyYv)).add((pyNegZ ? maxZv : minZv).mul(pyZv)).add(pyWv);
-                insideMask = insideMask.and(dMin.lt(0.0f).not());
+                insideMask = insideMask.and(dMin.compare(VectorOperators.GE, 0.0f));
 
                 dMax = (nzNegX ? minXv : maxXv).mul(nzXv).add((nzNegY ? minYv : maxYv).mul(nzYv)).add((nzNegZ ? minZv : maxZv).mul(nzZv)).add(nzWv);
                 outsideMask = outsideMask.or(dMax.lt(0.0f));
                 dMin = (nzNegX ? maxXv : minXv).mul(nzXv).add((nzNegY ? maxYv : minYv).mul(nzYv)).add((nzNegZ ? maxZv : minZv).mul(nzZv)).add(nzWv);
-                insideMask = insideMask.and(dMin.lt(0.0f).not());
+                insideMask = insideMask.and(dMin.compare(VectorOperators.GE, 0.0f));
 
                 dMax = (pzNegX ? minXv : maxXv).mul(pzXv).add((pzNegY ? minYv : maxYv).mul(pzYv)).add((pzNegZ ? minZv : maxZv).mul(pzZv)).add(pzWv);
                 outsideMask = outsideMask.or(dMax.lt(0.0f));
                 dMin = (pzNegX ? maxXv : minXv).mul(pzXv).add((pzNegY ? maxYv : minYv).mul(pzYv)).add((pzNegZ ? maxZv : minZv).mul(pzZv)).add(pzWv);
-                insideMask = insideMask.and(dMin.lt(0.0f).not());
+                insideMask = insideMask.and(dMin.compare(VectorOperators.GE, 0.0f));
 
                 for (int lane = 0; lane < lanes; lane++) {
                     if (outsideMask.laneIsSet(lane)) {

@@ -803,6 +803,10 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         m20 = (float) (yw + xz + xz + yw);
         m21 = (float) (yz + yz - xw - xw);
         m22 = (float) (z2 - y2 - x2 + w2);
+        // zero the translation like set(Quaternionfc) and Matrix4x3d.set(Quaterniondc); it used to be left as it was
+        m30 = 0.0f;
+        m31 = 0.0f;
+        m32 = 0.0f;
         properties = PROPERTY_ORTHONORMAL;
         return this;
     }
@@ -4179,7 +4183,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
 
     public Matrix4x3f rotateAround(Quaternionfc quat, float ox, float oy, float oz, Matrix4x3f dest) {
         if ((properties & PROPERTY_IDENTITY) != 0)
-            return rotationAround(quat, ox, oy, oz);
+            return dest.rotationAround(quat, ox, oy, oz); // was this.rotationAround(...): dest was ignored
         return rotateAroundAffine(quat, ox, oy, oz, dest);
     }
 
@@ -9185,7 +9189,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
     }
 
     public Matrix4x3f withLookAtUp(Vector3fc up, Matrix4x3f dest) {
-        return withLookAtUp(up.x(), up.y(), up.z());
+        return withLookAtUp(up.x(), up.y(), up.z(), dest); // dest was ignored
     }
 
     /**

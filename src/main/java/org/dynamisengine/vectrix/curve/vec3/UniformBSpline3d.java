@@ -37,7 +37,12 @@ public final class UniformBSpline3d {
 
     public UniformBSpline3d(Vector3dc[] controlPoints) {
         if (controlPoints.length < 4) throw new IllegalArgumentException("controlPoints");
-        this.controlPoints = controlPoints;
+        // Defensive copy: later changes to the caller's array or vectors do not alter the curve.
+        Vector3dc[] copy = new Vector3dc[controlPoints.length];
+        for (int k = 0; k < copy.length; k++) {
+            copy[k] = new Vector3d(controlPoints[k]);
+        }
+        this.controlPoints = copy;
     }
 
     public int segmentCount() { return controlPoints.length - 3; }
@@ -64,11 +69,15 @@ public final class UniformBSpline3d {
     }
 
     public void evaluateBatch(int segmentIndex, double[] tValues, int tOffset, int length, double[] outX, int outXOffset, double[] outY, int outYOffset, double[] outZ, int outZOffset) {
+        int s = checkedSegment(segmentIndex);
+        double c0x = controlPoints[s].x(), c1x = controlPoints[s + 1].x(), c2x = controlPoints[s + 2].x(), c3x = controlPoints[s + 3].x();
+        double c0y = controlPoints[s].y(), c1y = controlPoints[s + 1].y(), c2y = controlPoints[s + 2].y(), c3y = controlPoints[s + 3].y();
+        double c0z = controlPoints[s].z(), c1z = controlPoints[s + 1].z(), c2z = controlPoints[s + 2].z(), c3z = controlPoints[s + 3].z();
         for (int i = 0; i < length; i++) {
-            Vector3d v = evaluate(segmentIndex, tValues[tOffset + i], new Vector3d());
-            outX[outXOffset + i] = v.x;
-            outY[outYOffset + i] = v.y;
-            outZ[outZOffset + i] = v.z;
+            double t = tValues[tOffset + i];
+            outX[outXOffset + i] = CubicCurveMath.bspline(c0x, c1x, c2x, c3x, t);
+            outY[outYOffset + i] = CubicCurveMath.bspline(c0y, c1y, c2y, c3y, t);
+            outZ[outZOffset + i] = CubicCurveMath.bspline(c0z, c1z, c2z, c3z, t);
         }
     }
 

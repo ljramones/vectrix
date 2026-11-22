@@ -3961,7 +3961,10 @@ abstract class MemUtil {
         private static final ValueLayout.OfLong JAVA_LONG = ValueLayout.JAVA_LONG_UNALIGNED;
 
         /**
-         * A bounds-checked segment over elements {@code [0, limit())} of a direct buffer, so that the absolute
+         * A bounds-checked segment over elements {@code [0, limit())} of a direct buffer. Callers take
+         * {@code asSlice(offset, size)} of it: that one range check (throwing {@link IndexOutOfBoundsException}, like
+         * NIO) yields a slice of constant size, so the JIT can drop the per-store checks and the transfer costs the
+         * same as the Unsafe path for bulk use. The absolute
          * offsets used by the MemUtil API map straight to segment byte offsets. Every access through it is
          * checked against the buffer's limit (throwing {@link IndexOutOfBoundsException}, like the NIO path) and
          * stays inside a slice. No Unsafe and no raw addresses are involved.
@@ -4535,525 +4538,525 @@ abstract class MemUtil {
 
         // --- Quaternion buffer overrides ---
         public void putMatrix3f(Quaternionf q, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putMatrix3f(q, bufferSegment(dest), offset); else super.putMatrix3f(q, offset, dest);
+            if (writableDirect(dest)) putMatrix3f(q, bufferSegment(dest).asSlice(offset, 36), 0); else super.putMatrix3f(q, offset, dest);
         }
         public void putMatrix3f(Quaternionf q, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putMatrix3f(q, bufferSegment(dest), ((long) offset << 2)); else super.putMatrix3f(q, offset, dest);
+            if (writableDirect(dest)) putMatrix3f(q, bufferSegment(dest).asSlice(((long) offset << 2), 36), 0); else super.putMatrix3f(q, offset, dest);
         }
         public void putMatrix4f(Quaternionf q, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putMatrix4f(q, bufferSegment(dest), offset); else super.putMatrix4f(q, offset, dest);
+            if (writableDirect(dest)) putMatrix4f(q, bufferSegment(dest).asSlice(offset, 64), 0); else super.putMatrix4f(q, offset, dest);
         }
         public void putMatrix4f(Quaternionf q, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putMatrix4f(q, bufferSegment(dest), ((long) offset << 2)); else super.putMatrix4f(q, offset, dest);
+            if (writableDirect(dest)) putMatrix4f(q, bufferSegment(dest).asSlice(((long) offset << 2), 64), 0); else super.putMatrix4f(q, offset, dest);
         }
         public void putMatrix4x3f(Quaternionf q, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putMatrix4x3f(q, bufferSegment(dest), offset); else super.putMatrix4x3f(q, offset, dest);
+            if (writableDirect(dest)) putMatrix4x3f(q, bufferSegment(dest).asSlice(offset, 48), 0); else super.putMatrix4x3f(q, offset, dest);
         }
         public void putMatrix4x3f(Quaternionf q, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putMatrix4x3f(q, bufferSegment(dest), ((long) offset << 2)); else super.putMatrix4x3f(q, offset, dest);
+            if (writableDirect(dest)) putMatrix4x3f(q, bufferSegment(dest).asSlice(((long) offset << 2), 48), 0); else super.putMatrix4x3f(q, offset, dest);
         }
 
         // --- Matrix4f buffer put ---
         public void put(Matrix4f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), ((long) offset << 2)); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice((long) offset << 2, 64), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix4f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), offset); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(offset, 64), 0); else super.put(m, offset, dest);
         }
         public void put4x3(Matrix4f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put4x3(m, bufferSegment(dest), ((long) offset << 2)); else super.put4x3(m, offset, dest);
+            if (writableDirect(dest)) put4x3(m, bufferSegment(dest).asSlice(((long) offset << 2), 48), 0); else super.put4x3(m, offset, dest);
         }
         public void put4x3(Matrix4f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put4x3(m, bufferSegment(dest), offset); else super.put4x3(m, offset, dest);
+            if (writableDirect(dest)) put4x3(m, bufferSegment(dest).asSlice(offset, 48), 0); else super.put4x3(m, offset, dest);
         }
         public void put3x4(Matrix4f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put3x4(m, bufferSegment(dest), ((long) offset << 2)); else super.put3x4(m, offset, dest);
+            if (writableDirect(dest)) put3x4(m, bufferSegment(dest).asSlice(((long) offset << 2), 48), 0); else super.put3x4(m, offset, dest);
         }
         public void put3x4(Matrix4f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put3x4(m, bufferSegment(dest), offset); else super.put3x4(m, offset, dest);
+            if (writableDirect(dest)) put3x4(m, bufferSegment(dest).asSlice(offset, 48), 0); else super.put3x4(m, offset, dest);
         }
         // --- Matrix4x3f buffer put ---
         public void put(Matrix4x3f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), ((long) offset << 2)); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(((long) offset << 2), 48), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix4x3f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), offset); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(offset, 48), 0); else super.put(m, offset, dest);
         }
         public void put4x4(Matrix4x3f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put4x4(m, bufferSegment(dest), ((long) offset << 2)); else super.put4x4(m, offset, dest);
+            if (writableDirect(dest)) put4x4(m, bufferSegment(dest).asSlice(((long) offset << 2), 64), 0); else super.put4x4(m, offset, dest);
         }
         public void put4x4(Matrix4x3f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put4x4(m, bufferSegment(dest), offset); else super.put4x4(m, offset, dest);
+            if (writableDirect(dest)) put4x4(m, bufferSegment(dest).asSlice(offset, 64), 0); else super.put4x4(m, offset, dest);
         }
         public void put3x4(Matrix4x3f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put3x4(m, bufferSegment(dest), ((long) offset << 2)); else super.put3x4(m, offset, dest);
+            if (writableDirect(dest)) put3x4(m, bufferSegment(dest).asSlice(((long) offset << 2), 48), 0); else super.put3x4(m, offset, dest);
         }
         public void put3x4(Matrix4x3f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put3x4(m, bufferSegment(dest), offset); else super.put3x4(m, offset, dest);
+            if (writableDirect(dest)) put3x4(m, bufferSegment(dest).asSlice(offset, 48), 0); else super.put3x4(m, offset, dest);
         }
         // --- Matrix4x3d 4x4 buffer put ---
         public void put4x4(Matrix4x3d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) put4x4(m, bufferSegment(dest), ((long) offset << 3)); else super.put4x4(m, offset, dest);
+            if (writableDirect(dest)) put4x4(m, bufferSegment(dest).asSlice(((long) offset << 3), 128), 0); else super.put4x4(m, offset, dest);
         }
         public void put4x4(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put4x4(m, bufferSegment(dest), offset); else super.put4x4(m, offset, dest);
+            if (writableDirect(dest)) put4x4(m, bufferSegment(dest).asSlice(offset, 128), 0); else super.put4x4(m, offset, dest);
         }
         // --- Matrix3x2f/3x2d 4x4/3x3 buffer put ---
         public void put4x4(Matrix3x2f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put4x4(m, bufferSegment(dest), ((long) offset << 2)); else super.put4x4(m, offset, dest);
+            if (writableDirect(dest)) put4x4(m, bufferSegment(dest).asSlice(((long) offset << 2), 64), 0); else super.put4x4(m, offset, dest);
         }
         public void put4x4(Matrix3x2f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put4x4(m, bufferSegment(dest), offset); else super.put4x4(m, offset, dest);
+            if (writableDirect(dest)) put4x4(m, bufferSegment(dest).asSlice(offset, 64), 0); else super.put4x4(m, offset, dest);
         }
         public void put4x4(Matrix3x2d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) put4x4(m, bufferSegment(dest), ((long) offset << 3)); else super.put4x4(m, offset, dest);
+            if (writableDirect(dest)) put4x4(m, bufferSegment(dest).asSlice(((long) offset << 3), 128), 0); else super.put4x4(m, offset, dest);
         }
         public void put4x4(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put4x4(m, bufferSegment(dest), offset); else super.put4x4(m, offset, dest);
+            if (writableDirect(dest)) put4x4(m, bufferSegment(dest).asSlice(offset, 128), 0); else super.put4x4(m, offset, dest);
         }
         public void put3x3(Matrix3x2f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put3x3(m, bufferSegment(dest), ((long) offset << 2)); else super.put3x3(m, offset, dest);
+            if (writableDirect(dest)) put3x3(m, bufferSegment(dest).asSlice(((long) offset << 2), 36), 0); else super.put3x3(m, offset, dest);
         }
         public void put3x3(Matrix3x2f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put3x3(m, bufferSegment(dest), offset); else super.put3x3(m, offset, dest);
+            if (writableDirect(dest)) put3x3(m, bufferSegment(dest).asSlice(offset, 36), 0); else super.put3x3(m, offset, dest);
         }
         public void put3x3(Matrix3x2d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) put3x3(m, bufferSegment(dest), ((long) offset << 3)); else super.put3x3(m, offset, dest);
+            if (writableDirect(dest)) put3x3(m, bufferSegment(dest).asSlice(((long) offset << 3), 72), 0); else super.put3x3(m, offset, dest);
         }
         public void put3x3(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put3x3(m, bufferSegment(dest), offset); else super.put3x3(m, offset, dest);
+            if (writableDirect(dest)) put3x3(m, bufferSegment(dest).asSlice(offset, 72), 0); else super.put3x3(m, offset, dest);
         }
         // --- Transposed buffer put ---
         public void putTransposed(Matrix4f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), ((long) offset << 2)); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(((long) offset << 2), 64), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix4f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), offset); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(offset, 64), 0); else super.putTransposed(m, offset, dest);
         }
         public void put4x3Transposed(Matrix4f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put4x3Transposed(m, bufferSegment(dest), ((long) offset << 2)); else super.put4x3Transposed(m, offset, dest);
+            if (writableDirect(dest)) put4x3Transposed(m, bufferSegment(dest).asSlice(((long) offset << 2), 48), 0); else super.put4x3Transposed(m, offset, dest);
         }
         public void put4x3Transposed(Matrix4f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put4x3Transposed(m, bufferSegment(dest), offset); else super.put4x3Transposed(m, offset, dest);
+            if (writableDirect(dest)) put4x3Transposed(m, bufferSegment(dest).asSlice(offset, 48), 0); else super.put4x3Transposed(m, offset, dest);
         }
         public void putTransposed(Matrix4x3f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), ((long) offset << 2)); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(((long) offset << 2), 48), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix4x3f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), offset); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(offset, 48), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), ((long) offset << 2)); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(((long) offset << 2), 36), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), offset); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(offset, 36), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3x2f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), ((long) offset << 2)); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(((long) offset << 2), 24), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix2f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), ((long) offset << 2)); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(((long) offset << 2), 16), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix2f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), offset); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(offset, 16), 0); else super.putTransposed(m, offset, dest);
         }
         // --- Matrix4d/4x3d buffer put ---
         public void put(Matrix4d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), ((long) offset << 3)); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(((long) offset << 3), 128), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix4d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), offset); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(offset, 128), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix4x3d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), ((long) offset << 3)); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(((long) offset << 3), 96), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), offset); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(offset, 96), 0); else super.put(m, offset, dest);
         }
         public void putf(Matrix4d m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putf(m, bufferSegment(dest), ((long) offset << 2)); else super.putf(m, offset, dest);
+            if (writableDirect(dest)) putf(m, bufferSegment(dest).asSlice(((long) offset << 2), 64), 0); else super.putf(m, offset, dest);
         }
         public void putf(Matrix4d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putf(m, bufferSegment(dest), offset); else super.putf(m, offset, dest);
+            if (writableDirect(dest)) putf(m, bufferSegment(dest).asSlice(offset, 64), 0); else super.putf(m, offset, dest);
         }
         public void putf(Matrix4x3d m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putf(m, bufferSegment(dest), ((long) offset << 2)); else super.putf(m, offset, dest);
+            if (writableDirect(dest)) putf(m, bufferSegment(dest).asSlice(((long) offset << 2), 48), 0); else super.putf(m, offset, dest);
         }
         public void putf(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putf(m, bufferSegment(dest), offset); else super.putf(m, offset, dest);
+            if (writableDirect(dest)) putf(m, bufferSegment(dest).asSlice(offset, 48), 0); else super.putf(m, offset, dest);
         }
         // --- Double transposed buffer put ---
         public void putTransposed(Matrix4d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), ((long) offset << 3)); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(((long) offset << 3), 128), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix4d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), offset); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(offset, 128), 0); else super.putTransposed(m, offset, dest);
         }
         public void put4x3Transposed(Matrix4d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) put4x3Transposed(m, bufferSegment(dest), ((long) offset << 3)); else super.put4x3Transposed(m, offset, dest);
+            if (writableDirect(dest)) put4x3Transposed(m, bufferSegment(dest).asSlice(((long) offset << 3), 96), 0); else super.put4x3Transposed(m, offset, dest);
         }
         public void put4x3Transposed(Matrix4d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put4x3Transposed(m, bufferSegment(dest), offset); else super.put4x3Transposed(m, offset, dest);
+            if (writableDirect(dest)) put4x3Transposed(m, bufferSegment(dest).asSlice(offset, 96), 0); else super.put4x3Transposed(m, offset, dest);
         }
         public void putTransposed(Matrix4x3d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), ((long) offset << 3)); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(((long) offset << 3), 96), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), offset); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(offset, 96), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), ((long) offset << 3)); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(((long) offset << 3), 72), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), offset); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(offset, 72), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3x2d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), ((long) offset << 3)); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(((long) offset << 3), 48), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), offset); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(offset, 48), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix2d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), ((long) offset << 3)); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(((long) offset << 3), 32), 0); else super.putTransposed(m, offset, dest);
         }
         public void putTransposed(Matrix2d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest), offset); else super.putTransposed(m, offset, dest);
+            if (writableDirect(dest)) putTransposed(m, bufferSegment(dest).asSlice(offset, 32), 0); else super.putTransposed(m, offset, dest);
         }
         // --- Float-truncated transposed buffer put ---
         public void putfTransposed(Matrix4d m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest), ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
+            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest).asSlice(((long) offset << 2), 64), 0); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix4d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest), offset); else super.putfTransposed(m, offset, dest);
+            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest).asSlice(offset, 64), 0); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix4x3d m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest), ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
+            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest).asSlice(((long) offset << 2), 48), 0); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix4x3d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest), offset); else super.putfTransposed(m, offset, dest);
+            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest).asSlice(offset, 48), 0); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix3d m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest), ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
+            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest).asSlice(((long) offset << 2), 36), 0); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix3d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest), offset); else super.putfTransposed(m, offset, dest);
+            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest).asSlice(offset, 36), 0); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix3x2d m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest), ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
+            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest).asSlice(((long) offset << 2), 24), 0); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest), offset); else super.putfTransposed(m, offset, dest);
+            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest).asSlice(offset, 24), 0); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix2d m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest), ((long) offset << 2)); else super.putfTransposed(m, offset, dest);
+            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest).asSlice(((long) offset << 2), 16), 0); else super.putfTransposed(m, offset, dest);
         }
         public void putfTransposed(Matrix2d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest), offset); else super.putfTransposed(m, offset, dest);
+            if (writableDirect(dest)) putfTransposed(m, bufferSegment(dest).asSlice(offset, 16), 0); else super.putfTransposed(m, offset, dest);
         }
         // --- Matrix3f/3d/3x2f/3x2d/2f/2d buffer put ---
         public void put(Matrix3f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), ((long) offset << 2)); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(((long) offset << 2), 36), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix3f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), offset); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(offset, 36), 0); else super.put(m, offset, dest);
         }
         public void put3x4(Matrix3f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put3x4(m, bufferSegment(dest), ((long) offset << 2)); else super.put3x4(m, offset, dest);
+            if (writableDirect(dest)) put3x4(m, bufferSegment(dest).asSlice(((long) offset << 2), 48), 0); else super.put3x4(m, offset, dest);
         }
         public void put3x4(Matrix3f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put3x4(m, bufferSegment(dest), offset); else super.put3x4(m, offset, dest);
+            if (writableDirect(dest)) put3x4(m, bufferSegment(dest).asSlice(offset, 48), 0); else super.put3x4(m, offset, dest);
         }
         public void put(Matrix3d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), ((long) offset << 3)); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(((long) offset << 3), 72), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix3d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), offset); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(offset, 72), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix3x2f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), ((long) offset << 2)); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(((long) offset << 2), 24), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix3x2f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), offset); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(offset, 24), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix3x2d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), ((long) offset << 3)); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(((long) offset << 3), 48), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix3x2d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), offset); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(offset, 48), 0); else super.put(m, offset, dest);
         }
         public void putf(Matrix3d m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putf(m, bufferSegment(dest), ((long) offset << 2)); else super.putf(m, offset, dest);
+            if (writableDirect(dest)) putf(m, bufferSegment(dest).asSlice(((long) offset << 2), 36), 0); else super.putf(m, offset, dest);
         }
         public void putf(Matrix3d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putf(m, bufferSegment(dest), offset); else super.putf(m, offset, dest);
+            if (writableDirect(dest)) putf(m, bufferSegment(dest).asSlice(offset, 36), 0); else super.putf(m, offset, dest);
         }
         public void put(Matrix2f m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), ((long) offset << 2)); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(((long) offset << 2), 16), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix2f m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), offset); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(offset, 16), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix2d m, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), ((long) offset << 3)); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(((long) offset << 3), 32), 0); else super.put(m, offset, dest);
         }
         public void put(Matrix2d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(m, bufferSegment(dest), offset); else super.put(m, offset, dest);
+            if (writableDirect(dest)) put(m, bufferSegment(dest).asSlice(offset, 32), 0); else super.put(m, offset, dest);
         }
         public void putf(Matrix2d m, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putf(m, bufferSegment(dest), ((long) offset << 2)); else super.putf(m, offset, dest);
+            if (writableDirect(dest)) putf(m, bufferSegment(dest).asSlice(((long) offset << 2), 16), 0); else super.putf(m, offset, dest);
         }
         public void putf(Matrix2d m, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putf(m, bufferSegment(dest), offset); else super.putf(m, offset, dest);
+            if (writableDirect(dest)) putf(m, bufferSegment(dest).asSlice(offset, 16), 0); else super.putf(m, offset, dest);
         }
         // --- Vector buffer put ---
         public void put(Vector4d src, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), ((long) offset << 3)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(((long) offset << 3), 32), 0); else super.put(src, offset, dest);
         }
         public void put(Vector4d src, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putf(src, bufferSegment(dest), ((long) offset << 2)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) putf(src, bufferSegment(dest).asSlice(((long) offset << 2), 16), 0); else super.put(src, offset, dest);
         }
         public void put(Vector4d src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), offset); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(offset, 32), 0); else super.put(src, offset, dest);
         }
         public void putf(Vector4d src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putf(src, bufferSegment(dest), offset); else super.putf(src, offset, dest);
+            if (writableDirect(dest)) putf(src, bufferSegment(dest).asSlice(offset, 16), 0); else super.putf(src, offset, dest);
         }
         public void put(Vector4f src, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), ((long) offset << 2)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(((long) offset << 2), 16), 0); else super.put(src, offset, dest);
         }
         public void put(Vector4f src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), offset); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(offset, 16), 0); else super.put(src, offset, dest);
         }
         public void put(Vector4i src, int offset, IntBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), ((long) offset << 2)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(((long) offset << 2), 16), 0); else super.put(src, offset, dest);
         }
         public void put(Vector4i src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), offset); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(offset, 16), 0); else super.put(src, offset, dest);
         }
         public void put(Vector4L src, int offset, LongBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), ((long) offset << 3)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(((long) offset << 3), 32), 0); else super.put(src, offset, dest);
         }
         public void put(Vector4L src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), offset); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(offset, 32), 0); else super.put(src, offset, dest);
         }
         public void put(Vector3f src, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), ((long) offset << 2)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(((long) offset << 2), 12), 0); else super.put(src, offset, dest);
         }
         public void put(Vector3f src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), offset); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(offset, 12), 0); else super.put(src, offset, dest);
         }
         public void put(Vector3d src, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), ((long) offset << 3)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(((long) offset << 3), 24), 0); else super.put(src, offset, dest);
         }
         public void put(Vector3d src, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) putf(src, bufferSegment(dest), ((long) offset << 2)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) putf(src, bufferSegment(dest).asSlice(((long) offset << 2), 12), 0); else super.put(src, offset, dest);
         }
         public void put(Vector3d src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), offset); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(offset, 24), 0); else super.put(src, offset, dest);
         }
         public void putf(Vector3d src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) putf(src, bufferSegment(dest), offset); else super.putf(src, offset, dest);
+            if (writableDirect(dest)) putf(src, bufferSegment(dest).asSlice(offset, 12), 0); else super.putf(src, offset, dest);
         }
         public void put(Vector3i src, int offset, IntBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), ((long) offset << 2)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(((long) offset << 2), 12), 0); else super.put(src, offset, dest);
         }
         public void put(Vector3i src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), offset); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(offset, 12), 0); else super.put(src, offset, dest);
         }
         public void put(Vector3L src, int offset, LongBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), ((long) offset << 3)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(((long) offset << 3), 24), 0); else super.put(src, offset, dest);
         }
         public void put(Vector3L src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), offset); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(offset, 24), 0); else super.put(src, offset, dest);
         }
         public void put(Vector2f src, int offset, FloatBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), ((long) offset << 2)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(((long) offset << 2), 8), 0); else super.put(src, offset, dest);
         }
         public void put(Vector2f src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), offset); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(offset, 8), 0); else super.put(src, offset, dest);
         }
         public void put(Vector2d src, int offset, DoubleBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), ((long) offset << 3)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(((long) offset << 3), 16), 0); else super.put(src, offset, dest);
         }
         public void put(Vector2d src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), offset); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(offset, 16), 0); else super.put(src, offset, dest);
         }
         public void put(Vector2i src, int offset, IntBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), ((long) offset << 2)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(((long) offset << 2), 8), 0); else super.put(src, offset, dest);
         }
         public void put(Vector2i src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), offset); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(offset, 8), 0); else super.put(src, offset, dest);
         }
         public void put(Vector2L src, int offset, LongBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), ((long) offset << 3)); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(((long) offset << 3), 16), 0); else super.put(src, offset, dest);
         }
         public void put(Vector2L src, int offset, ByteBuffer dest) {
-            if (writableDirect(dest)) put(src, bufferSegment(dest), offset); else super.put(src, offset, dest);
+            if (writableDirect(dest)) put(src, bufferSegment(dest).asSlice(offset, 16), 0); else super.put(src, offset, dest);
         }
 
         // --- Matrix buffer get ---
         public void get(Matrix4f m, int offset, FloatBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), ((long) offset << 2)); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(((long) offset << 2), 64), 0); else super.get(m, offset, src);
         }
         public void get(Matrix4f m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), offset); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(offset, 64), 0); else super.get(m, offset, src);
         }
         public void getTransposed(Matrix4f m, int offset, FloatBuffer src) {
-            if (readableDirect(src)) getTransposed(m, bufferSegment(src), ((long) offset << 2)); else super.getTransposed(m, offset, src);
+            if (readableDirect(src)) getTransposed(m, bufferSegment(src).asSlice(((long) offset << 2), 64), 0); else super.getTransposed(m, offset, src);
         }
         public void getTransposed(Matrix4f m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) getTransposed(m, bufferSegment(src), offset); else super.getTransposed(m, offset, src);
+            if (readableDirect(src)) getTransposed(m, bufferSegment(src).asSlice(offset, 64), 0); else super.getTransposed(m, offset, src);
         }
         public void get(Matrix4x3f m, int offset, FloatBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), ((long) offset << 2)); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(((long) offset << 2), 48), 0); else super.get(m, offset, src);
         }
         public void get(Matrix4x3f m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), offset); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(offset, 48), 0); else super.get(m, offset, src);
         }
         public void get(Matrix4d m, int offset, DoubleBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), ((long) offset << 3)); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(((long) offset << 3), 128), 0); else super.get(m, offset, src);
         }
         public void get(Matrix4d m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), offset); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(offset, 128), 0); else super.get(m, offset, src);
         }
         public void get(Matrix4x3d m, int offset, DoubleBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), ((long) offset << 3)); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(((long) offset << 3), 96), 0); else super.get(m, offset, src);
         }
         public void get(Matrix4x3d m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), offset); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(offset, 96), 0); else super.get(m, offset, src);
         }
         public void getf(Matrix4d m, int offset, FloatBuffer src) {
-            if (readableDirect(src)) getf(m, bufferSegment(src), ((long) offset << 2)); else super.getf(m, offset, src);
+            if (readableDirect(src)) getf(m, bufferSegment(src).asSlice(((long) offset << 2), 64), 0); else super.getf(m, offset, src);
         }
         public void getf(Matrix4d m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) getf(m, bufferSegment(src), offset); else super.getf(m, offset, src);
+            if (readableDirect(src)) getf(m, bufferSegment(src).asSlice(offset, 64), 0); else super.getf(m, offset, src);
         }
         public void getf(Matrix4x3d m, int offset, FloatBuffer src) {
-            if (readableDirect(src)) getf(m, bufferSegment(src), ((long) offset << 2)); else super.getf(m, offset, src);
+            if (readableDirect(src)) getf(m, bufferSegment(src).asSlice(((long) offset << 2), 48), 0); else super.getf(m, offset, src);
         }
         public void getf(Matrix4x3d m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) getf(m, bufferSegment(src), offset); else super.getf(m, offset, src);
+            if (readableDirect(src)) getf(m, bufferSegment(src).asSlice(offset, 48), 0); else super.getf(m, offset, src);
         }
         public void get(Matrix3f m, int offset, FloatBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), ((long) offset << 2)); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(((long) offset << 2), 36), 0); else super.get(m, offset, src);
         }
         public void get(Matrix3f m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), offset); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(offset, 36), 0); else super.get(m, offset, src);
         }
         public void get(Matrix3d m, int offset, DoubleBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), ((long) offset << 3)); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(((long) offset << 3), 72), 0); else super.get(m, offset, src);
         }
         public void get(Matrix3d m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), offset); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(offset, 72), 0); else super.get(m, offset, src);
         }
         public void get(Matrix3x2f m, int offset, FloatBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), ((long) offset << 2)); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(((long) offset << 2), 24), 0); else super.get(m, offset, src);
         }
         public void get(Matrix3x2f m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), offset); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(offset, 24), 0); else super.get(m, offset, src);
         }
         public void get(Matrix3x2d m, int offset, DoubleBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), ((long) offset << 3)); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(((long) offset << 3), 48), 0); else super.get(m, offset, src);
         }
         public void get(Matrix3x2d m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), offset); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(offset, 48), 0); else super.get(m, offset, src);
         }
         public void getf(Matrix3d m, int offset, FloatBuffer src) {
-            if (readableDirect(src)) getf(m, bufferSegment(src), ((long) offset << 2)); else super.getf(m, offset, src);
+            if (readableDirect(src)) getf(m, bufferSegment(src).asSlice(((long) offset << 2), 36), 0); else super.getf(m, offset, src);
         }
         public void getf(Matrix3d m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) getf(m, bufferSegment(src), offset); else super.getf(m, offset, src);
+            if (readableDirect(src)) getf(m, bufferSegment(src).asSlice(offset, 36), 0); else super.getf(m, offset, src);
         }
         public void get(Matrix2f m, int offset, FloatBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), ((long) offset << 2)); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(((long) offset << 2), 16), 0); else super.get(m, offset, src);
         }
         public void get(Matrix2f m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), offset); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(offset, 16), 0); else super.get(m, offset, src);
         }
         public void get(Matrix2d m, int offset, DoubleBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), ((long) offset << 3)); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(((long) offset << 3), 32), 0); else super.get(m, offset, src);
         }
         public void get(Matrix2d m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(m, bufferSegment(src), offset); else super.get(m, offset, src);
+            if (readableDirect(src)) get(m, bufferSegment(src).asSlice(offset, 32), 0); else super.get(m, offset, src);
         }
         public void getf(Matrix2d m, int offset, FloatBuffer src) {
-            if (readableDirect(src)) getf(m, bufferSegment(src), ((long) offset << 2)); else super.getf(m, offset, src);
+            if (readableDirect(src)) getf(m, bufferSegment(src).asSlice(((long) offset << 2), 16), 0); else super.getf(m, offset, src);
         }
         public void getf(Matrix2d m, int offset, ByteBuffer src) {
-            if (readableDirect(src)) getf(m, bufferSegment(src), offset); else super.getf(m, offset, src);
+            if (readableDirect(src)) getf(m, bufferSegment(src).asSlice(offset, 16), 0); else super.getf(m, offset, src);
         }
         // --- Vector buffer get ---
         public void get(Vector4d dst, int offset, DoubleBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), ((long) offset << 3)); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(((long) offset << 3), 32), 0); else super.get(dst, offset, src);
         }
         public void get(Vector4d dst, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), offset); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(offset, 32), 0); else super.get(dst, offset, src);
         }
         public void get(Vector4f dst, int offset, FloatBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), ((long) offset << 2)); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(((long) offset << 2), 16), 0); else super.get(dst, offset, src);
         }
         public void get(Vector4f dst, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), offset); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(offset, 16), 0); else super.get(dst, offset, src);
         }
         public void get(Vector4i dst, int offset, IntBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), ((long) offset << 2)); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(((long) offset << 2), 16), 0); else super.get(dst, offset, src);
         }
         public void get(Vector4i dst, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), offset); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(offset, 16), 0); else super.get(dst, offset, src);
         }
         public void get(Vector4L dst, int offset, LongBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), ((long) offset << 3)); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(((long) offset << 3), 32), 0); else super.get(dst, offset, src);
         }
         public void get(Vector4L dst, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), offset); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(offset, 32), 0); else super.get(dst, offset, src);
         }
         public void get(Vector3f dst, int offset, FloatBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), ((long) offset << 2)); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(((long) offset << 2), 12), 0); else super.get(dst, offset, src);
         }
         public void get(Vector3f dst, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), offset); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(offset, 12), 0); else super.get(dst, offset, src);
         }
         public void get(Vector3d dst, int offset, DoubleBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), ((long) offset << 3)); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(((long) offset << 3), 24), 0); else super.get(dst, offset, src);
         }
         public void get(Vector3d dst, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), offset); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(offset, 24), 0); else super.get(dst, offset, src);
         }
         public void get(Vector3i dst, int offset, IntBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), ((long) offset << 2)); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(((long) offset << 2), 12), 0); else super.get(dst, offset, src);
         }
         public void get(Vector3i dst, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), offset); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(offset, 12), 0); else super.get(dst, offset, src);
         }
         public void get(Vector3L dst, int offset, LongBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), ((long) offset << 3)); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(((long) offset << 3), 24), 0); else super.get(dst, offset, src);
         }
         public void get(Vector3L dst, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), offset); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(offset, 24), 0); else super.get(dst, offset, src);
         }
         public void get(Vector2f dst, int offset, FloatBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), ((long) offset << 2)); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(((long) offset << 2), 8), 0); else super.get(dst, offset, src);
         }
         public void get(Vector2f dst, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), offset); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(offset, 8), 0); else super.get(dst, offset, src);
         }
         public void get(Vector2d dst, int offset, DoubleBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), ((long) offset << 3)); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(((long) offset << 3), 16), 0); else super.get(dst, offset, src);
         }
         public void get(Vector2d dst, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), offset); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(offset, 16), 0); else super.get(dst, offset, src);
         }
         public void get(Vector2i dst, int offset, IntBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), ((long) offset << 2)); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(((long) offset << 2), 8), 0); else super.get(dst, offset, src);
         }
         public void get(Vector2i dst, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), offset); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(offset, 8), 0); else super.get(dst, offset, src);
         }
         public void get(Vector2L dst, int offset, LongBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), ((long) offset << 3)); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(((long) offset << 3), 16), 0); else super.get(dst, offset, src);
         }
         public void get(Vector2L dst, int offset, ByteBuffer src) {
-            if (readableDirect(src)) get(dst, bufferSegment(src), offset); else super.get(dst, offset, src);
+            if (readableDirect(src)) get(dst, bufferSegment(src).asSlice(offset, 16), 0); else super.get(dst, offset, src);
         }
     }
 //#endif
