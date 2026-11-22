@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
+## [Unreleased]
+### Added
+- Test fixtures (`ValueFixtures`) fill and compare primitive-array state, so array-backed types (`ShCoeffs*`,
+  `FrustumPlanes`) are now driven by `TwinParityTest`, `AliasingTest` and the determinism golden. The golden gains 32
+  entries, among them every `ShProjection` and `ShConvolution` method; nothing already in it changed.
+
 ## [2.0.0] - Unreleased
 Major version: several changes alter results or reject inputs that 1.10.13 accepted. See the **Breaking** entries
 below and `docs/conventions.md` before upgrading: the packed-affine layout is row-major, STRICT mode validates

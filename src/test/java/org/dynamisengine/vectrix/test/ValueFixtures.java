@@ -68,7 +68,7 @@ final class ValueFixtures {
         } catch (NoSuchMethodException e) {
             return false;
         }
-        return !numericFields(c).isEmpty() || !valueFields(c).isEmpty();
+        return !numericFields(c).isEmpty() || !valueFields(c).isEmpty() || !arrayFields(c).isEmpty();
     }
 
     static Object create(Class<?> t, long seed) throws ReflectiveOperationException {
@@ -99,6 +99,23 @@ final class ValueFixtures {
             Object nested = f.get(o);
             if (nested != null) {
                 fill(nested, rnd);
+            }
+        }
+        for (Field f : arrayFields(c)) {
+            Object a = f.get(o);
+            if (a == null) {
+                continue;
+            }
+            for (int i = 0; i < java.lang.reflect.Array.getLength(a); i++) {
+                if (a instanceof float[] fa) {
+                    fa[i] = (float) rnd.nextDouble(-2, 2);
+                } else if (a instanceof double[] da) {
+                    da[i] = (float) rnd.nextDouble(-2, 2); // float-representable, so f/d twins match
+                } else if (a instanceof int[] ia) {
+                    ia[i] = rnd.nextInt(-5, 6);
+                } else if (a instanceof long[] la) {
+                    la[i] = rnd.nextInt(-5, 6);
+                }
             }
         }
         if (c.getSimpleName().startsWith("Quaternion")) {
@@ -139,6 +156,26 @@ final class ValueFixtures {
         return out;
     }
 
+    /**
+     * Non-static primitive array fields ({@code float[]}, {@code double[]}, {@code int[]}, {@code long[]}) that hold
+     * state, such as {@code ShCoeffs9f.c} or {@code FrustumPlanes.x}; sorted by name.
+     */
+    static List<Field> arrayFields(Class<?> c) {
+        List<Field> out = new ArrayList<>();
+        for (Class<?> k = c; k != null && k != Object.class; k = k.getSuperclass()) {
+            for (Field f : k.getDeclaredFields()) {
+                Class<?> ft = f.getType();
+                if (!Modifier.isStatic(f.getModifiers()) && !f.getName().startsWith("__") && ft.isArray()
+                        && (ft == float[].class || ft == double[].class || ft == int[].class || ft == long[].class)) {
+                    f.setAccessible(true);
+                    out.add(f);
+                }
+            }
+        }
+        out.sort(Comparator.comparing(Field::getName));
+        return out;
+    }
+
     /** All numeric state, nested objects included, as doubles in a fixed order ("properties" excluded). */
     static double[] flatten(Object o) throws IllegalAccessException {
         List<Double> v = new ArrayList<>();
@@ -168,6 +205,14 @@ final class ValueFixtures {
             Object nested = f.get(o);
             if (nested != null) {
                 flatten(nested, v);
+            }
+        }
+        for (Field f : arrayFields(o.getClass())) {
+            Object a = f.get(o);
+            if (a != null) {
+                for (int i = 0; i < java.lang.reflect.Array.getLength(a); i++) {
+                    v.add(((Number) java.lang.reflect.Array.get(a, i)).doubleValue());
+                }
             }
         }
     }
