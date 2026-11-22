@@ -43,6 +43,8 @@ public class SkinningKernelBenchmark extends ThroughputBenchmark {
     private float[] inX, inY, inZ;
     private float[] outX, outY, outZ;
     private float[] matrixPalette12;
+    private float[] paletteSoa;
+    private int[] o0, o1, o2, o3;
 
     @Setup
     public void setup() {
@@ -171,6 +173,29 @@ public class SkinningKernelBenchmark extends ThroughputBenchmark {
         if (!java.util.Arrays.equals(sx, gx) || !java.util.Arrays.equals(sy, gy) || !java.util.Arrays.equals(sz, gz)) {
             throw new IllegalStateException("gather LBS differs from scalar LBS");
         }
+        // matrix-palette gathers: offsets pre-multiplied by 12 (AoS variant), and an SoA palette (SoA variant)
+        paletteSoa = new float[JOINTS * 12];
+        o0 = new int[vertices];
+        o1 = new int[vertices];
+        o2 = new int[vertices];
+        o3 = new int[vertices];
+        for (int i = 0; i < vertices; i++) {
+            o0[i] = 12 * j0[i];
+            o1[i] = 12 * j1[i];
+            o2[i] = 12 * j2[i];
+            o3[i] = 12 * j3[i];
+        }
+        SkinningKernels.skinLbs4MatrixPalette(matrixPalette12, jointIndices, jointWeights, inX, inY, inZ, sx, sy, sz,
+                vertices);
+        GatherPaletteKernel.skinAos(matrixPalette12, o0, o1, o2, o3, w0, w1, w2, w3, inX, inY, inZ, gx, gy, gz, vertices);
+        if (!java.util.Arrays.equals(sx, gx) || !java.util.Arrays.equals(sy, gy) || !java.util.Arrays.equals(sz, gz)) {
+            throw new IllegalStateException("AoS palette gather differs from the matrix-palette kernel");
+        }
+        GatherPaletteKernel.skinSoa(matrixPalette12, JOINTS, paletteSoa, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ,
+                gx, gy, gz, vertices);
+        if (!java.util.Arrays.equals(sx, gx) || !java.util.Arrays.equals(sy, gy) || !java.util.Arrays.equals(sz, gz)) {
+            throw new IllegalStateException("SoA palette gather differs from the matrix-palette kernel");
+        }
     }
 
     @Benchmark
@@ -213,6 +238,22 @@ public class SkinningKernelBenchmark extends ThroughputBenchmark {
     @Benchmark
     public float[] skinDualQuat4() {
         SkinningKernels.skinDualQuat4(jointDualQuat, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, vertices);
+        return outX;
+    }
+
+    /** Vector API gather of the 12-float AoS matrix palette (benchmark-only); bitwise equal to the tight kernel. */
+    @Benchmark
+    public float[] skinLbs4MatrixPaletteGatherAos() {
+        GatherPaletteKernel.skinAos(matrixPalette12, o0, o1, o2, o3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ,
+                vertices);
+        return outX;
+    }
+
+    /** Vector API gather of an SoA matrix palette, including the per-call transpose; bitwise equal. */
+    @Benchmark
+    public float[] skinLbs4MatrixPaletteGatherSoa() {
+        GatherPaletteKernel.skinSoa(matrixPalette12, JOINTS, paletteSoa, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ,
+                outX, outY, outZ, vertices);
         return outX;
     }
 
