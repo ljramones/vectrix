@@ -54,6 +54,9 @@ The `Vector2L`/`Vector3L`/`Vector4L` classes (with corresponding `*Lc` read-only
 - `FloatDoubleParityTest` drives every public method of each float type next to its double twin with the same random
   inputs. A new mismatch is usually a real bug in one of the two; exempt a method only for a documented input domain.
 - Hot-path APIs must not allocate; `HotPathAllocationTest` measures bytes per call.
+- `AliasingTest` runs every `R op(..., R dest)` method with `dest` aliased to `this` and each argument, and checks the
+  result does not depend on `dest`'s previous contents. New destination-style methods are covered automatically;
+  read every input into locals before writing `dest`.
 
 ## Code Style
 

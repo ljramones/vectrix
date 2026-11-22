@@ -1496,6 +1496,7 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
         dest.x = (w2 + x2 - z2 - y2) * x + (-zw + xy - zw + xy) * y + (yw + xz + xz + yw) * z;
         dest.y = (xy + zw + zw + xy) * x + ( y2 - z2 + w2 - x2) * y + (yz + yz - xw - xw) * z;
         dest.z = (xz - yw + xz - yw) * x + ( yz + yz + xw + xw) * y + (z2 - y2 - x2 + w2) * z;
+        dest.w = this.w; // was left as dest's previous w
         return dest;
     }
 

@@ -2589,7 +2589,8 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
     }
 
     public Vector3d half(Vector3dc other, Vector3d dest) {
-        return dest.set(this).add(other.x(), other.y(), other.z()).normalize();
+        // read other first: dest.set(this) overwrote it when dest == other
+        return half(other.x(), other.y(), other.z(), dest);
     }
 
     public Vector3d half(double x, double y, double z, Vector3d dest) {

@@ -768,7 +768,7 @@ public class AxisAngle4f implements Externalizable, Cloneable {
         dest.set((float) (v.x() * cos + sin * (y * v.z() - z * v.y()) + (1.0 - cos) * dot * x),
                  (float) (v.y() * cos + sin * (z * v.x() - x * v.z()) + (1.0 - cos) * dot * y),
                  (float) (v.z() * cos + sin * (x * v.y() - y * v.x()) + (1.0 - cos) * dot * z),
-                 dest.w);
+                 v.w()); // was dest.w: the result kept dest's previous w
         return dest;
     }
 

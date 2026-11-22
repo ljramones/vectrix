@@ -122,6 +122,18 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     (all now call `Runtime.formatNumbers`). Output is unchanged.
 
 ### Fixed
+- Bugs inherited from JOML, found by the new aliasing harness (`AliasingTest`), which runs every
+  destination-style method with `dest` aliased to `this` and to each argument, and checks that results do not
+  depend on what `dest` held before:
+  - `rotateAround`/`rotateAroundAffine` (`Matrix4f/4d/4x3f/4x3d`) with a separate `dest` computed the translation
+    from the old third column: only the in-place call was correct.
+  - `Quaternionf/d.transform*(Vector4fc/dc, dest)`, `AxisAngle4f/d.transform(Vector4, dest)` and
+    `Vector4f/d.rotate`/`rotateAxis` left `dest.w` at its previous value instead of the input's `w`.
+  - `Vector3d.half(other, dest)` overwrote `other` before reading it when `dest == other`.
+  - `normalize3x3(dest)` left part of `dest` stale: `m03/m13/m23` in `Matrix4f/4d`, the translation in
+    `Matrix4x3f/4x3d`.
+  - `Quaternionf/d.div(scalar, dest)` returned `this` instead of `dest`.
+  - `Matrix4f/4d.translationRotateScaleMulAffine` ignored the scale (found while triaging the harness output).
 - Bugs inherited from JOML, found by the new float/double parity test (review M-17):
   - `Vector2f.mulPosition(Matrix3x2fc)` and `mulDirection(Matrix3x2fc)` computed y from the already-updated x, so
     every in-place call was wrong.

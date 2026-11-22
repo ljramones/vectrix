@@ -858,7 +858,7 @@ public class AxisAngle4d implements Externalizable, Cloneable {
         dest.set(v.x() * cos + sin * (y * v.z() - z * v.y()) + (1.0 - cos) * dot * x,
                  v.y() * cos + sin * (z * v.x() - x * v.z()) + (1.0 - cos) * dot * y,
                  v.z() * cos + sin * (x * v.y() - y * v.x()) + (1.0 - cos) * dot * z,
-                 dest.w);
+                 v.w()); // was dest.w: the result kept dest's previous w
         return dest;
     }
 

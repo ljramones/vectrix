@@ -5094,9 +5094,9 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m11(nm11)
         ._m12(nm12)
         ._m13(0.0)
-        ._m30(-nm00 * ox - nm10 * oy - m20 * oz + tm30)
-        ._m31(-nm01 * ox - nm11 * oy - m21 * oz + tm31)
-        ._m32(-nm02 * ox - nm12 * oy - m22 * oz + tm32)
+        ._m30(-nm00 * ox - nm10 * oy - dest.m20 * oz + tm30)
+        ._m31(-nm01 * ox - nm11 * oy - dest.m21 * oz + tm31)
+        ._m32(-nm02 * ox - nm12 * oy - dest.m22 * oz + tm32)
         ._m33(1.0)
         ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
         return dest;
@@ -5148,9 +5148,9 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m11(nm11)
         ._m12(nm12)
         ._m13(nm13)
-        ._m30(-nm00 * ox - nm10 * oy - m20 * oz + tm30)
-        ._m31(-nm01 * ox - nm11 * oy - m21 * oz + tm31)
-        ._m32(-nm02 * ox - nm12 * oy - m22 * oz + tm32)
+        ._m30(-nm00 * ox - nm10 * oy - dest.m20 * oz + tm30)
+        ._m31(-nm01 * ox - nm11 * oy - dest.m21 * oz + tm31)
+        ._m32(-nm02 * ox - nm12 * oy - dest.m22 * oz + tm32)
         ._m33(m33)
         ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
         return dest;
@@ -7437,15 +7437,16 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         double yw = qy * qw;
         double yz = qy * qz;
         double xw = qx * qw;
-        double nm00 = w2 + x2 - z2 - y2;
-        double nm01 = xy + zw + zw + xy;
-        double nm02 = xz - yw + xz - yw;
-        double nm10 = -zw + xy - zw + xy;
-        double nm11 = y2 - z2 + w2 - x2;
-        double nm12 = yz + yz + xw + xw;
-        double nm20 = yw + xz + xz + yw;
-        double nm21 = yz + yz - xw - xw;
-        double nm22 = z2 - y2 - x2 + w2;
+        // R * S: rotation column c is scaled by s_c. The scale used to be ignored (only the properties used it).
+        double nm00 = (w2 + x2 - z2 - y2) * sx;
+        double nm01 = (xy + zw + zw + xy) * sx;
+        double nm02 = (xz - yw + xz - yw) * sx;
+        double nm10 = (-zw + xy - zw + xy) * sy;
+        double nm11 = (y2 - z2 + w2 - x2) * sy;
+        double nm12 = (yz + yz + xw + xw) * sy;
+        double nm20 = (yw + xz + xz + yw) * sz;
+        double nm21 = (yz + yz - xw - xw) * sz;
+        double nm22 = (z2 - y2 - x2 + w2) * sz;
         double m00 = nm00 * m.m00 + nm10 * m.m01 + nm20 * m.m02;
         double m01 = nm01 * m.m00 + nm11 * m.m01 + nm21 * m.m02;
         this.m02 = nm02 * m.m00 + nm12 * m.m01 + nm22 * m.m02;
@@ -9150,6 +9151,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         dest._m00(m00 * invXlen)._m01(m01 * invXlen)._m02(m02 * invXlen)
             ._m10(m10 * invYlen)._m11(m11 * invYlen)._m12(m12 * invYlen)
             ._m20(m20 * invZlen)._m21(m21 * invZlen)._m22(m22 * invZlen)
+            ._m03(m03)._m13(m13)._m23(m23) // were left as dest's previous values
             ._m30(m30)._m31(m31)._m32(m32)._m33(m33)
             ._properties(properties);
         return dest;

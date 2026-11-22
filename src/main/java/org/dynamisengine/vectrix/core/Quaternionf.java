@@ -1342,11 +1342,19 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     }
 
     public Vector4f transform(Vector4fc vec, Vector4f dest) {
-        return transform(vec.x(), vec.y(), vec.z(), dest);
+        // keep vec's w: it was left as dest's previous w, so the result depended on dest unless dest == vec
+        float w = vec.w();
+        transform(vec.x(), vec.y(), vec.z(), dest);
+        dest.w = w;
+        return dest;
     }
 
     public Vector4f transformInverse(Vector4fc vec, Vector4f dest) {
-        return transformInverse(vec.x(), vec.y(), vec.z(), dest);
+        // keep vec's w: it was left as dest's previous w, so the result depended on dest unless dest == vec
+        float w = vec.w();
+        transformInverse(vec.x(), vec.y(), vec.z(), dest);
+        dest.w = w;
+        return dest;
     }
 
     public Vector4f transform(float x, float y, float z, Vector4f dest) {
@@ -1386,11 +1394,19 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     }
 
     public Vector4f transformUnit(Vector4fc vec, Vector4f dest) {
-        return transformUnit(vec.x(), vec.y(), vec.z(), dest);
+        // keep vec's w: it was left as dest's previous w, so the result depended on dest unless dest == vec
+        float w = vec.w();
+        transformUnit(vec.x(), vec.y(), vec.z(), dest);
+        dest.w = w;
+        return dest;
     }
 
     public Vector4f transformInverseUnit(Vector4fc vec, Vector4f dest) {
-        return transformInverseUnit(vec.x(), vec.y(), vec.z(), dest);
+        // keep vec's w: it was left as dest's previous w, so the result depended on dest unless dest == vec
+        float w = vec.w();
+        transformInverseUnit(vec.x(), vec.y(), vec.z(), dest);
+        dest.w = w;
+        return dest;
     }
 
     public Vector4f transformUnit(float x, float y, float z, Vector4f dest) {
@@ -1624,11 +1640,19 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     }
 
     public Vector4d transform(Vector4dc vec, Vector4d dest) {
-        return transform(vec.x(), vec.y(), vec.z(), dest);
+        // keep vec's w: it was left as dest's previous w, so the result depended on dest unless dest == vec
+        double w = vec.w();
+        transform(vec.x(), vec.y(), vec.z(), dest);
+        dest.w = w;
+        return dest;
     }
 
     public Vector4d transformInverse(Vector4dc vec, Vector4d dest) {
-        return transformInverse(vec.x(), vec.y(), vec.z(), dest);
+        // keep vec's w: it was left as dest's previous w, so the result depended on dest unless dest == vec
+        double w = vec.w();
+        transformInverse(vec.x(), vec.y(), vec.z(), dest);
+        dest.w = w;
+        return dest;
     }
 
     public Vector4d transform(double x, double y, double z, Vector4d dest) {
@@ -1694,11 +1718,19 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     }
 
     public Vector4d transformUnit(Vector4dc vec, Vector4d dest) {
-        return transformUnit(vec.x(), vec.y(), vec.z(), dest);
+        // keep vec's w: it was left as dest's previous w, so the result depended on dest unless dest == vec
+        double w = vec.w();
+        transformUnit(vec.x(), vec.y(), vec.z(), dest);
+        dest.w = w;
+        return dest;
     }
 
     public Vector4d transformInverseUnit(Vector4dc vec, Vector4d dest) {
-        return transformInverseUnit(vec.x(), vec.y(), vec.z(), dest);
+        // keep vec's w: it was left as dest's previous w, so the result depended on dest unless dest == vec
+        double w = vec.w();
+        transformInverseUnit(vec.x(), vec.y(), vec.z(), dest);
+        dest.w = w;
+        return dest;
     }
 
     public Vector4d transformUnit(double x, double y, double z, Vector4d dest) {
@@ -1773,7 +1805,7 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         dest.y = y / f;
         dest.z = z / f;
         dest.w = w / f;
-        return this;
+        return dest; // returned this, so the result was not in the returned object
     }
 
     /**

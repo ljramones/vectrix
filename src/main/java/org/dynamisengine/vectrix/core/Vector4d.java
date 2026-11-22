@@ -1631,6 +1631,7 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
         dest.x = nx;
         dest.y = ny;
         dest.z = nz;
+        dest.w = this.w; // was left as dest's previous w
         return dest;
     }
 

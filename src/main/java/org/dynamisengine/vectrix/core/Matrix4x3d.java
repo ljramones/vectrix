@@ -3314,9 +3314,9 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
         ._m10(nm10)
         ._m11(nm11)
         ._m12(nm12)
-        ._m30(-nm00 * ox - nm10 * oy - m20 * oz + tm30)
-        ._m31(-nm01 * ox - nm11 * oy - m21 * oz + tm31)
-        ._m32(-nm02 * ox - nm12 * oy - m22 * oz + tm32)
+        ._m30(-nm00 * ox - nm10 * oy - dest.m20 * oz + tm30)
+        ._m31(-nm01 * ox - nm11 * oy - dest.m21 * oz + tm31)
+        ._m32(-nm02 * ox - nm12 * oy - dest.m22 * oz + tm32)
         ._properties(properties & ~(PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
         return dest;
     }
@@ -6398,6 +6398,8 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
         dest.m00 = m00 * invXlen; dest.m01 = m01 * invXlen; dest.m02 = m02 * invXlen;
         dest.m10 = m10 * invYlen; dest.m11 = m11 * invYlen; dest.m12 = m12 * invYlen;
         dest.m20 = m20 * invZlen; dest.m21 = m21 * invZlen; dest.m22 = m22 * invZlen;
+        dest.m30 = m30; dest.m31 = m31; dest.m32 = m32; // the translation was left as dest's previous value
+        dest.properties = properties;
         return dest;
     }
 

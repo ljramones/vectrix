@@ -33,12 +33,14 @@ import org.dynamisengine.vectrix.core.Matrix3x2d;
 import org.dynamisengine.vectrix.core.Matrix3x2f;
 import org.dynamisengine.vectrix.core.Matrix4d;
 import org.dynamisengine.vectrix.core.Matrix4f;
+import org.dynamisengine.vectrix.core.Matrix4x3d;
 import org.dynamisengine.vectrix.core.Matrix4x3f;
 import org.dynamisengine.vectrix.core.Quaterniond;
 import org.dynamisengine.vectrix.core.Quaternionf;
 import org.dynamisengine.vectrix.core.Vector2f;
 import org.dynamisengine.vectrix.core.Vector3d;
 import org.dynamisengine.vectrix.core.Vector3f;
+import org.dynamisengine.vectrix.core.Vector4f;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -118,5 +120,63 @@ class UpstreamJomlBugsTest {
         assertTrue(s.equals(a.slerp(b, 0.5f, new Quaternionf()), 1e-3f), "valid thresholds are unchanged");
         Quaterniond ad = new Quaterniond(), bd = new Quaterniond().rotationY(2.0);
         assertTimeoutPreemptively(Duration.ofSeconds(5), () -> ad.nlerpIterative(bd, 0.5, 2.0, new Quaterniond()));
+    }
+
+    @Test
+    void rotateAroundWithASeparateDestIsCorrect() {
+        // M * T(o) * R * T(-o); the separate-dest result used the old third column in the translation
+        Matrix4f m = new Matrix4f().translation(1, 2, 3).rotateXYZ(0.3f, -0.7f, 0.4f).scale(1.5f, 0.5f, 2f);
+        Quaternionf q = new Quaternionf().rotationXYZ(0.2f, 0.9f, -0.4f);
+        Matrix4f ref = new Matrix4f(m).translate(0.7f, -1.2f, 2.5f).rotate(q).translate(-0.7f, 1.2f, -2.5f);
+        assertTrue(m.rotateAround(q, 0.7f, -1.2f, 2.5f, new Matrix4f()).equals(ref, 1e-5f));
+        assertTrue(new Matrix4f(m).rotateAround(q, 0.7f, -1.2f, 2.5f).equals(ref, 1e-5f));
+        Matrix4x3d md = new Matrix4x3d().translation(1, 2, 3).rotateXYZ(0.3, -0.7, 0.4);
+        Quaterniond qd = new Quaterniond().rotationXYZ(0.2, 0.9, -0.4);
+        Matrix4x3d refd = new Matrix4x3d(md).translate(0.7, -1.2, 2.5).rotate(qd).translate(-0.7, 1.2, -2.5);
+        assertTrue(md.rotateAround(qd, 0.7, -1.2, 2.5, new Matrix4x3d()).equals(refd, 1e-12));
+    }
+
+    @Test
+    void translationRotateScaleMulAffineAppliesTheScale() {
+        Matrix4f m = new Matrix4f().translation(1, 2, 3).rotateXYZ(0.3f, 0.2f, 0.1f);
+        Quaternionf q = new Quaternionf().rotationXYZ(0.4f, -0.2f, 0.7f);
+        Matrix4f got = new Matrix4f().translationRotateScaleMulAffine(5, 6, 7, q.x, q.y, q.z, q.w, 2, 3, 4, m);
+        assertTrue(got.equals(new Matrix4f().translationRotateScale(5, 6, 7, q.x, q.y, q.z, q.w, 2, 3, 4).mulAffine(m), 1e-4f));
+        Quaterniond qd = new Quaterniond().rotationXYZ(0.4, -0.2, 0.7);
+        Matrix4d md = new Matrix4d().translation(1, 2, 3).rotateXYZ(0.3, 0.2, 0.1);
+        Matrix4d gotd = new Matrix4d().translationRotateScaleMulAffine(5, 6, 7, qd.x, qd.y, qd.z, qd.w, 2, 3, 4, md);
+        assertTrue(gotd.equals(new Matrix4d().translationRotateScale(5, 6, 7, qd.x, qd.y, qd.z, qd.w, 2, 3, 4).mulAffine(md), 1e-12));
+    }
+
+    @Test
+    void vector4TransformsKeepW() {
+        Quaternionf q = new Quaternionf().rotationY(0.6f);
+        Vector4f dest = new Vector4f(9, 9, 9, 42);
+        q.transform(new Vector4f(1, 2, 3, 0.25f), dest);
+        assertEquals(0.25f, dest.w, "w was left as dest's previous value");
+        assertEquals(0.25f, new org.dynamisengine.vectrix.core.AxisAngle4f(0.6f, 0, 1, 0)
+                .transform(new Vector4f(1, 2, 3, 0.25f), new Vector4f(0, 0, 0, 42)).w);
+        assertEquals(0.25f, new Vector4f(1, 2, 3, 0.25f).rotateAxis(0.6f, 0.6f, 0.8f, 0f, new Vector4f(0, 0, 0, 42)).w);
+    }
+
+    @Test
+    void scalarDivReturnsDest() {
+        Quaternionf q = new Quaternionf(2, 4, 6, 8);
+        Quaternionf dest = new Quaternionf();
+        assertTrue(q.div(2f, dest) == dest, "div(float, dest) returned this");
+        assertEquals(new Quaternionf(1, 2, 3, 4), dest);
+        assertEquals(new Quaternionf(2, 4, 6, 8), q);
+    }
+
+    @Test
+    void normalize3x3CopiesTheRestOfTheMatrix() {
+        Matrix4x3f m = new Matrix4x3f().translation(5, 6, 7).scale(2);
+        Matrix4x3f n = m.normalize3x3(new Matrix4x3f().translation(-1, -1, -1));
+        assertEquals(new Vector3f(5, 6, 7), n.getTranslation(new Vector3f()), "translation was left as dest's");
+        Matrix4f p = new Matrix4f().set(new float[] {2, 0, 0, 0.5f, 0, 2, 0, 0.25f, 0, 0, 2, 0.125f, 0, 0, 0, 1});
+        Matrix4f q = p.normalize3x3(new Matrix4f().set(new float[] {1, 1, 1, 9, 1, 1, 1, 9, 1, 1, 1, 9, 1, 1, 1, 1}));
+        assertEquals(0.5f, q.m03());
+        assertEquals(0.25f, q.m13());
+        assertEquals(0.125f, q.m23());
     }
 }
