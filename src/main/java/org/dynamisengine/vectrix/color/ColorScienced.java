@@ -64,14 +64,17 @@ public final class ColorScienced {
     }
 
     /**
-     * Double-precision {@link ColorSciencef#kelvinToLinearRgb(float, org.dynamisengine.vectrix.core.Vector3f)}:
-     * approximate blackbody color (Tanner Helland fit) in linear sRGB.
+     * Color of a blackbody (Planckian radiator) at the given temperature, in linear sRGB, normalised so the largest
+     * channel is 1.
      * <p>
-     * The Helland fit is piecewise at 6600 K, so the result has a visible step there: in linear RGB, green drops from
-     * 1.000 to 0.970 and blue rises from 0.978 to 1.000. Time-of-day sweeps that cross 6600 K show it. The fit is kept as
-     * is because it matches the widely used reference implementation; blend across the step if it matters.
+     * The chromaticity comes from the Planckian locus in CIE 1931 xy (cubic-spline fit by Kim et al., 2002, valid
+     * from 1667 K to 25000 K, within about 1e-4 of the exact locus) and is converted through the same XYZ to
+     * linear-sRGB matrix as {@code ColorMath*.xyzToLinearSrgb}. Below about 1900 K the color lies outside the sRGB
+     * gamut and its negative blue component is clipped to 0. The result is smooth in temperature: earlier versions
+     * used the Tanner Helland curve fit, which jumped at 6600 K. Note that 6500 K is close to, but not the same as,
+     * D65 (white): the Planckian locus passes slightly below D65 in y, so it is a little magenta.
      *
-     * @param kelvin color temperature in Kelvin; clamped to [1000, 40000]
+     * @param kelvin color temperature in Kelvin; clamped to [1667, 25000]
      * @param dest   destination vector to store the linear RGB result
      * @return {@code dest}
      * @throws IllegalArgumentException if {@code dest} is null, or kelvin is non-finite or &lt;= 0
@@ -83,23 +86,37 @@ public final class ColorScienced {
         if (!Double.isFinite(kelvin) || kelvin <= 0.0) {
             throw new IllegalArgumentException("kelvin must be finite and > 0");
         }
-        double temperature = clamp(kelvin, 1000.0, 40000.0) / 100.0;
-        double red;
-        double green;
-        double blue;
-        if (temperature <= 66.0) {
-            red = 255.0;
-            green = 99.4708025861 * org.dynamisengine.vectrix.core.AccurateMath.log(temperature) - 161.1195681661;
-            blue = temperature <= 19.0
-                    ? 0.0
-                    : 138.5177312231 * org.dynamisengine.vectrix.core.AccurateMath.log(temperature - 10.0) - 305.0447927307;
-        } else {
-            red = 329.698727446 * org.dynamisengine.vectrix.core.AccurateMath.pow(temperature - 60.0, -0.1332047592);
-            green = 288.1221695283 * org.dynamisengine.vectrix.core.AccurateMath.pow(temperature - 60.0, -0.0755148492);
-            blue = 255.0;
+        double t = clampPlanckianKelvin(kelvin);
+        double x = planckianX(t);
+        double y = planckianY(x, t);
+        ColorMathd.xyzToLinearSrgb(x / y, 1.0, (1.0 - x - y) / y, dest);
+        double r = java.lang.Math.max(dest.x, 0.0), g = java.lang.Math.max(dest.y, 0.0), bl = java.lang.Math.max(dest.z, 0.0);
+        double max = java.lang.Math.max(r, java.lang.Math.max(g, bl));
+        return dest.set(r / max, g / max, bl / max);
+    }
+
+    static double clampPlanckianKelvin(double kelvin) {
+        return java.lang.Math.max(1667.0, java.lang.Math.min(25000.0, kelvin));
+    }
+
+    /** CIE 1931 x of the Planckian locus at {@code t} Kelvin (Kim et al. 2002), {@code t} in [1667, 25000]. */
+    static double planckianX(double t) {
+        double u = 1e3 / t;
+        if (t <= 4000.0) {
+            return ((-0.2661239 * u - 0.2343589) * u + 0.8776956) * u + 0.179910;
         }
-        dest.set(clamp(red / 255.0, 0.0, 1.0), clamp(green / 255.0, 0.0, 1.0), clamp(blue / 255.0, 0.0, 1.0));
-        return ColorMathd.srgbToLinear(dest, dest);
+        return ((-3.0258469 * u + 2.1070379) * u + 0.2226347) * u + 0.240390;
+    }
+
+    /** CIE 1931 y of the Planckian locus at {@code t} Kelvin, given its x (Kim et al. 2002). */
+    static double planckianY(double x, double t) {
+        if (t <= 2222.0) {
+            return ((-1.1063814 * x - 1.34811020) * x + 2.18555832) * x - 0.20219683;
+        }
+        if (t <= 4000.0) {
+            return ((-0.9549476 * x - 1.37418593) * x + 2.09137015) * x - 0.16748867;
+        }
+        return ((3.0817580 * x - 5.87338670) * x + 3.75112997) * x - 0.37001483;
     }
 
     private static double clamp(double v, double lo, double hi) {

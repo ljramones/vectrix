@@ -29,7 +29,7 @@ import org.dynamisengine.vectrix.core.Vector3fc;
 /**
  * Projection of directional RGB radiance samples into real SH coefficients.
  * <p>
- * Uses the Y-up basis ordering defined by {@link ShBasis}. Callers should provide
+ * Uses the standard real basis ordering {@code l * (l + 1) + m} defined by {@link ShBasis}. Callers should provide
  * unit directions and solid-angle weights (for example from environment sampling).
  */
 public final class ShProjection {

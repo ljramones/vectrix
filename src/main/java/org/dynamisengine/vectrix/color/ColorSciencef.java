@@ -72,18 +72,20 @@ public final class ColorSciencef {
     }
 
     /**
-     * Approximate blackbody (Planckian locus) color for a given color temperature
-     * using the Tanner Helland algorithm, returned in linear sRGB.
+     * Color of a blackbody (Planckian radiator) at the given temperature, in linear sRGB, normalised so the largest
+     * channel is 1.
      * <p>
-     * The Helland fit is piecewise at 6600 K, so the result has a visible step there: in linear RGB, green drops from
-     * 1.000 to 0.970 and blue rises from 0.978 to 1.000. Time-of-day sweeps that cross 6600 K show it. The fit is kept as
-     * is because it matches the widely used reference implementation; blend across the step if it matters.
+     * The chromaticity comes from the Planckian locus in CIE 1931 xy (cubic-spline fit by Kim et al., 2002, valid
+     * from 1667 K to 25000 K, within about 1e-4 of the exact locus) and is converted through the same XYZ to
+     * linear-sRGB matrix as {@code ColorMath*.xyzToLinearSrgb}. Below about 1900 K the color lies outside the sRGB
+     * gamut and its negative blue component is clipped to 0. The result is smooth in temperature: earlier versions
+     * used the Tanner Helland curve fit, which jumped at 6600 K. Note that 6500 K is close to, but not the same as,
+     * D65 (white): the Planckian locus passes slightly below D65 in y, so it is a little magenta.
      *
-     * @param kelvin color temperature in Kelvin; clamped to [1000, 40000]
+     * @param kelvin color temperature in Kelvin; clamped to [1667, 25000]
      * @param dest   destination vector to store the linear RGB result
      * @return {@code dest}
-     * @throws IllegalArgumentException if {@code dest} is null, or kelvin is
-     *                                  non-finite or &lt;= 0
+     * @throws IllegalArgumentException if {@code dest} is null, or kelvin is non-finite or &lt;= 0
      */
     public static Vector3f kelvinToLinearRgb(float kelvin, Vector3f dest) {
         if (dest == null) {
@@ -92,31 +94,13 @@ public final class ColorSciencef {
         if (!Float.isFinite(kelvin) || kelvin <= 0f) {
             throw new IllegalArgumentException("kelvin must be finite and > 0");
         }
-
-        float temperature = clamp(kelvin, 1000f, 40000f) / 100f;
-
-        float red;
-        float green;
-        float blue;
-
-        if (temperature <= 66f) {
-            red = 255f;
-            green = 99.4708f * (float) org.dynamisengine.vectrix.core.AccurateMath.log(temperature) - 161.11957f;
-            blue = temperature <= 19f
-                    ? 0f
-                    : 138.51773f * (float) org.dynamisengine.vectrix.core.AccurateMath.log(temperature - 10f) - 305.0448f;
-        } else {
-            red = 329.69873f * (float) org.dynamisengine.vectrix.core.AccurateMath.pow(temperature - 60f, -0.13320476f);
-            green = 288.12216f * (float) org.dynamisengine.vectrix.core.AccurateMath.pow(temperature - 60f, -0.075514846f);
-            blue = 255f;
-        }
-
-        float sr = clamp(red / 255f, 0f, 1f);
-        float sg = clamp(green / 255f, 0f, 1f);
-        float sb = clamp(blue / 255f, 0f, 1f);
-
-        dest.set(sr, sg, sb);
-        return ColorMathf.srgbToLinear(dest, dest);
+        double t = ColorScienced.clampPlanckianKelvin(kelvin);
+        double x = ColorScienced.planckianX(t);
+        double y = ColorScienced.planckianY(x, t);
+        ColorMathf.xyzToLinearSrgb((float) (x / y), 1.0f, (float) ((1.0 - x - y) / y), dest);
+        float r = java.lang.Math.max(dest.x, 0f), g = java.lang.Math.max(dest.y, 0f), bl = java.lang.Math.max(dest.z, 0f);
+        float max = java.lang.Math.max(r, java.lang.Math.max(g, bl));
+        return dest.set(r / max, g / max, bl / max);
     }
 
     private static float clamp(float v, float lo, float hi) {

@@ -58,6 +58,19 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - Pass B/C/E decision/findings memos and subsystem integration memo
 
 ### Changed
+- **Breaking (stored SH data):** `ShBasis` now uses the standard real SH basis (Ramamoorthi and Hanrahan; no
+  Condon–Shortley phase): `Y(l, m)` at index `l(l+1)+m`, evaluated on the direction as passed. It mixed
+  conventions before (band 1 Z-up; bands 2 and 3 Y-up with xy/xz swapped; a negative sign on four band-3
+  functions only), so shaders and standard SH rotation could not consume the coefficients. Indices 0–5 and 7 are
+  unchanged; 6 is now `3z² − 1` (was `3y² − 1`), 8 is now `x² − y²` (was `x² − z²`), and all of band 3 (9–15)
+  changed. Re-project stored coefficients. `ShConventionTest` pins the basis against associated Legendre
+  polynomials.
+- `ColorSciencef/d.kelvinToLinearRgb` compute the blackbody color from the Planckian locus (Kim et al. 2002 fit in
+  CIE xy, through the shared XYZ/sRGB matrix) instead of the Tanner Helland curve fit. The visible jump at 6600 K
+  is gone (the largest 1 K change is now 6e-4, at a spline join), and the chromaticity matches Planck's law
+  integrated over the CIE 1931 functions to 1e-3 from 2700 K to 25000 K. Colors shift: 6500 K is now
+  (1, 0.944, 0.993) in linear sRGB, slightly magenta like the true locus, and the input is clamped to [1667, 25000] K
+  (was [1000, 40000]). DynamisSky's sun and ambient colors use this.
 - The raw-address API (`getToAddress`, `setFromAddress` and their transposed forms) runs on FFM by default, through
   one segment spanning the address space, so it keeps working once `sun.misc.Unsafe` memory access is denied.
   Without `--enable-native-access=org.dynamisengine.vectrix` (or `ALL-UNNAMED`) the JDK prints a one-time

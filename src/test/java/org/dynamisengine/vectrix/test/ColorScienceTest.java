@@ -28,7 +28,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
+import org.dynamisengine.vectrix.color.ColorMathd;
+import org.dynamisengine.vectrix.color.ColorScienced;
 import org.dynamisengine.vectrix.color.ColorSciencef;
+import org.dynamisengine.vectrix.core.Vector3d;
 import org.dynamisengine.vectrix.core.Vector3f;
 
 class ColorScienceTest {
@@ -79,5 +82,42 @@ class ColorScienceTest {
                 () -> ColorSciencef.kelvinToLinearRgb(0f, new Vector3f()));
         assertThrows(IllegalArgumentException.class,
                 () -> ColorSciencef.kelvinToLinearRgb(-100f, new Vector3f()));
+    }
+
+    @Test
+    void kelvinIsSmoothAcrossTheWholeRange() {
+        // the Helland fit used before jumped by 0.03 at 6600 K; the Planckian spline's joins move < 1e-3
+        Vector3d prev = ColorScienced.kelvinToLinearRgb(1000.0, new Vector3d());
+        Vector3d cur = new Vector3d();
+        for (int t = 1001; t <= 26000; t++) {
+            ColorScienced.kelvinToLinearRgb(t, cur);
+            double step = java.lang.Math.max(java.lang.Math.abs(cur.x - prev.x),
+                    java.lang.Math.max(java.lang.Math.abs(cur.y - prev.y), java.lang.Math.abs(cur.z - prev.z)));
+            assertTrue(step < 1e-3, "step of " + step + " at " + t + " K");
+            assertTrue(cur.x >= 0 && cur.y >= 0 && cur.z >= 0 && cur.x <= 1 && cur.y <= 1 && cur.z <= 1, t + " K");
+            assertEquals(1.0, java.lang.Math.max(cur.x, java.lang.Math.max(cur.y, cur.z)), 1e-12, t + " K");
+            prev.set(cur);
+        }
+    }
+
+    @Test
+    void kelvinFollowsThePlanckianLocus() {
+        // reference: Planck's law integrated against the CIE 1931 colour-matching functions
+        Vector3d bar = new Vector3d();
+        for (int t = 2700; t <= 25000; t += 700) {
+            double x = 0, y = 0, z = 0;
+            for (double wl = 360; wl <= 830; wl += 0.5) {
+                double l = wl * 1e-9;
+                double b = 1.0 / (java.lang.StrictMath.pow(l, 5) * (java.lang.StrictMath.exp(1.4388e-2 / (l * t)) - 1));
+                ColorScienced.cie1931XyzBar(wl, bar);
+                x += b * bar.x;
+                y += b * bar.y;
+                z += b * bar.z;
+            }
+            Vector3d xyz = ColorMathd.linearSrgbToXyz(ColorScienced.kelvinToLinearRgb(t, new Vector3d()), new Vector3d());
+            double sum = xyz.x + xyz.y + xyz.z;
+            assertEquals(x / (x + y + z), xyz.x / sum, 2e-3, "x at " + t + " K");
+            assertEquals(y / (x + y + z), xyz.y / sum, 2e-3, "y at " + t + " K");
+        }
     }
 }

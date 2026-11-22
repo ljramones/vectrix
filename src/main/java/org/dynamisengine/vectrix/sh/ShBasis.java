@@ -31,28 +31,30 @@ import org.dynamisengine.vectrix.core.Vector3fc;
 /**
  * Real SH basis, bands 0..3 (16 functions), as used throughout {@code org.dynamisengine.vectrix.sh}.
  * <p>
- * The ordering is <b>not</b> a single standard convention, so shaders and other tools must use this table
- * index for index (review finding, §7): band 1 keeps the Z-up ordering {@code (y, z, x)}, while the zonal terms of
- * bands 2 and 3 use y as the up axis. The functions are orthonormal and self-consistent within this library.
+ * This is the standard real basis used for irradiance in graphics (Ramamoorthi and Hanrahan 2001; Sloan, "Stupid
+ * Spherical Harmonics Tricks", without the Condon–Shortley phase): function {@code Y(l, m)} is at index
+ * {@code l * (l + 1) + m}, and the formulas are evaluated on the direction {@code (x, y, z)} exactly as passed, with
+ * no axis remapping. The zonal functions ({@code m = 0}) are symmetric about the z axis of the caller's frame.
+ * Standard SH rotation matrices and shader code using this convention can consume the coefficients unchanged.
  * <table>
- * <caption>Basis index, polynomial and normalisation constant</caption>
- * <tr><th>i</th><th>function</th></tr>
- * <tr><td>0</td><td>0.2820947918</td></tr>
- * <tr><td>1</td><td>0.4886025119 y</td></tr>
- * <tr><td>2</td><td>0.4886025119 z</td></tr>
- * <tr><td>3</td><td>0.4886025119 x</td></tr>
- * <tr><td>4</td><td>1.0925484306 xy</td></tr>
- * <tr><td>5</td><td>1.0925484306 yz</td></tr>
- * <tr><td>6</td><td>0.3153915653 (3y² − 1)</td></tr>
- * <tr><td>7</td><td>1.0925484306 xz</td></tr>
- * <tr><td>8</td><td>0.5462742153 (x² − z²)</td></tr>
- * <tr><td>9</td><td>−0.5900435899 z (3x² − z²)</td></tr>
- * <tr><td>10</td><td>2.8906114426 xyz</td></tr>
- * <tr><td>11</td><td>−0.4570457995 z (5y² − 1)</td></tr>
- * <tr><td>12</td><td>0.3731763325 y (5y² − 3)</td></tr>
- * <tr><td>13</td><td>−0.4570457995 x (5y² − 1)</td></tr>
- * <tr><td>14</td><td>1.4453057213 y (x² − z²)</td></tr>
- * <tr><td>15</td><td>−0.5900435899 x (x² − 3z²)</td></tr>
+ * <caption>Basis index, band, order and function</caption>
+ * <tr><th>i</th><th>l</th><th>m</th><th>function</th></tr>
+ * <tr><td>0</td><td>0</td><td>0</td><td>0.2820947918</td></tr>
+ * <tr><td>1</td><td>1</td><td>-1</td><td>0.4886025119 y</td></tr>
+ * <tr><td>2</td><td>1</td><td>0</td><td>0.4886025119 z</td></tr>
+ * <tr><td>3</td><td>1</td><td>1</td><td>0.4886025119 x</td></tr>
+ * <tr><td>4</td><td>2</td><td>-2</td><td>1.0925484306 xy</td></tr>
+ * <tr><td>5</td><td>2</td><td>-1</td><td>1.0925484306 yz</td></tr>
+ * <tr><td>6</td><td>2</td><td>0</td><td>0.3153915653 (3z² − 1)</td></tr>
+ * <tr><td>7</td><td>2</td><td>1</td><td>1.0925484306 xz</td></tr>
+ * <tr><td>8</td><td>2</td><td>2</td><td>0.5462742153 (x² − y²)</td></tr>
+ * <tr><td>9</td><td>3</td><td>-3</td><td>0.5900435899 y (3x² − y²)</td></tr>
+ * <tr><td>10</td><td>3</td><td>-2</td><td>2.8906114426 xyz</td></tr>
+ * <tr><td>11</td><td>3</td><td>-1</td><td>0.4570457995 y (5z² − 1)</td></tr>
+ * <tr><td>12</td><td>3</td><td>0</td><td>0.3731763325 z (5z² − 3)</td></tr>
+ * <tr><td>13</td><td>3</td><td>1</td><td>0.4570457995 x (5z² − 1)</td></tr>
+ * <tr><td>14</td><td>3</td><td>2</td><td>1.4453057213 z (x² − y²)</td></tr>
+ * <tr><td>15</td><td>3</td><td>3</td><td>0.5900435899 x (x² − 3y²)</td></tr>
  * </table>
   * @since 1.0.0
   */
@@ -62,9 +64,9 @@ public final class ShBasis {
     static final float C2 = 1.0925484306f;
     static final float C3 = 0.3153915653f;
     static final float C4 = 0.5462742153f;
-    static final float C5 = -0.5900435899f;
+    static final float C5 = 0.5900435899f;
     static final float C6 = 2.8906114426f;
-    static final float C7 = -0.4570457995f;
+    static final float C7 = 0.4570457995f;
     static final float C8 = 0.3731763325f;
     static final float C9 = 1.4453057213f;
 
@@ -73,9 +75,9 @@ public final class ShBasis {
     static final double D2 = 1.0925484306;
     static final double D3 = 0.3153915653;
     static final double D4 = 0.5462742153;
-    static final double D5 = -0.5900435899;
+    static final double D5 = 0.5900435899;
     static final double D6 = 2.8906114426;
-    static final double D7 = -0.4570457995;
+    static final double D7 = 0.4570457995;
     static final double D8 = 0.3731763325;
     static final double D9 = 1.4453057213;
 
@@ -96,9 +98,9 @@ public final class ShBasis {
         dest9[3] = C1 * x;
         dest9[4] = C2 * x * y;
         dest9[5] = C2 * y * z;
-        dest9[6] = C3 * (3.0f * y * y - 1.0f);
+        dest9[6] = C3 * (3.0f * z * z - 1.0f);
         dest9[7] = C2 * x * z;
-        dest9[8] = C4 * (x * x - z * z);
+        dest9[8] = C4 * (x * x - y * y);
         return dest9;
     }
 
@@ -116,9 +118,9 @@ public final class ShBasis {
         dest9[3] = D1 * x;
         dest9[4] = D2 * x * y;
         dest9[5] = D2 * y * z;
-        dest9[6] = D3 * (3.0 * y * y - 1.0);
+        dest9[6] = D3 * (3.0 * z * z - 1.0);
         dest9[7] = D2 * x * z;
-        dest9[8] = D4 * (x * x - z * z);
+        dest9[8] = D4 * (x * x - y * y);
         return dest9;
     }
 
@@ -136,16 +138,16 @@ public final class ShBasis {
         dest16[3] = C1 * x;
         dest16[4] = C2 * x * y;
         dest16[5] = C2 * y * z;
-        dest16[6] = C3 * (3.0f * y * y - 1.0f);
+        dest16[6] = C3 * (3.0f * z * z - 1.0f);
         dest16[7] = C2 * x * z;
-        dest16[8] = C4 * (x * x - z * z);
-        dest16[9] = C5 * z * (3.0f * x * x - z * z);
+        dest16[8] = C4 * (x * x - y * y);
+        dest16[9] = C5 * y * (3.0f * x * x - y * y);
         dest16[10] = C6 * x * y * z;
-        dest16[11] = C7 * z * (5.0f * y * y - 1.0f);
-        dest16[12] = C8 * y * (5.0f * y * y - 3.0f);
-        dest16[13] = C7 * x * (5.0f * y * y - 1.0f);
-        dest16[14] = C9 * y * (x * x - z * z);
-        dest16[15] = C5 * x * (x * x - 3.0f * z * z);
+        dest16[11] = C7 * y * (5.0f * z * z - 1.0f);
+        dest16[12] = C8 * z * (5.0f * z * z - 3.0f);
+        dest16[13] = C7 * x * (5.0f * z * z - 1.0f);
+        dest16[14] = C9 * z * (x * x - y * y);
+        dest16[15] = C5 * x * (x * x - 3.0f * y * y);
         return dest16;
     }
 
@@ -163,16 +165,16 @@ public final class ShBasis {
         dest16[3] = D1 * x;
         dest16[4] = D2 * x * y;
         dest16[5] = D2 * y * z;
-        dest16[6] = D3 * (3.0 * y * y - 1.0);
+        dest16[6] = D3 * (3.0 * z * z - 1.0);
         dest16[7] = D2 * x * z;
-        dest16[8] = D4 * (x * x - z * z);
-        dest16[9] = D5 * z * (3.0 * x * x - z * z);
+        dest16[8] = D4 * (x * x - y * y);
+        dest16[9] = D5 * y * (3.0 * x * x - y * y);
         dest16[10] = D6 * x * y * z;
-        dest16[11] = D7 * z * (5.0 * y * y - 1.0);
-        dest16[12] = D8 * y * (5.0 * y * y - 3.0);
-        dest16[13] = D7 * x * (5.0 * y * y - 1.0);
-        dest16[14] = D9 * y * (x * x - z * z);
-        dest16[15] = D5 * x * (x * x - 3.0 * z * z);
+        dest16[11] = D7 * y * (5.0 * z * z - 1.0);
+        dest16[12] = D8 * z * (5.0 * z * z - 3.0);
+        dest16[13] = D7 * x * (5.0 * z * z - 1.0);
+        dest16[14] = D9 * z * (x * x - y * y);
+        dest16[15] = D5 * x * (x * x - 3.0 * y * y);
         return dest16;
     }
 
@@ -184,9 +186,9 @@ public final class ShBasis {
         float b3 = C1 * x;
         float b4 = C2 * x * y;
         float b5 = C2 * y * z;
-        float b6 = C3 * (3.0f * y * y - 1.0f);
+        float b6 = C3 * (3.0f * z * z - 1.0f);
         float b7 = C2 * x * z;
-        float b8 = C4 * (x * x - z * z);
+        float b8 = C4 * (x * x - y * y);
         c[0] += rw * b0;
         c[1] += gw * b0;
         c[2] += bw * b0;
@@ -224,9 +226,9 @@ public final class ShBasis {
         float b3 = C1 * x;
         float b4 = C2 * x * y;
         float b5 = C2 * y * z;
-        float b6 = C3 * (3.0f * y * y - 1.0f);
+        float b6 = C3 * (3.0f * z * z - 1.0f);
         float b7 = C2 * x * z;
-        float b8 = C4 * (x * x - z * z);
+        float b8 = C4 * (x * x - y * y);
         float r = 0.0f;
         float g = 0.0f;
         float bl = 0.0f;
@@ -268,16 +270,16 @@ public final class ShBasis {
         float b3 = C1 * x;
         float b4 = C2 * x * y;
         float b5 = C2 * y * z;
-        float b6 = C3 * (3.0f * y * y - 1.0f);
+        float b6 = C3 * (3.0f * z * z - 1.0f);
         float b7 = C2 * x * z;
-        float b8 = C4 * (x * x - z * z);
-        float b9 = C5 * z * (3.0f * x * x - z * z);
+        float b8 = C4 * (x * x - y * y);
+        float b9 = C5 * y * (3.0f * x * x - y * y);
         float b10 = C6 * x * y * z;
-        float b11 = C7 * z * (5.0f * y * y - 1.0f);
-        float b12 = C8 * y * (5.0f * y * y - 3.0f);
-        float b13 = C7 * x * (5.0f * y * y - 1.0f);
-        float b14 = C9 * y * (x * x - z * z);
-        float b15 = C5 * x * (x * x - 3.0f * z * z);
+        float b11 = C7 * y * (5.0f * z * z - 1.0f);
+        float b12 = C8 * z * (5.0f * z * z - 3.0f);
+        float b13 = C7 * x * (5.0f * z * z - 1.0f);
+        float b14 = C9 * z * (x * x - y * y);
+        float b15 = C5 * x * (x * x - 3.0f * y * y);
         c[0] += rw * b0;
         c[1] += gw * b0;
         c[2] += bw * b0;
@@ -336,16 +338,16 @@ public final class ShBasis {
         float b3 = C1 * x;
         float b4 = C2 * x * y;
         float b5 = C2 * y * z;
-        float b6 = C3 * (3.0f * y * y - 1.0f);
+        float b6 = C3 * (3.0f * z * z - 1.0f);
         float b7 = C2 * x * z;
-        float b8 = C4 * (x * x - z * z);
-        float b9 = C5 * z * (3.0f * x * x - z * z);
+        float b8 = C4 * (x * x - y * y);
+        float b9 = C5 * y * (3.0f * x * x - y * y);
         float b10 = C6 * x * y * z;
-        float b11 = C7 * z * (5.0f * y * y - 1.0f);
-        float b12 = C8 * y * (5.0f * y * y - 3.0f);
-        float b13 = C7 * x * (5.0f * y * y - 1.0f);
-        float b14 = C9 * y * (x * x - z * z);
-        float b15 = C5 * x * (x * x - 3.0f * z * z);
+        float b11 = C7 * y * (5.0f * z * z - 1.0f);
+        float b12 = C8 * z * (5.0f * z * z - 3.0f);
+        float b13 = C7 * x * (5.0f * z * z - 1.0f);
+        float b14 = C9 * z * (x * x - y * y);
+        float b15 = C5 * x * (x * x - 3.0f * y * y);
         float r = 0.0f;
         float g = 0.0f;
         float bl = 0.0f;
@@ -408,9 +410,9 @@ public final class ShBasis {
         double b3 = D1 * x;
         double b4 = D2 * x * y;
         double b5 = D2 * y * z;
-        double b6 = D3 * (3.0 * y * y - 1.0);
+        double b6 = D3 * (3.0 * z * z - 1.0);
         double b7 = D2 * x * z;
-        double b8 = D4 * (x * x - z * z);
+        double b8 = D4 * (x * x - y * y);
         c[0] += rw * b0;
         c[1] += gw * b0;
         c[2] += bw * b0;
@@ -448,9 +450,9 @@ public final class ShBasis {
         double b3 = D1 * x;
         double b4 = D2 * x * y;
         double b5 = D2 * y * z;
-        double b6 = D3 * (3.0 * y * y - 1.0);
+        double b6 = D3 * (3.0 * z * z - 1.0);
         double b7 = D2 * x * z;
-        double b8 = D4 * (x * x - z * z);
+        double b8 = D4 * (x * x - y * y);
         double r = 0.0;
         double g = 0.0;
         double bl = 0.0;
@@ -492,16 +494,16 @@ public final class ShBasis {
         double b3 = D1 * x;
         double b4 = D2 * x * y;
         double b5 = D2 * y * z;
-        double b6 = D3 * (3.0 * y * y - 1.0);
+        double b6 = D3 * (3.0 * z * z - 1.0);
         double b7 = D2 * x * z;
-        double b8 = D4 * (x * x - z * z);
-        double b9 = D5 * z * (3.0 * x * x - z * z);
+        double b8 = D4 * (x * x - y * y);
+        double b9 = D5 * y * (3.0 * x * x - y * y);
         double b10 = D6 * x * y * z;
-        double b11 = D7 * z * (5.0 * y * y - 1.0);
-        double b12 = D8 * y * (5.0 * y * y - 3.0);
-        double b13 = D7 * x * (5.0 * y * y - 1.0);
-        double b14 = D9 * y * (x * x - z * z);
-        double b15 = D5 * x * (x * x - 3.0 * z * z);
+        double b11 = D7 * y * (5.0 * z * z - 1.0);
+        double b12 = D8 * z * (5.0 * z * z - 3.0);
+        double b13 = D7 * x * (5.0 * z * z - 1.0);
+        double b14 = D9 * z * (x * x - y * y);
+        double b15 = D5 * x * (x * x - 3.0 * y * y);
         c[0] += rw * b0;
         c[1] += gw * b0;
         c[2] += bw * b0;
@@ -560,16 +562,16 @@ public final class ShBasis {
         double b3 = D1 * x;
         double b4 = D2 * x * y;
         double b5 = D2 * y * z;
-        double b6 = D3 * (3.0 * y * y - 1.0);
+        double b6 = D3 * (3.0 * z * z - 1.0);
         double b7 = D2 * x * z;
-        double b8 = D4 * (x * x - z * z);
-        double b9 = D5 * z * (3.0 * x * x - z * z);
+        double b8 = D4 * (x * x - y * y);
+        double b9 = D5 * y * (3.0 * x * x - y * y);
         double b10 = D6 * x * y * z;
-        double b11 = D7 * z * (5.0 * y * y - 1.0);
-        double b12 = D8 * y * (5.0 * y * y - 3.0);
-        double b13 = D7 * x * (5.0 * y * y - 1.0);
-        double b14 = D9 * y * (x * x - z * z);
-        double b15 = D5 * x * (x * x - 3.0 * z * z);
+        double b11 = D7 * y * (5.0 * z * z - 1.0);
+        double b12 = D8 * z * (5.0 * z * z - 3.0);
+        double b13 = D7 * x * (5.0 * z * z - 1.0);
+        double b14 = D9 * z * (x * x - y * y);
+        double b15 = D5 * x * (x * x - 3.0 * y * y);
         double r = 0.0;
         double g = 0.0;
         double bl = 0.0;
