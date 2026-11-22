@@ -70,16 +70,17 @@ public final class ShBasis {
     static final float C8 = 0.3731763325f;
     static final float C9 = 1.4453057213f;
 
-    static final double D0 = 0.2820947918;
-    static final double D1 = 0.4886025119;
-    static final double D2 = 1.0925484306;
-    static final double D3 = 0.3153915653;
-    static final double D4 = 0.5462742153;
-    static final double D5 = 0.5900435899;
-    static final double D6 = 2.8906114426;
-    static final double D7 = 0.4570457995;
-    static final double D8 = 0.3731763325;
-    static final double D9 = 1.4453057213;
+    // full double precision: sqrt((2l+1)/(4π) (l-m)!/(l+m)!) times the Legendre factor
+    static final double D0 = 0.28209479177387814;
+    static final double D1 = 0.4886025119029199;
+    static final double D2 = 1.0925484305920792;
+    static final double D3 = 0.31539156525252005;
+    static final double D4 = 0.5462742152960396;
+    static final double D5 = 0.5900435899266435;
+    static final double D6 = 2.890611442640554;
+    static final double D7 = 0.4570457994644658;
+    static final double D8 = 0.3731763325901154;
+    static final double D9 = 1.445305721320277;
 
     private ShBasis() {
     }

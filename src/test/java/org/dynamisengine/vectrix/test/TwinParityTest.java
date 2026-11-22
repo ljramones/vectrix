@@ -78,7 +78,7 @@ class TwinParityTest {
     };
     private static final String[] INT_LONG = {"core.Vector2", "core.Vector3", "core.Vector4"};
     private static final String[] OVERLOADS = {"core.Math", "curve.CubicCurveMath", "sh.ShBasis", "sh.ShProjection",
-        "sh.ShConvolution"};
+        "sh.ShConvolution", "sh.ShRotation"};
 
     /**
      * Excluded as "SimpleClass.method". Object methods have no twin meaning; the others have documented input

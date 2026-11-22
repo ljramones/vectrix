@@ -122,6 +122,11 @@ class HotPathAllocationTest {
         ShCoeffs16d c16d = new ShCoeffs16d();
         assertNoAllocation("ShProjection.accumulateSampleL2 (d)", () -> ShProjection.accumulateSampleL2(dird, rgbd, 0.01, c9d));
         assertNoAllocation("ShConvolution.evaluateL3 (d)", () -> ShConvolution.evaluateL3(c16d, dird, outd));
+        org.dynamisengine.vectrix.core.Matrix3f shRot = new org.dynamisengine.vectrix.core.Matrix3f().rotateXYZ(0.3f, -0.7f, 1.1f);
+        float[] shMat = new float[org.dynamisengine.vectrix.sh.ShRotation.L3_MATRIX_SIZE];
+        assertNoAllocation("ShRotation.rotateL2", () -> org.dynamisengine.vectrix.sh.ShRotation.rotateL2(c9, shRot, c9));
+        assertNoAllocation("ShRotation.rotationMatrixL3", () -> org.dynamisengine.vectrix.sh.ShRotation.rotationMatrixL3(shRot, shMat));
+        assertNoAllocation("ShRotation.applyL3", () -> org.dynamisengine.vectrix.sh.ShRotation.applyL3(shMat, c16, c16));
 
         // linalg: per-frame users (shape matching, deformation) call these per cluster or element
         org.dynamisengine.vectrix.core.Matrix3f m3 = new org.dynamisengine.vectrix.core.Matrix3f().rotateXYZ(0.3f, 0.2f, 0.1f)

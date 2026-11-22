@@ -174,6 +174,14 @@ ShConvolution.evaluateIrradiance(irradianceCoeffs, nx, ny, nz, b9, rgb);
 
 L3 support is available via `ShBasis`, `ShProjection`, `ShConvolution`, and `ShCoeffs16f/d`.
 
+Rotating probes: build the band matrices once per rotation, then apply them to any number of coefficient sets
+(`rotateL2/L3` does both in one call; neither allocates). Rotating by `R` moves a feature at `u` to `R u`.
+
+```java
+float[] m = ShRotation.rotationMatrixL3(rotation, new float[ShRotation.L3_MATRIX_SIZE]);
+ShRotation.applyL3(m, probeCoeffs, probeCoeffs);
+```
+
 The basis is the standard real SH used in graphics (Ramamoorthi and Hanrahan; no Condon–Shortley phase):
 function `Y(l, m)` is at index `l(l+1)+m`, evaluated on the direction exactly as passed, so the zonal terms are
 symmetric about the caller's z axis. Coefficients produced before 2026-11-21 used a mixed ordering and must be

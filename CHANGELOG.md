@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
+## [Unreleased]
+### Added
+- `sh.ShRotation` (review Part II §15.3): rotation of L2 and L3 RGB coefficient sets, float and double, by
+  projection onto fixed sample directions (exact for the `ShBasis` conventions, no Wigner recurrences to get wrong).
+  `rotationMatrixL2/L3` build the per-band matrices once for many probes, `applyL2/L3` and `rotateL2/L3` allocate
+  nothing. `ShRotationTest` checks g(R u) = f(u), band orthogonality, composition and the band-1 block.
+
+### Fixed
+- The double-precision `ShBasis` constants had only 10 significant digits (float-grade accuracy, about 1e-10
+  relative); they now carry full double precision. Double SH projection and evaluation results change in the last
+  digits; the float path is unchanged.
+
 ## [2.2.0] - 2026-11-22
 New in this release: the `linalg` package (review Part II §16) and the geometry functions of §17 (exact predicates,
 spatial codes, bounding volumes, closest points, mesh normals and tangents), plus a fix to
