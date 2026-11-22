@@ -31,7 +31,14 @@
         <url>https://github.com/ljramones/vectrix</url>
     </organization>
 
-    <!-- <developers> is inherited from dynamis-parent. -->
+    <!-- Declared here, not only in dynamis-parent: Central validates each uploaded POM on its own. -->
+    <developers>
+        <developer>
+            <id>ljramones</id>
+            <name>Larry Mitchell</name>
+            <url>https://github.com/ljramones</url>
+        </developer>
+    </developers>
     <contributors>
         <contributor>
             <name>Kai Burjack</name>
