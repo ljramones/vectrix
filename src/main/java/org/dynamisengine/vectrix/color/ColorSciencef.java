@@ -39,7 +39,8 @@ public final class ColorSciencef {
     /**
      * CIE 1931 2-degree colour matching functions (xBar, yBar, zBar), using the multi-lobe piecewise-Gaussian
      * fit of Wyman, Sloan and Shirley, "Simple Analytic Approximations to the CIE XYZ Color Matching
-     * Functions" (JCGT 2013). The maximum absolute error against the tabulated CIE data is about 0.015.
+     * Functions" (JCGT 2013). Its maximum absolute error against the official CIE 1 nm tables is 0.014 (x̄), 0.008
+     * (ȳ) and 0.022 (z̄); {@link CieObserver} has the tabulated values.
      * The wavelength is clamped to [380, 780] nm.
      */
     public static Vector3f cie1931XyzBar(float wavelengthNm, Vector3f dest) {

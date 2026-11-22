@@ -126,6 +126,8 @@ atmosphere.PhaseFunctionsf.sampleFog(float,float,float[]) f28bdc6320ee4b0b
 atmosphere.PhaseFunctionsf.sampleHenyeyGreenstein(float,float) c5b04791a2fd6f6d
 atmosphere.PhaseFunctionsf.sampleRayleigh(float) 04811fb24ef289a8
 atmosphere.PhaseFunctionsf.fogParameters(float,float[]) 86d47696d6b5082d
+brdf.DfgLutBuilder.integrateCloth(double,double,int) 9d908ecfb6b256de
+brdf.DfgLutBuilder.buildCloth(int,int,float[]) 14b6b32d5f98923a
 brdf.Diffused.burley(double,double,double,double) 685931c971727554
 brdf.Diffused.lambert() a92bd1515c43e5ef
 brdf.Diffused.orenNayar(double,double,double,double) 47c32cd3ed946080
@@ -286,6 +288,10 @@ color.PerceptualColorf.oklabFromXyz(Vector3fc,Vector3f) 54f7b36046889438
 color.PerceptualColorf.rgbToHsl(Vector3fc,Vector3f) c76706cc6c844410
 color.PerceptualColorf.rgbToHsv(Vector3fc,Vector3f) 20c6bb09742f0246
 color.PerceptualColorf.xyzFromCielab(Vector3fc,Vector3f) 496882b2b8d8892b
+color.Spectra.d65(double) 9d908ecfb6b256de
+color.SpectralUpsampling.evaluate(double[],double) 2ca55cf0cbad568f
+color.SpectralUpsampling.sigmoid(double) 352c5fcb40172fc6
+color.SpectralUpsampling.evaluate(float[],float) 0650aa45e0d9055a
 color.Tonemapd.acesNarkowicz(double) 4c222caa308f95b7
 color.Tonemapd.lightEngineExponential(double,double) 6f155a93f7d1bc11
 color.Tonemapd.lottes(double) 6d0762c00c21c00b

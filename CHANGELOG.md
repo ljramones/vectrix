@@ -70,6 +70,20 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     and `mulExact` throw. They also get `floorDiv` and `floorMod` for cell arithmetic.
   - Double-precision twins: `Transformd`, `RigidTransformd`, `Affine4d`, `soa.TransformSoAd` and
     `soa.DualQuatSoAd`, plus `DualQuatTransformd.setFromRigid`.
+- Spectral colour and cloth (the X3 leftovers):
+  - Official CIE data:
+    - `CieObserver`: the CIE 1931 2° and 1964 10° observers from the CIE's 1 nm open-access tables, MD5-verified
+      and stored verbatim. The 1964 z̄ is undefined from 560 nm and stored as 0, as in CIE 15.
+    - `Spectra`: D65 at 1 nm, plus CIE summation for emission and reflectance. The computed D65 white,
+      (0.950471, 1, 1.088829), matches the standard value in every published digit.
+  - `SpectralUpsampling`: Jakob-Hanika RGB-to-spectrum fitting by exact Newton solve instead of precomputed
+    tables, about 50 µs per colour. It fits every sRGB and Display P3 colour exactly; for Rec. 2020 colours that no
+    reflectance can produce, it reports failure and returns the closest spectrum.
+  - `DfgLutBuilder.integrateCloth` / `buildCloth`: Filament's Charlie-sheen DFG channel. It agrees with an
+    independent light-space quadrature to 0.2 %.
+  - Licensing: the CIE tables are CC BY-SA 4.0. They live only in `color.CieData`, which carries that licence and
+    is attributed in `NOTICE`. The rest of Vectrix stays MIT. Both jars now ship `META-INF/LICENSE` and
+    `META-INF/NOTICE`.
 ### Deprecated
 - `renderingmath.TransmittanceLutBuilder` and `AtmosphereParams`. They work in single precision, their ground
   intersection cancels near the horizon, and they have no ozone or Mie absorption. Use `atmosphere.Atmosphere`.

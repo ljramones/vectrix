@@ -4,4 +4,6 @@
   "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 <suppressions>
 	<suppress files=".*Test\.java" checks="JavadocType"/>
+	<!-- CIE data, licensed CC BY-SA 4.0 (see its header and NOTICE): not under the MIT header -->
+	<suppress files="color[\\/]CieData\.java" checks="RegexpHeader"/>
 </suppressions>

@@ -38,7 +38,9 @@ public final class ColorScienced {
 
     /**
      * CIE 1931 2-degree colour matching functions (xBar, yBar, zBar), using the multi-lobe piecewise-Gaussian
-     * fit of Wyman, Sloan and Shirley (JCGT 2013). See {@link ColorSciencef#cie1931XyzBar}.
+     * fit of Wyman, Sloan and Shirley (JCGT 2013): fast,
+     * but up to 0.014 (x̄), 0.008 (ȳ) and 0.022 (z̄) from the official CIE 1 nm tables, which {@link CieObserver}
+     * provides. See {@link ColorSciencef#cie1931XyzBar}.
      */
     public static Vector3d cie1931XyzBar(double wavelengthNm, Vector3d dest) {
         double wl = clamp(wavelengthNm, VISIBLE_MIN_NM, VISIBLE_MAX_NM);

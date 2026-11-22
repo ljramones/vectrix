@@ -33,7 +33,21 @@ Substantial portions are original Vectrix implementations, including but not lim
 - SoA and affine kernels (`org.dynamisengine.vectrix.soa`, `org.dynamisengine.vectrix.affine`)
 - Hash, easing, SDF, and release-oriented infrastructure additions
 
-3) Licensing
+3) Third-party data: CIE colorimetric tables (CC BY-SA 4.0)
+-----------------------------------------------------------
+`org.dynamisengine.vectrix.color.CieData` contains the CIE 1931 and CIE 1964 standard colorimetric observers and
+CIE standard illuminant D65 at 1 nm, (c) International Commission on Illumination (CIE), from the CIE open-access
+datasets:
+- CIE_xyz_1931_2deg.csv, DOI 10.25039/CIE.DS.xvudnb9b
+- CIE_xyz_1964_10deg.csv, DOI 10.25039/CIE.DS.sqksu2n5
+- CIE_std_illum_D65.csv, DOI 10.25039/CIE.DS.hjfjmt59
+
+licensed under the Creative Commons Attribution-ShareAlike 4.0 International License
+(https://creativecommons.org/licenses/by-sa/4.0/). Changes: reformatted into Java arrays, values unaltered; the
+CIE 1964 z-bar-10 entries left undefined (NaN) by the dataset from 560 nm are stored as 0, as tabulated in CIE 15.
+That file, and adaptations of it, are distributed under CC BY-SA 4.0.
+
+4) Licensing
 ------------
-Both JOML-derived and original Vectrix code are distributed under the MIT License.
-See `LICENSE` for full terms.
+JOML-derived and original Vectrix code are distributed under the MIT License (see `LICENSE`). The CIE data in
+`CieData` is distributed under CC BY-SA 4.0, as described in section 3.

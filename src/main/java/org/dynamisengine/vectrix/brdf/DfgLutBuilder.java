@@ -127,6 +127,51 @@ public final class DfgLutBuilder {
         outAb[1] = sumB / sampleCount;
     }
 
+    /**
+     * The cloth (sheen) DFG term of Filament: {@code ∫ D_Charlie(α) V_Neubelt nDotL dl} over the hemisphere, the
+     * directional albedo of the Charlie sheen lobe, for {@code α = perceptualRoughness²}. Integrated by stratified
+     * uniform sampling of the half vector ({@code pdf_l = 1 / (2π · 4 vDotH)}). Store it as the third DFG channel
+     * and scale sheen energy with it, as Filament does. @since 2.3.0
+     */
+    public static double integrateCloth(double nDotV, double perceptualRoughness, int sampleCount) {
+        double alpha = perceptualRoughness * perceptualRoughness;
+        double vx = java.lang.Math.sqrt(java.lang.Math.max(0.0, 1.0 - nDotV * nDotV));
+        double vz = nDotV;
+        double sum = 0.0;
+        for (int i = 0; i < sampleCount; i++) {
+            double u1 = (i + 0.5) / sampleCount;
+            double u2 = radicalInverse(i);
+            // uniform hemisphere direction for the half vector
+            double phi = 2.0 * java.lang.Math.PI * u1;
+            double cosTheta = 1.0 - u2;
+            double sinTheta = java.lang.Math.sqrt(java.lang.Math.max(0.0, 1.0 - cosTheta * cosTheta));
+            double hx = sinTheta * AccurateMath.cos(phi);
+            double hz = cosTheta;
+            double vDotH = vx * hx + vz * hz;
+            double lz = 2.0 * vDotH * hz - vz;
+            if (lz <= 0.0 || vDotH <= 0.0) {
+                continue;
+            }
+            double d = Microfacetd.dCharlie(hz, alpha);
+            double v = Microfacetd.vNeubelt(nDotV, lz);
+            sum += d * v * lz * vDotH;
+        }
+        return sum * (4.0 * 2.0 * java.lang.Math.PI / sampleCount);
+    }
+
+    /**
+     * Builds the cloth DFG channel ({@code size × size}, u = nDotV, v = perceptual roughness, texel centers, the same
+     * layout as {@link #build}). @since 2.3.0
+     */
+    public static void buildCloth(int size, int sampleCount, float[] out) {
+        for (int y = 0; y < size; y++) {
+            double roughness = (y + 0.5) / size;
+            for (int x = 0; x < size; x++) {
+                out[y * size + x] = (float) integrateCloth((x + 0.5) / size, roughness, sampleCount);
+            }
+        }
+    }
+
     /** Van der Corput radical inverse in base 2. */
     private static double radicalInverse(int i) {
         return (Integer.reverse(i) & 0xFFFFFFFFL) * 0x1p-32;

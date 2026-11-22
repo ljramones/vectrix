@@ -322,6 +322,16 @@ CameraRelative.toCameraRelative(cells, offsets, linear, count, camera, packedAff
 Keep world positions as `WorldPos` (or doubles) and convert to float only relative to the camera: a float world
 coordinate at 10⁹ m has 64 m steps.
 
+## 7g) Spectral colour (`org.dynamisengine.vectrix.color`)
+
+```java
+Vector3d cmf = CieObserver.CIE_1931_2DEG.xyzBar(532.0, new Vector3d());      // official 1 nm tables
+Vector3d xyz = Spectra.reflectanceToXyz(reflectance1nm, 380, CieObserver.CIE_1931_2DEG, new Vector3d());
+double[] coeffs = new double[3];
+SpectralUpsampling.fit(r, g, b, ColorGamut.SRGB, coeffs);   // once per material
+float s = SpectralUpsampling.evaluate(coeffsF, wavelengthNm);    // per spectral sample
+```
+
 ## 7f) Geometry functions (`org.dynamisengine.vectrix.geometry`)
 
 ```java

@@ -287,4 +287,6 @@ Note: legacy OSSRH/Nexus staging configuration was intentionally removed in favo
 ## License
 
 MIT — see [`LICENSE`](LICENSE).  
-JOML lineage attribution — see [`NOTICE`](NOTICE).
+JOML lineage attribution — see [`NOTICE`](NOTICE).  
+The official CIE colorimetric tables in `color.CieData` (CIE 1931 / 1964 observers, illuminant D65; © CIE) are
+CC BY-SA 4.0, attributed in [`NOTICE`](NOTICE); that file alone is under that license.
