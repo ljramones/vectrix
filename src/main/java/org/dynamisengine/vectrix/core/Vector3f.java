@@ -583,7 +583,7 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
      * @return this
      */
     public Vector3f setFromAddress(long address) {
-        if (!MemUtil.UNSAFE_ADDRESS_API)
+        if (!MemUtil.unsafeAddressApi())
             throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.get(this, address);
         return this;
@@ -639,7 +639,7 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
 
 //#ifdef __HAS_UNSAFE__
     public Vector3fc getToAddress(long address) {
-        if (!MemUtil.UNSAFE_ADDRESS_API)
+        if (!MemUtil.unsafeAddressApi())
             throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.put(this, address);
         return this;

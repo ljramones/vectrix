@@ -2465,7 +2465,7 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
      * @return this
      */
     public Matrix4f setFromAddress(long address) {
-        if (!MemUtil.UNSAFE_ADDRESS_API)
+        if (!MemUtil.unsafeAddressApi())
             throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.get(this, address);
         return determineProperties();
@@ -2484,7 +2484,7 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
      * @return this
      */
     public Matrix4f setTransposedFromAddress(long address) {
-        if (!MemUtil.UNSAFE_ADDRESS_API)
+        if (!MemUtil.unsafeAddressApi())
             throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.getTransposed(this, address);
         return determineProperties();
@@ -3364,13 +3364,13 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
     }
 //#ifdef __HAS_UNSAFE__
     public Matrix4fc getToAddress(long address) {
-        if (!MemUtil.UNSAFE_ADDRESS_API)
+        if (!MemUtil.unsafeAddressApi())
             throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.put(this, address);
         return this;
     }
     public Matrix4fc getTransposedToAddress(long address) {
-        if (!MemUtil.UNSAFE_ADDRESS_API)
+        if (!MemUtil.unsafeAddressApi())
             throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.putTransposed(this, address);
         return this;

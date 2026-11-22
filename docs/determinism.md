@@ -30,7 +30,7 @@ false.
 | `-Dvectrix.skinning.simd`, `-Dvectrix.culling.simd` | false | Opt-in experimental SIMD dispatch. Skinning has no SIMD path (the gather kernel was slower); culling classifies identically except for NaN bounds. |
 
 Settings that do **not** change output bits:
-- The memory backend (`-Djoml.nounsafe`, `-Djoml.forceFfm`, `-Djoml.noffm`): every backend writes the same bytes.
+- The memory backend (FFM by default; `-Djoml.noffm`, `-Djoml.forceUnsafe`, `-Djoml.nounsafe`): every backend writes the same bytes.
 - `-Djoml.debug`.
 
 ## Why `java.lang.Math` is not reproducible

@@ -704,7 +704,7 @@ public class Vector4L implements Externalizable, Cloneable, Vector4Lc {
      * @return this
      */
     public Vector4L setFromAddress(long address) {
-        if (!MemUtil.UNSAFE_ADDRESS_API)
+        if (!MemUtil.unsafeAddressApi())
             throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.get(this, address);
         return this;
@@ -808,7 +808,7 @@ public class Vector4L implements Externalizable, Cloneable, Vector4Lc {
 
 //#ifdef __HAS_UNSAFE__
     public Vector4Lc getToAddress(long address) {
-        if (!MemUtil.UNSAFE_ADDRESS_API)
+        if (!MemUtil.unsafeAddressApi())
             throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.put(this, address);
         return this;

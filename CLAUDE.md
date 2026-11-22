@@ -38,7 +38,7 @@ Types come in float (`f`), double (`d`), int (`i`), and long (`L`) variants. All
 
 ### Key Internal Classes
 
-- `MemUtil` — buffer transfers via `sun.misc.Unsafe` (default), bounds-checked FFM `MemorySegment`s (fallback when Unsafe is disabled or denied; `-Djoml.forceFfm=true` selects it), or plain NIO. All backends honour NIO semantics (limit checks, slices, read-only and heap buffers).
+- `MemUtil` — buffer transfers via bounds-checked FFM `MemorySegment`s (default; never touches `sun.misc.Unsafe`), `sun.misc.Unsafe` (`-Djoml.noffm=true` or `-Djoml.forceUnsafe=true`; prints the JDK deprecation warning), or plain NIO (`-Djoml.noffm=true -Djoml.nounsafe=true`). The raw-address API (`getToAddress`/`setFromAddress`) still uses Unsafe and initialises it lazily. All backends honour NIO semantics (limit checks, slices, read-only and heap buffers).
 - `Math` — fast math with sin/cos lookup tables, configurable via `-Djoml.fastmath`
 - `Options` — JVM system property configuration (`-Djoml.debug`, `-Djoml.nounsafe`, `-Djoml.forceUnsafe`, `-Djoml.forceFfm`, `-Djoml.noffm`, `-Dvectrix.strictMath`)
 - `AccurateMath` — the only place transcendentals choose `java.lang.Math` vs `StrictMath`; never call those directly (a test enforces it). See `docs/determinism.md`.

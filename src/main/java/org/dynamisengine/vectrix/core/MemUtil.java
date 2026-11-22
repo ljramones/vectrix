@@ -46,59 +46,75 @@ abstract class MemUtil {
      * disabled with {@code -Djoml.nounsafe} nor denied by the JVM (for example
      * {@code --sun-misc-unsafe-memory-access=deny}). When false, those methods throw
      * {@link UnsupportedOperationException} instead of failing with {@link NoClassDefFoundError}.
+     * <p>
+     * Evaluated lazily, on the first raw-address call, so that programs which never use that API never touch
+     * {@code sun.misc.Unsafe} and never see the JDK's terminal-deprecation warning.
      */
-    static final boolean UNSAFE_ADDRESS_API = !Options.NO_UNSAFE && unsafeFunctional();
+    static boolean unsafeAddressApi() {
+        return UnsafeProbe.FUNCTIONAL;
+    }
+
     static final String UNSAFE_ADDRESS_API_UNAVAILABLE =
             "Not supported: sun.misc.Unsafe is disabled (-Djoml.nounsafe) or denied by the JVM";
 
-    private static boolean unsafeFunctional() {
-        try {
-            return MemUtilUnsafe.UNSAFE != null;
-        } catch (Throwable e) {
-            return false;
+    private static final class UnsafeProbe {
+        static final boolean FUNCTIONAL = !Options.NO_UNSAFE && unsafeFunctional();
+
+        private UnsafeProbe() {
+        }
+
+        private static boolean unsafeFunctional() {
+            try {
+                return MemUtilUnsafe.UNSAFE != null;
+            } catch (Throwable e) {
+                return false;
+            }
         }
     }
 //#endif
     /**
      * Backend selection, in order:
      * <ol>
-     * <li>{@code -Djoml.forceFfm=true}: the FFM backend (bounds-checked {@code MemorySegment} views of the buffer).</li>
-     * <li>The Unsafe backend, unless disabled with {@code -Djoml.nounsafe} or not functional (for example under
-     * {@code --sun-misc-unsafe-memory-access=deny}).</li>
-     * <li>Otherwise the FFM backend, unless disabled with {@code -Djoml.noffm}.</li>
+     * <li>{@code -Djoml.forceUnsafe=true}: the Unsafe backend (raw addresses, bounds-checked against the limit).</li>
+     * <li>{@code -Djoml.forceFfm=true}, or by default: the FFM backend (bounds-checked {@code MemorySegment} views
+     * of the buffer). It never touches {@code sun.misc.Unsafe}, so the JDK prints no deprecation warning.</li>
+     * <li>With {@code -Djoml.noffm=true}: the Unsafe backend, unless disabled with {@code -Djoml.nounsafe} or not
+     * functional (for example under {@code --sun-misc-unsafe-memory-access=deny}).</li>
      * <li>Otherwise plain NIO.</li>
      * </ol>
      * Every backend honours NIO semantics: absolute indices are checked against {@code limit()}, slices are not
      * escaped, and heap, read-only and non-native-order buffers take the NIO path.
      */
     private static MemUtil createInstance() {
+        if (Options.FORCE_UNSAFE && Options.FORCE_FFM)
+            throw new ConfigurationException("Cannot enable both -Djoml.forceUnsafe and -Djoml.forceFfm", null);
+//#ifdef __HAS_UNSAFE__
+        if (Options.NO_UNSAFE && Options.FORCE_UNSAFE)
+            throw new ConfigurationException("Cannot enable both -Djoml.nounsafe and -Djoml.forceUnsafe", null);
+        if (Options.FORCE_UNSAFE) {
+            try {
+                return new MemUtilUnsafe();
+            } catch (Throwable e) {
+                throw new ConfigurationException("Unsafe is not supported but its use was forced via -Djoml.forceUnsafe", e);
+            }
+        }
+//#endif
 //#ifdef __HAS_FFM__
         if (Options.NO_FFM && Options.FORCE_FFM)
             throw new ConfigurationException("Cannot enable both -Djoml.noffm and -Djoml.forceFfm", null);
-        if (Options.FORCE_FFM) {
+        if (!Options.NO_FFM) {
             try {
                 return new MemUtilFFM();
             } catch (Throwable e) {
-                throw new ConfigurationException("FFM is not supported but its use was forced via -Djoml.forceFfm", e);
+                if (Options.FORCE_FFM)
+                    throw new ConfigurationException("FFM is not supported but its use was forced via -Djoml.forceFfm", e);
             }
         }
 //#endif
 //#ifdef __HAS_UNSAFE__
-        if (Options.NO_UNSAFE && Options.FORCE_UNSAFE)
-            throw new ConfigurationException("Cannot enable both -Djoml.nounsafe and -Djoml.forceUnsafe", null);
         if (!Options.NO_UNSAFE) {
             try {
                 return new MemUtilUnsafe();
-            } catch (Throwable e) {
-                if (Options.FORCE_UNSAFE)
-                    throw new ConfigurationException("Unsafe is not supported but its use was forced via -Djoml.forceUnsafe", e);
-            }
-        }
-//#endif
-//#ifdef __HAS_FFM__
-        if (!Options.NO_FFM) {
-            try {
-                return new MemUtilFFM();
             } catch (Throwable e) {
                 // fall through to NIO
             }

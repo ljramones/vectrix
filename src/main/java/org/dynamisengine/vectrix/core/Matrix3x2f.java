@@ -995,13 +995,13 @@ public class Matrix3x2f implements Matrix3x2fc, Externalizable, Cloneable {
     }
 //#ifdef __HAS_UNSAFE__
     public Matrix3x2fc getToAddress(long address) {
-        if (!MemUtil.UNSAFE_ADDRESS_API)
+        if (!MemUtil.unsafeAddressApi())
             throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.put(this, address);
         return this;
     }
     public Matrix3x2fc getTransposedToAddress(long address) {
-        if (!MemUtil.UNSAFE_ADDRESS_API)
+        if (!MemUtil.unsafeAddressApi())
             throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.putTransposed(this, address);
         return this;
@@ -1181,7 +1181,7 @@ public class Matrix3x2f implements Matrix3x2fc, Externalizable, Cloneable {
      * @return this
      */
     public Matrix3x2f setFromAddress(long address) {
-        if (!MemUtil.UNSAFE_ADDRESS_API)
+        if (!MemUtil.unsafeAddressApi())
             throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.get(this, address);
         return this;
@@ -1199,7 +1199,7 @@ public class Matrix3x2f implements Matrix3x2fc, Externalizable, Cloneable {
      * @return this
      */
     public Matrix3x2f setTransposedFromAddress(long address) {
-        if (!MemUtil.UNSAFE_ADDRESS_API)
+        if (!MemUtil.unsafeAddressApi())
             throw new UnsupportedOperationException(MemUtil.UNSAFE_ADDRESS_API_UNAVAILABLE);
         MemUtil.MemUtilUnsafe.getTransposed(this, address);
         return this;

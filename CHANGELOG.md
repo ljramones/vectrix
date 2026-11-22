@@ -48,6 +48,12 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - Pass B/C/E decision/findings memos and subsystem integration memo
 
 ### Changed
+- **FFM is the default memory backend.** Buffer transfers use bounds-checked `MemorySegment` views and never touch
+  `sun.misc.Unsafe`, so consumers no longer get the JDK's "terminally deprecated method in sun.misc.Unsafe" warning
+  at startup. Measured on arm64: loops of 16–256 `Matrix4f` transfers equal or beat Unsafe; a single isolated
+  transfer costs about 1 ns more (2.8–3.3 ns vs 2.1 ns). `-Djoml.noffm=true` or `-Djoml.forceUnsafe=true` selects
+  Unsafe. The raw-address API (`getToAddress`/`setFromAddress`) still needs Unsafe and initialises it only when
+  first used.
 - Namespace and coordinates: packages moved from `org.vectrix` to `org.dynamisengine.vectrix`, and the build
   adopted `dynamis-parent` (2026-03-06, previously unrecorded). `ColorSciencef.kelvinToLinearRgb` was added
   upstream from DynamisSky.
@@ -70,8 +76,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   `MemorySegment.ofBuffer` views. It no longer uses Unsafe, raw addresses or restricted methods, and checks
   limits, slices and read-only buffers like NIO. It is compiled into the default jar and is the fallback when
   Unsafe is disabled (`-Djoml.nounsafe`) or denied by the JVM (`--sun-misc-unsafe-memory-access=deny`), instead of
-  plain NIO. Unsafe remains the default. Measured per `Matrix4f` transfer on arm64: Unsafe 2.0–2.1 ns,
-  FFM 2.6–3.4 ns, NIO about 4.1 ns.
+  plain NIO. Measured per `Matrix4f` transfer on arm64: Unsafe 2.0–2.1 ns, FFM 2.6–3.4 ns, NIO about 4.1 ns.
 - The Unsafe backend probes one real memory access during initialisation. Under
   `--sun-misc-unsafe-memory-access=deny` the lookups succeed but every access throws, so it used to be selected
   and then fail on every transfer.
@@ -178,7 +183,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     under `-Djoml.debug`. Cost: about 0.06–0.28 ns per buffer transfer (`MemoryBackendBenchmark`).
   - The FFM backend wrote to the wrong native address: it added the buffer position twice, and wrote outside
     slices. It also sent heap buffers down the raw-address path. Both are fixed. Because FFM still lacks bounds
-    checks, it is now opt-in via `-Djoml.forceFfm=true`; Unsafe is the default in every profile.
+    checks, it was made opt-in via `-Djoml.forceFfm=true`. (Later superseded: the backend was rewritten with bounds checks and is now the default; see Changed.)
 - `InertiaTensorf.capsule` overestimated I_xx/I_zz (by +37.6 % for r=0.5, h=2). The hemisphere parallel-axis
   term is now `h²/4` (review M-8). This affects the DynamisPhysics ODE4J backend.
 - `Half.pack` now rounds ties to nearest-even, matching `Float.floatToFloat16` and GPU conversion. Exact ties

@@ -40,7 +40,8 @@ import org.junit.jupiter.api.Test;
  * Review finding H-9: when the JVM denies {@code sun.misc.Unsafe} memory access (the JEP 471/498 end state), the
  * library must still work. Before the fix the Unsafe backend could be selected and then fail on every access, the
  * FFM backend called into Unsafe and failed to initialise, and {@code getToAddress} threw
- * {@link NoClassDefFoundError} instead of the documented {@link UnsupportedOperationException}.
+ * {@link NoClassDefFoundError} instead of the documented {@link UnsupportedOperationException}. By default the
+ * library uses the FFM backend and never touches Unsafe.
  */
 class UnsafeDeniedTest {
 
@@ -92,5 +93,34 @@ class UnsafeDeniedTest {
         assertTrue(out.contains("roundtrip=true"), out);
         assertTrue(out.contains("bounds=checked"), out);
         assertTrue(out.contains("address=unsupported"), out);
+    }
+
+    @Test
+    void defaultBackendIsFfmAndNeverTouchesUnsafe() throws Exception {
+        String java = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
+        String library = new File(Matrix4f.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+        String classpath = library + File.pathSeparator + System.getProperty("java.class.path");
+        Process p = new ProcessBuilder(java, "-cp", classpath, DefaultChild.class.getName()).redirectErrorStream(true).start();
+        assertTrue(p.waitFor(60, TimeUnit.SECONDS), "child JVM timed out");
+        String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        assertEquals(0, p.exitValue(), out);
+        assertTrue(out.contains("backend=MemUtilFFM"), out);
+        // the JDK prints a terminal-deprecation warning as soon as anything uses sun.misc.Unsafe
+        assertTrue(!out.contains("sun.misc.Unsafe"), "default configuration touched Unsafe:\n" + out);
+    }
+
+    /** Runs in a child JVM with default settings. */
+    public static final class DefaultChild {
+        private DefaultChild() {
+        }
+
+        public static void main(String[] args) throws Exception {
+            java.lang.reflect.Field f = Class.forName("org.dynamisengine.vectrix.core.MemUtil").getField("INSTANCE");
+            f.setAccessible(true);
+            System.out.println("backend=" + f.get(null).getClass().getSimpleName());
+            FloatBuffer fb = ByteBuffer.allocateDirect(64 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
+            new Matrix4f().rotateX(0.3f).get(0, fb);
+            System.out.println("m11=" + fb.get(5));
+        }
     }
 }
