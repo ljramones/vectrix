@@ -108,7 +108,7 @@ Full methodology/results: [`BENCHMARKS.md`](BENCHMARKS.md).
 <dependency>
     <groupId>org.dynamisengine</groupId>
     <artifactId>vectrix</artifactId>
-    <version>2.1.0</version>
+    <version>2.2.0</version>
 </dependency>
 ```
 
@@ -120,7 +120,7 @@ in (transform compose, frustum culling, reductions). Use it instead of the plain
 <dependency>
     <groupId>org.dynamisengine</groupId>
     <artifactId>vectrix</artifactId>
-    <version>2.1.0</version>
+    <version>2.2.0</version>
     <classifier>simd</classifier>
 </dependency>
 ```

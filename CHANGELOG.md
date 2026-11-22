@@ -4,7 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
-## [Unreleased]
+## [2.2.0] - 2026-11-22
+New in this release: the `linalg` package (review Part II §16) and the geometry functions of §17 (exact predicates,
+spatial codes, bounding volumes, closest points, mesh normals and tangents), plus a fix to
+`Intersection*.findClosestPointsLineSegmentTriangle` for segments that pierce the triangle. No breaking changes
+from 2.1.0.
+
 ### Added
 - Geometry functions (review Part II §17, as functions: vectrix adds no shape types, which DynamisCollision owns):
   `RobustPredicates` (exact `orient2d`, `orient3d`, `incircle`, `insphere`: double fast path within Shewchuk's error
