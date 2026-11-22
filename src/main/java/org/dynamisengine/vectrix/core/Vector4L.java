@@ -37,6 +37,11 @@ import java.text.NumberFormat;
  * transformations.
  *
  * @author Kai Burjack
+ * <p>
+ * Overflow policy: the ordinary arithmetic ({@code add}, {@code sub}, {@code mul}, ...) wraps like Java's
+ * {@code long} operators; the {@code *Exact} variants throw {@link ArithmeticException} instead, and
+ * {@code lengthSquared}, {@code distanceSquared} and {@code gridDistance} are always exact. {@code div} truncates
+ * toward zero; {@code floorDiv} and {@code floorMod} give cell indices and offsets for negative coordinates too.
  */
 public class Vector4L implements Externalizable, Cloneable, Vector4Lc {
 
@@ -1386,4 +1391,92 @@ public class Vector4L implements Externalizable, Cloneable, Vector4Lc {
         return super.clone();
     }
 
+    /** Component-wise {@link java.lang.Math#addExact}: throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    public Vector4L addExact(Vector4Lc v) {
+        return addExact(v, this);
+    }
+
+    public Vector4L addExact(Vector4Lc v, Vector4L dest) {
+        long rx = java.lang.Math.addExact(x, v.x());
+        long ry = java.lang.Math.addExact(y, v.y());
+        long rz = java.lang.Math.addExact(z, v.z());
+        long rw = java.lang.Math.addExact(w, v.w());
+        dest.x = rx;
+        dest.y = ry;
+        dest.z = rz;
+        dest.w = rw;
+        return dest;
+    }
+
+    /** Component-wise {@link java.lang.Math#subtractExact}: throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    public Vector4L subExact(Vector4Lc v) {
+        return subExact(v, this);
+    }
+
+    public Vector4L subExact(Vector4Lc v, Vector4L dest) {
+        long rx = java.lang.Math.subtractExact(x, v.x());
+        long ry = java.lang.Math.subtractExact(y, v.y());
+        long rz = java.lang.Math.subtractExact(z, v.z());
+        long rw = java.lang.Math.subtractExact(w, v.w());
+        dest.x = rx;
+        dest.y = ry;
+        dest.z = rz;
+        dest.w = rw;
+        return dest;
+    }
+
+    /** Component-wise {@link java.lang.Math#multiplyExact}: throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    public Vector4L mulExact(long scalar) {
+        return mulExact(scalar, this);
+    }
+
+    public Vector4L mulExact(long scalar, Vector4L dest) {
+        long rx = java.lang.Math.multiplyExact(x, scalar);
+        long ry = java.lang.Math.multiplyExact(y, scalar);
+        long rz = java.lang.Math.multiplyExact(z, scalar);
+        long rw = java.lang.Math.multiplyExact(w, scalar);
+        dest.x = rx;
+        dest.y = ry;
+        dest.z = rz;
+        dest.w = rw;
+        return dest;
+    }
+
+    /**
+     * Component-wise {@link java.lang.Math#floorDiv}: division rounding toward negative infinity, so
+     * {@code floorDiv(-1, 4) = -1} (the cell containing a coordinate), unlike {@link #div(long)}, which truncates.
+     * @since 2.3.0
+     */
+    public Vector4L floorDiv(long divisor) {
+        return floorDiv(divisor, this);
+    }
+
+    public Vector4L floorDiv(long divisor, Vector4L dest) {
+        long rx = java.lang.Math.floorDiv(x, divisor);
+        long ry = java.lang.Math.floorDiv(y, divisor);
+        long rz = java.lang.Math.floorDiv(z, divisor);
+        long rw = java.lang.Math.floorDiv(w, divisor);
+        dest.x = rx;
+        dest.y = ry;
+        dest.z = rz;
+        dest.w = rw;
+        return dest;
+    }
+
+    /** Component-wise {@link java.lang.Math#floorMod}: the remainder in {@code [0, divisor)} for positive divisors. @since 2.3.0 */
+    public Vector4L floorMod(long divisor) {
+        return floorMod(divisor, this);
+    }
+
+    public Vector4L floorMod(long divisor, Vector4L dest) {
+        long rx = java.lang.Math.floorMod(x, divisor);
+        long ry = java.lang.Math.floorMod(y, divisor);
+        long rz = java.lang.Math.floorMod(z, divisor);
+        long rw = java.lang.Math.floorMod(w, divisor);
+        dest.x = rx;
+        dest.y = ry;
+        dest.z = rz;
+        dest.w = rw;
+        return dest;
+    }
 }

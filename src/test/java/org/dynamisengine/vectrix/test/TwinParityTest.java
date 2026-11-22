@@ -74,6 +74,7 @@ class TwinParityTest {
         "spherical.SphericalGaussians", "spherical.DirectionMappings", "camera.Projections", "camera.ShadowCascades",
         "camera.ClusterGrid", "camera.PhysicalCamera", "atmosphere.PhaseFunctions",
         "animation.QuaternionCurves", "animation.QuaternionSpring", "affine.DualQuatTransform",
+        "affine.Transform", "affine.RigidTransform", "affine.Affine4",
         "sampling.Warp", "sampling.GgxSampling", "sampling.SphericalSampling",
         "color.TransferFunctions", "color.PerceptualColor", "color.Tonemap", "color.Exposure", "color.ColorSpaces",
         "linalg.Eigen3", "linalg.Svd3", "linalg.Polar3", "linalg.Qr", "linalg.Solvers", "linalg.Lie3", "linalg.LeastSquares",

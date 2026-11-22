@@ -59,6 +59,17 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
       the screw-subgroup identity to 1e-12.
     - Sign-aligned dual quaternion linear blending, and a scale-aware (two-phase) blend.
   - New `DualQuatTransformd` twin.
+- Large-world precision (review Part II §12):
+  - New package `world`:
+    - `WorldPos`: a long cell of `2^k` metres plus a centred double offset. Splitting any double into cell and
+      offset, and rebasing, is exact. Relative positions are rounded once (TwoSum), so they are correctly rounded
+      at any distance. At 10⁹ m they are within 0.5 float ulp; naive float is 64 m off and naive double 1.2e-7 m.
+    - `CameraRelative`: batch conversion of double, or cell-and-offset, transforms to camera-relative floats in the
+      `AFFINE_3X4_ROW_MAJOR` upload layout, and a single-object `modelMatrix`.
+  - Long vectors get a documented overflow policy: ordinary arithmetic wraps, and the new `addExact`, `subExact`
+    and `mulExact` throw. They also get `floorDiv` and `floorMod` for cell arithmetic.
+  - Double-precision twins: `Transformd`, `RigidTransformd`, `Affine4d`, `soa.TransformSoAd` and
+    `soa.DualQuatSoAd`, plus `DualQuatTransformd.setFromRigid`.
 ### Deprecated
 - `renderingmath.TransmittanceLutBuilder` and `AtmosphereParams`. They work in single precision, their ground
   intersection cancels near the horizon, and they have no ozone or Mie absorption. Use `atmosphere.Atmosphere`.

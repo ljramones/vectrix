@@ -414,4 +414,18 @@ public interface Vector3Lc {
      */
     boolean equals(long x, long y, long z);
 
+    /** Component-wise exact addition into {@code dest}; throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    Vector3L addExact(Vector3Lc v, Vector3L dest);
+
+    /** Component-wise exact subtraction into {@code dest}; throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    Vector3L subExact(Vector3Lc v, Vector3L dest);
+
+    /** Component-wise exact multiplication into {@code dest}; throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    Vector3L mulExact(long scalar, Vector3L dest);
+
+    /** Component-wise floor division (toward negative infinity) into {@code dest}. @since 2.3.0 */
+    Vector3L floorDiv(long divisor, Vector3L dest);
+
+    /** Component-wise floor modulus into {@code dest}. @since 2.3.0 */
+    Vector3L floorMod(long divisor, Vector3L dest);
 }

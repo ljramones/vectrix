@@ -73,6 +73,12 @@ public class DualQuatTransformd {
                 0.5 * (tx * ry - ty * rx + tz * rw), -0.5 * (tx * rx + ty * ry + tz * rz));
     }
 
+    /** Sets this to the rigid transform (the rotation is normalized first). */
+    public DualQuatTransformd setFromRigid(RigidTransformd rigid) {
+        return setRotationTranslation(rigid.rotation.x, rigid.rotation.y, rigid.rotation.z, rigid.rotation.w,
+                rigid.translation.x, rigid.translation.y, rigid.translation.z);
+    }
+
     private DualQuatTransformd store(double rx, double ry, double rz, double rw, double dx, double dy, double dz,
             double dw) {
         real.set(rx, ry, rz, rw);

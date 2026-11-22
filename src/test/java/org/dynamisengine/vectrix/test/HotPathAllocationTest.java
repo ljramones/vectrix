@@ -173,6 +173,15 @@ class HotPathAllocationTest {
         assertNoAllocation("DualQuatTransformf.sclerp", () -> dqA.sclerp(dqB, 0.4f, dqOut));
         assertNoAllocation("DualQuatTransformf.blend", () -> org.dynamisengine.vectrix.affine.DualQuatTransformf.blend(dqs, dqW,
                 2, dqOut));
+        org.dynamisengine.vectrix.world.WorldPos worldCam = new org.dynamisengine.vectrix.world.WorldPos(10).set(3.7e8, -1.2e9, 4e7);
+        org.dynamisengine.vectrix.world.WorldPos worldObj = new org.dynamisengine.vectrix.world.WorldPos(worldCam).add(12.5, -3, 400);
+        org.dynamisengine.vectrix.core.Vector3f worldRel = new org.dynamisengine.vectrix.core.Vector3f();
+        org.dynamisengine.vectrix.core.Matrix4x3f worldModel = new org.dynamisengine.vectrix.core.Matrix4x3f();
+        org.dynamisengine.vectrix.core.Vector3f worldScale = new org.dynamisengine.vectrix.core.Vector3f(1, 1, 1);
+        assertNoAllocation("WorldPos.sub", () -> worldObj.sub(worldCam, worldRel));
+        assertNoAllocation("WorldPos.add", () -> worldObj.add(0.001, 0, 0));
+        assertNoAllocation("CameraRelative.modelMatrix", () -> org.dynamisengine.vectrix.world.CameraRelative.modelMatrix(
+                worldObj, animGoal, worldScale, worldCam, worldModel));
         assertNoAllocation("ShProduct.multiplyL2", () -> org.dynamisengine.vectrix.sh.ShProduct.multiplyL2(c9, c9, c9));
         assertNoAllocation("ShWindowing.windowL3", () -> org.dynamisengine.vectrix.sh.ShWindowing.windowL3(c16,
                 org.dynamisengine.vectrix.sh.ShWindowing.Window.HANN, 4f, c16));

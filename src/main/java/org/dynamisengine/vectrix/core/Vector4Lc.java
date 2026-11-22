@@ -524,4 +524,18 @@ public interface Vector4Lc {
      */
     boolean equals(long x, long y, long z, long w);
 
+    /** Component-wise exact addition into {@code dest}; throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    Vector4L addExact(Vector4Lc v, Vector4L dest);
+
+    /** Component-wise exact subtraction into {@code dest}; throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    Vector4L subExact(Vector4Lc v, Vector4L dest);
+
+    /** Component-wise exact multiplication into {@code dest}; throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    Vector4L mulExact(long scalar, Vector4L dest);
+
+    /** Component-wise floor division (toward negative infinity) into {@code dest}. @since 2.3.0 */
+    Vector4L floorDiv(long divisor, Vector4L dest);
+
+    /** Component-wise floor modulus into {@code dest}. @since 2.3.0 */
+    Vector4L floorMod(long divisor, Vector4L dest);
 }

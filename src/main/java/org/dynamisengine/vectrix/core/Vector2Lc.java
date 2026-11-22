@@ -396,4 +396,18 @@ public interface Vector2Lc {
      */
     boolean equals(long x, long y);
 
+    /** Component-wise exact addition into {@code dest}; throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    Vector2L addExact(Vector2Lc v, Vector2L dest);
+
+    /** Component-wise exact subtraction into {@code dest}; throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    Vector2L subExact(Vector2Lc v, Vector2L dest);
+
+    /** Component-wise exact multiplication into {@code dest}; throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    Vector2L mulExact(long scalar, Vector2L dest);
+
+    /** Component-wise floor division (toward negative infinity) into {@code dest}. @since 2.3.0 */
+    Vector2L floorDiv(long divisor, Vector2L dest);
+
+    /** Component-wise floor modulus into {@code dest}. @since 2.3.0 */
+    Vector2L floorMod(long divisor, Vector2L dest);
 }

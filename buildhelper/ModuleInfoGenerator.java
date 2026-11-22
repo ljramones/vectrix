@@ -71,6 +71,7 @@ public class ModuleInfoGenerator implements Opcodes {
         mv.visitExport("org/dynamisengine/vectrix/sh", 0, (String[]) null);
         mv.visitExport("org/dynamisengine/vectrix/simd", 0, (String[]) null);
         mv.visitExport("org/dynamisengine/vectrix/soa", 0, (String[]) null);
+        mv.visitExport("org/dynamisengine/vectrix/world", 0, (String[]) null);
         // org/dynamisengine/vectrix/experimental is intentionally not exported (@Internal).
         mv.visitEnd();
         cw.visitEnd();

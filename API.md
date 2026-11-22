@@ -309,6 +309,19 @@ dqA.sclerp(dqB, t, dq);                                                  // exac
 DualQuatTransformf.blendScaled(joints, scales, weights, n, dq, scale);   // skinning: dq(scale * p)
 ```
 
+## 7e) Large worlds (`org.dynamisengine.vectrix.world`)
+
+```java
+WorldPos camera = new WorldPos(10).set(cx, cy, cz);              // 1 km cells; exact split
+WorldPos ship = new WorldPos(10).set(sx, sy, sz).add(dx, dy, dz);
+Vector3f relative = ship.sub(camera, new Vector3f());           // correctly rounded at any distance
+CameraRelative.modelMatrix(ship, rotation, scale, camera, model);
+CameraRelative.toCameraRelative(cells, offsets, linear, count, camera, packedAffine);  // GPU upload
+```
+
+Keep world positions as `WorldPos` (or doubles) and convert to float only relative to the camera: a float world
+coordinate at 10⁹ m has 64 m steps.
+
 ## 7f) Geometry functions (`org.dynamisengine.vectrix.geometry`)
 
 ```java
