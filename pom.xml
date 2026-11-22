@@ -53,8 +53,8 @@
         <!-- Minimum supported JDK. Bytecode level comes from dynamis-parent (maven.compiler.release=25). -->
         <vectrix.min.jdk>25</vectrix.min.jdk>
         <!-- JaCoCo coverage floors (ratchet: raise, never lower) -->
-        <vectrix.coverage.line.min>0.66</vectrix.coverage.line.min>
-        <vectrix.coverage.branch.min>0.42</vectrix.coverage.branch.min>
+        <vectrix.coverage.line.min>0.75</vectrix.coverage.line.min>
+        <vectrix.coverage.branch.min>0.47</vectrix.coverage.branch.min>
         <asm.version>9.7</asm.version>
         <junit.version>5.10.3</junit.version>
         <jcp.version>7.3.0</jcp.version>

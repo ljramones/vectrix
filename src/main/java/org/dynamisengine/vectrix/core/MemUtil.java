@@ -3113,12 +3113,12 @@ abstract class MemUtil {
         }
 
         public void copy(Matrix2fc src, Matrix3x2f dest) {
+            // set(Matrix2fc) is documented to leave the translation unchanged; it used to zero it. (Constructors
+            // start from zero, so new matrices still get an identity translation.)
             dest._m00(src.m00())
             ._m01(src.m01())
             ._m10(src.m10())
-            ._m11(src.m11())
-            ._m20(0.0f)
-            ._m21(0.0f);
+            ._m11(src.m11());
         }
 
         public void copy(Matrix3x2fc src, Matrix2f dest) {
@@ -3148,12 +3148,12 @@ abstract class MemUtil {
         }
 
         public void copy(Matrix2dc src, Matrix3x2d dest) {
+            // set(Matrix2dc) is documented to leave the translation unchanged; it used to zero it. (Constructors
+            // start from zero, so new matrices still get an identity translation.)
             dest._m00(src.m00())
             ._m01(src.m01())
             ._m10(src.m10())
-            ._m11(src.m11())
-            ._m20(0.0)
-            ._m21(0.0);
+            ._m11(src.m11());
         }
 
         public void copy(Matrix3x2dc src, Matrix2d dest) {

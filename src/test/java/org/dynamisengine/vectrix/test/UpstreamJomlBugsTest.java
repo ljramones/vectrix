@@ -44,7 +44,7 @@ import org.dynamisengine.vectrix.core.Vector4f;
 import org.junit.jupiter.api.Test;
 
 /**
- * Bugs inherited from JOML that {@link FloatDoubleParityTest} exposed (review finding M-17, the coverage work):
+ * Bugs inherited from JOML that {@link TwinParityTest} and {@link AliasingTest} exposed (review finding M-17, the coverage work):
  * aliasing, ignored {@code dest} parameters, an incorrect quaternion, stale matrix elements and an infinite loop.
  */
 class UpstreamJomlBugsTest {
@@ -178,5 +178,29 @@ class UpstreamJomlBugsTest {
         assertEquals(0.5f, q.m03());
         assertEquals(0.25f, q.m13());
         assertEquals(0.125f, q.m23());
+    }
+
+    @Test
+    void intVectorLengthsAreDoublePrecise() {
+        // Math.sqrt(long) resolved to the float overload, and int differences overflowed (review H-6, as for *L)
+        org.dynamisengine.vectrix.core.Vector3i v = new org.dynamisengine.vectrix.core.Vector3i(1, 2, 3);
+        assertEquals(java.lang.Math.sqrt(14.0), v.length(), 0.0);
+        org.dynamisengine.vectrix.core.Vector2i far = new org.dynamisengine.vectrix.core.Vector2i(Integer.MAX_VALUE, 0);
+        assertEquals((double) Integer.MAX_VALUE - Integer.MIN_VALUE, far.distance(Integer.MIN_VALUE, 0), 0.0);
+        org.dynamisengine.vectrix.core.Vector4i big = new org.dynamisengine.vectrix.core.Vector4i(
+                Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
+        assertEquals(2.0 * 2147483648.0, big.length(), 0.0); // the long sum of squares overflowed to NaN
+    }
+
+    @Test
+    void matrix3x2SetFromMatrix2KeepsTheTranslation() {
+        // documented "don't change the other elements"; set(Matrix2fc) and set(Matrix2dc) zeroed the translation
+        Matrix3x2f m = new Matrix3x2f().translation(5, 6).set(new org.dynamisengine.vectrix.core.Matrix2f().scaling(2));
+        assertEquals(5f, m.m20());
+        assertEquals(6f, m.m21());
+        assertEquals(2f, m.m00());
+        Matrix3x2d d = new Matrix3x2d().translation(5, 6).set(new org.dynamisengine.vectrix.core.Matrix2d().scaling(2));
+        assertEquals(5.0, d.m20());
+        assertEquals(0.0, new Matrix3x2f(new org.dynamisengine.vectrix.core.Matrix2f()).m20(), "constructor still identity");
     }
 }

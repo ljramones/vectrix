@@ -571,7 +571,7 @@ public class Vector2i implements Externalizable, Cloneable, Vector2ic {
     }
 
     public double length() {
-        return Math.sqrt((long) x * x + (long) y * y);
+        return java.lang.Math.sqrt((double) x * x + (double) y * y);
     }
 
     /**
@@ -583,30 +583,30 @@ public class Vector2i implements Externalizable, Cloneable, Vector2ic {
      * @return the length squared of the given vector
      */
     public static double length(int x, int y) {
-        return Math.sqrt((long) x * x + (long) y * y);
+        return java.lang.Math.sqrt((double) x * x + (double) y * y);
     }
 
     public double distance(Vector2ic v) {
-        int dx = this.x - v.x();
-        int dy = this.y - v.y();
-        return Math.sqrt((long) dx * dx + (long) dy * dy);
+        long dx = (long) this.x - v.x();
+        long dy = (long) this.y - v.y();
+        return java.lang.Math.sqrt((double) dx * dx + (double) dy * dy);
     }
 
     public double distance(int x, int y) {
-        int dx = this.x - x;
-        int dy = this.y - y;
-        return Math.sqrt((long) dx * dx + (long) dy * dy);
+        long dx = (long) this.x - x;
+        long dy = (long) this.y - y;
+        return java.lang.Math.sqrt((double) dx * dx + (double) dy * dy);
     }
 
     public long distanceSquared(Vector2ic v) {
-        int dx = this.x - v.x();
-        int dy = this.y - v.y();
+        long dx = (long) this.x - v.x();
+        long dy = (long) this.y - v.y();
         return (long) dx * dx + (long) dy * dy;
     }
 
     public long distanceSquared(int x, int y) {
-        int dx = this.x - x;
-        int dy = this.y - y;
+        long dx = (long) this.x - x;
+        long dy = (long) this.y - y;
         return (long) dx * dx + (long) dy * dy;
     }
 
@@ -632,9 +632,9 @@ public class Vector2i implements Externalizable, Cloneable, Vector2ic {
      * @return the euclidean distance
      */
     public static double distance(int x1, int y1, int x2, int y2) {
-        int dx = x1 - x2;
-        int dy = y1 - y2;
-        return Math.sqrt((long) dx * dx + (long) dy * dy);
+        long dx = (long) x1 - x2;
+        long dy = (long) y1 - y2;
+        return java.lang.Math.sqrt((double) dx * dx + (double) dy * dy);
     }
 
     /**
@@ -651,8 +651,8 @@ public class Vector2i implements Externalizable, Cloneable, Vector2ic {
      * @return the euclidean distance squared
      */
     public static long distanceSquared(int x1, int y1, int x2, int y2) {
-        int dx = x1 - x2;
-        int dy = y1 - y2;
+        long dx = (long) x1 - x2;
+        long dy = (long) y1 - y2;
         return (long) dx * dx + (long) dy * dy;
     }
     

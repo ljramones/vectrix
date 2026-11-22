@@ -92,7 +92,7 @@ final class ValueFixtures {
             } else if (ft == int.class) {
                 f.setInt(o, rnd.nextInt(-5, 6));
             } else if (ft == long.class) {
-                f.setLong(o, rnd.nextLong(-5, 6));
+                f.setLong(o, rnd.nextInt(-5, 6)); // same draw as an int field, so int/long twins get equal values
             }
         }
         for (Field f : valueFields(c)) {

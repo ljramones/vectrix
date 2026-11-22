@@ -51,8 +51,10 @@ The `Vector2L`/`Vector3L`/`Vector4L` classes (with corresponding `*Lc` read-only
 
 - JaCoCo runs in the default profile; the report is in `target/site/jacoco/`. `vectrix.coverage.line.min` and
   `vectrix.coverage.branch.min` in `pom.xml` are a ratchet: raise them when coverage grows, never lower them.
-- `FloatDoubleParityTest` drives every public method of each float type next to its double twin with the same random
-  inputs. A new mismatch is usually a real bug in one of the two; exempt a method only for a documented input domain.
+- `TwinParityTest` drives every public method of a type next to its twin with the same random inputs: float vs double
+  types, int vs long vectors (exact), and float vs double overloads inside `core.Math`, `CubicCurveMath` and the SH
+  classes, with primitive, array and value-type parameters. A new mismatch is usually a real bug in one of the two;
+  exempt a method only for a documented input domain. Never let it drive the raw-address API (it would crash the JVM).
 - Hot-path APIs must not allocate; `HotPathAllocationTest` measures bytes per call.
 - `AliasingTest` runs every `R op(..., R dest)` method with `dest` aliased to `this` and each argument, and checks the
   result does not depend on `dest`'s previous contents. New destination-style methods are covered automatically;

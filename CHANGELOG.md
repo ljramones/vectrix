@@ -6,9 +6,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 ### Added
-- JaCoCo coverage report and a ratcheting gate (line ≥ 66 %, branch ≥ 42 %; review M-17). Coverage rose from
-  18.4 % / 17.5 % at the review to 66.5 % / 42.4 % (`core`: 15.5 % to 65.6 %), mainly through
-  `FloatDoubleParityTest`, which drives about 8 400 float/double method pairs with identical random inputs, plus
+- JaCoCo coverage report and a ratcheting gate (now line ≥ 75 %, branch ≥ 47 %; review M-17). Coverage rose from
+  18.4 % / 17.5 % at the review to 75.4 % / 47.8 % (66.5 % / 42.4 % after Batch 5), mainly through
+  `TwinParityTest` (originally `FloatDoubleParityTest`), which drives about 8 400 float/double method pairs with identical random inputs, plus
   behavioural tests for the matrix stacks, `SimplexNoise`, `FrustumRayBuilder`, `InstanceSubmissionPipeline`,
   `QuaterniondInterpolator`, the sampling helpers and every B-spline variant.
 - `ColorScienced.kelvinToLinearRgb` (double parity), `Quaterniond.angularError`, and
@@ -122,6 +122,13 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     (all now call `Runtime.formatNumbers`). Output is unchanged.
 
 ### Fixed
+- Found by widening the parity test to int/long vector twins, same-class float/double overloads, and `int` and array
+  parameters (about 9 900 calls):
+  - `Vector2i/3i/4i.length()` and `distance()` returned doubles computed in float precision (`Math.sqrt(long)`
+    resolved to the float overload), and their differences overflowed `int` for far-apart points, the same defects
+    fixed in the long vectors (review H-6). A `Vector4i` at `Integer.MIN_VALUE` had length NaN.
+  - `Matrix3x2f/d.set(Matrix2fc/dc)` zeroed the translation although documented to "not change the other elements"
+    (`Matrix3x2d.set(Matrix2fc)` already kept it).
 - Bugs inherited from JOML, found by the new aliasing harness (`AliasingTest`), which runs every
   destination-style method with `dest` aliased to `this` and to each argument, and checks that results do not
   depend on what `dest` held before:
@@ -134,7 +141,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     `Matrix4x3f/4x3d`.
   - `Quaternionf/d.div(scalar, dest)` returned `this` instead of `dest`.
   - `Matrix4f/4d.translationRotateScaleMulAffine` ignored the scale (found while triaging the harness output).
-- Bugs inherited from JOML, found by the new float/double parity test (review M-17):
+- Bugs inherited from JOML, found by the new float/double parity test (`TwinParityTest`, review M-17):
   - `Vector2f.mulPosition(Matrix3x2fc)` and `mulDirection(Matrix3x2fc)` computed y from the already-updated x, so
     every in-place call was wrong.
   - `Quaterniond.rotationX` built `(sin, 0, cos, 0)`, which is not a rotation about x.

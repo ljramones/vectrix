@@ -969,7 +969,7 @@ public class Vector4i implements Externalizable, Cloneable, Vector4ic {
     }
 
     public double length() {
-        return Math.sqrt((long) x * x + (long) y * y + (long) z * z + (long) w * w);
+        return java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z + (double) w * w);
     }
 
     /**
@@ -983,7 +983,7 @@ public class Vector4i implements Externalizable, Cloneable, Vector4ic {
      * @return the length squared of the given vector
      */
     public static double length(int x, int y, int z, int w) {
-        return Math.sqrt((long) x * x + (long) y * y + (long) z * z + (long) w * w);
+        return java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z + (double) w * w);
     }
 
     public double distance(Vector4ic v) {
@@ -991,11 +991,11 @@ public class Vector4i implements Externalizable, Cloneable, Vector4ic {
     }
 
     public double distance(int x, int y, int z, int w) {
-        int dx = this.x - x;
-        int dy = this.y - y;
-        int dz = this.z - z;
-        int dw = this.w - w;
-        return Math.sqrt(Math.fma(dx, dx, Math.fma(dy, dy, Math.fma(dz, dz, dw * dw))));
+        long dx = (long) this.x - x;
+        long dy = (long) this.y - y;
+        long dz = (long) this.z - z;
+        long dw = (long) this.w - w;
+        return java.lang.Math.sqrt((double) dx * dx + (double) dy * dy + (double) dz * dz + (double) dw * dw);
     }
 
     public long gridDistance(Vector4ic v) {
@@ -1011,10 +1011,10 @@ public class Vector4i implements Externalizable, Cloneable, Vector4ic {
     }
 
     public long distanceSquared(int x, int y, int z, int w) {
-        int dx = this.x - x;
-        int dy = this.y - y;
-        int dz = this.z - z;
-        int dw = this.w - w;
+        long dx = (long) this.x - x;
+        long dy = (long) this.y - y;
+        long dz = (long) this.z - z;
+        long dw = (long) this.w - w;
         return (long) dx * dx + (long) dy * dy + (long) dz * dz + (long) dw * dw;
     }
 
@@ -1040,11 +1040,11 @@ public class Vector4i implements Externalizable, Cloneable, Vector4ic {
      * @return the euclidean distance
      */
     public static double distance(int x1, int y1, int z1, int w1, int x2, int y2, int z2, int w2) {
-        int dx = x1 - x2;
-        int dy = y1 - y2;
-        int dz = z1 - z2;
-        int dw = w1 - w2;
-        return Math.sqrt((long) dx * dx + (long) dy * dy + (long) dz * dz + (long) dw * dw);
+        long dx = (long) x1 - x2;
+        long dy = (long) y1 - y2;
+        long dz = (long) z1 - z2;
+        long dw = (long) w1 - w2;
+        return java.lang.Math.sqrt((double) dx * dx + (double) dy * dy + (double) dz * dz + (double) dw * dw);
     }
 
     /**
@@ -1069,10 +1069,10 @@ public class Vector4i implements Externalizable, Cloneable, Vector4ic {
      * @return the euclidean distance squared
      */
     public static long distanceSquared(int x1, int y1, int z1, int w1, int x2, int y2, int z2, int w2) {
-        int dx = x1 - x2;
-        int dy = y1 - y2;
-        int dz = z1 - z2;
-        int dw = w1 - w2;
+        long dx = (long) x1 - x2;
+        long dy = (long) y1 - y2;
+        long dz = (long) z1 - z2;
+        long dw = (long) w1 - w2;
         return (long) dx * dx + (long) dy * dy + (long) dz * dz + (long) dw * dw;
     }
 
