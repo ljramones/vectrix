@@ -1,0 +1,169 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.InstanceUploadBenchmark.instanceUploadMatrix4f
+# Parameters: (accessPattern = hot, chunkSize = 256, dataDistribution = uniform, instances = 16384, traversalMode = SEQUENTIAL)
+
+# Run progress: 0.00% complete, ETA 00:00:32
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 189921.369 ns/op
+# Warmup Iteration   2: 182930.841 ns/op
+# Warmup Iteration   3: 181571.549 ns/op
+Iteration   1: 181936.371 ns/op
+Iteration   2: 183829.308 ns/op
+Iteration   3: 181602.486 ns/op
+Iteration   4: 181535.156 ns/op
+Iteration   5: 181456.486 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.InstanceUploadBenchmark.instanceUploadMatrix4f":
+  182071.961 ±(99.9%) 3847.769 ns/op [Average]
+  (min, avg, max) = (181456.486, 182071.961, 183829.308), stdev = 999.253
+  CI (99.9%): [178224.193, 185919.730] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.InstanceUploadBenchmark.instanceUploadMatrix4fChunked
+# Parameters: (accessPattern = hot, chunkSize = 256, dataDistribution = uniform, instances = 16384, traversalMode = SEQUENTIAL)
+
+# Run progress: 25.00% complete, ETA 00:00:24
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 186472.522 ns/op
+# Warmup Iteration   2: 174216.282 ns/op
+# Warmup Iteration   3: 174199.232 ns/op
+Iteration   1: 172354.666 ns/op
+Iteration   2: 171401.572 ns/op
+Iteration   3: 172037.536 ns/op
+Iteration   4: 173971.543 ns/op
+Iteration   5: 171868.983 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.InstanceUploadBenchmark.instanceUploadMatrix4fChunked":
+  172326.860 ±(99.9%) 3780.341 ns/op [Average]
+  (min, avg, max) = (171401.572, 172326.860, 173971.543), stdev = 981.742
+  CI (99.9%): [168546.519, 176107.201] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.InstanceUploadBenchmark.instanceUploadPackedAffine
+# Parameters: (accessPattern = hot, chunkSize = 256, dataDistribution = uniform, instances = 16384, traversalMode = SEQUENTIAL)
+
+# Run progress: 50.00% complete, ETA 00:00:16
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 57410.553 ns/op
+# Warmup Iteration   2: 55805.586 ns/op
+# Warmup Iteration   3: 57053.999 ns/op
+Iteration   1: 55525.553 ns/op
+Iteration   2: 55556.962 ns/op
+Iteration   3: 55487.091 ns/op
+Iteration   4: 56037.644 ns/op
+Iteration   5: 54081.046 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.InstanceUploadBenchmark.instanceUploadPackedAffine":
+  55337.659 ±(99.9%) 2839.300 ns/op [Average]
+  (min, avg, max) = (54081.046, 55337.659, 56037.644), stdev = 737.357
+  CI (99.9%): [52498.359, 58176.959] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.InstanceUploadBenchmark.instanceUploadPackedAffineChunked
+# Parameters: (accessPattern = hot, chunkSize = 256, dataDistribution = uniform, instances = 16384, traversalMode = SEQUENTIAL)
+
+# Run progress: 75.00% complete, ETA 00:00:08
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 57786.014 ns/op
+# Warmup Iteration   2: 56289.986 ns/op
+# Warmup Iteration   3: 56348.128 ns/op
+Iteration   1: 56336.237 ns/op
+Iteration   2: 56175.146 ns/op
+Iteration   3: 57132.249 ns/op
+Iteration   4: 58139.778 ns/op
+Iteration   5: 58798.296 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.InstanceUploadBenchmark.instanceUploadPackedAffineChunked":
+  57316.341 ±(99.9%) 4378.175 ns/op [Average]
+  (min, avg, max) = (56175.146, 57316.341, 58798.296), stdev = 1136.998
+  CI (99.9%): [52938.166, 61694.516] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:00:33
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                                                  (accessPattern)  (chunkSize)  (dataDistribution)  (instances)  (traversalMode)  Mode  Cnt       Score      Error  Units
+InstanceUploadBenchmark.instanceUploadMatrix4f                         hot          256             uniform        16384       SEQUENTIAL  avgt    5  182071.961 ± 3847.769  ns/op
+InstanceUploadBenchmark.instanceUploadMatrix4fChunked                  hot          256             uniform        16384       SEQUENTIAL  avgt    5  172326.860 ± 3780.341  ns/op
+InstanceUploadBenchmark.instanceUploadPackedAffine                     hot          256             uniform        16384       SEQUENTIAL  avgt    5   55337.659 ± 2839.300  ns/op
+InstanceUploadBenchmark.instanceUploadPackedAffineChunked              hot          256             uniform        16384       SEQUENTIAL  avgt    5   57316.341 ± 4378.175  ns/op
+
+Benchmark result is saved to bench-out/instance-upload.csv

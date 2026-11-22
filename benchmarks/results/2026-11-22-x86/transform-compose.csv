@@ -1,0 +1,13 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: size"
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeAffineBatch","avgt",1,5,554.829583,10.941534,"ns/op",64
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeAffineBatch","avgt",1,5,9395.005410,88.868149,"ns/op",1024
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeAffineBatch","avgt",1,5,249374.903156,7153.750751,"ns/op",16384
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeMatrixBatch","avgt",1,5,688.072149,3.742952,"ns/op",64
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeMatrixBatch","avgt",1,5,11871.480052,286.453520,"ns/op",1024
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeMatrixBatch","avgt",1,5,306476.042709,876.114824,"ns/op",16384
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeObjectBatch","avgt",1,5,721.798626,13.056662,"ns/op",64
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeObjectBatch","avgt",1,5,11756.045960,117.909534,"ns/op",1024
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeObjectBatch","avgt",1,5,355577.461265,19742.581224,"ns/op",16384
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeSoABatch","avgt",1,5,108.161107,3.048195,"ns/op",64
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeSoABatch","avgt",1,5,3267.740472,46.815841,"ns/op",1024
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeSoABatch","avgt",1,5,63160.430790,1443.213067,"ns/op",16384

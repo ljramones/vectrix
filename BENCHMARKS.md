@@ -59,7 +59,7 @@ All values are ns per call; "per item" divides by the batch size.
 | 16 | 29.6 | 29.5 | 32.3 | 28.3 |
 | 256 | 457 | 473 | 511 | 449 |
 
-FFM (the default) matches or beats Unsafe for loops of transfers; an isolated transfer costs about 1 ns more.
+On this arm64 machine FFM (the default) matches or beats Unsafe for loops of transfers; an isolated transfer costs about 1 ns more. On x86_64 FFM is slower in loops too (see the x86_64 snapshot).
 
 Where that 1 ns goes (`FfmAccessBenchmark`, 2026-11-22, three forks): per matrix inside a loop of 16, FFM costs 1.91 ns
 and Unsafe 2.06 ns, so the stores themselves are not slower. The extra cost of a single call (3.36 vs 2.21 ns) is a
@@ -132,6 +132,44 @@ Compared with the February snapshot, per item:
   test (`ShConsistencyTest`) that keeps every copy of the formulas bit-identical. SH and FFT rows above are the
   re-measured values (`sh-after-fix`, `fft-after-fix`).
 - Other differences are within about 15 % and mostly within run-to-run noise for a single fork.
+
+## x86_64 Snapshot (2026-11-22)
+Same groups and profile as the 2026-11-21 snapshot (`scripts/bench-snapshot.sh`), run by the `Benchmark Snapshot`
+workflow on a GitHub-hosted runner: Intel Xeon Platinum 8573C (AVX-512, 4 vCPUs, shared VM), Ubuntu, Temurin
+25.0.5. Raw results and `environment.txt`: `benchmarks/results/2026-11-22-x86/`. A shared VM is slower and noisier
+than the M4 workstation (most errors stay under 5 %), so compare ratios within this run, not absolute times across
+machines.
+
+**SIMD vs scalar** (same machine, ns per batch):
+
+| Kernel | Shape | Vector API | Scalar | Speed-up (x86) | Speed-up (M4) |
+|---|---|---:|---:|---:|---:|
+| `TransformKernels.composeBatch` (SoA) | 64 | 108 | 636 | 5.9× | 3.6× |
+| `TransformKernels.composeBatch` (SoA) | 1024 | 3 268 | 10 032 | 3.1× | 3.6× |
+| `TransformKernels.composeBatch` (SoA) | 16384 | 63 160 | 213 577 | 3.4× | bimodal |
+| `CullingKernels.frustumCullAabbBatch` | 16384 | 69 097 (`SimdForced`) | 187 977 | 2.7× | 1.15× |
+
+AVX-512 gives the SIMD kernels much more headroom than NEON. Culling's default dispatch (`batchKernelAuto`, 189 199)
+still takes the scalar path, because SIMD culling is opt-in (`-Dvectrix.culling.simd=true`): it classifies
+identically except for NaN bounds. On x86 that leaves a 2.7× speed-up unused by default.
+
+**Memory backends** (ns per call, one `Matrix4f` per transfer):
+
+| Matrices per loop | FFM, ByteBuffer | Unsafe, ByteBuffer | FFM raw address (write + read) | Unsafe raw address |
+|---|---:|---:|---:|---:|
+| 1 | 6.0 | 3.3 | 16.7 | 9.3 |
+| 16 | 57.0 | 48.1 | 183 | 113 |
+| 256 | 863 | 783 | 2 285 | 1 829 |
+
+Unlike on arm64, FFM is slower than Unsafe on x86 even in loops: about 10 % for buffer transfers and 25 % for the
+raw-address API at 256 matrices, and about 2× for a single transfer. FFM remains the default for safety (bounds
+checks, no deprecated API); `-Djoml.forceUnsafe=true` recovers the difference where it matters.
+
+**Defaults re-checked on x86:** packed affine stays the fastest bulk form (AABB transform 166 µs vs 513 µs for
+`Matrix4f` at 16384; instance upload 55 µs vs 182 µs), and matrix-palette tight LBS stays the fastest skinning path
+(72 µs vs 98 µs for quaternion LBS at 4096 vertices). `skinLbs4SoASimdForced` equals scalar, as on arm64: there is no
+SIMD skinning kernel. The removed gather-based kernel was 6.8× slower on NEON; with AVX-512 gathers it might behave
+differently, but it would have to be rebuilt to measure.
 
 ## Historical Snapshot (2026-03-06)
 Superseded by the 2026-11-21 snapshot above; kept for the decision history. Its SIMD figures measured scalar code

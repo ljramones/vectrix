@@ -13,6 +13,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   determinism golden, which it matches bit for bit.
 - `scripts/bench-snapshot.sh`, the benchmark groups behind the `BENCHMARKS.md` snapshot, and a manually triggered
   `Benchmark Snapshot` workflow that runs it on a GitHub-hosted x86_64 or arm64 runner.
+- `BENCHMARKS.md` x86_64 snapshot (Xeon Platinum 8573C, AVX-512): SIMD transform compose 3.1–5.9× faster than
+  scalar and SIMD culling 2.7× faster, which default dispatch leaves unused because SIMD culling is opt-in. FFM is
+  10–25 % slower than Unsafe in loops on x86, unlike on arm64.
 - Test fixtures (`ValueFixtures`) fill and compare primitive-array state, so array-backed types (`ShCoeffs*`,
   `FrustumPlanes`) are now driven by `TwinParityTest`, `AliasingTest` and the determinism golden. The golden gains 32
   entries, among them every `ShProjection` and `ShConvolution` method; nothing already in it changed.

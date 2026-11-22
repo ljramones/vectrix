@@ -1,0 +1,3 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: complexCount"
+"org.dynamisengine.vectrix.bench.FftBenchmark.circularConvolution","avgt",1,5,45130.739418,372.683810,"ns/op",1024
+"org.dynamisengine.vectrix.bench.FftBenchmark.forwardInverse","avgt",1,5,29276.925759,248.774826,"ns/op",1024

@@ -1,0 +1,25 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: matrices"
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressFfm","avgt",1,5,16.718806,0.406218,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressFfm","avgt",1,5,183.315969,8.363362,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressFfm","avgt",1,5,2285.230143,22.524226,"ns/op",256
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressUnsafe","avgt",1,5,9.276067,0.789794,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressUnsafe","avgt",1,5,113.243666,2.479709,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressUnsafe","avgt",1,5,1828.492616,10.045865,"ns/op",256
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioByteBuffer","avgt",1,5,6.040452,0.117598,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioByteBuffer","avgt",1,5,57.357410,1.044617,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioByteBuffer","avgt",1,5,854.442450,3.954897,"ns/op",256
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioFloatBuffer","avgt",1,5,5.661491,0.105634,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioFloatBuffer","avgt",1,5,54.594256,0.655114,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioFloatBuffer","avgt",1,5,817.129557,15.764615,"ns/op",256
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathByteBuffer","avgt",1,5,6.037126,0.075979,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathByteBuffer","avgt",1,5,57.031817,1.090550,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathByteBuffer","avgt",1,5,863.167385,1.336151,"ns/op",256
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathFloatBuffer","avgt",1,5,5.663283,0.048926,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathFloatBuffer","avgt",1,5,54.882850,2.510245,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathFloatBuffer","avgt",1,5,813.673027,2.586370,"ns/op",256
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathByteBuffer","avgt",1,5,3.251045,0.084703,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathByteBuffer","avgt",1,5,48.094641,0.090570,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathByteBuffer","avgt",1,5,783.394833,14.454531,"ns/op",256
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathFloatBuffer","avgt",1,5,3.047869,0.011102,"ns/op",1
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathFloatBuffer","avgt",1,5,45.474144,0.488915,"ns/op",16
+"org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathFloatBuffer","avgt",1,5,762.608493,36.598136,"ns/op",256

@@ -1,0 +1,5 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: accessPattern","Param: chunkSize","Param: dataDistribution","Param: instances","Param: traversalMode"
+"org.dynamisengine.vectrix.bench.InstanceUploadBenchmark.instanceUploadMatrix4f","avgt",1,5,182071.961295,3847.768635,"ns/op",hot,256,uniform,16384,SEQUENTIAL
+"org.dynamisengine.vectrix.bench.InstanceUploadBenchmark.instanceUploadMatrix4fChunked","avgt",1,5,172326.860014,3780.340555,"ns/op",hot,256,uniform,16384,SEQUENTIAL
+"org.dynamisengine.vectrix.bench.InstanceUploadBenchmark.instanceUploadPackedAffine","avgt",1,5,55337.659094,2839.300066,"ns/op",hot,256,uniform,16384,SEQUENTIAL
+"org.dynamisengine.vectrix.bench.InstanceUploadBenchmark.instanceUploadPackedAffineChunked","avgt",1,5,57316.340937,4378.174912,"ns/op",hot,256,uniform,16384,SEQUENTIAL

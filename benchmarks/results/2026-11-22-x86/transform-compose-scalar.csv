@@ -1,0 +1,4 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: size"
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeSoABatch","avgt",1,5,635.603099,18.768306,"ns/op",64
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeSoABatch","avgt",1,5,10031.957161,300.403940,"ns/op",1024
+"org.dynamisengine.vectrix.bench.TransformComposeBenchmark.composeSoABatch","avgt",1,5,213577.050190,510.593762,"ns/op",16384

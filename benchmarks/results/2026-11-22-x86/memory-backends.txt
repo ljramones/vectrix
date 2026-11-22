@@ -1,0 +1,909 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector --enable-native-access=ALL-UNNAMED
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressFfm
+# Parameters: (matrices = 1)
+
+# Run progress: 0.00% complete, ETA 00:03:12
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 15.351 ns/op
+# Warmup Iteration   2: 13.907 ns/op
+# Warmup Iteration   3: 16.909 ns/op
+Iteration   1: 16.896 ns/op
+Iteration   2: 16.639 ns/op
+Iteration   3: 16.687 ns/op
+Iteration   4: 16.728 ns/op
+Iteration   5: 16.645 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressFfm":
+  16.719 ±(99.9%) 0.406 ns/op [Average]
+  (min, avg, max) = (16.639, 16.719, 16.896), stdev = 0.105
+  CI (99.9%): [16.313, 17.125] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector --enable-native-access=ALL-UNNAMED
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressFfm
+# Parameters: (matrices = 16)
+
+# Run progress: 4.17% complete, ETA 00:03:11
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 203.277 ns/op
+# Warmup Iteration   2: 183.965 ns/op
+# Warmup Iteration   3: 181.915 ns/op
+Iteration   1: 182.829 ns/op
+Iteration   2: 182.625 ns/op
+Iteration   3: 181.981 ns/op
+Iteration   4: 187.143 ns/op
+Iteration   5: 182.001 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressFfm":
+  183.316 ±(99.9%) 8.363 ns/op [Average]
+  (min, avg, max) = (181.981, 183.316, 187.143), stdev = 2.172
+  CI (99.9%): [174.953, 191.679] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector --enable-native-access=ALL-UNNAMED
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressFfm
+# Parameters: (matrices = 256)
+
+# Run progress: 8.33% complete, ETA 00:03:02
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 2556.232 ns/op
+# Warmup Iteration   2: 2309.198 ns/op
+# Warmup Iteration   3: 2281.883 ns/op
+Iteration   1: 2287.666 ns/op
+Iteration   2: 2285.578 ns/op
+Iteration   3: 2275.260 ns/op
+Iteration   4: 2290.493 ns/op
+Iteration   5: 2287.155 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressFfm":
+  2285.230 ±(99.9%) 22.524 ns/op [Average]
+  (min, avg, max) = (2275.260, 2285.230, 2290.493), stdev = 5.849
+  CI (99.9%): [2262.706, 2307.754] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.forceUnsafe=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressUnsafe
+# Parameters: (matrices = 1)
+
+# Run progress: 12.50% complete, ETA 00:02:54
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 8.818 ns/op
+# Warmup Iteration   2: 8.904 ns/op
+# Warmup Iteration   3: 9.190 ns/op
+Iteration   1: 9.187 ns/op
+Iteration   2: 9.173 ns/op
+Iteration   3: 9.193 ns/op
+Iteration   4: 9.184 ns/op
+Iteration   5: 9.643 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressUnsafe":
+  9.276 ±(99.9%) 0.790 ns/op [Average]
+  (min, avg, max) = (9.173, 9.276, 9.643), stdev = 0.205
+  CI (99.9%): [8.486, 10.066] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.forceUnsafe=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressUnsafe
+# Parameters: (matrices = 16)
+
+# Run progress: 16.67% complete, ETA 00:02:45
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 117.646 ns/op
+# Warmup Iteration   2: 114.295 ns/op
+# Warmup Iteration   3: 112.922 ns/op
+Iteration   1: 112.850 ns/op
+Iteration   2: 113.123 ns/op
+Iteration   3: 113.114 ns/op
+Iteration   4: 114.361 ns/op
+Iteration   5: 112.771 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressUnsafe":
+  113.244 ±(99.9%) 2.480 ns/op [Average]
+  (min, avg, max) = (112.771, 113.244, 114.361), stdev = 0.644
+  CI (99.9%): [110.764, 115.723] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.forceUnsafe=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressUnsafe
+# Parameters: (matrices = 256)
+
+# Run progress: 20.83% complete, ETA 00:02:37
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 1917.445 ns/op
+# Warmup Iteration   2: 1822.825 ns/op
+# Warmup Iteration   3: 1834.089 ns/op
+Iteration   1: 1829.643 ns/op
+Iteration   2: 1829.974 ns/op
+Iteration   3: 1831.209 ns/op
+Iteration   4: 1824.811 ns/op
+Iteration   5: 1826.826 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.addressUnsafe":
+  1828.493 ±(99.9%) 10.046 ns/op [Average]
+  (min, avg, max) = (1824.811, 1828.493, 1831.209), stdev = 2.609
+  CI (99.9%): [1818.447, 1838.538] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.nounsafe=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioByteBuffer
+# Parameters: (matrices = 1)
+
+# Run progress: 25.00% complete, ETA 00:02:29
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 6.671 ns/op
+# Warmup Iteration   2: 7.953 ns/op
+# Warmup Iteration   3: 6.022 ns/op
+Iteration   1: 6.041 ns/op
+Iteration   2: 6.025 ns/op
+Iteration   3: 6.020 ns/op
+Iteration   4: 6.023 ns/op
+Iteration   5: 6.093 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioByteBuffer":
+  6.040 ±(99.9%) 0.118 ns/op [Average]
+  (min, avg, max) = (6.020, 6.040, 6.093), stdev = 0.031
+  CI (99.9%): [5.923, 6.158] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.nounsafe=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioByteBuffer
+# Parameters: (matrices = 16)
+
+# Run progress: 29.17% complete, ETA 00:02:20
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 60.564 ns/op
+# Warmup Iteration   2: 57.349 ns/op
+# Warmup Iteration   3: 57.490 ns/op
+Iteration   1: 57.595 ns/op
+Iteration   2: 57.111 ns/op
+Iteration   3: 57.098 ns/op
+Iteration   4: 57.300 ns/op
+Iteration   5: 57.684 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioByteBuffer":
+  57.357 ±(99.9%) 1.045 ns/op [Average]
+  (min, avg, max) = (57.098, 57.357, 57.684), stdev = 0.271
+  CI (99.9%): [56.313, 58.402] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.nounsafe=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioByteBuffer
+# Parameters: (matrices = 256)
+
+# Run progress: 33.33% complete, ETA 00:02:12
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 920.927 ns/op
+# Warmup Iteration   2: 855.394 ns/op
+# Warmup Iteration   3: 856.040 ns/op
+Iteration   1: 855.328 ns/op
+Iteration   2: 855.360 ns/op
+Iteration   3: 853.440 ns/op
+Iteration   4: 853.246 ns/op
+Iteration   5: 854.839 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioByteBuffer":
+  854.442 ±(99.9%) 3.955 ns/op [Average]
+  (min, avg, max) = (853.246, 854.442, 855.360), stdev = 1.027
+  CI (99.9%): [850.488, 858.397] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.nounsafe=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioFloatBuffer
+# Parameters: (matrices = 1)
+
+# Run progress: 37.50% complete, ETA 00:02:04
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 9.489 ns/op
+# Warmup Iteration   2: 9.068 ns/op
+# Warmup Iteration   3: 8.942 ns/op
+Iteration   1: 5.708 ns/op
+Iteration   2: 5.649 ns/op
+Iteration   3: 5.643 ns/op
+Iteration   4: 5.664 ns/op
+Iteration   5: 5.644 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioFloatBuffer":
+  5.661 ±(99.9%) 0.106 ns/op [Average]
+  (min, avg, max) = (5.643, 5.661, 5.708), stdev = 0.027
+  CI (99.9%): [5.556, 5.767] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.nounsafe=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioFloatBuffer
+# Parameters: (matrices = 16)
+
+# Run progress: 41.67% complete, ETA 00:01:55
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 58.616 ns/op
+# Warmup Iteration   2: 54.509 ns/op
+# Warmup Iteration   3: 54.590 ns/op
+Iteration   1: 54.590 ns/op
+Iteration   2: 54.504 ns/op
+Iteration   3: 54.498 ns/op
+Iteration   4: 54.490 ns/op
+Iteration   5: 54.890 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioFloatBuffer":
+  54.594 ±(99.9%) 0.655 ns/op [Average]
+  (min, avg, max) = (54.490, 54.594, 54.890), stdev = 0.170
+  CI (99.9%): [53.939, 55.249] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.nounsafe=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioFloatBuffer
+# Parameters: (matrices = 256)
+
+# Run progress: 45.83% complete, ETA 00:01:47
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 879.048 ns/op
+# Warmup Iteration   2: 828.242 ns/op
+# Warmup Iteration   3: 816.204 ns/op
+Iteration   1: 824.033 ns/op
+Iteration   2: 813.403 ns/op
+Iteration   3: 815.408 ns/op
+Iteration   4: 815.542 ns/op
+Iteration   5: 817.262 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmOrNioFloatBuffer":
+  817.130 ±(99.9%) 15.765 ns/op [Average]
+  (min, avg, max) = (813.403, 817.130, 824.033), stdev = 4.094
+  CI (99.9%): [801.365, 832.894] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.forceFfm=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathByteBuffer
+# Parameters: (matrices = 1)
+
+# Run progress: 50.00% complete, ETA 00:01:39
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 6.825 ns/op
+# Warmup Iteration   2: 7.995 ns/op
+# Warmup Iteration   3: 6.016 ns/op
+Iteration   1: 6.068 ns/op
+Iteration   2: 6.046 ns/op
+Iteration   3: 6.022 ns/op
+Iteration   4: 6.026 ns/op
+Iteration   5: 6.023 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathByteBuffer":
+  6.037 ±(99.9%) 0.076 ns/op [Average]
+  (min, avg, max) = (6.022, 6.037, 6.068), stdev = 0.020
+  CI (99.9%): [5.961, 6.113] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.forceFfm=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathByteBuffer
+# Parameters: (matrices = 16)
+
+# Run progress: 54.17% complete, ETA 00:01:30
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 60.696 ns/op
+# Warmup Iteration   2: 57.027 ns/op
+# Warmup Iteration   3: 57.053 ns/op
+Iteration   1: 56.863 ns/op
+Iteration   2: 57.522 ns/op
+Iteration   3: 56.857 ns/op
+Iteration   4: 56.884 ns/op
+Iteration   5: 57.034 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathByteBuffer":
+  57.032 ±(99.9%) 1.091 ns/op [Average]
+  (min, avg, max) = (56.857, 57.032, 57.522), stdev = 0.283
+  CI (99.9%): [55.941, 58.122] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.forceFfm=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathByteBuffer
+# Parameters: (matrices = 256)
+
+# Run progress: 58.33% complete, ETA 00:01:22
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 927.601 ns/op
+# Warmup Iteration   2: 872.481 ns/op
+# Warmup Iteration   3: 862.969 ns/op
+Iteration   1: 863.492 ns/op
+Iteration   2: 863.279 ns/op
+Iteration   3: 862.612 ns/op
+Iteration   4: 863.072 ns/op
+Iteration   5: 863.382 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathByteBuffer":
+  863.167 ±(99.9%) 1.336 ns/op [Average]
+  (min, avg, max) = (862.612, 863.167, 863.492), stdev = 0.347
+  CI (99.9%): [861.831, 864.504] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.forceFfm=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathFloatBuffer
+# Parameters: (matrices = 1)
+
+# Run progress: 62.50% complete, ETA 00:01:14
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 9.403 ns/op
+# Warmup Iteration   2: 9.093 ns/op
+# Warmup Iteration   3: 5.659 ns/op
+Iteration   1: 5.684 ns/op
+Iteration   2: 5.657 ns/op
+Iteration   3: 5.661 ns/op
+Iteration   4: 5.651 ns/op
+Iteration   5: 5.663 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathFloatBuffer":
+  5.663 ±(99.9%) 0.049 ns/op [Average]
+  (min, avg, max) = (5.651, 5.663, 5.684), stdev = 0.013
+  CI (99.9%): [5.614, 5.712] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.forceFfm=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathFloatBuffer
+# Parameters: (matrices = 16)
+
+# Run progress: 66.67% complete, ETA 00:01:06
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 58.268 ns/op
+# Warmup Iteration   2: 55.600 ns/op
+# Warmup Iteration   3: 54.400 ns/op
+Iteration   1: 54.717 ns/op
+Iteration   2: 54.566 ns/op
+Iteration   3: 54.507 ns/op
+Iteration   4: 56.041 ns/op
+Iteration   5: 54.582 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathFloatBuffer":
+  54.883 ±(99.9%) 2.510 ns/op [Average]
+  (min, avg, max) = (54.507, 54.883, 56.041), stdev = 0.652
+  CI (99.9%): [52.373, 57.393] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.forceFfm=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathFloatBuffer
+# Parameters: (matrices = 256)
+
+# Run progress: 70.83% complete, ETA 00:00:57
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 882.345 ns/op
+# Warmup Iteration   2: 830.903 ns/op
+# Warmup Iteration   3: 818.101 ns/op
+Iteration   1: 812.549 ns/op
+Iteration   2: 813.593 ns/op
+Iteration   3: 814.123 ns/op
+Iteration   4: 813.896 ns/op
+Iteration   5: 814.204 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferFfmPathFloatBuffer":
+  813.673 ±(99.9%) 2.586 ns/op [Average]
+  (min, avg, max) = (812.549, 813.673, 814.204), stdev = 0.672
+  CI (99.9%): [811.087, 816.259] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.noffm=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathByteBuffer
+# Parameters: (matrices = 1)
+
+# Run progress: 75.00% complete, ETA 00:00:49
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 3.776 ns/op
+# Warmup Iteration   2: 3.763 ns/op
+# Warmup Iteration   3: 3.274 ns/op
+Iteration   1: 3.235 ns/op
+Iteration   2: 3.245 ns/op
+Iteration   3: 3.252 ns/op
+Iteration   4: 3.235 ns/op
+Iteration   5: 3.288 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathByteBuffer":
+  3.251 ±(99.9%) 0.085 ns/op [Average]
+  (min, avg, max) = (3.235, 3.251, 3.288), stdev = 0.022
+  CI (99.9%): [3.166, 3.336] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.noffm=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathByteBuffer
+# Parameters: (matrices = 16)
+
+# Run progress: 79.17% complete, ETA 00:00:41
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 53.457 ns/op
+# Warmup Iteration   2: 53.770 ns/op
+# Warmup Iteration   3: 48.437 ns/op
+Iteration   1: 48.083 ns/op
+Iteration   2: 48.067 ns/op
+Iteration   3: 48.094 ns/op
+Iteration   4: 48.098 ns/op
+Iteration   5: 48.131 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathByteBuffer":
+  48.095 ±(99.9%) 0.091 ns/op [Average]
+  (min, avg, max) = (48.067, 48.095, 48.131), stdev = 0.024
+  CI (99.9%): [48.004, 48.185] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.noffm=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathByteBuffer
+# Parameters: (matrices = 256)
+
+# Run progress: 83.33% complete, ETA 00:00:33
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 857.183 ns/op
+# Warmup Iteration   2: 880.591 ns/op
+# Warmup Iteration   3: 780.736 ns/op
+Iteration   1: 780.757 ns/op
+Iteration   2: 785.690 ns/op
+Iteration   3: 780.126 ns/op
+Iteration   4: 788.870 ns/op
+Iteration   5: 781.531 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathByteBuffer":
+  783.395 ±(99.9%) 14.455 ns/op [Average]
+  (min, avg, max) = (780.126, 783.395, 788.870), stdev = 3.754
+  CI (99.9%): [768.940, 797.849] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.noffm=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathFloatBuffer
+# Parameters: (matrices = 1)
+
+# Run progress: 87.50% complete, ETA 00:00:24
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 3.217 ns/op
+# Warmup Iteration   2: 3.187 ns/op
+# Warmup Iteration   3: 3.167 ns/op
+Iteration   1: 3.044 ns/op
+Iteration   2: 3.047 ns/op
+Iteration   3: 3.051 ns/op
+Iteration   4: 3.046 ns/op
+Iteration   5: 3.051 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathFloatBuffer":
+  3.048 ±(99.9%) 0.011 ns/op [Average]
+  (min, avg, max) = (3.044, 3.048, 3.051), stdev = 0.003
+  CI (99.9%): [3.037, 3.059] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.noffm=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathFloatBuffer
+# Parameters: (matrices = 16)
+
+# Run progress: 91.67% complete, ETA 00:00:16
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 48.777 ns/op
+# Warmup Iteration   2: 48.490 ns/op
+# Warmup Iteration   3: 45.348 ns/op
+Iteration   1: 45.696 ns/op
+Iteration   2: 45.399 ns/op
+Iteration   3: 45.387 ns/op
+Iteration   4: 45.452 ns/op
+Iteration   5: 45.436 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathFloatBuffer":
+  45.474 ±(99.9%) 0.489 ns/op [Average]
+  (min, avg, max) = (45.387, 45.474, 45.696), stdev = 0.127
+  CI (99.9%): [44.985, 45.963] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector -Djoml.noffm=true
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathFloatBuffer
+# Parameters: (matrices = 256)
+
+# Run progress: 95.83% complete, ETA 00:00:08
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 815.295 ns/op
+# Warmup Iteration   2: 805.229 ns/op
+# Warmup Iteration   3: 758.252 ns/op
+Iteration   1: 779.596 ns/op
+Iteration   2: 758.681 ns/op
+Iteration   3: 758.761 ns/op
+Iteration   4: 757.771 ns/op
+Iteration   5: 758.233 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.MemoryBackendBenchmark.transferUnsafePathFloatBuffer":
+  762.608 ±(99.9%) 36.598 ns/op [Average]
+  (min, avg, max) = (757.771, 762.608, 779.596), stdev = 9.504
+  CI (99.9%): [726.010, 799.207] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:03:18
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                                             (matrices)  Mode  Cnt     Score    Error  Units
+MemoryBackendBenchmark.addressFfm                              1  avgt    5    16.719 ±  0.406  ns/op
+MemoryBackendBenchmark.addressFfm                             16  avgt    5   183.316 ±  8.363  ns/op
+MemoryBackendBenchmark.addressFfm                            256  avgt    5  2285.230 ± 22.524  ns/op
+MemoryBackendBenchmark.addressUnsafe                           1  avgt    5     9.276 ±  0.790  ns/op
+MemoryBackendBenchmark.addressUnsafe                          16  avgt    5   113.244 ±  2.480  ns/op
+MemoryBackendBenchmark.addressUnsafe                         256  avgt    5  1828.493 ± 10.046  ns/op
+MemoryBackendBenchmark.transferFfmOrNioByteBuffer              1  avgt    5     6.040 ±  0.118  ns/op
+MemoryBackendBenchmark.transferFfmOrNioByteBuffer             16  avgt    5    57.357 ±  1.045  ns/op
+MemoryBackendBenchmark.transferFfmOrNioByteBuffer            256  avgt    5   854.442 ±  3.955  ns/op
+MemoryBackendBenchmark.transferFfmOrNioFloatBuffer             1  avgt    5     5.661 ±  0.106  ns/op
+MemoryBackendBenchmark.transferFfmOrNioFloatBuffer            16  avgt    5    54.594 ±  0.655  ns/op
+MemoryBackendBenchmark.transferFfmOrNioFloatBuffer           256  avgt    5   817.130 ± 15.765  ns/op
+MemoryBackendBenchmark.transferFfmPathByteBuffer               1  avgt    5     6.037 ±  0.076  ns/op
+MemoryBackendBenchmark.transferFfmPathByteBuffer              16  avgt    5    57.032 ±  1.091  ns/op
+MemoryBackendBenchmark.transferFfmPathByteBuffer             256  avgt    5   863.167 ±  1.336  ns/op
+MemoryBackendBenchmark.transferFfmPathFloatBuffer              1  avgt    5     5.663 ±  0.049  ns/op
+MemoryBackendBenchmark.transferFfmPathFloatBuffer             16  avgt    5    54.883 ±  2.510  ns/op
+MemoryBackendBenchmark.transferFfmPathFloatBuffer            256  avgt    5   813.673 ±  2.586  ns/op
+MemoryBackendBenchmark.transferUnsafePathByteBuffer            1  avgt    5     3.251 ±  0.085  ns/op
+MemoryBackendBenchmark.transferUnsafePathByteBuffer           16  avgt    5    48.095 ±  0.091  ns/op
+MemoryBackendBenchmark.transferUnsafePathByteBuffer          256  avgt    5   783.395 ± 14.455  ns/op
+MemoryBackendBenchmark.transferUnsafePathFloatBuffer           1  avgt    5     3.048 ±  0.011  ns/op
+MemoryBackendBenchmark.transferUnsafePathFloatBuffer          16  avgt    5    45.474 ±  0.489  ns/op
+MemoryBackendBenchmark.transferUnsafePathFloatBuffer         256  avgt    5   762.608 ± 36.598  ns/op
+
+Benchmark result is saved to bench-out/memory-backends.csv

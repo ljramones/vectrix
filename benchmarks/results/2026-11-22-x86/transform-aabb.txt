@@ -1,0 +1,243 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatch
+# Parameters: (accessPattern = hot, chunkSize = 256, count = 16384, dataDistribution = uniform, representation = matrix4f, traversalMode = SEQUENTIAL)
+
+# Run progress: 0.00% complete, ETA 00:00:48
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 518516.585 ns/op
+# Warmup Iteration   2: 520725.707 ns/op
+# Warmup Iteration   3: 515087.100 ns/op
+Iteration   1: 512678.046 ns/op
+Iteration   2: 514260.266 ns/op
+Iteration   3: 515550.353 ns/op
+Iteration   4: 512780.230 ns/op
+Iteration   5: 511336.407 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatch":
+  513321.060 ±(99.9%) 6237.765 ns/op [Average]
+  (min, avg, max) = (511336.407, 513321.060, 515550.353), stdev = 1619.928
+  CI (99.9%): [507083.295, 519558.825] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatch
+# Parameters: (accessPattern = hot, chunkSize = 256, count = 16384, dataDistribution = uniform, representation = affine4x3, traversalMode = SEQUENTIAL)
+
+# Run progress: 16.67% complete, ETA 00:00:41
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 519556.512 ns/op
+# Warmup Iteration   2: 515699.793 ns/op
+# Warmup Iteration   3: 513694.512 ns/op
+Iteration   1: 514954.388 ns/op
+Iteration   2: 514139.629 ns/op
+Iteration   3: 516906.659 ns/op
+Iteration   4: 515623.286 ns/op
+Iteration   5: 521939.508 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatch":
+  516712.694 ±(99.9%) 11908.442 ns/op [Average]
+  (min, avg, max) = (514139.629, 516712.694, 521939.508), stdev = 3092.585
+  CI (99.9%): [504804.252, 528621.136] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatch
+# Parameters: (accessPattern = hot, chunkSize = 256, count = 16384, dataDistribution = uniform, representation = packedAffine, traversalMode = SEQUENTIAL)
+
+# Run progress: 33.33% complete, ETA 00:00:33
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 176340.736 ns/op
+# Warmup Iteration   2: 164947.057 ns/op
+# Warmup Iteration   3: 165626.158 ns/op
+Iteration   1: 168107.348 ns/op
+Iteration   2: 166250.626 ns/op
+Iteration   3: 164931.661 ns/op
+Iteration   4: 164708.757 ns/op
+Iteration   5: 166787.143 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatch":
+  166157.107 ±(99.9%) 5380.084 ns/op [Average]
+  (min, avg, max) = (164708.757, 166157.107, 168107.348), stdev = 1397.191
+  CI (99.9%): [160777.023, 171537.191] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatchChunked
+# Parameters: (accessPattern = hot, chunkSize = 256, count = 16384, dataDistribution = uniform, representation = matrix4f, traversalMode = SEQUENTIAL)
+
+# Run progress: 50.00% complete, ETA 00:00:24
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 514898.568 ns/op
+# Warmup Iteration   2: 506117.172 ns/op
+# Warmup Iteration   3: 504390.255 ns/op
+Iteration   1: 503325.174 ns/op
+Iteration   2: 500794.040 ns/op
+Iteration   3: 501843.792 ns/op
+Iteration   4: 509251.956 ns/op
+Iteration   5: 500403.464 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatchChunked":
+  503123.685 ±(99.9%) 13891.872 ns/op [Average]
+  (min, avg, max) = (500403.464, 503123.685, 509251.956), stdev = 3607.675
+  CI (99.9%): [489231.813, 517015.557] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatchChunked
+# Parameters: (accessPattern = hot, chunkSize = 256, count = 16384, dataDistribution = uniform, representation = affine4x3, traversalMode = SEQUENTIAL)
+
+# Run progress: 66.67% complete, ETA 00:00:16
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 509457.879 ns/op
+# Warmup Iteration   2: 507284.052 ns/op
+# Warmup Iteration   3: 504387.602 ns/op
+Iteration   1: 513311.405 ns/op
+Iteration   2: 502274.394 ns/op
+Iteration   3: 511217.855 ns/op
+Iteration   4: 505349.358 ns/op
+Iteration   5: 504537.109 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatchChunked":
+  507338.024 ±(99.9%) 18079.033 ns/op [Average]
+  (min, avg, max) = (502274.394, 507338.024, 513311.405), stdev = 4695.068
+  CI (99.9%): [489258.991, 525417.057] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatchChunked
+# Parameters: (accessPattern = hot, chunkSize = 256, count = 16384, dataDistribution = uniform, representation = packedAffine, traversalMode = SEQUENTIAL)
+
+# Run progress: 83.33% complete, ETA 00:00:08
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 178528.639 ns/op
+# Warmup Iteration   2: 167744.071 ns/op
+# Warmup Iteration   3: 167939.121 ns/op
+Iteration   1: 167669.619 ns/op
+Iteration   2: 168851.179 ns/op
+Iteration   3: 167603.781 ns/op
+Iteration   4: 167510.625 ns/op
+Iteration   5: 167494.891 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.TransformAabbBenchmark.transformAabbBatchChunked":
+  167826.019 ±(99.9%) 2223.661 ns/op [Average]
+  (min, avg, max) = (167494.891, 167826.019, 168851.179), stdev = 577.478
+  CI (99.9%): [165602.358, 170049.680] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:00:49
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                                         (accessPattern)  (chunkSize)  (count)  (dataDistribution)  (representation)  (traversalMode)  Mode  Cnt       Score       Error  Units
+TransformAabbBenchmark.transformAabbBatch                     hot          256    16384             uniform          matrix4f       SEQUENTIAL  avgt    5  513321.060 ±  6237.765  ns/op
+TransformAabbBenchmark.transformAabbBatch                     hot          256    16384             uniform         affine4x3       SEQUENTIAL  avgt    5  516712.694 ± 11908.442  ns/op
+TransformAabbBenchmark.transformAabbBatch                     hot          256    16384             uniform      packedAffine       SEQUENTIAL  avgt    5  166157.107 ±  5380.084  ns/op
+TransformAabbBenchmark.transformAabbBatchChunked              hot          256    16384             uniform          matrix4f       SEQUENTIAL  avgt    5  503123.685 ± 13891.872  ns/op
+TransformAabbBenchmark.transformAabbBatchChunked              hot          256    16384             uniform         affine4x3       SEQUENTIAL  avgt    5  507338.024 ± 18079.033  ns/op
+TransformAabbBenchmark.transformAabbBatchChunked              hot          256    16384             uniform      packedAffine       SEQUENTIAL  avgt    5  167826.019 ±  2223.661  ns/op
+
+Benchmark result is saved to bench-out/transform-aabb.csv

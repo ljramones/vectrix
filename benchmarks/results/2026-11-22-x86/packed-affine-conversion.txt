@@ -1,0 +1,132 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.PackedAffineConversionBenchmark.matrix4fToPackedAffineBatch
+# Parameters: (size = 4096)
+
+# Run progress: 0.00% complete, ETA 00:00:24
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 15419.944 ns/op
+# Warmup Iteration   2: 15020.934 ns/op
+# Warmup Iteration   3: 14884.947 ns/op
+Iteration   1: 14908.990 ns/op
+Iteration   2: 14881.460 ns/op
+Iteration   3: 14886.890 ns/op
+Iteration   4: 14929.748 ns/op
+Iteration   5: 14893.299 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.PackedAffineConversionBenchmark.matrix4fToPackedAffineBatch":
+  14900.077 ±(99.9%) 75.216 ns/op [Average]
+  (min, avg, max) = (14881.460, 14900.077, 14929.748), stdev = 19.533
+  CI (99.9%): [14824.861, 14975.293] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.PackedAffineConversionBenchmark.quatTranslationToPackedAffineBatch
+# Parameters: (size = 4096)
+
+# Run progress: 33.33% complete, ETA 00:00:16
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 16910.820 ns/op
+# Warmup Iteration   2: 16567.242 ns/op
+# Warmup Iteration   3: 16624.429 ns/op
+Iteration   1: 16599.836 ns/op
+Iteration   2: 16602.589 ns/op
+Iteration   3: 16769.405 ns/op
+Iteration   4: 16613.585 ns/op
+Iteration   5: 16604.247 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.PackedAffineConversionBenchmark.quatTranslationToPackedAffineBatch":
+  16637.932 ±(99.9%) 283.702 ns/op [Average]
+  (min, avg, max) = (16599.836, 16637.932, 16769.405), stdev = 73.677
+  CI (99.9%): [16354.230, 16921.634] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.PackedAffineConversionBenchmark.trsToPackedAffineBatch
+# Parameters: (size = 4096)
+
+# Run progress: 66.67% complete, ETA 00:00:08
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 21795.043 ns/op
+# Warmup Iteration   2: 21203.582 ns/op
+# Warmup Iteration   3: 21439.388 ns/op
+Iteration   1: 21305.475 ns/op
+Iteration   2: 21344.008 ns/op
+Iteration   3: 21394.820 ns/op
+Iteration   4: 21318.369 ns/op
+Iteration   5: 21278.558 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.PackedAffineConversionBenchmark.trsToPackedAffineBatch":
+  21328.246 ±(99.9%) 169.664 ns/op [Average]
+  (min, avg, max) = (21278.558, 21328.246, 21394.820), stdev = 44.061
+  CI (99.9%): [21158.583, 21497.910] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:00:24
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                                                           (size)  Mode  Cnt      Score     Error  Units
+PackedAffineConversionBenchmark.matrix4fToPackedAffineBatch           4096  avgt    5  14900.077 ±  75.216  ns/op
+PackedAffineConversionBenchmark.quatTranslationToPackedAffineBatch    4096  avgt    5  16637.932 ± 283.702  ns/op
+PackedAffineConversionBenchmark.trsToPackedAffineBatch                4096  avgt    5  21328.246 ± 169.664  ns/op
+
+Benchmark result is saved to bench-out/packed-affine-conversion.csv

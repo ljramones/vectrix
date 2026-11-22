@@ -1,0 +1,4 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: size"
+"org.dynamisengine.vectrix.bench.PackedAffineConversionBenchmark.matrix4fToPackedAffineBatch","avgt",1,5,14900.077318,75.215901,"ns/op",4096
+"org.dynamisengine.vectrix.bench.PackedAffineConversionBenchmark.quatTranslationToPackedAffineBatch","avgt",1,5,16637.932306,283.702070,"ns/op",4096
+"org.dynamisengine.vectrix.bench.PackedAffineConversionBenchmark.trsToPackedAffineBatch","avgt",1,5,21328.246089,169.663539,"ns/op",4096

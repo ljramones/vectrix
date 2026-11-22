@@ -1,0 +1,95 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.FftBenchmark.circularConvolution
+# Parameters: (complexCount = 1024)
+
+# Run progress: 0.00% complete, ETA 00:00:16
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 49326.245 ns/op
+# Warmup Iteration   2: 45521.360 ns/op
+# Warmup Iteration   3: 45663.048 ns/op
+Iteration   1: 45175.494 ns/op
+Iteration   2: 45173.991 ns/op
+Iteration   3: 45199.605 ns/op
+Iteration   4: 44961.340 ns/op
+Iteration   5: 45143.268 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.FftBenchmark.circularConvolution":
+  45130.739 ±(99.9%) 372.684 ns/op [Average]
+  (min, avg, max) = (44961.340, 45130.739, 45199.605), stdev = 96.785
+  CI (99.9%): [44758.056, 45503.423] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /usr/lib/jvm/temurin-25-jdk-amd64/bin/java
+# VM options: --add-modules=jdk.incubator.vector
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.dynamisengine.vectrix.bench.FftBenchmark.forwardInverse
+# Parameters: (complexCount = 1024)
+
+# Run progress: 50.00% complete, ETA 00:00:08
+# Fork: 1 of 1
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/home/runner/work/vectrix/vectrix/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# Warmup Iteration   1: 31865.726 ns/op
+# Warmup Iteration   2: 29556.284 ns/op
+# Warmup Iteration   3: 29205.602 ns/op
+Iteration   1: 29177.955 ns/op
+Iteration   2: 29337.763 ns/op
+Iteration   3: 29298.302 ns/op
+Iteration   4: 29249.235 ns/op
+Iteration   5: 29321.374 ns/op
+
+
+Result "org.dynamisengine.vectrix.bench.FftBenchmark.forwardInverse":
+  29276.926 ±(99.9%) 248.775 ns/op [Average]
+  (min, avg, max) = (29177.955, 29276.926, 29337.763), stdev = 64.606
+  CI (99.9%): [29028.151, 29525.701] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:00:16
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                         (complexCount)  Mode  Cnt      Score     Error  Units
+FftBenchmark.circularConvolution            1024  avgt    5  45130.739 ± 372.684  ns/op
+FftBenchmark.forwardInverse                 1024  avgt    5  29276.926 ± 248.775  ns/op
+
+Benchmark result is saved to bench-out/fft.csv
