@@ -35,13 +35,28 @@ jobs:
           uname -m
           java -version
 
+      # Maven Central downloads occasionally time out on the hosted runners (seen on ubuntu-latest). A run that fails
+      # while resolving dependencies or plugins is retried with -U (bypassing cached "absent" markers) and longer
+      # transport retries; a run that fails for any other reason (tests, Checkstyle, SpotBugs) fails at once.
       - name: Verify (tests, Checkstyle, SpotBugs, coverage gate)
+        shell: bash
+        env:
+          PROFILE: ${{ matrix.profile }}
         run: |
-          if [ "${{ matrix.profile }}" = "experimental" ]; then
-            mvn -B clean verify -Pexperimental
-          else
-            mvn -B clean verify
-          fi
+          args="-B clean verify"
+          [ "$PROFILE" = "experimental" ] && args="$args -Pexperimental"
+          retry="-Daether.connector.http.retryHandler.count=5 -Daether.transport.http.retryHandler.count=5"
+          for attempt in 1 2 3; do
+            if mvn $args $retry $( [ $attempt -gt 1 ] && echo -U ) 2>&1 | tee build.log; [ "${PIPESTATUS[0]}" = "0" ]; then
+              exit 0
+            fi
+            if ! grep -qE "Could not (transfer|resolve|find artifact)|could not be resolved|Connection (reset|timed out)" build.log; then
+              exit 1
+            fi
+            echo "::warning::dependency download failed (attempt $attempt); retrying"
+            sleep $((attempt * 15))
+          done
+          exit 1
 
       - name: Upload test reports
         if: failure()
