@@ -164,6 +164,13 @@ public class SkinningKernelBenchmark extends ThroughputBenchmark {
             this.w2[i] = jointWeights[base + 2];
             this.w3[i] = jointWeights[base + 3];
         }
+        float[] sx = new float[vertices], sy = new float[vertices], sz = new float[vertices];
+        float[] gx = new float[vertices], gy = new float[vertices], gz = new float[vertices];
+        SkinningKernels.skinLbs4SoAScalar(jointRigid, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, sx, sy, sz, vertices);
+        GatherLbsKernel.skin(jointRigid, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, gx, gy, gz, vertices);
+        if (!java.util.Arrays.equals(sx, gx) || !java.util.Arrays.equals(sy, gy) || !java.util.Arrays.equals(sz, gz)) {
+            throw new IllegalStateException("gather LBS differs from scalar LBS");
+        }
     }
 
     @Benchmark
@@ -187,6 +194,13 @@ public class SkinningKernelBenchmark extends ThroughputBenchmark {
     @Benchmark
     public float[] skinLbs4SoAScalarForced() {
         SkinningKernels.skinLbs4SoAScalar(jointRigid, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, vertices);
+        return outX;
+    }
+
+    /** Vector API gather LBS (benchmark-only, {@link GatherLbsKernel}); bitwise equal to the scalar kernel. */
+    @Benchmark
+    public float[] skinLbs4SoAGather() {
+        GatherLbsKernel.skin(jointRigid, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, vertices);
         return outX;
     }
 

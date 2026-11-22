@@ -8,6 +8,9 @@ on:
       runner:
         description: "Runner label (ubuntu-latest is x86_64, ubuntu-24.04-arm is arm64)"
         default: ubuntu-latest
+      jmh_args:
+        description: "Optional: JMH arguments for a single targeted run instead of the full snapshot"
+        default: ""
 
 jobs:
   snapshot:
@@ -36,7 +39,12 @@ jobs:
           cat bench-out/environment.txt
 
       - name: Run snapshot
+        if: inputs.jmh_args == ''
         run: ./scripts/bench-snapshot.sh bench-out
+
+      - name: Run targeted benchmarks
+        if: inputs.jmh_args != ''
+        run: java -jar target/benchmarks.jar ${{ inputs.jmh_args }} -rf csv -rff bench-out/targeted.csv | tee bench-out/targeted.txt
 
       - name: Upload results
         uses: actions/upload-artifact@v4
