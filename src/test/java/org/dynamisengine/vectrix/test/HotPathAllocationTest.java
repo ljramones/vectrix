@@ -152,6 +152,27 @@ class HotPathAllocationTest {
                 .sampleDraine(0.37f, 0.05f, 20f));
         assertNoAllocation("PhaseFunctionsf.sampleFog", () -> org.dynamisengine.vectrix.atmosphere.PhaseFunctionsf
                 .sampleFog(0.8f, 0.3f, fogParams));
+        float[] animKeys = {0, 0, 0, 1, 0, 0.2f, 0, 0.98f, 0.1f, 0.3f, 0, 0.95f, 0, 0.5f, 0.1f, 0.86f};
+        float[] animCtrl = org.dynamisengine.vectrix.animation.QuaternionCurvesf.squadControlPoints(animKeys, 4, new float[16]);
+        org.dynamisengine.vectrix.core.Quaternionf animOut = new org.dynamisengine.vectrix.core.Quaternionf();
+        org.dynamisengine.vectrix.core.Quaternionf animGoal = new org.dynamisengine.vectrix.core.Quaternionf().rotateY(0.4f);
+        org.dynamisengine.vectrix.core.Vector3f animVel = new org.dynamisengine.vectrix.core.Vector3f(0.1f, 0, 0);
+        assertNoAllocation("QuaternionCurvesf.squad", () -> org.dynamisengine.vectrix.animation.QuaternionCurvesf.squad(
+                animKeys, animCtrl, 1, 0.3f, animOut));
+        assertNoAllocation("QuaternionCurvesf.cumulativeBSpline", () -> org.dynamisengine.vectrix.animation.QuaternionCurvesf
+                .cumulativeBSpline(animKeys, 4, 1, 0.3f, animOut));
+        assertNoAllocation("QuaternionSpringf.step", () -> org.dynamisengine.vectrix.animation.QuaternionSpringf.step(animOut,
+                animVel, animGoal, 0.2f, 0.016f, animOut, animVel));
+        org.dynamisengine.vectrix.affine.DualQuatTransformf dqA = new org.dynamisengine.vectrix.affine.DualQuatTransformf()
+                .set(animGoal, new org.dynamisengine.vectrix.core.Vector3f(1, 2, 3));
+        org.dynamisengine.vectrix.affine.DualQuatTransformf dqB = new org.dynamisengine.vectrix.affine.DualQuatTransformf()
+                .set(new org.dynamisengine.vectrix.core.Quaternionf().rotateX(1f), new org.dynamisengine.vectrix.core.Vector3f(-1, 0, 2));
+        org.dynamisengine.vectrix.affine.DualQuatTransformf dqOut = new org.dynamisengine.vectrix.affine.DualQuatTransformf();
+        org.dynamisengine.vectrix.affine.DualQuatTransformf[] dqs = {dqA, dqB};
+        float[] dqW = {0.3f, 0.7f};
+        assertNoAllocation("DualQuatTransformf.sclerp", () -> dqA.sclerp(dqB, 0.4f, dqOut));
+        assertNoAllocation("DualQuatTransformf.blend", () -> org.dynamisengine.vectrix.affine.DualQuatTransformf.blend(dqs, dqW,
+                2, dqOut));
         assertNoAllocation("ShProduct.multiplyL2", () -> org.dynamisengine.vectrix.sh.ShProduct.multiplyL2(c9, c9, c9));
         assertNoAllocation("ShWindowing.windowL3", () -> org.dynamisengine.vectrix.sh.ShWindowing.windowL3(c16,
                 org.dynamisengine.vectrix.sh.ShWindowing.Window.HANN, 4f, c16));

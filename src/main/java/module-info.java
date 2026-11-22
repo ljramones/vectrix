@@ -1,6 +1,7 @@
 module org.dynamisengine.vectrix {
     exports org.dynamisengine.vectrix.core;
     exports org.dynamisengine.vectrix.affine;
+    exports org.dynamisengine.vectrix.animation;
     exports org.dynamisengine.vectrix.atmosphere;
     exports org.dynamisengine.vectrix.brdf;
     exports org.dynamisengine.vectrix.camera;

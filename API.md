@@ -297,6 +297,18 @@ float[] multiple = Atmosphere.multipleScatteringLut(earth, 32, 32, 64, 20, new f
 `Atmosphere` is double-precision precomputation (it allocates scratch); look the tables up with
 `transmittanceLutUv` and sample them in shaders. The phase functions are allocation-free hot-path calls.
 
+## 7d) Animation (`org.dynamisengine.vectrix.animation`, `affine.DualQuatTransform*`)
+
+```java
+QuaternionCurvesf.unroll(keys, count);                                   // once, after loading keys
+float[] controls = QuaternionCurvesf.squadControlPoints(keys, count, new float[keys.length]);
+QuaternionCurvesf.squad(keys, controls, segment, t, rotation);           // C1, interpolating
+QuaternionCurvesf.cumulativeBSpline(keys, count, segment, t, rotation);  // C2, approximating
+QuaternionSpringf.step(rotation, angularVelocity, goal, 0.15f, dt, rotation, angularVelocity);
+dqA.sclerp(dqB, t, dq);                                                  // exact screw interpolation
+DualQuatTransformf.blendScaled(joints, scales, weights, n, dq, scale);   // skinning: dq(scale * p)
+```
+
 ## 7f) Geometry functions (`org.dynamisengine.vectrix.geometry`)
 
 ```java

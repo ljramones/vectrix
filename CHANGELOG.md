@@ -47,11 +47,26 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     - Bruneton-mapped transmittance LUTs.
     - Hillaire's multiple-scattering LUT.
 
+- Animation math (review Part II §18, without IK, which stays with Animis):
+  - New package `animation`, float and double:
+    - `QuaternionCurvesf/d`: key unrolling, SQUAD over key arrays, spherical Bezier, the Kim-Kim-Shin C² cumulative
+      B-spline (reproduces uniform rotation exactly), and the weighted Karcher (geodesic) mean of rotations.
+    - `QuaternionSpringf/d`: Holden's exact critically damped rotation spring. One step of dt equals two steps of
+      dt/2 to 1e-13, so it is frame-rate independent.
+  - `DualQuatTransformf` gains:
+    - Composition, inversion, translation and rotation extraction, and direction transforms.
+    - Exact ScLERP: a closed-form screw power with a series where it cancels. It matches SE(3) exp/log to 1e-10 and
+      the screw-subgroup identity to 1e-12.
+    - Sign-aligned dual quaternion linear blending, and a scale-aware (two-phase) blend.
+  - New `DualQuatTransformd` twin.
 ### Deprecated
 - `renderingmath.TransmittanceLutBuilder` and `AtmosphereParams`. They work in single precision, their ground
   intersection cancels near the horizon, and they have no ozone or Mie absorption. Use `atmosphere.Atmosphere`.
 
 ### Fixed
+- `DualQuatTransformf.setFromRigid` built the dual part from the unnormalized rotation, which gave a wrong
+  translation for non-unit input. `normalize` now makes the dual quaternion exactly unit, projecting out the dual
+  part's component along the real part; before, it only divided by an approximate norm.
 - The double-precision `ShBasis` constants had only 10 significant digits (float-grade accuracy, about 1e-10
   relative); they now carry full double precision. Double SH projection and evaluation results change in the last
   digits; the float path is unchanged.
