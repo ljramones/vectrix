@@ -182,6 +182,28 @@ class HotPathAllocationTest {
         assertNoAllocation("WorldPos.add", () -> worldObj.add(0.001, 0, 0));
         assertNoAllocation("CameraRelative.modelMatrix", () -> org.dynamisengine.vectrix.world.CameraRelative.modelMatrix(
                 worldObj, animGoal, worldScale, worldCam, worldModel));
+        org.dynamisengine.vectrix.core.Vector3f ikRoot = new org.dynamisengine.vectrix.core.Vector3f();
+        org.dynamisengine.vectrix.core.Vector3f ikMid = new org.dynamisengine.vectrix.core.Vector3f(1, 0, 0);
+        org.dynamisengine.vectrix.core.Vector3f ikEnd = new org.dynamisengine.vectrix.core.Vector3f(1, 1, 0);
+        org.dynamisengine.vectrix.core.Vector3f ikTarget = new org.dynamisengine.vectrix.core.Vector3f(0.5f, 1.2f, 0.3f);
+        org.dynamisengine.vectrix.core.Vector3f ikPole = new org.dynamisengine.vectrix.core.Vector3f(1, 0, 1);
+        org.dynamisengine.vectrix.core.Vector3f ikMidOut = new org.dynamisengine.vectrix.core.Vector3f();
+        org.dynamisengine.vectrix.core.Vector3f ikEndOut = new org.dynamisengine.vectrix.core.Vector3f();
+        org.dynamisengine.vectrix.core.Quaternionf ikQ1 = new org.dynamisengine.vectrix.core.Quaternionf();
+        org.dynamisengine.vectrix.core.Quaternionf ikQ2 = new org.dynamisengine.vectrix.core.Quaternionf();
+        float[] ikChain = {0, 0, 0, 1, 0, 0, 2, 0.5f, 0, 2.5f, 1.5f, 0.5f};
+        float[] ikDeltas = new float[12], ikRot = new float[9];
+        assertNoAllocation("TwoBoneIkf.solve", () -> org.dynamisengine.vectrix.ik.TwoBoneIkf.solve(ikRoot, ikMid, ikEnd,
+                ikTarget, ikPole, 1f, ikMidOut, ikEndOut, ikQ1, ikQ2));
+        assertNoAllocation("Fabrikf.solve", () -> org.dynamisengine.vectrix.ik.Fabrikf.solve(ikChain, 4, null, 1.5f, 1.0f,
+                0.5f, 1e-4f, 8, null));
+        assertNoAllocation("Ccdf.solve", () -> org.dynamisengine.vectrix.ik.Ccdf.solve(ikChain, 4, 1.2f, 1.1f, 0.4f, 1e-4f,
+                4, 0.3f, ikDeltas));
+        assertNoAllocation("DampedLeastSquaresf.step", () -> org.dynamisengine.vectrix.ik.DampedLeastSquaresf.step(ikChain,
+                4, 1.2f, 1.1f, 0.4f, 0.05f, 0.5f, ikRot));
+        assertNoAllocation("JointLimitsf.clampSwingTwist", () -> org.dynamisengine.vectrix.ik.JointLimitsf.clampSwingTwist(
+                ikQ1, ikMid, ikPole, 0.6f, 0.3f, -0.4f, 0.9f, ikQ2));
+        assertNoAllocation("Aimf.aim", () -> org.dynamisengine.vectrix.ik.Aimf.aim(ikMid, ikEnd, ikTarget, ikPole, ikQ2));
         assertNoAllocation("ShProduct.multiplyL2", () -> org.dynamisengine.vectrix.sh.ShProduct.multiplyL2(c9, c9, c9));
         assertNoAllocation("ShWindowing.windowL3", () -> org.dynamisengine.vectrix.sh.ShWindowing.windowL3(c16,
                 org.dynamisengine.vectrix.sh.ShWindowing.Window.HANN, 4f, c16));

@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
+## [Unreleased]
+### Added
+- IK kernels, new package `ik`, float and double, allocation-free. Animis keeps rig and solve policy; see
+  `docs/architecture/math-gpu-ownership.md`.
+  - `TwoBoneIkf/d`:
+    - Analytic solve with a pole vector and a stretch limit, using a cancellation-free law of cosines.
+    - Returns the new positions and the two world-space delta rotations.
+    - Reachable targets are hit to 1e-12, and bone lengths are kept exactly.
+  - `Fabrikf/d`: FABRIK over flat position chains, with optional bend limits.
+  - `Ccdf/d`: CCD with a per-step angle cap. Each bone's accumulated world rotation reproduces its final vector, twist
+    included.
+  - `DampedLeastSquaresf/d`: the J Jᵀ of a ball-joint chain is 3×3, so each step is one Cholesky solve. The step is
+    capped uniformly, preserving its direction; capping joints one by one cycled near singular poses.
+  - `JointLimitsf/d`: swing-twist elliptical cone with a twist range, a circular cone, and a hinge.
+  - `Aimf/d`: aim and look-at with roll controlled by world up, via a Shepperd matrix-to-quaternion conversion.
+
 ## [2.3.0] - 2026-11-22
 New in this release: rendering math II (spherical functions, camera, atmosphere: review Part II §15.3, §15.5,
 §15.6), animation math (§18, without IK), large-world precision (§12), and spectral colour from the official CIE

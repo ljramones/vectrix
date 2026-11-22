@@ -17,6 +17,7 @@ module org.dynamisengine.vectrix {
     exports org.dynamisengine.vectrix.geometry;
     exports org.dynamisengine.vectrix.sampling;
     exports org.dynamisengine.vectrix.hash;
+    exports org.dynamisengine.vectrix.ik;
     exports org.dynamisengine.vectrix.sdf;
 
     exports org.dynamisengine.vectrix.gpu;

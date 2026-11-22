@@ -332,6 +332,19 @@ SpectralUpsampling.fit(r, g, b, ColorGamut.SRGB, coeffs);   // once per material
 float s = SpectralUpsampling.evaluate(coeffsF, wavelengthNm);    // per spectral sample
 ```
 
+## 7h) Inverse kinematics (`org.dynamisengine.vectrix.ik`)
+
+```java
+TwoBoneIkf.solve(shoulder, elbow, wrist, target, pole, 1f, elbowOut, wristOut, shoulderDelta, elbowDelta);
+Fabrikf.solve(chainXyz, joints, null, tx, ty, tz, 1e-4f, 16, bendLimitCos);    // in place
+Ccdf.solve(chainXyz, joints, tx, ty, tz, 1e-4f, 8, 0.3f, boneDeltas);           // per-bone world rotations
+DampedLeastSquaresf.solve(chainXyz, joints, tx, ty, tz, 0.05f, 0.5f, 1e-4f, 32, scratch);
+JointLimitsf.clampSwingTwist(localRot, boneAxis, swingAxis, 0.8f, 0.4f, -0.5f, 0.5f, localRot);
+Aimf.aim(headForward, headUp, toTarget, worldUp, headDelta);
+```
+
+Pure kernels over vectors and flat arrays; Animis maps them onto skeletons and decides when and how to solve.
+
 ## 7f) Geometry functions (`org.dynamisengine.vectrix.geometry`)
 
 ```java
