@@ -268,6 +268,22 @@ Every kernel computes in double precision (the float classes convert at the boun
 so the 3×3 and 4×4 operations do not allocate (checked by `HotPathAllocationTest`). Least-squares solves on
 arbitrary row counts allocate scratch proportional to the input.
 
+## 7b) Camera math (`org.dynamisengine.vectrix.camera`)
+
+```java
+Matrix4f proj = Projectionsf.reverseZInfinite(fovY, aspect, 0.1f, new Matrix4f());   // exact, no epsilon
+Projectionsf.applyJitter(proj, Projectionsf.haltonJitter(frame, 16, w, h, jitter).x, jitter.y, proj);
+float d = Projectionsf.linearDepth(depthSample, 0.1f, Float.POSITIVE_INFINITY, DepthRange.REVERSED_ZERO_TO_ONE);
+ShadowCascadesf.practicalSplits(near, far, 4, 0.7f, splits);
+ShadowCascadesf.sliceSphere(tanHalfX, tanHalfY, splits[i], splits[i + 1], sphere);   // view space
+ShadowCascadesf.stableLightMatrices(worldCenter, sphere.w, lightDir, up, 50f, 2048, range, lightView, lightProj);
+int cluster = ClusterGridf.clusterOf(viewPos, tanHalfX, tanHalfY, 16, 9, 24, near, far);
+float coc = PhysicalCameraf.circleOfConfusion(0.05f, 2.8f, focusDistance, objectDistance);
+```
+
+Pass the same `DepthRange` to every call for one camera: mixing ranges is the classic source of wrong
+reconstructed depth and misplaced cascade splits.
+
 ## 7f) Geometry functions (`org.dynamisengine.vectrix.geometry`)
 
 ```java

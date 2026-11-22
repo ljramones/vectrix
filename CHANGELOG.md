@@ -17,6 +17,21 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   the cosine-lobe inner product, vMF-based fitting, anisotropic SGs) and `DirectionMappingsf/d` (octahedral and
   hemi-octahedral mappings, cubemap face selection in the OpenGL/Vulkan convention, exact texel solid angles).
   `ShExtrasTest` and `SphericalFunctionsTest` check them against exact quadrature.
+- Camera math (review Part II §15.5), new package `camera`, float and double:
+  - `DepthRange`: OpenGL, zero-to-one and reverse-Z depth conventions, taken by every function that produces or
+    reads depth.
+  - `Projectionsf/d`: perspectives exact in every range, including infinite far planes with no epsilon; near and far
+    extraction; depth to view distance; the Vulkan clip correction; a full-row Y flip; exact NDC jitter for any
+    projection; Halton TAA jitter; Lengyel oblique near-plane clipping.
+  - `ShadowCascadesf/d`: practical splits, the closed-form minimal sphere of a frustum slice (rotation-invariant),
+    and texel-snapped light matrices that always contain the sphere.
+  - `ClusterGridf/d`: exponential slices whose index and boundaries agree exactly, cluster AABBs, a point's cluster,
+    and sphere and spot-light tests with no false negatives.
+  - `PhysicalCameraf/d`: field of view and focal length, thin-lens circle of confusion, hyperfocal distance and
+    depth-of-field limits.
+
+  `CameraMathTest` checks them against exact identities. For example, a float reverse-Z infinite depth keeps all
+  18 000 half-metre steps between 1 and 10 km distinct, where standard [0, 1] depth keeps 1 511.
 
 ### Fixed
 - The double-precision `ShBasis` constants had only 10 significant digits (float-grade accuracy, about 1e-10

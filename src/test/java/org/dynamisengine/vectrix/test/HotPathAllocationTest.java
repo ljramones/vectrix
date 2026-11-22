@@ -127,6 +127,26 @@ class HotPathAllocationTest {
         assertNoAllocation("ShRotation.rotateL2", () -> org.dynamisengine.vectrix.sh.ShRotation.rotateL2(c9, shRot, c9));
         assertNoAllocation("ShRotation.rotationMatrixL3", () -> org.dynamisengine.vectrix.sh.ShRotation.rotationMatrixL3(shRot, shMat));
         assertNoAllocation("ShRotation.applyL3", () -> org.dynamisengine.vectrix.sh.ShRotation.applyL3(shMat, c16, c16));
+        org.dynamisengine.vectrix.core.Matrix4f camProj = org.dynamisengine.vectrix.camera.Projectionsf.perspective(1f, 1.5f,
+                0.1f, 100f, org.dynamisengine.vectrix.camera.DepthRange.REVERSED_ZERO_TO_ONE,
+                new org.dynamisengine.vectrix.core.Matrix4f());
+        org.dynamisengine.vectrix.core.Matrix4f camOut = new org.dynamisengine.vectrix.core.Matrix4f();
+        org.dynamisengine.vectrix.core.Matrix4f camView = new org.dynamisengine.vectrix.core.Matrix4f();
+        org.dynamisengine.vectrix.core.Vector4f mirror = new org.dynamisengine.vectrix.core.Vector4f(0.1f, 0f, -1f, -4f);
+        org.dynamisengine.vectrix.core.Vector3f camUp = new org.dynamisengine.vectrix.core.Vector3f(0, 1, 0);
+        org.dynamisengine.vectrix.core.Vector3f lightDir = new org.dynamisengine.vectrix.core.Vector3f(0.3f, -1f, 0.2f);
+        assertNoAllocation("Projectionsf.obliqueNearPlane", () -> org.dynamisengine.vectrix.camera.Projectionsf
+                .obliqueNearPlane(camProj, mirror, org.dynamisengine.vectrix.camera.DepthRange.REVERSED_ZERO_TO_ONE, camOut));
+        assertNoAllocation("Projectionsf.applyJitter", () -> org.dynamisengine.vectrix.camera.Projectionsf.applyJitter(camProj,
+                0.001f, -0.002f, camOut));
+        assertNoAllocation("ShadowCascadesf.stableLightMatrices", () -> org.dynamisengine.vectrix.camera.ShadowCascadesf
+                .stableLightMatrices(dir, 20f, lightDir, camUp, 40f, 2048,
+                        org.dynamisengine.vectrix.camera.DepthRange.ZERO_TO_ONE, camView, camOut));
+        org.dynamisengine.vectrix.core.Vector3f viewPos = new org.dynamisengine.vectrix.core.Vector3f(0.5f, 0.2f, -7f);
+        assertNoAllocation("ClusterGridf.clusterOf", () -> org.dynamisengine.vectrix.camera.ClusterGridf.clusterOf(
+                viewPos, 0.8f, 0.45f, 16, 9, 24, 0.1f, 1000f));
+        assertNoAllocation("ClusterGridf.coneIntersectsSphere", () -> org.dynamisengine.vectrix.camera.ClusterGridf
+                .coneIntersectsSphere(dir, lightDir, 0.9f, 0.43f, 10f, camUp, 1f));
         assertNoAllocation("ShProduct.multiplyL2", () -> org.dynamisengine.vectrix.sh.ShProduct.multiplyL2(c9, c9, c9));
         assertNoAllocation("ShWindowing.windowL3", () -> org.dynamisengine.vectrix.sh.ShWindowing.windowL3(c16,
                 org.dynamisengine.vectrix.sh.ShWindowing.Window.HANN, 4f, c16));
