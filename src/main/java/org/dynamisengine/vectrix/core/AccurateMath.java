@@ -82,4 +82,9 @@ public final class AccurateMath {
     public static double pow(double a, double b) {
         return STRICT ? StrictMath.pow(a, b) : java.lang.Math.pow(a, b);
     }
+
+    /** Cube root, sign-preserving ({@code cbrt(-8) = -2}). */
+    public static double cbrt(double a) {
+        return STRICT ? StrictMath.cbrt(a) : java.lang.Math.cbrt(a);
+    }
 }

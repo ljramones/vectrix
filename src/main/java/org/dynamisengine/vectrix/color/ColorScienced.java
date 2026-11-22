@@ -122,4 +122,18 @@ public final class ColorScienced {
     private static double clamp(double v, double lo, double hi) {
         return java.lang.Math.max(lo, java.lang.Math.min(hi, v));
     }
+
+    /**
+     * Planck's law: spectral radiance of a blackbody at {@code kelvin}, in W·sr⁻¹·m⁻²·nm⁻¹, for a wavelength in nm.
+     * Uses the exact SI constants h, c and k (2019 redefinition).
+     */
+    public static double planckRadiance(double wavelengthNm, double kelvin) {
+        double h = 6.62607015e-34;
+        double c = 299792458.0;
+        double k = 1.380649e-23;
+        double l = wavelengthNm * 1e-9;
+        double l5 = l * l * l * l * l;
+        double b = 2.0 * h * c * c / (l5 * (org.dynamisengine.vectrix.core.AccurateMath.exp(h * c / (l * k * kelvin)) - 1.0));
+        return (b * 1e-9);
+    }
 }

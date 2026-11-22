@@ -215,6 +215,22 @@ Vector2d r2 = R2Sequence.r2(index, new Vector2d());                          // 
 Directions use a local frame with the normal on `+z`; densities are per unit solid angle. `SamplingTest` checks
 that every density integrates to 1 and that every warp passes a chi-square goodness-of-fit test.
 
+## 7d) Colour pipeline (`org.dynamisengine.vectrix.color`, from 2.1.0)
+
+```java
+Vector3f acescg = ColorSpacesf.convert(srgb, ColorGamut.SRGB, ColorGamut.ACES_CG, new Vector3f()); // Bradford
+float exposure = Exposuref.exposureFromEv100(Exposuref.ev100(16f, 1f / 100f, 100f));
+Vector3f display = Tonemapf.agx(scene.mul(exposure), new Vector3f());       // or acesHill, khronosPbrNeutral, ...
+float signal = TransferFunctionsf.pqEncodeNits(nits);                       // HDR10 output
+Vector3f lab = PerceptualColorf.oklabFromLinearSrgb(rgb, new Vector3f());   // OKLab, OKLCH, CIELAB, HSV, HSL
+float dE = PerceptualColorf.deltaE2000(lab1, lab2);
+```
+
+Gamuts: sRGB, Display P3, Rec.2020, ACEScg and ACES2065-1, with Bradford or CAT16 adaptation. D65 gamuts use the
+white implied by `ColorMath`'s sRGB matrix, so sRGB stays consistent with the rest of the library. Tonemappers return
+display-referred linear values in [0, 1]: ACES (Hill and Narkowicz fits), AgX, Khronos PBR Neutral, Uchimura, Lottes,
+extended Reinhard, and `lightEngineExponential`, DynamisLightEngine's current curve.
+
 ## 8) FFT and Convolution (`org.dynamisengine.vectrix.fft`)
 
 Data is interleaved complex: `data[2*i] = real`, `data[2*i+1] = imag`.

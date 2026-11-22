@@ -13,6 +13,15 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   corrupted planes. `-Dvectrix.culling.simd=false` keeps the scalar kernel.
 
 ### Added
+- Colour pipeline (review Part II §15.4): `ColorGamut` and `ColorSpacesf/d` (sRGB, Display P3, Rec.2020, ACEScg,
+  ACES2065-1, matrices derived from the primaries, Bradford or CAT16 adaptation), `TransferFunctionsf/d` (PQ, HLG,
+  Rec.709, gamma 2.2), `PerceptualColorf/d` (OKLab/OKLCH, CIELAB/LCh, HSV/HSL, CIEDE2000, ΔE-OK), `Tonemapf/d` (ACES
+  Hill and Narkowicz fits, AgX, Khronos PBR Neutral, Uchimura, Lottes, extended Reinhard, and DynamisLightEngine's
+  exponential curve), `Exposuref/d` (EV100, saturation-based exposure, photometric units) and
+  `ColorSciencef/d.planckRadiance`. `AccurateMath.cbrt`. `ColorTest` checks the published ACES matrices, Ottosson's
+  OKLab table, Sharma et al.'s CIEDE2000 pairs, PQ/HLG reference points, the tonemappers' fixed points, bounds and
+  monotonicity, and Wien's and Stefan-Boltzmann's laws. Not yet: tabulated 1 nm CIE data and Jakob-Hanika spectral
+  upsampling, which need large coefficient tables.
 - Sampling for Monte-Carlo rendering (review Part II §15.2): `Warpf/d` (concentric disk, cosine and uniform
   hemisphere, sphere and cone, each with its density; balance and power MIS heuristics), `GgxSamplingf/d` (GGX
   visible-normal sampling by Dupuy and Benyoub's spherical caps, isotropic and anisotropic, with half-vector and
