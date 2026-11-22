@@ -33,6 +33,24 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   `CameraMathTest` checks them against exact identities. For example, a float reverse-Z infinite depth keeps all
   18 000 half-metre steps between 1 and 10 km distinct, where standard [0, 1] depth keeps 1 511.
 
+- Atmosphere math (review Part II §15.6), new package `atmosphere`; DynamisSky owns the rendering policy:
+  - `PhaseFunctionsf/d`: Rayleigh, Henyey-Greenstein, Cornette-Shanks, Draine, and the Jendersie-d'Eon fog/cloud
+    Mie fit for droplet diameters up to 50 µm (all four published ranges). Every phase function has an exact
+    inverse-CDF sampler: the CDF of each sample returns ξ to 1e-13. HG uses an expanded form with no 1/g
+    cancellation; Draine's closed form is polished by Newton steps on the analytic CDF, or on quadrature for
+    |g| < 0.15, the crossover where the measured errors meet.
+  - `AtmosphereModel`: an immutable record with Hillaire's Earth defaults, including ozone and Mie absorption.
+  - `Atmosphere`, in double precision:
+    - Ray-sphere distances and altitudes without cancellation, checked against BigDecimal at 1 mm above the ground.
+    - Optical depth by adaptive Gauss-Kronrod, split at the ozone kinks. It matches the analytic vertical integrals
+      to 1e-13, and its tolerance never asks for more than the integrand's own evaluation precision.
+    - Bruneton-mapped transmittance LUTs.
+    - Hillaire's multiple-scattering LUT.
+
+### Deprecated
+- `renderingmath.TransmittanceLutBuilder` and `AtmosphereParams`. They work in single precision, their ground
+  intersection cancels near the horizon, and they have no ozone or Mie absorption. Use `atmosphere.Atmosphere`.
+
 ### Fixed
 - The double-precision `ShBasis` constants had only 10 significant digits (float-grade accuracy, about 1e-10
   relative); they now carry full double precision. Double SH projection and evaluation results change in the last

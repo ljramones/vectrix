@@ -147,6 +147,11 @@ class HotPathAllocationTest {
                 viewPos, 0.8f, 0.45f, 16, 9, 24, 0.1f, 1000f));
         assertNoAllocation("ClusterGridf.coneIntersectsSphere", () -> org.dynamisengine.vectrix.camera.ClusterGridf
                 .coneIntersectsSphere(dir, lightDir, 0.9f, 0.43f, 10f, camUp, 1f));
+        float[] fogParams = org.dynamisengine.vectrix.atmosphere.PhaseFunctionsf.fogParameters(12f, new float[4]);
+        assertNoAllocation("PhaseFunctionsf.sampleDraine", () -> org.dynamisengine.vectrix.atmosphere.PhaseFunctionsf
+                .sampleDraine(0.37f, 0.05f, 20f));
+        assertNoAllocation("PhaseFunctionsf.sampleFog", () -> org.dynamisengine.vectrix.atmosphere.PhaseFunctionsf
+                .sampleFog(0.8f, 0.3f, fogParams));
         assertNoAllocation("ShProduct.multiplyL2", () -> org.dynamisengine.vectrix.sh.ShProduct.multiplyL2(c9, c9, c9));
         assertNoAllocation("ShWindowing.windowL3", () -> org.dynamisengine.vectrix.sh.ShWindowing.windowL3(c16,
                 org.dynamisengine.vectrix.sh.ShWindowing.Window.HANN, 4f, c16));

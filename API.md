@@ -284,6 +284,19 @@ float coc = PhysicalCameraf.circleOfConfusion(0.05f, 2.8f, focusDistance, object
 Pass the same `DepthRange` to every call for one camera: mixing ranges is the classic source of wrong
 reconstructed depth and misplaced cascade splits.
 
+## 7c) Atmosphere (`org.dynamisengine.vectrix.atmosphere`)
+
+```java
+float[] fog = PhaseFunctionsf.fogParameters(15f, new float[4]);   // 15 µm droplets
+float cosTheta = PhaseFunctionsf.sampleFog(xiLobe, xi, fog);        // exact inverse CDF
+AtmosphereModel earth = AtmosphereModel.earth();
+float[] transmittance = Atmosphere.transmittanceLut(earth, 256, 64, new float[256 * 64 * 3]);
+float[] multiple = Atmosphere.multipleScatteringLut(earth, 32, 32, 64, 20, new float[32 * 32 * 3]);
+```
+
+`Atmosphere` is double-precision precomputation (it allocates scratch); look the tables up with
+`transmittanceLutUv` and sample them in shaders. The phase functions are allocation-free hot-path calls.
+
 ## 7f) Geometry functions (`org.dynamisengine.vectrix.geometry`)
 
 ```java

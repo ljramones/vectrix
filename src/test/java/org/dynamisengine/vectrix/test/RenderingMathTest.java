@@ -32,6 +32,7 @@ import org.dynamisengine.vectrix.renderingmath.SssLutBuilder;
 import org.dynamisengine.vectrix.renderingmath.SssProfile;
 import org.dynamisengine.vectrix.renderingmath.TransmittanceLutBuilder;
 
+@SuppressWarnings("deprecation") // covers the deprecated renderingmath atmosphere classes
 class RenderingMathTest {
     @Test
     void sssLutBuildsFiniteValuesAndRespondsToNdotL() {

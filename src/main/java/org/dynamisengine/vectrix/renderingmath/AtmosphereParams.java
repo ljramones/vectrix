@@ -25,8 +25,12 @@ package org.dynamisengine.vectrix.renderingmath;
 
 /**
  * Spherically-symmetric atmosphere parameters for transmittance LUT generation.
-  * @since 1.0.0
-  */
+ * @since 1.0.0
+ * @deprecated computed in single precision with a cancelling ground intersection, uniform sampling and no ozone or
+ *     Mie absorption; use {@link org.dynamisengine.vectrix.atmosphere.Atmosphere} and
+ *     {@link org.dynamisengine.vectrix.atmosphere.AtmosphereModel}.
+ */
+@Deprecated(since = "2.3.0")
 public final class AtmosphereParams {
     public final float groundRadius;
     public final float atmosphereRadius;

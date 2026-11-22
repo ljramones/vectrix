@@ -72,7 +72,7 @@ class TwinParityTest {
         "curve.vec3.CatmullRom3", "curve.vec3.Hermite3", "curve.vec4.Bezier4", "curve.vec4.CatmullRom4",
         "curve.vec4.Hermite4", "brdf.Microfacet", "brdf.Diffuse", "brdf.LightEngineCompat",
         "spherical.SphericalGaussians", "spherical.DirectionMappings", "camera.Projections", "camera.ShadowCascades",
-        "camera.ClusterGrid", "camera.PhysicalCamera",
+        "camera.ClusterGrid", "camera.PhysicalCamera", "atmosphere.PhaseFunctions",
         "sampling.Warp", "sampling.GgxSampling", "sampling.SphericalSampling",
         "color.TransferFunctions", "color.PerceptualColor", "color.Tonemap", "color.Exposure", "color.ColorSpaces",
         "linalg.Eigen3", "linalg.Svd3", "linalg.Polar3", "linalg.Qr", "linalg.Solvers", "linalg.Lie3", "linalg.LeastSquares",

@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
+@SuppressWarnings("deprecation") // covers the deprecated renderingmath atmosphere classes
 public class RenderingMathBenchmark extends ThroughputBenchmark {
     @Param({"64", "1024", "16384"})
     public int count;
