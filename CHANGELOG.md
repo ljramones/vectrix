@@ -4,7 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
-## [Unreleased]
+## [2.0.0] - Unreleased
+Major version: several changes alter results or reject inputs that 1.10.13 accepted. See the **Breaking** entries
+below and `docs/conventions.md` before upgrading: the packed-affine layout is row-major, STRICT mode validates
+inputs, integer vector distances throw on overflow, the SH basis follows the standard ordering, and colour
+temperature follows the Planckian locus. Requires JDK 25 and `dynamis-parent` 1.0.1.
+
 ### Added
 - Per-task math mode: `CoreConfig.runWithMathMode(mode, task)` / `callWithMathMode(mode, task)` override the
   process-wide mode for one task on the calling thread (and its `StructuredTaskScope` subtasks) through a
@@ -65,7 +70,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   unchanged; 6 is now `3z² − 1` (was `3y² − 1`), 8 is now `x² − y²` (was `x² − z²`), and all of band 3 (9–15)
   changed. Re-project stored coefficients. `ShConventionTest` pins the basis against associated Legendre
   polynomials.
-- `ColorSciencef/d.kelvinToLinearRgb` compute the blackbody color from the Planckian locus (Kim et al. 2002 fit in
+- **Breaking (colors):** `ColorSciencef/d.kelvinToLinearRgb` compute the blackbody color from the Planckian locus (Kim et al. 2002 fit in
   CIE xy, through the shared XYZ/sRGB matrix) instead of the Tanner Helland curve fit. The visible jump at 6600 K
   is gone (the largest 1 K change is now 6e-4, at a spline join), and the chromaticity matches Planck's law
   integrated over the CIE 1931 functions to 1e-3 from 2700 K to 25000 K. Colors shift: 6500 K is now
@@ -130,12 +135,12 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   `long`, and the `(Vector2dc, z, mode)` constructor takes a `double` z. `Vector4L` gains a `(long[])`
   constructor. `Vector2L`/`Vector2Lc.minComponent`/`maxComponent` return `int` (a component index), like every
   other vector type. All of these are source compatible.
-- **Packed affine layout (review M-1).** `PackedAffineArray` now stores rows (`[r00 r01 r02 tx, r10 r11 r12 ty,
+- **Breaking: packed affine layout (review M-1).** `PackedAffineArray` now stores rows (`[r00 r01 r02 tx, r10 r11 r12 ty,
   r20 r21 r22 tz]`), the layout already used by the skinning palette and Vulkan's `VkTransformMatrixKHR`. It
   previously stored basis columns under the same documentation, so a packed array fed to `skinLbs4MatrixPalette`
   or uploaded to a row-major consumer applied the inverse rotation. Code that reads `raw()` by index must swap
   elements 1/4, 2/8 and 6/9. The JOML mapping (`rRC = m.mCR()`) is in `docs/conventions.md`.
-- **One STRICT contract (review M-11).** `MathMode.STRICT` now means: validate inputs and throw, never repair,
+- **Breaking: one STRICT contract (review M-11).** `MathMode.STRICT` now means: validate inputs and throw, never repair,
   results bitwise equal to the FAST scalar path for valid inputs, fixed scalar dispatch, and accurate reductions
   (documented on `MathMode` and in `docs/conventions.md`). As a result:
   - STRICT `TransformKernels.composeBatch` throws for non-unit, zero or NaN rotations, instead of renormalising
@@ -151,7 +156,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - `README.md` and docs index were updated to surface benchmark methodology and the performance showcase.
 
 ### Removed
-- Legacy pre-JDK-25 compatibility layer. JDK 25 is now the minimum and is enforced by `maven-enforcer-plugin`:
+- **Breaking:** legacy pre-JDK-25 compatibility layer. JDK 25 is now the minimum and is enforced by `maven-enforcer-plugin`:
   - `buildhelper/Java6to2` bytecode downgrader and the `maven.compiler.source/target 1.8` properties.
   - `__HAS_NIO__` and `__HAS_INTEGER_SIGNUM__` preprocessor guards (always true on JDK 25+).
   - `Runtime.HAS_floatToRawIntBits`, `Runtime.HAS_doubleToRawLongBits`, `Runtime.HAS_Long_rotateLeft`, and the
@@ -176,7 +181,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   y with positive x and z (`POP`): their slope inequalities were reversed (upstream JOML). Found by comparing with
   `Intersectionf.testRayAab` (new `GeometryEquivalenceTest`, which also checks `FrustumIntersection`, `Affine4f`,
   `GeometryUtils` and axis-angle conversions against independent references).
-- `lengthSquared`, `distanceSquared` and (long vectors) `gridDistance` of the int and long vectors compute exactly
+- **Breaking:** `lengthSquared`, `distanceSquared` and (long vectors) `gridDistance` of the int and long vectors compute exactly
   and throw `ArithmeticException` when the result does not fit in a long, instead of wrapping to a negative value.
   `Vector2i/3i/4i.gridDistance` summed int differences and overflowed; it now uses long arithmetic.
 - `ColorMathf/d.luminanceLinear` uses the Y row of the sRGB/XYZ matrix (7 digits) instead of the 4-digit Rec. 709
