@@ -159,9 +159,10 @@ class IkTest {
             assertEquals(0f, p[3 * i], 1e-5f);
             assertEquals(0f, p[3 * i + 1], 1e-5f);
         }
-        // bend limits: every angle between consecutive bones within 30 degrees
-        float cos30 = (float) Math.cos(Math.toRadians(30));
-        float[] limits = {1, cos30, cos30, cos30, cos30, cos30};
+        // bend limits: every bend between 10 and 30 degrees
+        float cos30 = (float) Math.cos(Math.toRadians(30)), cos10 = (float) Math.cos(Math.toRadians(10));
+        float lo = (float) Math.toRadians(10), hi = (float) Math.toRadians(30);
+        float[] limits = {0, 0, lo, hi, lo, hi, lo, hi, lo, hi, lo, hi};
         for (int t = 0; t < 100; t++) {
             float[] q = chain(r, 6);
             Fabrikf.solve(q, 6, null, (float) r.nextDouble(-3, 3), (float) r.nextDouble(-3, 3), (float) r.nextDouble(-3, 3),
@@ -169,7 +170,8 @@ class IkTest {
             for (int i = 1; i < 5; i++) {
                 Vector3d b0 = new Vector3d(q[3 * i] - q[3 * i - 3], q[3 * i + 1] - q[3 * i - 2], q[3 * i + 2] - q[3 * i - 1]);
                 Vector3d b1 = new Vector3d(q[3 * i + 3] - q[3 * i], q[3 * i + 4] - q[3 * i + 1], q[3 * i + 5] - q[3 * i + 2]);
-                assertTrue(b0.dot(b1) / (b0.length() * b1.length()) >= cos30 - 1e-4, "bend limit at joint " + i);
+                double cb = b0.dot(b1) / (b0.length() * b1.length());
+                assertTrue(cb >= cos30 - 1e-4 && cb <= cos10 + 1e-4, "bend limits at joint " + i + ": " + Math.toDegrees(Math.acos(Math.min(1, cb))));
             }
         }
     }

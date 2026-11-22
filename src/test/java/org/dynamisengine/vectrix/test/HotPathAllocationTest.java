@@ -204,6 +204,25 @@ class HotPathAllocationTest {
         assertNoAllocation("JointLimitsf.clampSwingTwist", () -> org.dynamisengine.vectrix.ik.JointLimitsf.clampSwingTwist(
                 ikQ1, ikMid, ikPole, 0.6f, 0.3f, -0.4f, 0.9f, ikQ2));
         assertNoAllocation("Aimf.aim", () -> org.dynamisengine.vectrix.ik.Aimf.aim(ikMid, ikEnd, ikTarget, ikPole, ikQ2));
+        int[] poseParents = {-1, 0, 1, 1, 3};
+        float[] poseT = new float[15], poseR = new float[20], poseS = new float[15], poseMT = new float[15];
+        float[] poseMR = new float[20], poseMS = new float[15], poseB = new float[20], poseOut = new float[20];
+        for (int j = 0; j < 5; j++) {
+            poseR[4 * j + 3] = 1;
+            poseB[4 * j + 1] = 0.6f;
+            poseB[4 * j + 3] = 0.8f;
+            poseS[3 * j] = poseS[3 * j + 1] = poseS[3 * j + 2] = 1;
+        }
+        float[][] posePoses = {poseR, poseB};
+        float[] poseWeights = {0.25f, 0.75f};
+        assertNoAllocation("PoseKernelsf.localToModel", () -> org.dynamisengine.vectrix.animation.PoseKernelsf.localToModel(
+                poseParents, 5, poseT, poseR, poseS, poseMT, poseMR, poseMS));
+        assertNoAllocation("PoseKernelsf.slerp", () -> org.dynamisengine.vectrix.animation.PoseKernelsf.slerp(poseR, poseB,
+                0.3f, poseOut, 5));
+        assertNoAllocation("PoseKernelsf.blendRotations", () -> org.dynamisengine.vectrix.animation.PoseKernelsf
+                .blendRotations(posePoses, poseWeights, 2, poseOut, 5));
+        assertNoAllocation("PoseKernelsf.applyAdditiveRotations", () -> org.dynamisengine.vectrix.animation.PoseKernelsf
+                .applyAdditiveRotations(poseR, poseB, 0.5f, poseOut, 5));
         assertNoAllocation("ShProduct.multiplyL2", () -> org.dynamisengine.vectrix.sh.ShProduct.multiplyL2(c9, c9, c9));
         assertNoAllocation("ShWindowing.windowL3", () -> org.dynamisengine.vectrix.sh.ShWindowing.windowL3(c16,
                 org.dynamisengine.vectrix.sh.ShWindowing.Window.HANN, 4f, c16));

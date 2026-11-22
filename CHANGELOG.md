@@ -12,13 +12,22 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     - Analytic solve with a pole vector and a stretch limit, using a cancellation-free law of cosines.
     - Returns the new positions and the two world-space delta rotations.
     - Reachable targets are hit to 1e-12, and bone lengths are kept exactly.
-  - `Fabrikf/d`: FABRIK over flat position chains, with optional bend limits.
+  - `Fabrikf/d`: FABRIK over flat position chains, with optional per-joint `[min, max]` bend limits (Animis's
+    representation).
   - `Ccdf/d`: CCD with a per-step angle cap. Each bone's accumulated world rotation reproduces its final vector, twist
     included.
   - `DampedLeastSquaresf/d`: the J Jᵀ of a ball-joint chain is 3×3, so each step is one Cholesky solve. The step is
     capped uniformly, preserving its direction; capping joints one by one cycled near singular poses.
   - `JointLimitsf/d`: swing-twist elliptical cone with a twist range, a circular cone, and a hinge.
   - `Aimf/d`: aim and look-at with roll controlled by world up, via a Shepperd matrix-to-quaternion conversion.
+- Pose kernels: `animation.PoseKernelsf/d`, allocation-free, over flat per-joint arrays in Animis's `PoseBuffer` layout.
+  They replace the four forward-kinematics copies and the slerp/quatMul/normalize copies listed in
+  `Animis/docs/vectrix-migration.md`.
+  - Forward kinematics and its exact inverse over parent indices. Both can run in place, and the result matches matrix
+    composition to 1e-11.
+  - Quaternion array operations: multiply, normalize, and shortest-arc slerp/nlerp.
+  - Masked and N-way weighted blends.
+  - Additive layers. Applying a layer at weight 1 restores the pose it was made from.
 
 ## [2.3.0] - 2026-11-22
 New in this release: rendering math II (spherical functions, camera, atmosphere: review Part II §15.3, §15.5,

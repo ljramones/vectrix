@@ -336,7 +336,7 @@ float s = SpectralUpsampling.evaluate(coeffsF, wavelengthNm);    // per spectral
 
 ```java
 TwoBoneIkf.solve(shoulder, elbow, wrist, target, pole, 1f, elbowOut, wristOut, shoulderDelta, elbowDelta);
-Fabrikf.solve(chainXyz, joints, null, tx, ty, tz, 1e-4f, 16, bendLimitCos);    // in place
+Fabrikf.solve(chainXyz, joints, null, tx, ty, tz, 1e-4f, 16, bendMinMax);      // in place
 Ccdf.solve(chainXyz, joints, tx, ty, tz, 1e-4f, 8, 0.3f, boneDeltas);           // per-bone world rotations
 DampedLeastSquaresf.solve(chainXyz, joints, tx, ty, tz, 0.05f, 0.5f, 1e-4f, 32, scratch);
 JointLimitsf.clampSwingTwist(localRot, boneAxis, swingAxis, 0.8f, 0.4f, -0.5f, 0.5f, localRot);
@@ -344,6 +344,15 @@ Aimf.aim(headForward, headUp, toTarget, worldUp, headDelta);
 ```
 
 Pure kernels over vectors and flat arrays; Animis maps them onto skeletons and decides when and how to solve.
+
+Poses (`animation.PoseKernelsf`), on `PoseBuffer`-style arrays (translations xyz, rotations xyzw, scales xyz):
+
+```java
+PoseKernelsf.localToModel(parents, joints, localT, localR, localS, modelT, modelR, modelS);
+PoseKernelsf.blendRotations(new float[][] {walkR, runR}, weights, 2, outR, joints);
+PoseKernelsf.applyAdditiveRotations(baseR, additiveR, layerWeight, outR, joints);
+PoseKernelsf.slerpMasked(lowerBodyR, upperBodyR, jointMask, outR, joints);
+```
 
 ## 7f) Geometry functions (`org.dynamisengine.vectrix.geometry`)
 

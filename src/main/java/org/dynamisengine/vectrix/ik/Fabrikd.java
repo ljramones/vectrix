@@ -26,9 +26,11 @@ package org.dynamisengine.vectrix.ik;
 /**
  * FABRIK (Aristidou and Lasenby 2011) on a chain of joint positions ({@code positions}, xyz per joint, updated in
  * place; joint 0 is the fixed root), double precision. Bone lengths are taken from
- * {@code lengths} ({@code count − 1} entries), or from the initial positions when {@code lengths} is null. An optional
- * bend limit {@code maxBendCos[i]} (the cosine of the largest angle between bone {@code i − 1} and bone {@code i}; null
- * for none) is enforced in the forward pass. Unreachable targets straighten the chain toward them.
+ * {@code lengths} ({@code count − 1} entries), or from the initial positions when {@code lengths} is null. Optional bend
+ * limits {@code bendLimits[2i], bendLimits[2i + 1]} (radians) bound the bend at joint {@code i}, the angle between bone
+ * {@code i − 1} and bone {@code i} (0 = straight), to {@code [min, max]}; they are enforced in the forward pass (joint 0
+ * has no bend; pass null for no limits). Unreachable targets straighten the chain toward them (within the limits, if
+ * given).
  *
  * @since 2.4.0
  */
@@ -65,7 +67,7 @@ public final class Fabrikd {
      * {@code tolerance} or after {@code maxIterations} forward-backward passes.
      */
     public static double solve(double[] positions, int count, double[] lengths, double targetX, double targetY,
-            double targetZ, double tolerance, int maxIterations, double[] maxBendCos) {
+            double targetZ, double tolerance, int maxIterations, double[] bendLimits) {
         double[] p = positions;
         int n = count;
         int last = n - 1;
@@ -85,7 +87,7 @@ public final class Fabrikd {
         for (int i = 0; i < last; i++) {
             l[i] = lengths != null ? lengths[i] : len(p, i, i + 1);
         }
-        if (dist >= total) {
+        if (dist >= total && bendLimits == null) { // straighten; with limits the passes below enforce them instead
             for (int i = 0; i < last; i++) {
                 p[3 * (i + 1)] = (p[3 * i] + dx / dist * l[i]);
                 p[3 * (i + 1) + 1] = (p[3 * i + 1] + dy / dist * l[i]);
@@ -109,8 +111,8 @@ public final class Fabrikd {
             p[1] = rootY;
             p[2] = rootZ;
             for (int i = 0; i < last; i++) {
-                if (maxBendCos != null && i > 0) {
-                    limitBend(p, i, maxBendCos[i]);
+                if (bendLimits != null && i > 0) {
+                    limitBend(p, i, bendLimits[2 * i], bendLimits[2 * i + 1]);
                 }
                 place(p, i, i + 1, l[i], dx, dy, dz);
             }
@@ -126,10 +128,10 @@ public final class Fabrikd {
     }
 
     /**
-     * Turns the direction of bone {@code i} (joint i → i + 1, not yet placed) so that its angle to bone {@code i − 1}
-     * is at most {@code acos(maxCos)}, rotating within their common plane.
+     * Turns bone {@code i} (joint i → i + 1, not yet placed) within its plane with bone {@code i − 1} so that the bend
+     * angle between them lies in {@code [minBend, maxBend]}.
      */
-    private static void limitBend(double[] p, int i, double maxCos) {
+    private static void limitBend(double[] p, int i, double minBend, double maxBend) {
         double px = p[3 * i] - (double) p[3 * (i - 1)], py = p[3 * i + 1] - (double) p[3 * (i - 1) + 1];
         double pz = p[3 * i + 2] - (double) p[3 * (i - 1) + 2];
         double qx = p[3 * (i + 1)] - (double) p[3 * i], qy = p[3 * (i + 1) + 1] - (double) p[3 * i + 1];
@@ -142,21 +144,24 @@ public final class Fabrikd {
         py /= pl;
         pz /= pl;
         double c = (px * qx + py * qy + pz * qz) / ql;
-        if (c >= maxCos) {
-            return;
-        }
-        // perpendicular part of the bone direction within the plane; rotate to the limit angle
+        // the bone's direction perpendicular to the previous bone, within their plane
         double wx = qx / ql - c * px, wy = qy / ql - c * py, wz = qz / ql - c * pz;
         double wl = java.lang.Math.sqrt(wx * wx + wy * wy + wz * wz);
-        if (wl == 0.0) { // pointing straight back: any perpendicular
+        double bend = org.dynamisengine.vectrix.core.AccurateMath.atan2(wl, c);
+        double clamped = java.lang.Math.max(minBend, java.lang.Math.min(maxBend, bend));
+        if (clamped == bend) {
+            return;
+        }
+        if (wl < 1e-12) { // straight or folded back: the plane is undefined, so pick a fixed perpendicular
             double ax = java.lang.Math.abs(px) < 0.9 ? 1.0 : 0.0, ay = ax == 1.0 ? 0.0 : 1.0;
-            wx = py * 0.0 - pz * ay;
-            wy = pz * ax - px * 0.0;
+            wx = -pz * ay;
+            wy = pz * ax;
             wz = px * ay - py * ax;
             wl = java.lang.Math.sqrt(wx * wx + wy * wy + wz * wz);
         }
-        double s = java.lang.Math.sqrt(java.lang.Math.max(0.0, 1.0 - maxCos * maxCos));
-        double nx = maxCos * px + s * wx / wl, ny = maxCos * py + s * wy / wl, nz = maxCos * pz + s * wz / wl;
+        double cs = org.dynamisengine.vectrix.core.AccurateMath.cos(clamped);
+        double sn = org.dynamisengine.vectrix.core.AccurateMath.sin(clamped);
+        double nx = cs * px + sn * wx / wl, ny = cs * py + sn * wy / wl, nz = cs * pz + sn * wz / wl;
         p[3 * (i + 1)] = (p[3 * i] + nx * ql);
         p[3 * (i + 1) + 1] = (p[3 * i + 1] + ny * ql);
         p[3 * (i + 1) + 2] = (p[3 * i + 2] + nz * ql);
