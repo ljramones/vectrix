@@ -1359,6 +1359,22 @@ public class Intersectionf {
             float aX, float aY, float aZ, float bX, float bY, float bZ,
             float v0X, float v0Y, float v0Z, float v1X, float v1Y, float v1Z, float v2X, float v2Y, float v2Z,
             Vector3f lineSegmentResult, Vector3f triangleResult) {
+        // a segment that crosses the triangle's interior is at distance 0 (the edge and end-point tests below
+        // miss this case; inherited from JOML)
+        float e1X = v1X - v0X, e1Y = v1Y - v0Y, e1Z = v1Z - v0Z;
+        float e2X = v2X - v0X, e2Y = v2Y - v0Y, e2Z = v2Z - v0Z;
+        float nX = e1Y * e2Z - e1Z * e2Y, nY = e1Z * e2X - e1X * e2Z, nZ = e1X * e2Y - e1Y * e2X;
+        float dA = nX * (aX - v0X) + nY * (aY - v0Y) + nZ * (aZ - v0Z);
+        float dB = nX * (bX - v0X) + nY * (bY - v0Y) + nZ * (bZ - v0Z);
+        if ((dA <= 0.0f && dB >= 0.0f || dA >= 0.0f && dB <= 0.0f) && dA != dB) {
+            float t = dA / (dA - dB);
+            float pX = aX + t * (bX - aX), pY = aY + t * (bY - aY), pZ = aZ + t * (bZ - aZ);
+            if (testPointInTriangle(pX, pY, pZ, v0X, v0Y, v0Z, v1X, v1Y, v1Z, v2X, v2Y, v2Z)) {
+                lineSegmentResult.set(pX, pY, pZ);
+                triangleResult.set(pX, pY, pZ);
+                return 0.0f;
+            }
+        }
         float min, d;
         float minlsX, minlsY, minlsZ, mintX, mintY, mintZ;
         // AB -> V0V1

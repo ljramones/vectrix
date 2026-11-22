@@ -6,6 +6,20 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 ### Added
+- Geometry functions (review Part II §17, as functions: vectrix adds no shape types, which DynamisCollision owns):
+  `RobustPredicates` (exact `orient2d`, `orient3d`, `incircle`, `insphere`: double fast path within Shewchuk's error
+  bounds, exact fallback), `SpatialCodes` (2D/3D Morton codes, 32/64-bit; 2D and 3D Hilbert curves),
+  `BoundingVolumesf/d` (Welzl minimal sphere, PCA OBB, minimal-area rectangle by convex hull and calipers,
+  approximate minimal OBB, 6/14/18/26-DOPs), `ClosestPointsf/d` (point to OBB, triangle to triangle, segment to
+  triangle, ray against capsule), and `MeshMath` vertex normals (area- or angle-weighted), MikkTSpace-style vertex
+  tangents and triangle quality metrics. `GeometryFunctionsTest` checks the predicates against exact BigDecimal
+  determinants (including a grid where plain doubles get over 1000 signs wrong), Hilbert continuity, bounding volumes
+  against brute force and the Badoiu-Clarkson approximation, distances against sampling, and ray-capsule against
+  sphere tracing.
+
+### Fixed
+- `Intersectionf/d.findClosestPointsLineSegmentTriangle` reported a positive distance for a segment that pierces
+  the triangle (it compared edges and end points only; inherited from JOML). It now returns 0 and the crossing point.
 - `linalg` package (review Part II §16): symmetric 3×3 eigen-decomposition (cyclic Jacobi, sorted, right-handed
   eigenvectors), signed 3×3 SVD (McAdams et al.: rotations U and V, reflection carried by σ₂), polar decomposition,
   Householder QR (3×3, 4×4), Cholesky, LDLᵀ and pivoted LU solvers (3×3, 4×4), 2-norm and 1-norm condition numbers,

@@ -74,6 +74,7 @@ class TwinParityTest {
         "sampling.Warp", "sampling.GgxSampling", "sampling.SphericalSampling",
         "color.TransferFunctions", "color.PerceptualColor", "color.Tonemap", "color.Exposure", "color.ColorSpaces",
         "linalg.Eigen3", "linalg.Svd3", "linalg.Polar3", "linalg.Qr", "linalg.Solvers", "linalg.Lie3", "linalg.LeastSquares",
+        "geometry.ClosestPoints", "geometry.BoundingVolumes",
     };
     private static final String[] INT_LONG = {"core.Vector2", "core.Vector3", "core.Vector4"};
     private static final String[] OVERLOADS = {"core.Math", "curve.CubicCurveMath", "sh.ShBasis", "sh.ShProjection",
@@ -86,11 +87,15 @@ class TwinParityTest {
      * <li>{@code Matrix4f.rotateAffine}: requires an affine matrix (it rewrites the last row).</li>
      * <li>{@code Matrix4f.rotateTranslation}: requires a translation-only matrix.</li>
      * <li>{@code Quaternionf.nlerpIterative}: requires {@code alpha} in [0, 1] and a threshold below 1.</li>
+     * <li>{@code BoundingVolumesf.pcaObb}, {@code approximateMinimalObb}: the box axes are not unique when the point
+     * covariance has repeated eigenvalues (the harness passes 0 to 2 points), so float and double may choose
+     * different, equally valid axes.</li>
      * </ul>
      */
     private static final Set<String> EXEMPT = new HashSet<>(Arrays.asList(
             "hashCode", "equals", "toString", "getClass", "notify", "notifyAll", "wait", "compareTo",
-            "Matrix4f.rotateAffine", "Matrix4f.rotateTranslation", "Quaternionf.nlerpIterative"));
+            "Matrix4f.rotateAffine", "Matrix4f.rotateTranslation", "Quaternionf.nlerpIterative",
+            "BoundingVolumesf.pcaObb", "BoundingVolumesf.approximateMinimalObb"));
 
     private static final int TRIALS = 4;
     private static final double REL_TOL = 2e-3;

@@ -1359,6 +1359,22 @@ public class Intersectiond {
             double aX, double aY, double aZ, double bX, double bY, double bZ,
             double v0X, double v0Y, double v0Z, double v1X, double v1Y, double v1Z, double v2X, double v2Y, double v2Z,
             Vector3d lineSegmentResult, Vector3d triangleResult) {
+        // a segment that crosses the triangle's interior is at distance 0 (the edge and end-point tests below
+        // miss this case; inherited from JOML)
+        double e1X = v1X - v0X, e1Y = v1Y - v0Y, e1Z = v1Z - v0Z;
+        double e2X = v2X - v0X, e2Y = v2Y - v0Y, e2Z = v2Z - v0Z;
+        double nX = e1Y * e2Z - e1Z * e2Y, nY = e1Z * e2X - e1X * e2Z, nZ = e1X * e2Y - e1Y * e2X;
+        double dA = nX * (aX - v0X) + nY * (aY - v0Y) + nZ * (aZ - v0Z);
+        double dB = nX * (bX - v0X) + nY * (bY - v0Y) + nZ * (bZ - v0Z);
+        if ((dA <= 0.0 && dB >= 0.0 || dA >= 0.0 && dB <= 0.0) && dA != dB) {
+            double t = dA / (dA - dB);
+            double pX = aX + t * (bX - aX), pY = aY + t * (bY - aY), pZ = aZ + t * (bZ - aZ);
+            if (testPointInTriangle(pX, pY, pZ, v0X, v0Y, v0Z, v1X, v1Y, v1Z, v2X, v2Y, v2Z)) {
+                lineSegmentResult.set(pX, pY, pZ);
+                triangleResult.set(pX, pY, pZ);
+                return 0.0;
+            }
+        }
         double min, d;
         double minlsX, minlsY, minlsZ, mintX, mintY, mintZ;
         // AB -> V0V1

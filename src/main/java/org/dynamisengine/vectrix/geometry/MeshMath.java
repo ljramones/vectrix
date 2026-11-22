@@ -193,4 +193,184 @@ public final class MeshMath {
     private static float dot(float ax, float ay, float az, float bx, float by, float bz) {
         return ax * bx + ay * by + az * bz;
     }
+
+    // ---- per-vertex accumulation over indexed triangle lists (positions/normals xyz, uvs st, indices 3 per triangle)
+
+    /**
+     * Vertex normals of an indexed triangle mesh into {@code normalsOut} (3 floats per vertex): the sum of the
+     * adjacent face normals weighted by face area ({@code angleWeighted == false}) or by the corner angle at the
+     * vertex ({@code true}, which does not depend on how faces are triangulated), normalised. Vertices with no
+     * non-degenerate face get the zero vector.
+     *
+     * @since 2.2.0
+     */
+    public static void vertexNormals(float[] positions, int[] indices, int triangleCount, boolean angleWeighted,
+            float[] normalsOut) {
+        java.util.Arrays.fill(normalsOut, 0, positions.length / 3 * 3, 0.0f);
+        for (int t = 0; t < triangleCount; t++) {
+            int[] v = {indices[3 * t], indices[3 * t + 1], indices[3 * t + 2]};
+            double ex1 = positions[3 * v[1]] - positions[3 * v[0]], ey1 = positions[3 * v[1] + 1] - positions[3 * v[0] + 1];
+            double ez1 = positions[3 * v[1] + 2] - positions[3 * v[0] + 2];
+            double ex2 = positions[3 * v[2]] - positions[3 * v[0]], ey2 = positions[3 * v[2] + 1] - positions[3 * v[0] + 1];
+            double ez2 = positions[3 * v[2] + 2] - positions[3 * v[0] + 2];
+            // cross product: twice the area, along the face normal
+            double nx = ey1 * ez2 - ez1 * ey2, ny = ez1 * ex2 - ex1 * ez2, nz = ex1 * ey2 - ey1 * ex2;
+            double len = java.lang.Math.sqrt(nx * nx + ny * ny + nz * nz);
+            if (len == 0.0) {
+                continue;
+            }
+            for (int c = 0; c < 3; c++) {
+                double w = angleWeighted ? cornerAngle(positions, v[c], v[(c + 1) % 3], v[(c + 2) % 3]) / len : 0.5;
+                normalsOut[3 * v[c]] += (float) (nx * w);
+                normalsOut[3 * v[c] + 1] += (float) (ny * w);
+                normalsOut[3 * v[c] + 2] += (float) (nz * w);
+            }
+        }
+        for (int i = 0; i < positions.length / 3; i++) {
+            float x = normalsOut[3 * i], y = normalsOut[3 * i + 1], z = normalsOut[3 * i + 2];
+            float l = (float) java.lang.Math.sqrt(x * x + y * y + z * z);
+            if (l > 0.0f) {
+                normalsOut[3 * i] = x / l;
+                normalsOut[3 * i + 1] = y / l;
+                normalsOut[3 * i + 2] = z / l;
+            }
+        }
+    }
+
+    /** Interior angle at vertex {@code a} of triangle {@code (a, b, c)}, in radians. */
+    private static double cornerAngle(float[] p, int a, int b, int c) {
+        double ux = p[3 * b] - p[3 * a], uy = p[3 * b + 1] - p[3 * a + 1], uz = p[3 * b + 2] - p[3 * a + 2];
+        double vx = p[3 * c] - p[3 * a], vy = p[3 * c + 1] - p[3 * a + 1], vz = p[3 * c + 2] - p[3 * a + 2];
+        double cx = uy * vz - uz * vy, cy = uz * vx - ux * vz, cz = ux * vy - uy * vx;
+        return org.dynamisengine.vectrix.core.AccurateMath.atan2(java.lang.Math.sqrt(cx * cx + cy * cy + cz * cz),
+                ux * vx + uy * vy + uz * vz);
+    }
+
+    /**
+     * Per-vertex tangents in the style of MikkTSpace (Mikkelsen 2008) into {@code tangentsOut} (4 floats per vertex:
+     * unit tangent and handedness {@code w = ±1}, with the bitangent {@code w (n × t)}). Each corner's UV-derived face
+     * tangent and bitangent are projected onto the plane of that vertex's normal, normalised, and weighted by the
+     * corner angle, as in MikkTSpace. Unlike MikkTSpace it does not split vertices whose corners disagree (mirrored UV
+     * seams), which is mesh topology and MeshForge's job: on meshes already split at UV seams the tangent directions
+     * agree. Vertices without a usable corner get {@code (1, 0, 0, 1)} projected onto their normal.
+     *
+     * @since 2.2.0
+     */
+    public static void vertexTangents(float[] positions, float[] normals, float[] uvs, int[] indices,
+            int triangleCount, float[] tangentsOut) {
+        int vc = positions.length / 3;
+        double[] ts = new double[3 * vc], bs = new double[3 * vc];
+        for (int t = 0; t < triangleCount; t++) {
+            int[] v = {indices[3 * t], indices[3 * t + 1], indices[3 * t + 2]};
+            double e1x = positions[3 * v[1]] - positions[3 * v[0]], e1y = positions[3 * v[1] + 1] - positions[3 * v[0] + 1];
+            double e1z = positions[3 * v[1] + 2] - positions[3 * v[0] + 2];
+            double e2x = positions[3 * v[2]] - positions[3 * v[0]], e2y = positions[3 * v[2] + 1] - positions[3 * v[0] + 1];
+            double e2z = positions[3 * v[2] + 2] - positions[3 * v[0] + 2];
+            double s1 = uvs[2 * v[1]] - uvs[2 * v[0]], t1 = uvs[2 * v[1] + 1] - uvs[2 * v[0] + 1];
+            double s2 = uvs[2 * v[2]] - uvs[2 * v[0]], t2 = uvs[2 * v[2] + 1] - uvs[2 * v[0] + 1];
+            double det = s1 * t2 - s2 * t1;
+            if (det == 0.0) {
+                continue;
+            }
+            double r = 1.0 / det;
+            double fx = (t2 * e1x - t1 * e2x) * r, fy = (t2 * e1y - t1 * e2y) * r, fz = (t2 * e1z - t1 * e2z) * r;
+            double gx = (s1 * e2x - s2 * e1x) * r, gy = (s1 * e2y - s2 * e1y) * r, gz = (s1 * e2z - s2 * e1z) * r;
+            for (int c = 0; c < 3; c++) {
+                int i = v[c];
+                double nx = normals[3 * i], ny = normals[3 * i + 1], nz = normals[3 * i + 2];
+                double w = cornerAngle(positions, i, v[(c + 1) % 3], v[(c + 2) % 3]);
+                accumulateProjected(ts, i, fx, fy, fz, nx, ny, nz, w);
+                accumulateProjected(bs, i, gx, gy, gz, nx, ny, nz, w);
+            }
+        }
+        for (int i = 0; i < vc; i++) {
+            double nx = normals[3 * i], ny = normals[3 * i + 1], nz = normals[3 * i + 2];
+            double tx = ts[3 * i], ty = ts[3 * i + 1], tz = ts[3 * i + 2];
+            double d = tx * nx + ty * ny + tz * nz;
+            tx -= d * nx;
+            ty -= d * ny;
+            tz -= d * nz;
+            double l = java.lang.Math.sqrt(tx * tx + ty * ty + tz * tz);
+            if (l == 0.0) {
+                // no usable corner: any tangent perpendicular to the normal
+                tx = 1.0 - nx * nx;
+                ty = -nx * ny;
+                tz = -nx * nz;
+                l = java.lang.Math.sqrt(tx * tx + ty * ty + tz * tz);
+                if (l == 0.0) {
+                    tx = -ny * nx;
+                    ty = 1.0 - ny * ny;
+                    tz = -ny * nz;
+                    l = java.lang.Math.sqrt(tx * tx + ty * ty + tz * tz);
+                }
+            }
+            tx /= l;
+            ty /= l;
+            tz /= l;
+            // handedness: does the accumulated bitangent point along n × t?
+            double cx = ny * tz - nz * ty, cy = nz * tx - nx * tz, cz = nx * ty - ny * tx;
+            double hand = cx * bs[3 * i] + cy * bs[3 * i + 1] + cz * bs[3 * i + 2] < 0.0 ? -1.0 : 1.0;
+            tangentsOut[4 * i] = (float) tx;
+            tangentsOut[4 * i + 1] = (float) ty;
+            tangentsOut[4 * i + 2] = (float) tz;
+            tangentsOut[4 * i + 3] = (float) hand;
+        }
+    }
+
+    private static void accumulateProjected(double[] acc, int i, double x, double y, double z, double nx, double ny,
+            double nz, double weight) {
+        double d = x * nx + y * ny + z * nz;
+        x -= d * nx;
+        y -= d * ny;
+        z -= d * nz;
+        double l = java.lang.Math.sqrt(x * x + y * y + z * z);
+        if (l > 0.0) {
+            acc[3 * i] += weight * x / l;
+            acc[3 * i + 1] += weight * y / l;
+            acc[3 * i + 2] += weight * z / l;
+        }
+    }
+
+    /**
+     * Triangle aspect ratio {@code L_max · perimeter / (4√3 · area)}: 1 for an equilateral triangle, growing without
+     * bound as the triangle degenerates (infinite for zero area).
+     *
+     * @since 2.2.0
+     */
+    public static float triangleAspectRatio(Vector3fc a, Vector3fc b, Vector3fc c) {
+        float ab = a.distance(b), bc = b.distance(c), ca = c.distance(a);
+        float area = triangleArea(a, b, c);
+        if (area == 0.0f) {
+            return Float.POSITIVE_INFINITY;
+        }
+        return java.lang.Math.max(ab, java.lang.Math.max(bc, ca)) * (ab + bc + ca) / (4.0f * (float) java.lang.Math.sqrt(3.0) * area);
+    }
+
+    /**
+     * Triangle radius ratio {@code 2 r_in / R_circ}: 1 for an equilateral triangle, 0 for a degenerate one.
+     *
+     * @since 2.2.0
+     */
+    public static float triangleRadiusRatio(Vector3fc a, Vector3fc b, Vector3fc c) {
+        float ab = a.distance(b), bc = b.distance(c), ca = c.distance(a);
+        float area = triangleArea(a, b, c);
+        float perimeter = ab + bc + ca;
+        if (area == 0.0f || perimeter == 0.0f) {
+            return 0.0f;
+        }
+        float rin = 2.0f * area / perimeter;
+        float rcirc = ab * bc * ca / (4.0f * area);
+        return 2.0f * rin / rcirc;
+    }
+
+    /**
+     * Smallest interior angle of the triangle, in radians ({@code π/3} for an equilateral triangle, 0 if degenerate).
+     *
+     * @since 2.2.0
+     */
+    public static float triangleMinAngle(Vector3fc a, Vector3fc b, Vector3fc c) {
+        float[] p = {a.x(), a.y(), a.z(), b.x(), b.y(), b.z(), c.x(), c.y(), c.z()};
+        double m = java.lang.Math.min(cornerAngle(p, 0, 1, 2), java.lang.Math.min(cornerAngle(p, 1, 2, 0), cornerAngle(p, 2, 0, 1)));
+        return (float) m;
+    }
 }

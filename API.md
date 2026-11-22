@@ -246,6 +246,23 @@ Every kernel computes in double precision (the float classes convert at the boun
 so the 3×3 and 4×4 operations do not allocate (checked by `HotPathAllocationTest`). Least-squares solves on
 arbitrary row counts allocate scratch proportional to the input.
 
+## 7f) Geometry functions (`org.dynamisengine.vectrix.geometry`)
+
+```java
+double side = RobustPredicates.orient3d(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz); // exact sign
+long key = SpatialCodes.morton3d64(qx, qy, qz);                     // or hilbert3d for better locality
+Vector4f sphere = BoundingVolumesf.minimalSphere(points, count, new Vector4f());  // Welzl
+BoundingVolumesf.pcaObb(points, count, center, axes, halfExtents);
+float d2 = ClosestPointsf.distanceSquaredTriangleTriangle(a0, a1, a2, b0, b1, b2, pa, pb);
+float t = ClosestPointsf.intersectRayCapsule(origin, unitDir, capA, capB, radius);
+MeshMath.vertexNormals(positions, indices, triangleCount, true, normals);   // angle-weighted
+MeshMath.vertexTangents(positions, normals, uvs, indices, triangleCount, tangents);
+```
+
+Vectrix keeps geometry as functions on plain parameters; shape types belong to DynamisCollision. The predicates
+are exact (double fast path within Shewchuk's error bounds, exact fallback); the bounding-volume routines are
+fitting tools and allocate scratch.
+
 ## 8) FFT and Convolution (`org.dynamisengine.vectrix.fft`)
 
 Data is interleaved complex: `data[2*i] = real`, `data[2*i+1] = imag`.
