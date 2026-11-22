@@ -71,6 +71,7 @@ class TwinParityTest {
         "curve.vec2.Bezier2", "curve.vec2.CatmullRom2", "curve.vec2.Hermite2", "curve.vec3.Bezier3",
         "curve.vec3.CatmullRom3", "curve.vec3.Hermite3", "curve.vec4.Bezier4", "curve.vec4.CatmullRom4",
         "curve.vec4.Hermite4", "brdf.Microfacet", "brdf.Diffuse", "brdf.LightEngineCompat",
+        "sampling.Warp", "sampling.GgxSampling", "sampling.SphericalSampling",
     };
     private static final String[] INT_LONG = {"core.Vector2", "core.Vector3", "core.Vector4"};
     private static final String[] OVERLOADS = {"core.Math", "curve.CubicCurveMath", "sh.ShBasis", "sh.ShProjection",

@@ -143,6 +143,65 @@ public final class SobolSequence {
         }
     }
 
+    /**
+     * Owen-scrambled Sobol (Burley 2020, "Practical Hash-based Owen Scrambling"): the index is shuffled and each
+     * coordinate is nested-uniform scrambled with a hash of {@code seed} and the dimension. Unlike
+     * {@link #sobolScrambledDouble} (a random XOR), this keeps the (0, m, 2)-net structure of dimensions 0 and 1 and
+     * decorrelates seeds, which removes the structured artefacts of unscrambled Sobol in rendering.
+     *
+     * @param index sample index (any non-negative int)
+     */
+    public static double sobolOwenDouble(int index, int dimension, int seed) {
+        checkIndexDimension(index, dimension);
+        int shuffled = nestedUniformScramble(index, hash(seed));
+        int bits = sobolBits(shuffled, dimension);
+        bits = nestedUniformScramble(bits, hash(hashCombine(seed, dimension)));
+        return (bits & 0xFFFFFFFFL) * TO_UNIT_D;
+    }
+
+    /** Single-precision {@link #sobolOwenDouble}, in {@code [0, 1)}. */
+    public static float sobolOwen(int index, int dimension, int seed) {
+        return toUnitFloat(sobolOwenDouble(index, dimension, seed));
+    }
+
+    /** Dimensions 0 and 1 of {@link #sobolOwenDouble}. */
+    public static Vector2d sobolOwen2D(int index, int seed, Vector2d dest) {
+        return dest.set(sobolOwenDouble(index, 0, seed), sobolOwenDouble(index, 1, seed));
+    }
+
+    /** Dimensions 0 and 1 of {@link #sobolOwen}. */
+    public static Vector2f sobolOwen2D(int index, int seed, Vector2f dest) {
+        return dest.set(sobolOwen(index, 0, seed), sobolOwen(index, 1, seed));
+    }
+
+    /** Laine-Karras style permutation of the bits of {@code x} (Burley's improved constants), applied to reversed bits. */
+    private static int laineKarrasPermutation(int x, int seed) {
+        x ^= x * 0x3d20adea;
+        x += seed;
+        x *= (seed >>> 16) | 1;
+        x ^= x * 0x05526c56;
+        x ^= x * 0x53a22864;
+        return x;
+    }
+
+    private static int nestedUniformScramble(int x, int seed) {
+        return Integer.reverse(laineKarrasPermutation(Integer.reverse(x), seed));
+    }
+
+    private static int hashCombine(int seed, int v) {
+        return seed ^ (v + (seed << 6) + (seed >>> 2));
+    }
+
+    private static int hash(int x) {
+        // lowbias32 (Wellons)
+        x ^= x >>> 16;
+        x *= 0x21f0aaad;
+        x ^= x >>> 15;
+        x *= 0xd35a2d97;
+        x ^= x >>> 15;
+        return x;
+    }
+
     private static int sobolBits(int index, int dim) {
         int gray = index ^ (index >>> 1);
         int x = 0;

@@ -13,6 +13,15 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   corrupted planes. `-Dvectrix.culling.simd=false` keeps the scalar kernel.
 
 ### Added
+- Sampling for Monte-Carlo rendering (review Part II §15.2): `Warpf/d` (concentric disk, cosine and uniform
+  hemisphere, sphere and cone, each with its density; balance and power MIS heuristics), `GgxSamplingf/d` (GGX
+  visible-normal sampling by Dupuy and Benyoub's spherical caps, isotropic and anisotropic, with half-vector and
+  reflected-direction densities), `SphericalSamplingf/d` (uniform solid-angle sampling of spherical triangles, Arvo
+  1995, and rectangles, Ureña et al. 2013, with their solid angles), `AliasTable` (Walker-Vose, O(1) sampling),
+  `R2Sequence`, and Owen-scrambled Sobol (`SobolSequence.sobolOwen*`, Burley 2020), which keeps the (0, m, 2)-net
+  structure. `SamplingTest` checks that every density integrates to 1, chi-square goodness of fit for every warp,
+  uniformity of the area-light samples over their solid angle, the alias-table frequencies, and the sequences'
+  stratification.
 - `brdf` package (review Part II §15.1): GGX distribution (isotropic and anisotropic), Smith Λ/G1 and
   height-correlated G2 and visibility, Schlick Fresnel (F0/F90, RGB, roughness-aware), Charlie sheen with Neubelt
   visibility, Kelemen clearcoat visibility, Kulla-Conty energy compensation, Lambert/Burley/Oren-Nayar diffuse, and

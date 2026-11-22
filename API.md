@@ -198,6 +198,23 @@ sheen, Kelemen clearcoat). `LightEngineCompatf/d` reproduce DynamisLightEngine's
 separable Schlick-GGX with `k = (roughness + 1)² / 8`), and `DfgLutBuilder.Model.SCHLICK_GGX_KARIS` builds the
 traditional UE4 table, so tools can match today's renderer while it migrates.
 
+## 7c) Sampling for Monte-Carlo rendering (`org.dynamisengine.vectrix.sampling`, from 2.1.0)
+
+```java
+Vector3f d = Warpf.squareToCosineHemisphere(u1, u2, new Vector3f());   // pdf = Warpf.pdfCosineHemisphere(d.z)
+Vector3f h = GgxSamplingf.sampleVisibleNormal(vx, vy, vz, alphaX, alphaY, u1, u2, new Vector3f()); // VNDF
+float pdfL = GgxSamplingf.pdfReflected(nDotV, vDotH, nDotH, alpha);       // per reflected direction
+Vector3f l = SphericalSamplingf.sampleRectangle(corner, edgeX, edgeY, u1, u2, new Vector3f()); // area light
+float w = Warpf.powerHeuristic(1, pdfLight, 1, pdfBsdf);                    // MIS
+AliasTable env = new AliasTable(width * height).build(luminanceTimesSolidAngle);
+int pixel = env.sample(u);                                                   // probability env.pdf(pixel)
+double x = SobolSequence.sobolOwenDouble(index, 0, seed);                    // Owen-scrambled Sobol
+Vector2d r2 = R2Sequence.r2(index, new Vector2d());                          // R2 low-discrepancy points
+```
+
+Directions use a local frame with the normal on `+z`; densities are per unit solid angle. `SamplingTest` checks
+that every density integrates to 1 and that every warp passes a chi-square goodness-of-fit test.
+
 ## 8) FFT and Convolution (`org.dynamisengine.vectrix.fft`)
 
 Data is interleaved complex: `data[2*i] = real`, `data[2*i+1] = imag`.
