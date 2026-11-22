@@ -262,6 +262,11 @@ float sumStrict = Reduction.sumStrict(values);
 boolean simd = SimdSupport.isVectorApiAvailable();
 ```
 
+The Vector API kernels ship in the `simd` classifier jar (from 2.1.0) and are active only when the application runs
+with `--add-modules jdk.incubator.vector`; otherwise, and in the plain jar, the scalar kernels run.
+`SimdSupport.backend()` returns `VECTOR_API` or `SCALAR`, and `-Dvectrix.simd.enabled=false` forces scalar. STRICT mode
+always uses the scalar kernels.
+
 ## Build, Test, Benchmark
 
 ```bash

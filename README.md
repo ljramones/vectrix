@@ -37,7 +37,7 @@ Current benchmark suites include:
 
 **Zero allocation in hot paths.** Hot-path APIs provide destination overloads that write into caller-provided storage. Reuse dest objects/scratch arrays in frame loops.
 
-**Maximum throughput on modern hardware.** Batch kernels use SoA (Structure of Arrays) layout for cache efficiency. SIMD paths use the JDK Vector API when enabled and supported.
+**Maximum throughput on modern hardware.** Batch kernels use SoA (Structure of Arrays) layout for cache efficiency. SIMD paths use the JDK Vector API when enabled and supported (`simd` classifier, see Quick Start).
 
 **Explicit contracts, enforced when you want them.**
 - `FAST`: throughput-first, trust valid inputs.
@@ -101,6 +101,35 @@ Full methodology/results: [`BENCHMARKS.md`](BENCHMARKS.md).
 ---
 
 ## Quick Start
+
+### Dependency
+
+```xml
+<dependency>
+    <groupId>org.dynamisengine</groupId>
+    <artifactId>vectrix</artifactId>
+    <version>2.0.0</version>
+</dependency>
+```
+
+**SIMD build (from 2.1.0).** The `simd` classifier is the same library with the Vector API batch kernels compiled
+in (transform compose, frustum culling, reductions). Use it instead of the plain jar, and run with
+`--add-modules jdk.incubator.vector` to enable them:
+
+```xml
+<dependency>
+    <groupId>org.dynamisengine</groupId>
+    <artifactId>vectrix</artifactId>
+    <version>2.1.0</version>
+    <classifier>simd</classifier>
+</dependency>
+```
+
+Without that flag the `simd` jar runs the scalar kernels, so it is safe to ship either way.
+`SimdSupport.backend()` reports which one is active, and `-Dvectrix.simd.enabled=false` forces scalar. SIMD and scalar
+results are bitwise identical (see `docs/determinism.md`). The Vector API is an incubator module, so the JDK prints a
+one-line warning when it is enabled.
+
 
 ### FAST / STRICT mode
 

@@ -9,7 +9,7 @@ Vectrix (package `org.dynamisengine.vectrix`) is a fork of JOML (Java OpenGL Mat
 ## Build Commands
 
 ```bash
-mvn verify                       # Compile, test, checkstyle, SpotBugs, JaCoCo coverage gate, assemble JAR
+mvn verify                       # Compile, test, checkstyle, SpotBugs, JaCoCo coverage gate, assemble JARs (plain and -simd)
 mvn test                         # Run JUnit 5 tests only
 mvn package -DskipTests          # Build JAR without tests
 mvn clean verify -Pexperimental  # Experimental profile (Vector API, FFM, JVMCI; also runs the experimental tests)
@@ -17,6 +17,8 @@ mvn clean verify -Pexperimental -Dvectrix.test.jvmArgs=-Djoml.forceFfm=true  # r
 ```
 
 **Important:** Always use `clean` when switching between the default and experimental profiles. The default profile generates a `module-info.class` during post-processing that causes compilation errors in the experimental profile if left in `target/`.
+
+The default profile also builds the `simd` classifier: a second JCP pass with `__HAS_VECTOR_API__` into `target/generated-sources/simd`, compiled to `target/classes-simd` (`compile-simd`), tested by a second surefire run (`test-simd`, with `--add-modules jdk.incubator.vector`) and packaged as `vectrix-<version>-simd.jar`. Vector API types must stay in nested holder classes so the scalar paths never load `jdk.incubator.vector`.
 
 The build uses a C-style preprocessor (`#ifdef`/`#endif`) via JCP (Java Comment Preprocessor) for conditional compilation. The default profile compiles JDK 25 bytecode (`maven.compiler.release` from `dynamis-parent`) with NIO and Unsafe support. The `experimental` profile (activated by `-Pexperimental`) enables Java Vector API, Foreign Memory Access, and JVMCI.
 

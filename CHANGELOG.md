@@ -6,6 +6,11 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 ### Added
+- `simd` classifier artifact (review §14): the same library with the Vector API batch kernels compiled in, built and
+  published with every release. It is not a preview build and needs no JVMCI flags. With
+  `--add-modules jdk.incubator.vector` it runs the SIMD kernels; without it, the scalar ones (classpath or module path,
+  checked). `mvn verify` runs the whole test suite a second time against it with the Vector API enabled, including the
+  determinism golden, which it matches bit for bit.
 - Test fixtures (`ValueFixtures`) fill and compare primitive-array state, so array-backed types (`ShCoeffs*`,
   `FrustumPlanes`) are now driven by `TwinParityTest`, `AliasingTest` and the determinism golden. The golden gains 32
   entries, among them every `ShProjection` and `ShConvolution` method; nothing already in it changed.
