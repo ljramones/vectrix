@@ -10,6 +10,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   `FrustumPlanes`) are now driven by `TwinParityTest`, `AliasingTest` and the determinism golden. The golden gains 32
   entries, among them every `ShProjection` and `ShConvolution` method; nothing already in it changed.
 - Coverage gate raised to line ≥ 79 %, branch ≥ 54 % (measured 79.4 % / 54.3 %).
+- `FfmAccessBenchmark`: isolates the layers of an FFM transfer. It shows FFM's extra ~1 ns on a single transfer is
+  a fixed per-call cost (segment creation from the buffer), not slower stores; see `BENCHMARKS.md`.
 
 ## [2.0.0] - Unreleased
 Major version: several changes alter results or reject inputs that 1.10.13 accepted. See the **Breaking** entries

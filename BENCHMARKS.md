@@ -61,6 +61,16 @@ All values are ns per call; "per item" divides by the batch size.
 
 FFM (the default) matches or beats Unsafe for loops of transfers; an isolated transfer costs about 1 ns more.
 
+Where that 1 ns goes (`FfmAccessBenchmark`, 2026-11-22, three forks): per matrix inside a loop of 16, FFM costs 1.91 ns
+and Unsafe 2.06 ns, so the stores themselves are not slower. The extra cost of a single call (3.36 vs 2.21 ns) is a
+fixed ~1.2 ns per call, consistent with `MemorySegment.ofBuffer`, which the JIT hoists out of loops but must pay once
+per call. Measured in straight-line code with no loop, `Matrix4f.get(ByteBuffer)` costs the same on both backends (2.62
+vs 2.67 ns). Removing it would need a per-buffer segment cache (which keeps buffers alive and is not thread-safe) or
+JDK internals. Two micro-optimisations, flattening the pair-packing helpers and storing pairs through a fixed
+little-endian layout, removed the inlining failures reported by `-XX:+PrintInlining` but did not change the timings,
+so neither was kept. The raw-address API shows a similar fixed cost (9.6 vs 5.9 ns for one `Matrix4f` write plus read,
+5.9 vs 11.1 ns per matrix in a loop of 16).
+
 **Transform compose** (`TransformComposeBenchmark`, per batch):
 
 | Batch | SoA, Vector API | SoA, scalar | Affine4f | Transformf objects | Matrix4f |
