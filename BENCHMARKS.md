@@ -170,8 +170,22 @@ checks, no deprecated API); `-Djoml.forceUnsafe=true` recovers the difference wh
 **Defaults re-checked on x86:** packed affine stays the fastest bulk form (AABB transform 166 µs vs 513 µs for
 `Matrix4f` at 16384; instance upload 55 µs vs 182 µs), and matrix-palette tight LBS stays the fastest skinning path
 (72 µs vs 98 µs for quaternion LBS at 4096 vertices). `skinLbs4SoASimdForced` equals scalar, as on arm64: there is no
-SIMD skinning kernel. The removed gather-based kernel was 6.8× slower on NEON; with AVX-512 gathers it might behave
-differently, but it would have to be rebuilt to measure.
+SIMD skinning kernel.
+
+**Gather-based SIMD skinning** (`GatherLbsKernel`, benchmark-only; bitwise equal to scalar LBS, checked in the
+benchmark setup). Measured in a separate run, which landed on an AMD EPYC 7763 (Zen 3, AVX2, no AVX-512): GitHub
+assigns different CPUs to different runs, so compare within the run only. Results in
+`benchmarks/results/2026-11-22-x86-skinning/`.
+
+| 4096 vertices, 64 joints | x86 (EPYC 7763) | arm64 (M4, 1024 vertices ×4) |
+|---|---:|---:|
+| `skinLbs4MatrixPaletteTight` (default path) | 48.3 µs | 25.8 µs |
+| `skinLbs4SoAGather` (Vector API gather) | 65.9 µs | 288.5 µs |
+| `skinLbs4SoAScalarForced` (quaternion LBS) | 104.1 µs | 42.5 µs |
+
+On x86 hardware gathers make the SIMD kernel 1.6× faster than scalar quaternion LBS (on NEON it is 6.8× slower), but
+it is still 1.36× slower than the matrix-palette path that skinning already uses, so it is not promoted. A gather
+version of the matrix-palette kernel is the next candidate.
 
 ## Historical Snapshot (2026-03-06)
 Superseded by the 2026-11-21 snapshot above; kept for the decision history. Its SIMD figures measured scalar code

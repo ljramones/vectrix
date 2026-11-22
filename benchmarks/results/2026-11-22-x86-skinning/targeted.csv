@@ -1,0 +1,7 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: paletteAccess","Param: paletteSize","Param: vertices"
+"org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4MatrixPaletteTight","avgt",1,10,12198.129847,90.182083,"ns/op",contiguous,64,1024
+"org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4MatrixPaletteTight","avgt",1,10,48280.997860,100.428684,"ns/op",contiguous,64,4096
+"org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4SoAGather","avgt",1,10,16039.381948,48.017969,"ns/op",contiguous,64,1024
+"org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4SoAGather","avgt",1,10,65917.689375,1883.956094,"ns/op",contiguous,64,4096
+"org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4SoAScalarForced","avgt",1,10,26483.487309,111.587620,"ns/op",contiguous,64,1024
+"org.dynamisengine.vectrix.bench.SkinningKernelBenchmark.skinLbs4SoAScalarForced","avgt",1,10,104108.945926,4944.379459,"ns/op",contiguous,64,4096
