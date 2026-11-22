@@ -10,6 +10,13 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   projection onto fixed sample directions (exact for the `ShBasis` conventions, no Wigner recurrences to get wrong).
   `rotationMatrixL2/L3` build the per-band matrices once for many probes, `applyL2/L3` and `rotateL2/L3` allocate
   nothing. `ShRotationTest` checks g(R u) = f(u), band orthogonality, composition and the band-1 block.
+- More spherical functions (§15.3): `ShWindowing` (Hann and Lanczos deringing windows, Sloan 2017), `ShProduct`
+  (products of L2/L3 functions, RGB with RGB or with a scalar function such as visibility, through Gaunt
+  coefficients computed exactly at class load), `ShL1` (linear and Hazel non-linear L1 irradiance). New package
+  `spherical`: `SphericalGaussiansf/d` (evaluation, integral, product, inner product, Hill's fitted irradiance and
+  the cosine-lobe inner product, vMF-based fitting, anisotropic SGs) and `DirectionMappingsf/d` (octahedral and
+  hemi-octahedral mappings, cubemap face selection in the OpenGL/Vulkan convention, exact texel solid angles).
+  `ShExtrasTest` and `SphericalFunctionsTest` check them against exact quadrature.
 
 ### Fixed
 - The double-precision `ShBasis` constants had only 10 significant digits (float-grade accuracy, about 1e-10

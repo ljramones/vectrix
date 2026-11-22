@@ -182,6 +182,20 @@ float[] m = ShRotation.rotationMatrixL3(rotation, new float[ShRotation.L3_MATRIX
 ShRotation.applyL3(m, probeCoeffs, probeCoeffs);
 ```
 
+`ShWindowing.windowL2/L3` reduce ringing before reconstruction; `ShProduct.multiplyL2/L3` multiply two SH
+functions (or an RGB function by a scalar one, such as visibility); `ShL1.irradianceNonLinear` gives non-negative
+irradiance from four coefficients.
+
+## 7a) Spherical Gaussians and direction mappings (`org.dynamisengine.vectrix.spherical`)
+
+```java
+float e = SphericalGaussiansf.irradianceFitted(lobeAxis, sharpness, amplitude, normal);
+float amp = SphericalGaussiansf.fit(dirs, weights, count, lobe);   // lobe = (axis.xyz, sharpness)
+DirectionMappingsf.octahedralEncode(x, y, z, uv);                   // [-1, 1]^2
+int face = DirectionMappingsf.cubeFace(x, y, z, uv);                // OpenGL/Vulkan face order, uv in [0, 1]^2
+float sa = DirectionMappingsf.cubeTexelSolidAngle(size, i, j);
+```
+
 The basis is the standard real SH used in graphics (Ramamoorthi and Hanrahan; no Condon–Shortley phase):
 function `Y(l, m)` is at index `l(l+1)+m`, evaluated on the direction exactly as passed, so the zonal terms are
 symmetric about the caller's z axis. Coefficients produced before 2026-11-21 used a mixed ordering and must be

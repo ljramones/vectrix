@@ -127,6 +127,11 @@ class HotPathAllocationTest {
         assertNoAllocation("ShRotation.rotateL2", () -> org.dynamisengine.vectrix.sh.ShRotation.rotateL2(c9, shRot, c9));
         assertNoAllocation("ShRotation.rotationMatrixL3", () -> org.dynamisengine.vectrix.sh.ShRotation.rotationMatrixL3(shRot, shMat));
         assertNoAllocation("ShRotation.applyL3", () -> org.dynamisengine.vectrix.sh.ShRotation.applyL3(shMat, c16, c16));
+        assertNoAllocation("ShProduct.multiplyL2", () -> org.dynamisengine.vectrix.sh.ShProduct.multiplyL2(c9, c9, c9));
+        assertNoAllocation("ShWindowing.windowL3", () -> org.dynamisengine.vectrix.sh.ShWindowing.windowL3(c16,
+                org.dynamisengine.vectrix.sh.ShWindowing.Window.HANN, 4f, c16));
+        assertNoAllocation("ShL1.irradianceNonLinear", () -> org.dynamisengine.vectrix.sh.ShL1.irradianceNonLinear(c9,
+                0f, 0.6f, 0.8f, out));
 
         // linalg: per-frame users (shape matching, deformation) call these per cluster or element
         org.dynamisengine.vectrix.core.Matrix3f m3 = new org.dynamisengine.vectrix.core.Matrix3f().rotateXYZ(0.3f, 0.2f, 0.1f)
