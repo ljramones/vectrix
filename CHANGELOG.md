@@ -4,7 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
-## [Unreleased]
+## [2.4.0] - 2026-11-22
+New in this release:
+- **Inverse kinematics and pose kernels:** new package `ik`, and `animation.PoseKernels`.
+- **A precision and correctness audit of the code inherited from JOML:** about 40 fixes. The fork rationale is in
+  `docs/joml-divergence.md`.
+- **Physics phase-1 kernels** for DynamisCollision and DynamisPhysics:
+  - `geometry.Contacts`;
+  - exact segment–box closest points;
+  - tight bounds;
+  - `physics.MassProperties`, `physics.Pacejka` and exact spring steps;
+  - double twins for the whole `physics` package.
+- **GPU data contracts:** `gpu.ShaderLayout` (checked against glslang), `gpu.PackedFormats`, `gpu.MeshletCones` and
+  exact sphere bounds.
+- **First benchmarks** of the 2.3.0 and 2.4.0 kernels.
+
+No public API was removed or changed. Results change where the audit fixed them; see "Fixed" and "Changed", and
+"Deprecated" for the misnamed spring helpers.
+
 ### Added
 - IK kernels, new package `ik`, float and double, allocation-free. Animis keeps rig and solve policy; see
   `docs/architecture/math-gpu-ownership.md`.
