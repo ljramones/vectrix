@@ -65,6 +65,32 @@ jobs:
           name: surefire-${{ matrix.os }}-${{ matrix.profile }}
           path: target/surefire-reports
 
+  examples:
+    # The examples are a separate project (examples/pom.xml) built against this commit's library: install it to
+    # the runner's local repository, then compile the examples and run their tests.
+    name: Examples
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Install the library
+        run: mvn -B -q install -DskipTests -Dcheckstyle.skip -Dspotbugs.skip -Djacoco.skip -Dmaven.javadoc.skip
+
+      - name: Build and test the examples
+        run: mvn -B -f examples/pom.xml verify
+
+      - name: Run every example
+        run: java -p examples/target/lib:examples/target/vectrix-examples.jar -m org.dynamisengine.vectrix.examples all
+
   bench-smoke:
     name: JMH Smoke (JDK 25)
     runs-on: ubuntu-latest

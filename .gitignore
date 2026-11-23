@@ -1,5 +1,6 @@
 # Build output
 /target/
+/examples/target/
 /out/
 
 # Maven helper artifacts

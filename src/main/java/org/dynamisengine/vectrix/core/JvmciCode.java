@@ -362,9 +362,8 @@ class JvmciCode {
       installCode(jvmciBackend, JvmciCode.class.getDeclaredMethod("__Quaternionf_mul", Quaternionf.class, Quaternionf.class, Quaternionf.class), _isWindows ? QUATERNIONF_MUL_AVX_WINDOWS : QUATERNIONF_MUL_AVX_LINUX);
       _canUseJvmci = true;
     } catch (Throwable e) {
-      if (Options.DEBUG) {
-        System.out.println("[JOML] JVMCI not available, because: " + e.getClass().getName() + ": " + e.getMessage());
-      }
+      // Routed through the application's logging (System.Logger); off unless DEBUG is enabled for this class.
+      System.getLogger(JvmciCode.class.getName()).log(System.Logger.Level.DEBUG, "JVMCI fast paths not installed", e);
     }
     canUseJvmci = _canUseJvmci;
   }

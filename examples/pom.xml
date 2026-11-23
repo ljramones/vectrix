@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Runnable, tested examples for Vectrix. A separate project, not a module of the library build: nothing here can
+  reach the published jar, and the examples use Vectrix exactly as an application does (module path, exported API
+  only). Not deployed.
+
+  Build the library first, then the examples:
+    mvn install -DskipTests          (in the repository root)
+    mvn -f examples/pom.xml verify   (compiles and tests every example)
+  Run one:
+    java -p examples/target/lib:examples/target/vectrix-examples.jar -m org.dynamisengine.vectrix.examples culling
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.dynamisengine</groupId>
+    <artifactId>vectrix-examples</artifactId>
+    <version>2.5.0</version>
+    <name>Vectrix examples</name>
+
+    <properties>
+        <!-- Kept equal to the library version by ExamplesVersionTest in the library build. -->
+        <vectrix.version>2.5.0</vectrix.version>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <junit.version>5.10.3</junit.version>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>vectrix</artifactId>
+            <version>${vectrix.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>vectrix-examples</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.1</version>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:all</arg>
+                        <arg>-Werror</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+                <configuration>
+                    <argLine>--enable-native-access=ALL-UNNAMED</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>org.dynamisengine.vectrix.examples.Examples</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <!-- Copies the Vectrix jar to target/lib for the run command above. -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.8.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-vectrix</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeScope>runtime</includeScope>
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
