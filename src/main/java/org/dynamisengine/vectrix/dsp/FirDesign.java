@@ -151,6 +151,216 @@ public final class FirDesign {
     }
 
     /**
+     * An optimal equiripple linear-phase filter (Parks–McClellan, by the Remez exchange): the odd-length symmetric
+     * filter that minimizes the largest weighted error {@code W(f)·|D(f) - A(f)|} over the given bands, where
+     * {@code A} is the filter's real amplitude. The bands are pairs of edges in cycles per sample; the gaps between
+     * them are transition bands, left free. Up to the grid resolution the result has the equal-ripple alternation
+     * that characterizes the optimum, so for a given length it beats any window design.
+     *
+     * @param h receives the taps
+     * @param n the number of taps, odd and at least 3
+     * @param bands {@code 2·k} ascending edges in [0, 0.5]: band {@code j} is {@code [bands[2j], bands[2j + 1]]}
+     * @param desired the {@code k} band gains
+     * @param weights the {@code k} positive band weights (a band weighted 10 has a tenth of the ripple)
+     * @return the achieved weighted ripple {@code δ} (after at most 200 exchanges; an infeasible specification
+     *         returns its best attempt, recognizable by a large ripple)
+     */
+    public static double remez(double[] h, int off, int n, double[] bands, double[] desired, double[] weights) {
+        if (n < 3 || (n & 1) == 0) {
+            throw new IllegalArgumentException("the Remez design needs an odd number of taps >= 3: " + n);
+        }
+        check(h, off, n, null, 0);
+        int nb = desired.length;
+        if (bands.length != 2 * nb || weights.length != nb || nb < 1) {
+            throw new IllegalArgumentException("need 2k band edges, k gains and k weights");
+        }
+        for (int j = 0; j < 2 * nb; j++) {
+            if (!(bands[j] >= 0 && bands[j] <= 0.5) || j > 0 && bands[j] < bands[j - 1]) {
+                throw new IllegalArgumentException("band edges must ascend within [0, 0.5]");
+            }
+        }
+        for (double wt : weights) {
+            if (!(wt > 0)) {
+                throw new IllegalArgumentException("weights must be positive");
+            }
+        }
+        int l = (n - 1) / 2;
+        int r = l + 2;
+        // dense grid over the bands, edges included
+        double total = 0;
+        for (int j = 0; j < nb; j++) {
+            total += bands[2 * j + 1] - bands[2 * j];
+        }
+        int target = 32 * (l + 1);
+        int count = 0;
+        int[] per = new int[nb];
+        for (int j = 0; j < nb; j++) {
+            per[j] = Math.max(2, (int) Math.ceil(target * (bands[2 * j + 1] - bands[2 * j]) / Math.max(total, 1e-12)) + 1);
+            count += per[j];
+        }
+        double[] gf = new double[count];
+        double[] gd = new double[count];
+        double[] gw = new double[count];
+        int[] gb = new int[count];
+        int g = 0;
+        for (int j = 0; j < nb; j++) {
+            for (int i = 0; i < per[j]; i++) {
+                gf[g] = bands[2 * j] + (bands[2 * j + 1] - bands[2 * j]) * i / (per[j] - 1);
+                gd[g] = desired[j];
+                gw[g] = weights[j];
+                gb[g] = j;
+                g++;
+            }
+        }
+        if (count < r) {
+            throw new IllegalArgumentException("the bands are too narrow for " + n + " taps");
+        }
+        int[] ext = new int[r];
+        for (int i = 0; i < r; i++) {
+            ext[i] = (int) ((long) i * (count - 1) / (r - 1));
+        }
+        double[] x = new double[r];
+        double[] cval = new double[r];
+        double[] bw = new double[r];
+        double[] err = new double[count];
+        int[] cand = new int[count];
+        double delta = 0;
+        boolean converged = false;
+        for (int iter = 0; iter < 200 && !converged; iter++) {
+            for (int i = 0; i < r; i++) {
+                x[i] = cos2pi(gf[ext[i]]);
+            }
+            baryWeights(x, r, bw);
+            double num = 0;
+            double den = 0;
+            for (int i = 0; i < r; i++) {
+                num += bw[i] * gd[ext[i]];
+                den += ((i & 1) == 0 ? 1 : -1) * bw[i] / gw[ext[i]];
+            }
+            delta = num / den;
+            for (int i = 0; i < r - 1; i++) {
+                cval[i] = gd[ext[i]] - ((i & 1) == 0 ? 1 : -1) * delta / gw[ext[i]];
+            }
+            baryWeights(x, r - 1, bw);
+            for (int k = 0; k < count; k++) {
+                err[k] = gw[k] * (gd[k] - interp(x, bw, cval, r - 1, cos2pi(gf[k])));
+            }
+            // candidate extrema: local extrema of E within each band (band ends included), merged to alternate
+            int nc = 0;
+            for (int k = 0; k < count; k++) {
+                double e = err[k];
+                if (e == 0) {
+                    continue;
+                }
+                boolean left = k == 0 || gb[k - 1] != gb[k] || (e > 0 ? e >= err[k - 1] : e <= err[k - 1]);
+                boolean right = k == count - 1 || gb[k + 1] != gb[k] || (e > 0 ? e >= err[k + 1] : e <= err[k + 1]);
+                if (left && right) {
+                    cand[nc++] = k;
+                }
+            }
+            nc = alternate(cand, nc, err);
+            // too many: drop from whichever end has the smaller error (alternation is preserved)
+            int first = 0;
+            while (nc - first > r) {
+                if (Math.abs(err[cand[first]]) < Math.abs(err[cand[nc - 1]])) {
+                    first++;
+                } else {
+                    nc--;
+                }
+            }
+            if (first > 0) {
+                System.arraycopy(cand, first, cand, 0, nc - first);
+                nc -= first;
+            }
+            if (nc < r) {
+                break; // the current set already alternates as well as the grid allows
+            }
+            converged = true;
+            for (int i = 0; i < r; i++) {
+                converged &= cand[i] == ext[i];
+                ext[i] = cand[i];
+            }
+        }
+        // amplitude at f = k/n, k = 0..l, then the inverse cosine transform to taps (exactly reduced cosines)
+        for (int i = 0; i < r; i++) {
+            x[i] = cos2pi(gf[ext[i]]);
+        }
+        baryWeights(x, r, bw);
+        double num = 0;
+        double den = 0;
+        for (int i = 0; i < r; i++) {
+            num += bw[i] * gd[ext[i]];
+            den += ((i & 1) == 0 ? 1 : -1) * bw[i] / gw[ext[i]];
+        }
+        delta = num / den;
+        for (int i = 0; i < r - 1; i++) {
+            cval[i] = gd[ext[i]] - ((i & 1) == 0 ? 1 : -1) * delta / gw[ext[i]];
+        }
+        baryWeights(x, r - 1, bw);
+        double[] amp = new double[l + 1];
+        for (int k = 0; k <= l; k++) {
+            amp[k] = interp(x, bw, cval, r - 1, AccurateMath.cosTurns(k, n));
+        }
+        for (int m = 0; m < n; m++) {
+            double v = amp[0];
+            for (int k = 1; k <= l; k++) {
+                v += 2 * amp[k] * AccurateMath.cosTurns((long) k * (m - l), n);
+            }
+            h[off + m] = v / n;
+        }
+        return Math.abs(delta);
+    }
+
+    private static double cos2pi(double f) {
+        return AccurateMath.cos(2 * Math.PI * f);
+    }
+
+    /** Keeps one candidate per run of equal error signs (the largest), in place; returns the new count. */
+    private static int alternate(int[] cand, int nc, double[] err) {
+        int k = 0;
+        for (int i = 0; i < nc; i++) {
+            int c = cand[i];
+            if (k > 0 && Math.signum(err[cand[k - 1]]) == Math.signum(err[c])) {
+                if (Math.abs(err[c]) > Math.abs(err[cand[k - 1]])) {
+                    cand[k - 1] = c;
+                }
+            } else {
+                cand[k++] = c;
+            }
+        }
+        return k;
+    }
+
+    /** Barycentric weights {@code 1/Π(2(x_i - x_j))} (the factor 2 keeps the products in range). */
+    private static void baryWeights(double[] x, int m, double[] w) {
+        for (int i = 0; i < m; i++) {
+            double p = 1;
+            for (int j = 0; j < m; j++) {
+                if (j != i) {
+                    p *= 2 * (x[i] - x[j]);
+                }
+            }
+            w[i] = 1 / p;
+        }
+    }
+
+    /** The barycentric Lagrange interpolant through {@code (x_i, c_i)}, {@code i < m}. */
+    private static double interp(double[] x, double[] w, double[] c, int m, double at) {
+        double num = 0;
+        double den = 0;
+        for (int i = 0; i < m; i++) {
+            double d = at - x[i];
+            if (d == 0) {
+                return c[i];
+            }
+            double t = w[i] / d;
+            num += t * c[i];
+            den += t;
+        }
+        return num / den;
+    }
+
+    /**
      * The frequency response {@code H(f) = Σ h[k]·exp(-2πi f k)}.
      *
      * @param f the frequency in cycles per sample
