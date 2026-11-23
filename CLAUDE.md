@@ -33,7 +33,7 @@ Types come in float (`f`), double (`d`), int (`i`), and long (`L`) variants. All
 
 ### Source Layout
 
-- `src/main/java/org/dynamisengine/vectrix/` — 30 exported top-level packages, layered as a DAG (`docs/package-map.md`, enforced by `PackageDependencyTest`; `core` depends on nothing)
+- `src/main/java/org/dynamisengine/vectrix/` — 29 top-level packages (33 exports with the curve subpackages), layered as a DAG (`docs/package-map.md`, enforced by `PackageDependencyTest`; `core` depends on nothing)
 - `src/test/java/org/dynamisengine/vectrix/test/` — JUnit 5 tests
 - `src/bench/java/org/dynamisengine/vectrix/bench/` — JMH benchmarks (`-Pbench`); `src/jmh/java/org/dynamisengine/vectrix/jmh/` — legacy JOML JMH benchmarks (experimental profile)
 - `buildhelper/` — ASM-based post-compile tool `ModuleInfoGenerator` (generates `module-info.class`)

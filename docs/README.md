@@ -8,7 +8,7 @@ pages is quoted from the tested programs in [`../examples`](../examples/README.m
 - [Getting started](getting-started.md): install, modules, JVM flags, a first program.
 - [Conventions](conventions.md): precision suffixes, destination parameters, arrays and scratch, matrices,
   FAST/STRICT, threading, errors, configuration properties.
-- [Package map](package-map.md): the 30 packages, in layers.
+- [Package map](package-map.md): the 29 top-level packages, in layers.
 - [Determinism](determinism.md): which settings change result bits, and how to get identical results everywhere.
 - [Performance](performance.md): why it is fast, hot-path rules, and which paths to use. Measured numbers are in
   [benchmarks.md](benchmarks.md).

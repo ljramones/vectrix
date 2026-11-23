@@ -1,6 +1,7 @@
 # Package map
 
-Vectrix is one module, `org.dynamisengine.vectrix`, with 30 exported packages under `org.dynamisengine.vectrix`.
+Vectrix is one module, `org.dynamisengine.vectrix`, with 29 top-level packages under `org.dynamisengine.vectrix`.
+`curve` has four subpackages (`scalar`, `vec2`, `vec3`, `vec4`), so the module exports 33 packages in all.
 The packages form layers: each depends only on packages in the layers below it, and `core` depends on nothing.
 `PackageDependencyTest` keeps it that way, so the graph has no cycles.
 

@@ -31,6 +31,24 @@ git tag -a vX.Y.Z -m "Vectrix vX.Y.Z"
 
 ## 3. Publishing
 
+### Without Maven Central
+
+Maven Central limits releases to 7 a month per account. When the quota is used up, release without it, and deploy
+to Central later:
+
+```bash
+mvn clean install                 # into the local repository, for the components that depend on Vectrix
+git push origin main vX.Y.Z
+gh release create vX.Y.Z --title "Vectrix vX.Y.Z" --notes-file <the CHANGELOG section> \
+    target/vectrix-X.Y.Z.jar target/vectrix-X.Y.Z-simd.jar target/vectrix-X.Y.Z-sources.jar \
+    target/vectrix-X.Y.Z-javadoc.jar
+```
+
+Central accepts versions in any order, so a version released this way can be published later from its tag:
+`git checkout vX.Y.Z && ./deploy.sh`.
+
+### To Maven Central
+
 ```bash
 ./deploy.sh                 # mvn -Prelease clean verify, then deploy (GPG signing runs only in this profile)
 git push origin main vX.Y.Z

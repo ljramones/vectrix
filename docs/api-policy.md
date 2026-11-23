@@ -2,7 +2,7 @@
 
 ## What is public API
 
-All 30 exported packages are public API. They are listed in [package-map.md](package-map.md). A class or member
+All 33 exported packages are public API. They are listed in [package-map.md](package-map.md). A class or member
 is supported unless it is marked with one of these:
 
 - **`@Internal`**: an implementation detail. Today that means `core.Options` and `core.Runtime`. It may change or

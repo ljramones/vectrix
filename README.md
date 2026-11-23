@@ -73,7 +73,7 @@ The [examples](examples/README.md) are complete, tested programs for each topic.
 | Estimation and tracking | `dsp` | [State estimation](docs/guides/state-estimation.md) |
 | Machine learning | `blas`, `nn` | [Machine-learning kernels](docs/guides/machine-learning.md) |
 
-[package-map.md](docs/package-map.md) describes all 30 packages and their dependencies.
+[package-map.md](docs/package-map.md) describes all 29 top-level packages and their dependencies.
 
 ## Documentation
 

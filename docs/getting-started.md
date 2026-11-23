@@ -112,7 +112,7 @@ java -p examples/target/lib:examples/target/vectrix-examples.jar -m org.dynamise
 
 ## Where next
 
-- [Package map](package-map.md): the 30 packages and how they depend on each other.
+- [Package map](package-map.md): the 29 top-level packages and how they depend on each other.
 - The guides, by task:
   - [Scenes: transforms, bounds and culling](guides/scene-and-culling.md)
   - [Cameras and projections](guides/camera-and-projection.md)
