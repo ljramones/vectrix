@@ -89,6 +89,20 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
       accuracy.
   - `Norms`: layer norm and RMS norm, forward and backward, with two-pass variance, saved statistics and
     accumulated γ/β gradients. They are checked against finite differences of a double model.
+- **Neural-network kernels, batch 4a** (`nn`):
+  - `Rope`: rotary position embeddings, interleaved and half-split layouts, with backward. The angles, up to
+    millions of radians at long contexts, are formed in double. Their sine and cosine use a reproducible double
+    routine with fdlibm's three-part π/2 reduction.
+  - `Philox`: the Philox4x32-10 counter-based generator. It matches the Random123 known-answer vectors.
+    - Uniform and normal (Box–Muller) fills, and inverted dropout.
+    - Any element can be drawn in any order or thread with the same result, and backward passes regenerate their
+      masks.
+  - `Loss`: cross-entropy and its gradient, through log-sum-exp.
+  - `Sampler`: greedy, temperature, top-k and top-p sampling.
+    - The uniform number comes from the caller, and ties go to the lower index.
+    - Top-k uses heap selection, and nothing allocates.
+  - `NnMath`: the reproducible double functions `expD`, `logD`, `powD`, `sinD` and `cosD` are public.
+  - Backward passes for sigmoid, tanh, the tanh-form GELU and softplus.
 - `AccurateMath.cosTurns/sinTurns(e, d)`: cos and sin of `2π·e/d`, with the angle reduced exactly in integers. The
   symmetries are exact (odd multiples of π/4 give the correctly rounded √½ for both). The FFT twiddles now use
   them.

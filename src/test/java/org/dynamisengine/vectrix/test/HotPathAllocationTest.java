@@ -388,6 +388,16 @@ class HotPathAllocationTest {
             1e-5f, ny, 0, 1024, nstats, 0));
         assertNoAllocation("Norms.rmsNormBackward", () -> org.dynamisengine.vectrix.nn.Norms.rmsNormBackward(nx, 0,
             null, 0, nstats, 0, nx, 0, ny, 0, null, 0, 1024, nscratch, 0));
+        org.dynamisengine.vectrix.nn.Rope rope = org.dynamisengine.vectrix.nn.Rope.plan(128, 10000,
+            org.dynamisengine.vectrix.nn.Rope.Layout.HALF);
+        assertNoAllocation("Rope.apply", () -> rope.apply(nx, 0, 123_456L));
+        assertNoAllocation("Philox.fillNormal", () -> org.dynamisengine.vectrix.nn.Philox.fillNormal(5, 0, 0f, 1f, ny, 0,
+            256));
+        int[] sorder = new int[1024];
+        assertNoAllocation("Sampler.sample", () -> org.dynamisengine.vectrix.nn.Sampler.sample(nx, 0, 1024, 0.7f, 40,
+            0.9f, 0.5f, ny, 0, sorder, 0));
+        assertNoAllocation("Loss.crossEntropy", () -> org.dynamisengine.vectrix.nn.Loss.crossEntropy(nx, 0, 1024, 3,
+            nscratch, 0));
         double[] legacy = new double[2 * 4096];
         org.dynamisengine.vectrix.fft.FFT1d.forward(legacy); // builds the shared table once
         assertNoAllocation("FFT1d.forward", () -> org.dynamisengine.vectrix.fft.FFT1d.forward(legacy));

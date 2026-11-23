@@ -247,8 +247,106 @@ public final class NnMath {
     static final int ERFC_TERMS_D = 120;
     static final double SQRT_PI_D = 1.7724538509055159;
 
-    /** {@code e^x} in double, reproducibly (Cody–Waite reduction, degree-13 Taylor), for {@code |x| <= 700}. */
-    static double expD(double x) {
+    static final double PIO2_1 = 1.57079632673412561417e+00;   // fdlibm's split of π/2: 33 + 33 + 33 bits
+    static final double PIO2_2 = 6.07710050630396597660e-11;
+    static final double PIO2_3 = 2.02226624871116645580e-21;
+    static final double PIO2_3T = 8.47842766036889956997e-32;
+    static final double TWO_OVER_PI_D = 0.6366197723675814;
+    /** (-1)^n/(2n+1)!, n = 1..8, and (-1)^n/(2n)!, n = 1..9 (truncation below 1e-19 on |r| <= π/4). */
+    static final double[] SIN_D = {-0.16666666666666666, 0.008333333333333333, -0.0001984126984126984,
+        2.7557319223985893e-06, -2.505210838544172e-08, 1.6059043836821613e-10, -7.647163731819816e-13,
+        2.8114572543455206e-15};
+    static final double[] COS_D = {-0.5, 0.041666666666666664, -0.001388888888888889, 2.48015873015873e-05,
+        -2.755731922398589e-07, 2.08767569878681e-09, -1.1470745597729725e-11, 4.779477332387385e-14,
+        -1.5619206968586225e-16};
+    /** 1/(2j+1), j = 1..10. */
+    static final double[] LOG_D = {0.3333333333333333, 0.2, 0.14285714285714285, 0.1111111111111111,
+        0.09090909090909091, 0.07692307692307693, 0.06666666666666667, 0.058823529411764705, 0.05263157894736842,
+        0.047619047619047616};
+
+    /**
+     * {@code sin a} in double, reproducibly: the argument is reduced by fdlibm's three-part π/2 (exact products for
+     * {@code |a|} up to about 1.6e6, so the reduction loses nothing there), then Taylor series on [-π/4, π/4].
+     * Within 1 ulp of 1 absolutely (measured); NaN and infinities give NaN.
+     */
+    public static double sinD(double a) {
+        return sinCosD(a, true);
+    }
+
+    /** {@code cos a} in double, reproducibly; see {@link #sinD}. */
+    public static double cosD(double a) {
+        return sinCosD(a, false);
+    }
+
+    private static double sinCosD(double a, boolean sine) {
+        double kf = (a * TWO_OVER_PI_D + ROUND_D) - ROUND_D;
+        if (kf != kf || Math.abs(kf) > 9.0e15) {
+            return Double.NaN;
+        }
+        double r = Math.fma(kf, -PIO2_1, a);
+        r = Math.fma(kf, -PIO2_2, r);
+        r = Math.fma(kf, -PIO2_3, r);
+        r = Math.fma(kf, -PIO2_3T, r);
+        double z = r * r;
+        double ps = SIN_D[SIN_D.length - 1];
+        for (int n = SIN_D.length - 2; n >= 0; n--) {
+            ps = Math.fma(ps, z, SIN_D[n]);
+        }
+        double pc = COS_D[COS_D.length - 1];
+        for (int n = COS_D.length - 2; n >= 0; n--) {
+            pc = Math.fma(pc, z, COS_D[n]);
+        }
+        double sn = Math.fma(r * z, ps, r);
+        double cs = Math.fma(z, pc, 1.0);
+        int q = (int) ((long) kf & 3) + (sine ? 0 : 1); // cos a = sin(a + π/2)
+        q &= 3;
+        return q == 0 ? sn : q == 1 ? cs : q == 2 ? -sn : -cs;
+    }
+
+    /**
+     * {@code log x} in double, reproducibly ({@code 2·atanh} series after exact exponent extraction); within 2 ulp
+     * (measured). {@code log 0 = -∞}; negative arguments give NaN.
+     */
+    public static double logD(double x) {
+        if (!(x > 0) || x == Double.POSITIVE_INFINITY) {
+            return x == 0 ? Double.NEGATIVE_INFINITY : x == Double.POSITIVE_INFINITY ? x : Double.NaN;
+        }
+        int sub = 0;
+        if (x < Double.MIN_NORMAL) {
+            x *= 0x1p54;
+            sub = 54;
+        }
+        int e = Math.getExponent(x);
+        double m = Math.scalb(x, -e);
+        if (m > 1.4142135623730951) {
+            m *= 0.5;
+            e += 1;
+        }
+        e -= sub;
+        double f = m - 1.0;
+        double sv = f / (2.0 + f);
+        double z = sv * sv;
+        double p = LOG_D[LOG_D.length - 1];
+        for (int n = LOG_D.length - 2; n >= 0; n--) {
+            p = Math.fma(p, z, LOG_D[n]);
+        }
+        double t = Math.fma(sv * z, p, sv);
+        return Math.fma(e, LN2_HI_D, Math.fma(e, LN2_LO_D, 2.0 * t));
+    }
+
+    /**
+     * {@code b^y} in double, reproducibly, as {@code e^(y·log b)}, for {@code b > 0} and moderate results; the rounding
+     * of {@code y·log b} costs about {@code |y·log b|} ulps (2e-15 relative for {@code 10000^-2}).
+     */
+    public static double powD(double b, double y) {
+        return expD(y * logD(b));
+    }
+
+    /**
+     * {@code e^x} in double, reproducibly (Cody–Waite reduction, degree-13 Taylor), for {@code |x| <= 700}; within
+     * 1 ulp (measured).
+     */
+    public static double expD(double x) {
         double kf = (x * LOG2E_D + ROUND_D) - ROUND_D;
         double r = Math.fma(kf, -LN2_HI_D, x);
         r = Math.fma(kf, -LN2_LO_D, r);
