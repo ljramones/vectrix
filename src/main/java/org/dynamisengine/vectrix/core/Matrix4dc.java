@@ -4873,7 +4873,7 @@ public interface Matrix4dc {
      * Any plane/point test using <code>a*x + b*y + c*z + d</code> therefore will yield a result greater than zero
      * if the point is within the frustum (i.e. at the <i>positive</i> side of the frustum plane).
      * <p>
-     * For performing frustum culling, the class {@link FrustumIntersection} should be used instead of 
+     * For performing frustum culling, the class {@link org.dynamisengine.vectrix.geometry.FrustumIntersection} should be used instead of 
      * manually obtaining the frustum planes and testing them against points, spheres or axis-aligned boxes.
      * <p>
      * Reference: <a href="http://gamedevs.org/uploads/fast-extraction-viewing-frustum-planes-from-world-view-projection-matrix.pdf">
@@ -5035,7 +5035,7 @@ public interface Matrix4dc {
      * For optimal efficiency when building many ray directions over the whole frustum,
      * it is recommended to use this method only in order to compute the four corner rays at
      * <code>(0, 0)</code>, <code>(1, 0)</code>, <code>(0, 1)</code> and <code>(1, 1)</code>
-     * and then bilinearly interpolating between them; or to use the {@link FrustumRayBuilder}.
+     * and then bilinearly interpolating between them; or to use the {@link org.dynamisengine.vectrix.geometry.FrustumRayBuilder}.
      * <p>
      * Reference: <a href="http://gamedevs.org/uploads/fast-extraction-viewing-frustum-planes-from-world-view-projection-matrix.pdf">
      * Fast Extraction of Viewing Frustum Planes from the World-View-Projection Matrix</a>
@@ -5687,7 +5687,7 @@ public interface Matrix4dc {
      * into standard OpenGL clip space and tests whether the given point with the coordinates <code>(x, y, z)</code> given
      * in space <code>M</code> is within the clip space.
      * <p>
-     * When testing multiple points using the same transformation matrix, {@link FrustumIntersection} should be used instead.
+     * When testing multiple points using the same transformation matrix, {@link org.dynamisengine.vectrix.geometry.FrustumIntersection} should be used instead.
      * <p>
      * Reference: <a href="http://gamedevs.org/uploads/fast-extraction-viewing-frustum-planes-from-world-view-projection-matrix.pdf">
      * Fast Extraction of Viewing Frustum Planes from the World-View-Projection Matrix</a>
@@ -5710,7 +5710,7 @@ public interface Matrix4dc {
      * in space <code>M</code> is within the clip space.
      * <p>
      * When testing multiple spheres using the same transformation matrix, or more sophisticated/optimized intersection algorithms are required,
-     * {@link FrustumIntersection} should be used instead.
+     * {@link org.dynamisengine.vectrix.geometry.FrustumIntersection} should be used instead.
      * <p>
      * The algorithm implemented by this method is conservative. This means that in certain circumstances a <i>false positive</i>
      * can occur, when the method returns <code>true</code> for spheres that are actually not visible.
@@ -5740,7 +5740,7 @@ public interface Matrix4dc {
      * and maximum corner coordinates <code>(maxX, maxY, maxZ)</code> given in space <code>M</code> is within the clip space.
      * <p>
      * When testing multiple axis-aligned boxes using the same transformation matrix, or more sophisticated/optimized intersection algorithms are required,
-     * {@link FrustumIntersection} should be used instead.
+     * {@link org.dynamisengine.vectrix.geometry.FrustumIntersection} should be used instead.
      * <p>
      * The algorithm implemented by this method is conservative. This means that in certain circumstances a <i>false positive</i>
      * can occur, when the method returns <code>-1</code> for boxes that are actually not visible/do not intersect the frustum.

@@ -1923,7 +1923,6 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
      *
      * @return the length squared of the given vector
      *
-     * @author F. Neurath
      */
     public static float lengthSquared(float x, float y, float z) {
         return Math.fma(x, x, Math.fma(y, y, z * z));
@@ -1942,7 +1941,6 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
      *
      * @return the length of the given vector
      *
-     * @author F. Neurath
      */
     public static float length(float x, float y, float z) {
         return (float) java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z);

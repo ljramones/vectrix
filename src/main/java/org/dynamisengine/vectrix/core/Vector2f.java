@@ -649,7 +649,6 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
      *
      * @return the length squared of the given vector
      *
-     * @author F. Neurath
      */
     public static float lengthSquared(float x, float y) {
         return x * x + y * y;
@@ -667,7 +666,6 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
      *
      * @return the length of the given vector
      *
-     * @author F. Neurath
      */
     public static float length(float x, float y) {
         return (float) java.lang.Math.sqrt((double) x * x + (double) y * y);

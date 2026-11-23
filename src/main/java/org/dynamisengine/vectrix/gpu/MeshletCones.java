@@ -102,8 +102,8 @@ public final class MeshletCones {
      * With {@code d = c − camera}, the test is exact: {@code (d·a) cos α − |d × a| sin α > radius}. It never culls
      * a cluster with a visible triangle. Cones of {@code α ≥ 90°} are never back-facing.
      *
-     * @param axis
-     *            the unit cone axis
+     * @param ax
+     *            the unit cone axis, x (with {@code ay}, {@code az})
      */
     public static boolean isBackfacing(float cx, float cy, float cz, float radius, float ax, float ay, float az,
             float cosA, float cameraX, float cameraY, float cameraZ) {

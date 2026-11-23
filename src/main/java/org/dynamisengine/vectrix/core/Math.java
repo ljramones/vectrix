@@ -473,20 +473,20 @@ public class Math {
         return java.lang.Math.min(x, y);
     }
 
-    /** NaN if either is NaN, and -0 < +0: the result does not depend on the argument order (java.lang.Math semantics). */
+    /** NaN if either is NaN, and {@code -0 < +0}: the result does not depend on the argument order (java.lang.Math semantics). */
     public static double min(double a, double b) {
         return java.lang.Math.min(a, b);
     }
-    /** NaN if either is NaN, and -0 < +0: the result does not depend on the argument order (java.lang.Math semantics). */
+    /** NaN if either is NaN, and {@code -0 < +0}: the result does not depend on the argument order (java.lang.Math semantics). */
     public static float min(float a, float b) {
         return java.lang.Math.min(a, b);
     }
 
-    /** NaN if either is NaN, and -0 > +0: the result does not depend on the argument order (java.lang.Math semantics). */
+    /** NaN if either is NaN, and {@code -0 > +0}: the result does not depend on the argument order (java.lang.Math semantics). */
     public static float max(float a, float b) {
         return java.lang.Math.max(a, b);
     }
-    /** NaN if either is NaN, and -0 > +0: the result does not depend on the argument order (java.lang.Math semantics). */
+    /** NaN if either is NaN, and {@code -0 > +0}: the result does not depend on the argument order (java.lang.Math semantics). */
     public static double max(double a, double b) {
         return java.lang.Math.max(a, b);
     }

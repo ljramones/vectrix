@@ -1588,7 +1588,6 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
      *
      * @return the length squared of the given vector
      *
-     * @author F. Neurath
      */
     public static float lengthSquared(float x, float y, float z, float w) {
         return Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w)));
@@ -1622,7 +1621,6 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
      *
      * @return the length of the given vector
      *
-     * @author F. Neurath
      */
     public static float length(float x, float y, float z, float w) {
         return (float) java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z + (double) w * w);

@@ -2125,7 +2125,6 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
      *
      * @return the length squared of the given vector
      *
-     * @author F. Neurath
      */
     public static double lengthSquared(double x, double y, double z) {
         return Math.fma(x, x, Math.fma(y, y, z * z));
@@ -2144,7 +2143,6 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
      *
      * @return the length of the given vector
      *
-     * @author F. Neurath
      */
     public static double length(double x, double y, double z) {
         return Norms.norm3(x, y, z);

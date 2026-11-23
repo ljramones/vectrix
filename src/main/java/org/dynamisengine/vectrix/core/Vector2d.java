@@ -891,7 +891,6 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
      *
      * @return the length squared of the given vector
      *
-     * @author F. Neurath
      */
     public static double lengthSquared(double x, double y) {
         return x * x + y * y;
@@ -909,7 +908,6 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
      *
      * @return the length of the given vector
      *
-     * @author F. Neurath
      */
     public static double length(double x, double y) {
         return Norms.norm2(x, y);

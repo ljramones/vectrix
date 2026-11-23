@@ -134,7 +134,8 @@ public final class PhaseFunctionsd {
 
     /**
      * Fog/cloud model parameters {@code (gHG, gD, α, wD)} for water droplets of mean diameter {@code d} micrometres
-     * (0 < d ≤ 50), from the published fits: d ≤ 0.1, 0.1 < d < 1.5, 1.5 ≤ d < 5, 5 ≤ d ≤ 50 (supplemental eqs.
+     * ({@code 0 < d ≤ 50}), from the published fits: {@code d ≤ 0.1}, {@code 0.1 < d < 1.5}, {@code 1.5 ≤ d < 5},
+     * {@code 5 ≤ d ≤ 50} (supplemental eqs.
      * 7-22; the fits are not continuous across the range boundaries).
      */
     public static double[] fogParameters(double d, double[] out) {
