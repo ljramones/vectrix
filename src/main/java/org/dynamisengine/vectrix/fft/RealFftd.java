@@ -161,8 +161,21 @@ public final class RealFftd {
         check(in, inOff, spectrumLength(), "in");
         check(out, outOff, n, "out");
         check(scratch, scratchOff, scratchSize, "scratch");
+        inverse(in, inOff, out, outOff, scratch, scratchOff, true);
+    }
+
+    /** The factor by which the unscaled inverse ({@code scale == false}) multiplies the samples: n/2 or n. */
+    int unscaledFactor() {
+        return (n & 1) == 0 ? n / 2 : n;
+    }
+
+    /**
+     * The inverse without argument checks; {@code scale == false} skips the final division, leaving the samples
+     * multiplied by {@link #unscaledFactor()} (for the 2D transforms, which divide once at the end).
+     */
+    void inverse(double[] in, int inOff, double[] out, int outOff, double[] scratch, int scratchOff, boolean scale) {
         if ((n & 1) == 0) {
-            inverseEven(in, inOff, out, outOff, scratch, scratchOff);
+            inverseEven(in, inOff, out, outOff, scratch, scratchOff, scale);
         } else {
             int c = scratchOff;
             int h = n / 2;
@@ -179,7 +192,7 @@ public final class RealFftd {
             complex.run(scratch, c, scratch, c + 2 * n, true);
             double s = n;
             for (int j = 0; j < n; j++) {
-                out[outOff + j] = scratch[c + 2 * j] / s;
+                out[outOff + j] = scale ? scratch[c + 2 * j] / s : scratch[c + 2 * j];
             }
         }
     }
@@ -273,7 +286,7 @@ public final class RealFftd {
         }
     }
 
-    private void inverseEven(double[] in, int inOff, double[] out, int o, double[] scratch, int scratchOff) {
+    private void inverseEven(double[] in, int inOff, double[] out, int o, double[] scratch, int scratchOff, boolean scale) {
         int h = n / 2;
         double x0 = in[inOff];
         double xh = in[inOff + n];
@@ -303,6 +316,9 @@ public final class RealFftd {
         out[o] = 0.5 * (x0 + xh);
         out[o + 1] = 0.5 * (x0 - xh);
         complex.run(out, o, scratch, scratchOff, true);
+        if (!scale) {
+            return;
+        }
         if (FftMath.isPowerOfTwo(h)) {
             double s = 1.0 / h; // exact
             for (int i = o, e = o + n; i < e; i++) {

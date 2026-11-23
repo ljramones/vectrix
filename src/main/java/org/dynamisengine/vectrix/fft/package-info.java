@@ -33,7 +33,9 @@
  * Each has a float twin ({@code ...f}). Plans are immutable and shareable between threads; calls take caller-owned
  * scratch, never allocate, and are deterministic. Twiddle factors are computed with exact argument reduction, so
  * the error grows only with {@code log n}. The Vector API paths of the {@code -simd} jar give the same bits as the
- * scalar ones. See {@code docs/guides/signal-processing.md}.
+ * scalar ones. Forward transforms are unscaled; inverses divide once by the number of elements ({@code rows·cols}
+ * in 2D). The complex transforms work in place; the real ones, 1D and 2D, write a separate output and leave their
+ * input unchanged. See {@code docs/guides/signal-processing.md}.
  * <p>
  * <b>Contract.</b> Threading: plans are immutable and can be shared by any number of threads; scratch arrays and
  * {@code BlockConvolverd}/{@code BlockConvolverf} state belong to one thread at a time. Allocation: creating a plan

@@ -28,7 +28,8 @@ package org.dynamisengine.vectrix.fft;
  * sizes; the single-precision twin of {@link ComplexFft2d}. Data is row-major and interleaved: element
  * {@code (r, c)} is at {@code off + 2·(r·cols + c)}.
  * <p>
- * {@link #forward} is unscaled; {@link #inverse} divides by {@code rows·cols}. The transform is separable: every
+ * {@link #forward} is unscaled; {@link #inverse} divides by {@code rows·cols} once, after both passes (a
+ * correctly rounded division, exact when {@code rows·cols} is a power of two). The transform is separable: every
  * row, then every column, with {@link ComplexFftf} plans; columns are processed 16 at a time, gathered into
  * scratch. Accuracy, thread safety and determinism are those of {@link ComplexFftf}.
  *
@@ -116,7 +117,7 @@ public final class ComplexFft2f {
     }
 
     /**
-     * Inverse-transforms the grid in place, dividing by {@code rows·cols}.
+     * Inverse-transforms the grid in place, dividing by {@code rows·cols} once (not once per axis).
      *
      * @param data the grid, {@code 2·rows·cols} floats from {@code off}
      * @param off the offset of element {@code (0, 0)}
@@ -139,11 +140,7 @@ public final class ComplexFft2f {
         }
         int work = scratchOff + 2 * rows * tile;
         for (int r = 0; r < rows; r++) {
-            if (inv) {
-                rowPlan.inverse(data, off + 2 * r * cols, scratch, work);
-            } else {
-                rowPlan.forward(data, off + 2 * r * cols, scratch, work);
-            }
+            rowPlan.run(data, off + 2 * r * cols, scratch, work, inv); // unscaled
         }
         for (int c0 = 0; c0 < cols; c0 += tile) {
             int w = java.lang.Math.min(tile, cols - c0);
@@ -157,11 +154,7 @@ public final class ComplexFft2f {
                 }
             }
             for (int c = 0; c < w; c++) {
-                if (inv) {
-                    colPlan.inverse(scratch, scratchOff + 2 * c * rows, scratch, work);
-                } else {
-                    colPlan.forward(scratch, scratchOff + 2 * c * rows, scratch, work);
-                }
+                colPlan.run(scratch, scratchOff + 2 * c * rows, scratch, work, inv); // unscaled
             }
             for (int r = 0; r < rows; r++) {
                 int dst = off + 2 * (r * cols + c0);
@@ -169,6 +162,20 @@ public final class ComplexFft2f {
                     int src = scratchOff + 2 * (c * rows + r);
                     data[dst + 2 * c] = scratch[src];
                     data[dst + 2 * c + 1] = scratch[src + 1];
+                }
+            }
+        }
+        if (inv) {
+            int count = rows * cols;
+            if (FftMath.isPowerOfTwo(count)) {
+                float s = 1.0f / count; // exact
+                for (int i = off, e = off + 2 * count; i < e; i++) {
+                    data[i] *= s;
+                }
+            } else {
+                double s = count;
+                for (int i = off, e = off + 2 * count; i < e; i++) {
+                    data[i] = (float) (data[i] / s);
                 }
             }
         }
