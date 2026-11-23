@@ -421,6 +421,31 @@ int produced = rs.process(in, 0, count, out, 0, rsState, 0);
 Also: `Spectra` (periodogram, Welch PSD, analytic signal), `Correlation`, `Goertzel`, `Dctd`
 (DCT-II/III/IV), `Mdctd` (MDCT with exact overlap-add reconstruction).
 
+## 8b) Machine-learning kernels (`org.dynamisengine.vectrix.blas`, `org.dynamisengine.vectrix.nn`)
+
+Every reduction has one documented order, so results are the same bits on every platform, with or without the
+Vector API, and for any batch size or thread split. Kernels work on rows that the caller chooses, keep no state,
+and don't allocate.
+
+```java
+float d = Blasf.dot(x, 0, y, 0, n);                         // 256-blocks of 8 fma lanes, pairwise
+float[] s = new float[Gemmf.scratchSize(false, true, m, n, k)];
+Gemmf.gemm(false, true, m, n, k, 1f, x, 0, k, w, 0, k, 0f, y, 0, n, s, 0);   // y = x·Wᵀ, element = dot
+
+Norms.rmsNorm(h, 0, gamma, 0, 1e-6f, h, 0, dim, stats, 0);
+rope.apply(q, 0, position);                                 // Rope.plan(headDim, 10000, Rope.Layout.HALF)
+Attention.forward(q, 0, hd, kCache, 0, hd, vCache, 0, hd, hd, position + 1, scale, null, 0, p, 0, out, 0, scr, 0);
+Activations.silu(gate, 0, gate, 0, ffn);
+Softmax.softmax(logits, 0, probs, 0, vocab);
+int token = Sampler.sample(logits, 0, vocab, 0.8f, 40, 0.95f, Philox.uniform(seed, step), probs, 0, order, 0);
+
+float loss = Loss.crossEntropy(logits, 0, vocab, target, scratch, 0);
+Optim.adamW(params, 0, grads, 0, m, 0, v, 0, count, 3e-4f, 0.9f, 0.95f, 1e-8f, 0.1f, step);
+```
+
+Also: `NnMath` (reproducible exp, log, erf, normal CDF, ...), `Formats` (bf16, FP8, int8 blocks), `Conv2d`, `Pool2d`,
+and the backward pass of every layer.
+
 ## 9) Optics and Color
 
 ### Optics (`org.dynamisengine.vectrix.optics`)

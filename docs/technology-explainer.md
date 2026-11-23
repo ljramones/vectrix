@@ -112,7 +112,10 @@ The appropriate choice depends on your use case. Float is the right choice for G
 | `org.dynamisengine.vectrix.easing` | Linear, smoothstep, quad/cubic, bounce, spring easing |
 | `org.dynamisengine.vectrix.color` | sRGB/linear, XYZ, luminance, tone mapping, color science |
 | `org.dynamisengine.vectrix.sh` | Spherical harmonics L0–L3: basis, projection, convolution |
-| `org.dynamisengine.vectrix.fft` | Complex types, radix-2 FFT, circular/linear convolution |
+| `org.dynamisengine.vectrix.fft` | Planned FFTs of any size (complex, real, 2D), streaming FIR convolution |
+| `org.dynamisengine.vectrix.dsp` | Windows, FIR and biquad filters, STFT, spectra, DCT/MDCT, resampling |
+| `org.dynamisengine.vectrix.blas` | BLAS-1, batch-invariant GEMM/GEMV with a documented reduction order |
+| `org.dynamisengine.vectrix.nn` | Reproducible NN math, activations, softmax, norms, attention, RoPE, convolution |
 | `org.dynamisengine.vectrix.optics` | IOR, Fresnel, thin-film interference, spectral sampling |
 | `org.dynamisengine.vectrix.sdf` | Signed distance functions: sphere, box, capsule, cylinder, torus |
 | `org.dynamisengine.vectrix.hash` | PCG hash, spatial hash |
@@ -274,17 +277,17 @@ The coordinate convention is Y-up right-handed throughout. All probe data captur
 
 ### FFT and Convolution
 
-The `org.dynamisengine.vectrix.fft` package provides a radix-2 Cooley-Tukey FFT with the following conventions locked:
+The `org.dynamisengine.vectrix.fft` package transforms any size through precomputed plans (`ComplexFftd`,
+`RealFftd` and their 2D and float forms). These conventions are fixed:
 
-- **Input size must be a power of two.** Non-power-of-two sizes throw `IllegalArgumentException`. Use the next power of two and zero-pad if needed.
 - **Interleaved complex layout:** `data[2i]` is the real component, `data[2i+1]` is the imaginary component.
-- **Forward FFT is unscaled.** Inverse FFT is scaled by `1/N`. This is the standard engineering convention.
+- **Forward transforms are unscaled.** Inverses are scaled by `1/n`. This is the standard engineering convention.
+- **Plans are immutable and shareable.** Each call takes caller-owned scratch and doesn't allocate. Results are
+  deterministic, and the Vector API path gives the same bits as the scalar one.
 
-The `Convolutionf` class provides two convolution modes:
-
-*Circular convolution* — both inputs must be the same power-of-two complex count. The output wraps around. Use this when you want frequency-domain multiplication without edge effects, for example in bloom kernel application.
-
-*Linear convolution* — inputs can have different lengths. Zero-padding to `nextPowerOfTwo(na + nb - 1)` is handled internally. The output length is `na + nb - 1`. Use this for general signal convolution, for example in ocean simulation where you are convolving a wave spectrum with a displacement kernel.
+`BlockConvolverd` filters a stream with a fixed kernel. It chooses direct or FFT overlap-add convolution by
+measured cost. The original `FFT1f`/`Convolutionf` API (power-of-two, in place) remains for compatibility, and its
+twiddles are now exact.
 
 ---
 

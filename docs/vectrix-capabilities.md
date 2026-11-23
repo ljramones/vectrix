@@ -114,14 +114,40 @@ This document lists what downstream libraries can rely on today, grouped by use-
   Location: `org.dynamisengine.vectrix.sampling.HaltonSequence`, `org.dynamisengine.vectrix.sampling.SobolSequence`.
 
 ## Signal Processing (FFT)
-- Complex value types (`float`/`double`).
-  Location: `org.dynamisengine.vectrix.fft.Complexf`, `org.dynamisengine.vectrix.fft.Complexd`.
-- In-place radix-2 FFT (forward unscaled, inverse scaled by `1/N`).
-  Location: `org.dynamisengine.vectrix.fft.FFT1f`, `org.dynamisengine.vectrix.fft.FFT1d`.
-- FFT-based convolution:
-  - circular
-  - linear (internal zero-padding)
-  Location: `org.dynamisengine.vectrix.fft.Convolutionf`, `org.dynamisengine.vectrix.fft.Convolutiond`.
+- Planned complex and real-input FFTs of any size (mixed radix 2/3/4/5, direct prime butterflies, Bluestein), 1D
+  and 2D, double and float. They take caller scratch, don't allocate, and give the same bits from the scalar and
+  Vector API paths. The error grows only with `log n`.
+  Location: `fft.ComplexFftd/f`, `fft.RealFftd/f`, `fft.ComplexFft2d/f`, `fft.RealFft2d/f`.
+- Streaming FIR filtering by direct or FFT overlap-add convolution.
+  Location: `fft.BlockConvolverd/f`.
+- The original in-place radix-2 API, now on exact twiddle tables.
+  Location: `fft.FFT1f/d`, `fft.Convolutionf/d`, `fft.Complexf/d`.
+
+## Signal Processing (DSP)
+- Windows (Hann, Hamming, Blackman family, Kaiser, Tukey, Gaussian, Dolph–Chebyshev, sine), window gains.
+  Location: `dsp.Windows`.
+- FIR design by the window method; RBJ biquads and Butterworth cascades, with caller-held state.
+  Location: `dsp.FirDesign`, `dsp.BiquadDesign`, `dsp.Biquad`.
+- STFT with exact reconstruction for any windows; periodogram and Welch PSD; analytic signal; cross-correlation;
+  Goertzel.
+  Location: `dsp.Stftd/f`, `dsp.Spectra`, `dsp.Correlation`, `dsp.Goertzel`.
+- DCT-II/III/IV, MDCT, and rational polyphase resampling.
+  Location: `dsp.Dctd/f`, `dsp.Mdctd/f`, `dsp.Resampler`.
+
+## Machine Learning Kernels
+- BLAS level 1 (dot, sum, nrm2, axpy, ...) with one documented reduction order. Arrays and `MemorySegment`s.
+  Location: `blas.Blasf/d`.
+- GEMM and GEMV in which every element is exactly a dot product, so results are batch-invariant.
+  Location: `blas.Gemmf/d`.
+- Reproducible float transcendentals (exp, log, tanh, sigmoid, erf, erfc, the normal CDF) and double helpers
+  (sin, cos, exp, log, pow).
+  Location: `nn.NnMath`.
+- Activations, softmax, layer and RMS norm, cross-entropy, attention, rotary embeddings, convolution and pooling,
+  each with a backward pass.
+  Location: `nn.Activations`, `nn.Softmax`, `nn.Norms`, `nn.Loss`, `nn.Attention`, `nn.Rope`, `nn.Conv2d`,
+  `nn.Pool2d`.
+- Philox random numbers and dropout; token sampling; AdamW and SGD; bf16, FP8 and int8 block formats.
+  Location: `nn.Philox`, `nn.Sampler`, `nn.Optim`, `nn.Formats`.
 
 ## Optics & Material Math
 - IOR utilities and Schlick `F0` helpers.
