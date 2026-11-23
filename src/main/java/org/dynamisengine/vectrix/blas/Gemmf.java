@@ -79,9 +79,13 @@ public final class Gemmf {
      * @param n the number of columns of {@code C}
      * @param k the inner dimension
      * @return the number of floats
-     * @throws IllegalArgumentException if the size does not fit in an {@code int} array
+     * @throws IllegalArgumentException if {@code m}, {@code n} or {@code k} is negative, or the size does not fit
+     *         in an {@code int} array
      */
     public static int scratchSize(boolean transA, boolean transB, int m, int n, int k) {
+        if (m < 0 || n < 0 || k < 0) {
+            throw new IllegalArgumentException("negative size: " + m + ", " + n + ", " + k);
+        }
         long s = (long) DEPTH * MR * NR;
         if (!transB) {
             s += (long) Math.min(NC, n) * k;
@@ -212,10 +216,12 @@ public final class Gemmf {
      * @param beta the scale of the previous {@code y}
      * @param y the output vector, {@code m} elements; receives the result
      * @param yOff the index of the first element of {@code y}
-     * @param scratch at least {@code n} floats when {@code A} is transposed (unused otherwise; may be null)
+     * @param scratch at least {@code n} floats when {@code A} is transposed and {@code n > 0} (unused otherwise;
+     *        may be null)
      * @param scratchOff the index of the first scratch element
      * @throws IllegalArgumentException if a size is negative, a matrix or vector does not fit its array, or the
-     *         scratch is too small when {@code A} is transposed and {@code m > 0}
+     *         scratch is too small when {@code A} is transposed and {@code n > 0} (checked before anything is
+     *         written)
      */
     public static void gemv(boolean transA, int m, int n, float alpha, float[] a, int aOff, int lda, float[] x, int xOff,
             float beta, float[] y, int yOff, float[] scratch, int scratchOff) {
@@ -225,14 +231,16 @@ public final class Gemmf {
         matrix(a, aOff, lda, transA ? n : m, transA ? m : n, "a");
         matrix(x, xOff, n, 1, n, "x");
         matrix(y, yOff, m, 1, m, "y");
+        if (transA && n > 0 && (scratch == null || scratchOff < 0 || scratchOff > scratch.length - n)) {
+            throw new IllegalArgumentException("scratch must hold " + n + " values from offset " + scratchOff);
+        }
         for (int i = 0; i < m; i++) {
             float s;
-            if (!transA) {
+            if (n == 0) {
+                s = 0.0f;
+            } else if (!transA) {
                 s = Blasf.dot(a, aOff + i * lda, x, xOff, n);
             } else {
-                if (scratch == null || scratchOff < 0 || scratchOff > scratch.length - n) {
-                    throw new IllegalArgumentException("scratch must hold " + n + " values from offset " + scratchOff);
-                }
                 for (int kk = 0; kk < n; kk++) {
                     scratch[scratchOff + kk] = a[aOff + kk * lda + i];
                 }
