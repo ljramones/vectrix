@@ -2248,7 +2248,7 @@ public class Intersectiond {
         double dZ = p1Z - p0Z;
         double nom = (centerX - p0X) * dX + (centerY - p0Y) * dY + (centerZ - p0Z) * dZ;
         double den = dX * dX + dY * dY + dZ * dZ;
-        double u = nom / den;
+        double u = den > 0 ? nom / den : 0; // a zero-length segment is the point p0
         if (u < 0.0) {
             dX = p0X - centerX;
             dY = p0Y - centerY;

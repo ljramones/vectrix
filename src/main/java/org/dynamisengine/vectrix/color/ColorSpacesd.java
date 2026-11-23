@@ -36,10 +36,10 @@ import org.dynamisengine.vectrix.core.Vector3dc;
  * stays white in every D65 gamut and sRGB conversions match the rest of the library exactly. The ACES white point is
  * x 0.32168, y 0.33767. All matrices are 3×3 row-major: {@code out[i] = m[3i] r + m[3i+1] g + m[3i+2] b}.
  * <p>
- * The methods are stateless and safe to call from any thread. Unlike {@link ColorSpacesf}, which uses precomputed
- * tables, {@link #convert(Vector3dc, ColorGamut, ColorGamut, Vector3d)}, {@link #conversionMatrix} and
- * {@link #adaptationMatrix} compute their matrices on each call and allocate small temporary arrays; bake the matrix
- * once with {@link #conversionMatrix} for per-pixel work.
+ * The methods are safe to call from any thread. Every gamut-to-gamut matrix is computed once, on first use, so
+ * {@link #convert(Vector3dc, ColorGamut, ColorGamut, Vector3d)} and {@link #conversionMatrix} do not allocate.
+ * {@link #adaptationMatrix}, for arbitrary white points, computes its matrix on each call and allocates small
+ * temporary arrays.
  *
  * @since 2.1.0
  */
@@ -115,6 +115,32 @@ public final class ColorSpacesd {
      * @return {@code out9}
      */
     public static double[] conversionMatrix(ColorGamut from, ColorGamut to, Adaptation adaptation, double[] out9) {
+        System.arraycopy(Table.CONVERT[Table.index(from, to, adaptation)], 0, out9, 0, 9);
+        return out9;
+    }
+
+    /** Every conversion matrix, computed once (the computation allocates); read by {@link #convert}. */
+    private static final class Table {
+        static final int GAMUTS = ColorGamut.values().length;
+        static final int ADAPTATIONS = Adaptation.values().length;
+        static final double[][] CONVERT = new double[GAMUTS * GAMUTS * ADAPTATIONS][];
+
+        static {
+            for (ColorGamut from : ColorGamut.values()) {
+                for (ColorGamut to : ColorGamut.values()) {
+                    for (Adaptation a : Adaptation.values()) {
+                        CONVERT[index(from, to, a)] = compute(from, to, a, new double[9]);
+                    }
+                }
+            }
+        }
+
+        static int index(ColorGamut from, ColorGamut to, Adaptation a) {
+            return (from.ordinal() * GAMUTS + to.ordinal()) * ADAPTATIONS + a.ordinal();
+        }
+    }
+
+    private static double[] compute(ColorGamut from, ColorGamut to, Adaptation adaptation, double[] out9) {
         if (from == to) {
             // exact: the published sRGB pair (ColorMath) is only inverse to about 1e-7
             System.arraycopy(new double[] {1, 0, 0, 0, 1, 0, 0, 0, 1}, 0, out9, 0, 9);
@@ -146,7 +172,7 @@ public final class ColorSpacesd {
 
     /**
      * Converts linear RGB between gamuts with the given white-point adaptation, using
-     * {@link #conversionMatrix(ColorGamut, ColorGamut, Adaptation, double[])}. Allocates the matrix on each call.
+     * {@link #conversionMatrix(ColorGamut, ColorGamut, Adaptation, double[])}. Does not allocate.
      *
      * @param rgb the linear color in {@code from}
      * @param from the source gamut
@@ -156,7 +182,7 @@ public final class ColorSpacesd {
      * @return {@code dest}
      */
     public static Vector3d convert(Vector3dc rgb, ColorGamut from, ColorGamut to, Adaptation adaptation, Vector3d dest) {
-        double[] m = conversionMatrix(from, to, adaptation, new double[9]);
+        double[] m = Table.CONVERT[Table.index(from, to, adaptation)];
         double r = rgb.x(), g = rgb.y(), b = rgb.z();
         return dest.set(m[0] * r + m[1] * g + m[2] * b, m[3] * r + m[4] * g + m[5] * b, m[6] * r + m[7] * g + m[8] * b);
     }

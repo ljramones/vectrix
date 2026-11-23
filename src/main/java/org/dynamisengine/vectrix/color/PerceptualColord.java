@@ -118,7 +118,7 @@ public final class PerceptualColord {
     public static Vector3d labToLch(Vector3dc lab, Vector3d dest) {
         double l = lab.x(), a = lab.y(), b = lab.z();
         double h = AccurateMath.atan2(b, a) * RAD_TO_DEG;
-        return dest.set(l, java.lang.Math.sqrt(a * a + b * b), h < 0.0 ? h + 360.0 : h);
+        return dest.set(l, java.lang.Math.sqrt(a * a + b * b), wrapHue(h));
     }
 
     /**
@@ -186,8 +186,7 @@ public final class PerceptualColord {
     /**
      * Converts HSV to RGB; the inverse of {@link #rgbToHsv}.
      *
-     * @param hsv the color (hue in degrees, saturation, value); the hue must be in [0, 360], negative hues are not
-     *            wrapped and give wrong results
+     * @param hsv the color (hue in degrees, saturation, value); any hue, wrapped to [0, 360)
      * @param dest receives the RGB color; may be {@code hsv}
      * @return {@code dest}
      */
@@ -198,6 +197,9 @@ public final class PerceptualColord {
 
     private static double hsvChannel(double n, double h, double s, double v) {
         double k = (n + h / 60.0) % 6.0;
+        if (k < 0) {
+            k += 6.0;
+        }
         return v - v * s * java.lang.Math.max(0.0, java.lang.Math.min(k, java.lang.Math.min(4.0 - k, 1.0)));
     }
 
@@ -221,8 +223,7 @@ public final class PerceptualColord {
     /**
      * Converts HSL to RGB; the inverse of {@link #rgbToHsl}.
      *
-     * @param hsl the color (hue in degrees, saturation, lightness); the hue must be in [0, 360], negative hues are not
-     *            wrapped and give wrong results
+     * @param hsl the color (hue in degrees, saturation, lightness); any hue, wrapped to [0, 360)
      * @param dest receives the RGB color; may be {@code hsl}
      * @return {@code dest}
      */
@@ -234,6 +235,9 @@ public final class PerceptualColord {
 
     private static double hslChannel(double n, double h, double a, double l) {
         double k = (n + h / 30.0) % 12.0;
+        if (k < 0) {
+            k += 12.0;
+        }
         return l - a * java.lang.Math.max(-1.0, java.lang.Math.min(k - 3.0, java.lang.Math.min(9.0 - k, 1.0)));
     }
 
@@ -249,7 +253,7 @@ public final class PerceptualColord {
         } else {
             h = 60.0 * ((r - g) / d + 4.0);
         }
-        return h < 0.0 ? h + 360.0 : h;
+        return wrapHue(h);
     }
 
     /**
@@ -326,6 +330,18 @@ public final class PerceptualColord {
             return 0.0;
         }
         double h = java.lang.Math.toDegrees(AccurateMath.atan2(b, a));
-        return h < 0.0 ? h + 360.0 : h;
+        return wrapHue(h);
+    }
+
+    /** {@code h} wrapped to [0, 360), with -0 as +0 (rounding of a tiny negative hue can otherwise give 360). */
+    private static double wrapHue(double h) {
+        double r = h % 360.0;
+        if (r < 0) {
+            r += 360.0;
+        }
+        if (r >= 360.0) {
+            r -= 360.0;
+        }
+        return r + 0.0;
     }
 }

@@ -56,8 +56,8 @@ public final class TwoBoneIkf {
      * @param pole a point on the side the chain should bend toward
      * @param maxStretch the largest factor the bones may lengthen by for out-of-reach targets; values at or below 1
      *        disable stretching
-     * @param midOut receives the new middle joint position; may be {@code mid}, but not {@code target}
-     * @param endOut receives the new end joint position; may be {@code end}, but not {@code target}
+     * @param midOut receives the new middle joint position; may alias any input
+     * @param endOut receives the new end joint position; may alias any input
      * @param rootDelta receives the world-space delta rotation of the root bone
      * @param midDelta receives the world-space delta rotation of the middle bone, applied after {@code rootDelta}
      * @return the remaining distance from the new end position to the target (0 when reached)
@@ -68,14 +68,16 @@ public final class TwoBoneIkf {
         double mx = mid.x(), my = mid.y(), mz = mid.z(), ex = end.x(), ey = end.y(), ez = end.z();
         double a = java.lang.Math.sqrt(sq(mx - rx) + sq(my - ry) + sq(mz - rz));
         double b = java.lang.Math.sqrt(sq(ex - mx) + sq(ey - my) + sq(ez - mz));
-        double tx = target.x() - rx, ty = target.y() - ry, tz = target.z() - rz;
+        // read every input before writing any output, so the outputs may alias the inputs
+        double gx = target.x(), gy = target.y(), gz = target.z();
+        double tx = gx - rx, ty = gy - ry, tz = gz - rz;
         double d = java.lang.Math.sqrt(tx * tx + ty * ty + tz * tz);
         if (d == 0.0 || a == 0.0 || b == 0.0) {
-            midOut.set(mid);
-            endOut.set(end);
+            midOut.set((float) mx, (float) my, (float) mz);
+            endOut.set((float) ex, (float) ey, (float) ez);
             rootDelta.identity();
             midDelta.identity();
-            return (float) java.lang.Math.sqrt(sq(ex - target.x()) + sq(ey - target.y()) + sq(ez - target.z()));
+            return (float) java.lang.Math.sqrt(sq(ex - gx) + sq(ey - gy) + sq(ez - gz));
         }
         double ux = tx / d, uy = ty / d, uz = tz / d;
         // bend direction: the pole's component perpendicular to the target direction, else the current bend
@@ -123,7 +125,7 @@ public final class TwoBoneIkf {
         endOut.set((float) nex, (float) ney, (float) nez);
         rootDelta.set((float) q1[0], (float) q1[1], (float) q1[2], (float) q1[3]);
         midDelta.set((float) q2[0], (float) q2[1], (float) q2[2], (float) q2[3]);
-        return (float) java.lang.Math.sqrt(sq(nex - target.x()) + sq(ney - target.y()) + sq(nez - target.z()));
+        return (float) java.lang.Math.sqrt(sq(nex - gx) + sq(ney - gy) + sq(nez - gz));
     }
 
     private static double sq(double v) {

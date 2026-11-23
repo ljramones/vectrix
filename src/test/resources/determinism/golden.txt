@@ -8284,7 +8284,7 @@ dsp.Goertzel.dft(double[],int,int,double,double[]) 3f971e328f8ebf27
 dsp.Goertzel.dft(float[],int,int,double,double[]) 6ac4c25b131b7a71
 dsp.Kalman.update(int,int,double[],double[],double[],double[],double[],double[]) f247e3388891ce5a
 dsp.Kalman.scratchSize(int,int) ef8e7356e5eca265
-dsp.Kalman.predict(int,double[],double[],double[],double[],double[]) 78de0aef86707d4f
+dsp.Kalman.predict(int,double[],double[],double[],double[],double[]) 20d18d24dc645425
 dsp.Mdctd.plan(int) d2ddba6bf7fafd30
 dsp.Mdctf.plan(int) a0b05e75d12bc9c2
 dsp.ParticleFilter.effectiveSampleSize(double[],int) 5da7383085f8d006
@@ -9124,12 +9124,12 @@ sh.ShProjection.projectSample(float,float,float,float,float,float,float,float[],
 sh.ShProjection.projectSampleL3(double,double,double,double,double,double,double,double[],ShCoeffs16d) 412d76293cc16dca
 sh.ShProjection.projectSampleL3(float,float,float,float,float,float,float,float[],ShCoeffs16f) c0ce180045dbc0a7
 sh.ShRotation.rotationMatrixL2(Matrix3dc,double[]) a40c76dd2744fdf2
-sh.ShRotation.rotationMatrixL3(Matrix3dc,double[]) 17549f2efb75f0e6
+sh.ShRotation.rotationMatrixL3(Matrix3dc,double[]) 3f971e328f8ebf27
 sh.ShRotation.rotationMatrixL2(Matrix3fc,float[]) f109e6c52edfb03a
-sh.ShRotation.rotationMatrixL3(Matrix3fc,float[]) 17549f2efb75f0e6
-sh.ShRotation.applyL3(double[],ShCoeffs16d,ShCoeffs16d) 17549f2efb75f0e6
+sh.ShRotation.rotationMatrixL3(Matrix3fc,float[]) 3f971e328f8ebf27
+sh.ShRotation.applyL3(double[],ShCoeffs16d,ShCoeffs16d) 3f971e328f8ebf27
 sh.ShRotation.rotateL3(ShCoeffs16d,Matrix3dc,ShCoeffs16d) f0348da34ec9ee75
-sh.ShRotation.applyL3(float[],ShCoeffs16f,ShCoeffs16f) 17549f2efb75f0e6
+sh.ShRotation.applyL3(float[],ShCoeffs16f,ShCoeffs16f) 3f971e328f8ebf27
 sh.ShRotation.rotateL3(ShCoeffs16f,Matrix3fc,ShCoeffs16f) 6a2f543650eb9993
 sh.ShRotation.applyL2(double[],ShCoeffs9d,ShCoeffs9d) 22b39e8d660d442e
 sh.ShRotation.rotateL2(ShCoeffs9d,Matrix3dc,ShCoeffs9d) 09dc04ed328adb3f

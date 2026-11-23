@@ -30,7 +30,8 @@ import org.dynamisengine.vectrix.core.Vector3dc;
  * Closest-point and distance queries that {@link Intersectiond} does not cover (double precision): point to oriented
  * box and to axis-aligned box, segment to axis-aligned box, segment and triangle to triangle, and ray against capsule.
  * Shapes are passed as plain parameters (vectrix has no shape types; DynamisCollision owns them). The functions are
- * stateless and safe to call from any thread. Only {@link #distanceSquaredTriangleTriangle} allocates.
+ * stateless and safe to call from any thread, and do not allocate ({@link #distanceSquaredTriangleTriangle} keeps
+ * two per-thread scratch vectors, created on its first call in each thread).
  *
  * @since 2.2.0
  */
@@ -71,7 +72,7 @@ public final class ClosestPointsd {
      * minimum over the six edge-against-triangle distances of {@link
      * Intersectiond#findClosestPointsLineSegmentTriangle}, which detects edges that pierce the other triangle.
      * <p>
-     * This method allocates two temporary vectors and two small arrays per call, so avoid it in hot paths.
+     * It does not allocate after its first call in each thread (per-thread scratch).
      *
      * @param a0 the first vertex of triangle A
      * @param a1 the second vertex of triangle A
@@ -79,35 +80,47 @@ public final class ClosestPointsd {
      * @param b0 the first vertex of triangle B
      * @param b1 the second vertex of triangle B
      * @param b2 the third vertex of triangle B
-     * @param pointA receives the closest point on triangle A; must not alias any vertex
-     * @param pointB receives the closest point on triangle B; must not alias any vertex
+     * @param pointA receives the closest point on triangle A; may alias any vertex
+     * @param pointB receives the closest point on triangle B; may alias any vertex
      * @return the squared distance, 0 if the triangles intersect
      */
     public static double distanceSquaredTriangleTriangle(Vector3dc a0, Vector3dc a1, Vector3dc a2, Vector3dc b0,
             Vector3dc b1, Vector3dc b2, Vector3d pointA, Vector3d pointB) {
-        Vector3dc[] ta = {a0, a1, a2};
-        Vector3dc[] tb = {b0, b1, b2};
+        // The best pair is kept in locals and written at the end, so pointA and pointB may alias the vertices.
+        Vector3d[] scratch = TRI_TRI_SCRATCH.get();
+        Vector3d s = scratch[0];
+        Vector3d t = scratch[1];
         double best = Double.POSITIVE_INFINITY;
-        Vector3d s = new Vector3d(), t = new Vector3d();
+        double ax = 0, ay = 0, az = 0, bx = 0, by = 0, bz = 0;
         for (int side = 0; side < 2; side++) {
-            Vector3dc[] e = side == 0 ? ta : tb;
-            Vector3dc[] tri = side == 0 ? tb : ta;
             for (int i = 0; i < 3; i++) {
-                Vector3dc p = e[i], q = e[(i + 1) % 3];
-                double d = segmentTriangle(p, q, tri[0], tri[1], tri[2], s, t);
+                Vector3dc p = side == 0 ? vertex(i, a0, a1, a2) : vertex(i, b0, b1, b2);
+                Vector3dc q = side == 0 ? vertex(i + 1, a0, a1, a2) : vertex(i + 1, b0, b1, b2);
+                double d = side == 0 ? segmentTriangle(p, q, b0, b1, b2, s, t) : segmentTriangle(p, q, a0, a1, a2, s, t);
                 if (d < best) {
                     best = d;
-                    if (side == 0) {
-                        pointA.set(s);
-                        pointB.set(t);
-                    } else {
-                        pointA.set(t);
-                        pointB.set(s);
-                    }
+                    Vector3d onA = side == 0 ? s : t;
+                    Vector3d onB = side == 0 ? t : s;
+                    ax = onA.x;
+                    ay = onA.y;
+                    az = onA.z;
+                    bx = onB.x;
+                    by = onB.y;
+                    bz = onB.z;
                 }
             }
         }
+        pointA.set(ax, ay, az);
+        pointB.set(bx, by, bz);
         return best;
+    }
+
+    private static final ThreadLocal<Vector3d[]> TRI_TRI_SCRATCH =
+        ThreadLocal.withInitial(() -> new Vector3d[] {new Vector3d(), new Vector3d()});
+
+    private static Vector3dc vertex(int i, Vector3dc v0, Vector3dc v1, Vector3dc v2) {
+        int k = i % 3;
+        return k == 0 ? v0 : k == 1 ? v1 : v2;
     }
 
     /**

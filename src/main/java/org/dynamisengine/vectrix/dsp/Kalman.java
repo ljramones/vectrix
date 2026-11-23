@@ -33,8 +33,8 @@ package org.dynamisengine.vectrix.dsp;
  * order, so results are reproducible. Nothing allocates; calls take {@link #scratchSize(int, int)} doubles of
  * scratch.
  * <p>
- * All arrays are used from index 0. Only the scratch size is checked up front; other arrays that are too short
- * fail with {@link ArrayIndexOutOfBoundsException} part way through, leaving the state partly updated.
+ * All arrays are used from index 0. Their sizes are checked up front: an array that is null or too short throws
+ * {@link IllegalArgumentException} before the state changes.
  *
  * @since 2.5.0
  */
@@ -63,9 +63,16 @@ public final class Kalman {
      * @param f the {@code n×n} transition matrix
      * @param q the {@code n×n} process noise covariance
      * @param scratch at least {@code scratchSize(n, 0)} doubles of working memory
-     * @throws IllegalArgumentException if {@code scratch} is too short
+     * @throws IllegalArgumentException if {@code n} (or {@code m}) is less than 1, or an array is null or too short
      */
     public static void predict(int n, double[] x, double[] p, double[] f, double[] q, double[] scratch) {
+        if (n < 1) {
+            throw new IllegalArgumentException("n must be at least 1: " + n);
+        }
+        need(x, n, "x");
+        need(p, n * n, "p");
+        need(f, n * n, "f");
+        need(q, n * n, "q");
         need(scratch, scratchSize(n, 0));
         int xs = 0;
         int fp = n;
@@ -98,11 +105,19 @@ public final class Kalman {
      * @param z the {@code m} measurements
      * @param scratch at least {@code scratchSize(n, m)} doubles of working memory
      * @return the squared Mahalanobis distance {@code yᵀ·S⁻¹·y} of the innovation (for gating)
-     * @throws IllegalArgumentException if {@code scratch} is too short
+     * @throws IllegalArgumentException if {@code n} (or {@code m}) is less than 1, or an array is null or too short
      * @throws IllegalStateException if {@code S} is not positive definite; {@code x} and {@code p} are then unchanged
      */
     public static double update(int n, int m, double[] x, double[] p, double[] h, double[] r, double[] z,
             double[] scratch) {
+        if (n < 1 || m < 1) {
+            throw new IllegalArgumentException("n and m must be at least 1: " + n + ", " + m);
+        }
+        need(x, n, "x");
+        need(p, n * n, "p");
+        need(h, m * n, "h");
+        need(r, m * m, "r");
+        need(z, m, "z");
         need(scratch, scratchSize(n, m));
         for (int i = 0; i < m; i++) {
             double v = z[i];
@@ -261,8 +276,12 @@ public final class Kalman {
     }
 
     private static void need(double[] scratch, int size) {
-        if (scratch == null || scratch.length < size) {
-            throw new IllegalArgumentException("scratch must hold " + size + " doubles");
+        need(scratch, size, "scratch");
+    }
+
+    private static void need(double[] a, int size, String name) {
+        if (a == null || a.length < size) {
+            throw new IllegalArgumentException(name + " must hold " + size + " doubles");
         }
     }
 }

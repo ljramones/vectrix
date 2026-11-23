@@ -105,6 +105,19 @@ class HotPathAllocationTest {
         Quaternionf q = new Quaternionf().rotationXYZ(0.1f, 0.2f, 0.3f), p = new Quaternionf().rotationXYZ(0.2f, 0.1f, 0f);
         Quaternionf n = new Quaternionf().rotationXYZ(0.3f, 0.4f, 0.1f), d = new Quaternionf();
         assertNoAllocation("Quaternionf.squadControlPoint", () -> q.squadControlPoint(p, n, d));
+        org.dynamisengine.vectrix.core.Vector3d rgbIn = new org.dynamisengine.vectrix.core.Vector3d(0.2, 0.5, 0.7);
+        org.dynamisengine.vectrix.core.Vector3d rgbOut = new org.dynamisengine.vectrix.core.Vector3d();
+        assertNoAllocation("ColorSpacesd.convert", () -> org.dynamisengine.vectrix.color.ColorSpacesd.convert(rgbIn,
+            org.dynamisengine.vectrix.color.ColorGamut.SRGB, org.dynamisengine.vectrix.color.ColorGamut.REC2020,
+            rgbOut));
+        org.dynamisengine.vectrix.core.Vector3f ta0 = new org.dynamisengine.vectrix.core.Vector3f(0, 0, 0);
+        org.dynamisengine.vectrix.core.Vector3f ta1 = new org.dynamisengine.vectrix.core.Vector3f(1, 0, 0);
+        org.dynamisengine.vectrix.core.Vector3f ta2 = new org.dynamisengine.vectrix.core.Vector3f(0, 1, 0);
+        org.dynamisengine.vectrix.core.Vector3f tb0 = new org.dynamisengine.vectrix.core.Vector3f(0, 0, 1);
+        org.dynamisengine.vectrix.core.Vector3f pa = new org.dynamisengine.vectrix.core.Vector3f();
+        org.dynamisengine.vectrix.core.Vector3f pb = new org.dynamisengine.vectrix.core.Vector3f();
+        assertNoAllocation("ClosestPointsf.distanceSquaredTriangleTriangle", () -> org.dynamisengine.vectrix.geometry
+            .ClosestPointsf.distanceSquaredTriangleTriangle(ta0, ta1, ta2, tb0, ta1, ta2, pa, pb));
         assertNoAllocation("Quaternionf.squad", () -> q.squad(p, n, p, 0.3f, d));
         Quaterniond qd = new Quaterniond(q.x, q.y, q.z, q.w), pd = new Quaterniond(p.x, p.y, p.z, p.w);
         Quaterniond nd = new Quaterniond(n.x, n.y, n.z, n.w), dd = new Quaterniond();

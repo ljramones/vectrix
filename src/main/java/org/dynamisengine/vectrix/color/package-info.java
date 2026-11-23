@@ -33,8 +33,8 @@
  * <p>
  * <b>Contract.</b> Threading: the classes are stateless and safe to call from any thread; {@code SpectralUpsampling}
  * builds its per-gamut tables on first use under a lock. Allocation: the per-color methods allocate nothing, except
- * {@code ColorSpacesd.convert}, {@code ColorSpacesd.conversionMatrix} and {@code ColorSpacesd.adaptationMatrix}
- * (small temporary arrays; {@code ColorSpacesf} uses precomputed tables instead) and {@code SpectralUpsampling.fit}.
+ * {@code ColorSpacesd.adaptationMatrix} (small temporary arrays, for arbitrary white points) and
+ * {@code SpectralUpsampling.fit}; the gamut conversion matrices are computed once.
  * Determinism: transcendentals go through {@code AccurateMath}, so results match across platforms under
  * {@code -Dvectrix.strictMath=true}. Errors: values are not validated or clamped unless a method says so, and NaN
  * propagates; {@code ColorScience*.kelvinToLinearRgb} throws {@link java.lang.IllegalArgumentException} for a null

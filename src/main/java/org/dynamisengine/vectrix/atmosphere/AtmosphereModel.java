@@ -198,10 +198,16 @@ public record AtmosphereModel(double bottomRadius, double topRadius, double rayl
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof AtmosphereModel m && bottomRadius == m.bottomRadius && topRadius == m.topRadius
-                && rayleighScaleHeight == m.rayleighScaleHeight && mieScaleHeight == m.mieScaleHeight
-                && mieAnisotropy == m.mieAnisotropy && ozoneCenterAltitude == m.ozoneCenterAltitude
-                && ozoneHalfWidth == m.ozoneHalfWidth && java.util.Arrays.equals(rayleighScattering, m.rayleighScattering)
+        // Double.compare, like Arrays.equals for the arrays, so equals agrees with hashCode (NaN equals NaN, -0 differs
+        // from +0)
+        return o instanceof AtmosphereModel m && Double.compare(bottomRadius, m.bottomRadius) == 0
+                && Double.compare(topRadius, m.topRadius) == 0
+                && Double.compare(rayleighScaleHeight, m.rayleighScaleHeight) == 0
+                && Double.compare(mieScaleHeight, m.mieScaleHeight) == 0
+                && Double.compare(mieAnisotropy, m.mieAnisotropy) == 0
+                && Double.compare(ozoneCenterAltitude, m.ozoneCenterAltitude) == 0
+                && Double.compare(ozoneHalfWidth, m.ozoneHalfWidth) == 0
+                && java.util.Arrays.equals(rayleighScattering, m.rayleighScattering)
                 && java.util.Arrays.equals(mieScattering, m.mieScattering)
                 && java.util.Arrays.equals(mieExtinction, m.mieExtinction)
                 && java.util.Arrays.equals(ozoneAbsorption, m.ozoneAbsorption)

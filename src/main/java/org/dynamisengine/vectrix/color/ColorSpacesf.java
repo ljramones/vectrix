@@ -35,6 +35,9 @@ import org.dynamisengine.vectrix.core.Vector3fc;
  * @since 2.1.0
  */
 public final class ColorSpacesf {
+
+    /** The number of gamuts, cached: {@code values()} copies its array on every call. */
+    private static final int GAMUTS = ColorGamut.values().length;
     private static final float[][][] CONVERT;
 
     static {
@@ -84,7 +87,7 @@ public final class ColorSpacesf {
      */
     public static Vector3f convert(Vector3fc rgb, ColorGamut from, ColorGamut to, ColorSpacesd.Adaptation adaptation,
             Vector3f dest) {
-        float[] m = CONVERT[from.ordinal() * ColorGamut.values().length + to.ordinal()][adaptation.ordinal()];
+        float[] m = CONVERT[from.ordinal() * GAMUTS + to.ordinal()][adaptation.ordinal()];
         float r = rgb.x(), g = rgb.y(), b = rgb.z();
         return dest.set(m[0] * r + m[1] * g + m[2] * b, m[3] * r + m[4] * g + m[5] * b, m[6] * r + m[7] * g + m[8] * b);
     }
@@ -101,7 +104,7 @@ public final class ColorSpacesf {
      */
     public static float[] conversionMatrix(ColorGamut from, ColorGamut to, ColorSpacesd.Adaptation adaptation,
             float[] out9) {
-        System.arraycopy(CONVERT[from.ordinal() * ColorGamut.values().length + to.ordinal()][adaptation.ordinal()], 0,
+        System.arraycopy(CONVERT[from.ordinal() * GAMUTS + to.ordinal()][adaptation.ordinal()], 0,
                 out9, 0, 9);
         return out9;
     }

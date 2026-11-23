@@ -90,19 +90,29 @@ public final class QuaternionCurvesf {
      *
      * @param keys the unrolled keys, 4 floats each, unit length
      * @param count the number of keys
-     * @param outControls receives the {@code count} control points; must not be {@code keys}
+     * @param outControls receives the {@code count} control points; may be {@code keys}
      * @return {@code outControls}
      */
     public static float[] squadControlPoints(float[] keys, int count, float[] outControls) {
         double[] s = QuatKernels.SCRATCH.get();
+        // key k - 1 as it was before outControls[k - 1] was written, so outControls may be keys
+        double p0 = 0, p1 = 0, p2 = 0, p3 = 0;
         for (int k = 0; k < count; k++) {
+            double c0 = keys[4 * k], c1 = keys[4 * k + 1], c2 = keys[4 * k + 2], c3 = keys[4 * k + 3];
             if (k == 0 || k == count - 1) {
                 System.arraycopy(keys, 4 * k, outControls, 4 * k, 4);
+                p0 = c0;
+                p1 = c1;
+                p2 = c2;
+                p3 = c3;
                 continue;
             }
             load(s, 0, keys, k);
             QuatKernels.conj(s, 0, 4);
-            load(s, 8, keys, k - 1);
+            s[8] = p0;
+            s[9] = p1;
+            s[10] = p2;
+            s[11] = p3;
             QuatKernels.mul(s, 4, 8, 12);
             QuatKernels.log(s, 12, 16);
             load(s, 8, keys, k + 1);
@@ -117,6 +127,10 @@ public final class QuaternionCurvesf {
             for (int i = 0; i < 4; i++) {
                 outControls[4 * k + i] = (float) s[32 + i];
             }
+            p0 = c0;
+            p1 = c1;
+            p2 = c2;
+            p3 = c3;
         }
         return outControls;
     }

@@ -59,7 +59,7 @@ public final class Biquad {
      * @param stateOff the offset of the state
      * @param in the input samples
      * @param inOff the offset of the first input
-     * @param out receives the output samples; may be {@code in}. With {@code sections == 0} it is not written.
+     * @param out receives the output samples; may be {@code in}. With {@code sections == 0} it receives {@code in}.
      * @param outOff the offset of the first output
      * @param count the number of samples, {@code >= 0}
      * @throws IllegalArgumentException if {@code sections} or {@code count} is negative, or an array does not hold
@@ -70,6 +70,10 @@ public final class Biquad {
         check(coeffs, coeffOff, sections, state, stateOff);
         range(in == null ? -1 : in.length, inOff, count, "in");
         range(out == null ? -1 : out.length, outOff, count, "out");
+        if (sections == 0) { // an empty cascade passes the signal through, like the float overload
+            System.arraycopy(in, inOff, out, outOff, count);
+            return;
+        }
         for (int sec = 0; sec < sections; sec++) {
             int c = coeffOff + BiquadDesign.STRIDE * sec;
             double b0 = coeffs[c];

@@ -395,8 +395,9 @@ public final class ReproducibleMath {
     }
 
     /**
-     * {@code b^y} in double, reproducibly, as {@code e^(y·log b)}, for {@code b > 0} and moderate results; the rounding
-     * of {@code y·log b} costs about {@code |y·log b|} ulps (2e-15 relative for {@code 10000^-2}).
+     * {@code b^y} in double, reproducibly, as {@code e^(y·log b)}, for {@code b >= 0}; the rounding of
+     * {@code y·log b} costs about {@code |y·log b|} ulps (2e-15 relative for {@code 10000^-2}). {@code pow(0, y)} is 0
+     * for {@code y > 0} and +∞ for {@code y < 0}; {@code pow(b, 0)} with {@code b = 0} or {@code b = ∞} is NaN.
      *
      * @param b the base, greater than 0
      * @param y the exponent
@@ -407,13 +408,20 @@ public final class ReproducibleMath {
     }
 
     /**
-     * {@code e^x} in double, reproducibly (Cody–Waite reduction, degree-13 Taylor), for {@code |x| <= 700}; within
-     * 1 ulp (measured).
+     * {@code e^x} in double, reproducibly (Cody–Waite reduction, degree-13 Taylor); within 1 ulp (measured) over
+     * the whole range. Overflows to +∞ above about 709.78 and underflows gradually to 0 below about −708, reaching 0
+     * below −745.13; {@code exp(-∞) = 0}, {@code exp(+∞) = +∞}, NaN gives NaN.
      *
      * @param x the exponent
      * @return {@code e^x}
      */
     public static double exp(double x) {
+        if (!(x > -746.0)) {
+            return x != x ? x : 0.0; // NaN, -∞, or below the smallest subnormal
+        }
+        if (x > 710.0) {
+            return Double.POSITIVE_INFINITY;
+        }
         double kf = (x * LOG2E_D + ROUND_D) - ROUND_D;
         double r = java.lang.Math.fma(kf, -LN2_HI_D, x);
         r = java.lang.Math.fma(kf, -LN2_LO_D, r);
@@ -421,7 +429,11 @@ public final class ReproducibleMath {
         for (int n = EXP_D.length - 2; n >= 0; n--) {
             p = java.lang.Math.fma(p, r, EXP_D[n]);
         }
-        return java.lang.Math.scalb(java.lang.Math.fma(p, r * r, r) + 1.0, (int) kf);
+        // scale by 2^k in two halves: one scalb(t, 1024) would overflow for results just below Double.MAX_VALUE,
+        // and the first half is exact, so the result is rounded once (also into the subnormal range)
+        int k = (int) kf;
+        int k1 = k >> 1;
+        return java.lang.Math.scalb(java.lang.Math.scalb(java.lang.Math.fma(p, r * r, r) + 1.0, k1), k - k1);
     }
 
     /** {@code erfc(a)} for {@code a >= 1}, in double: the continued fraction times {@code e^-a²}. */

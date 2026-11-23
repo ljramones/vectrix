@@ -52,6 +52,26 @@ Structure and documentation release. Nothing is removed. Every moved or replaced
   (`scripts/javadoc_overlay.py`).
 
 ### Fixed
+- `ReproducibleMath.exp(double)` returned +∞ for very negative arguments (such as `-1e300`) and NaN for ±∞, so
+  `pow(0, y)` was NaN. Results just below `Double.MAX_VALUE` overflowed. It is now within 1 ulp of `StrictMath`
+  over the whole range, including subnormal results.
+- Outputs aliasing inputs now work in:
+  - `ClosestPointsf/d.distanceSquaredTriangleTriangle`, which also no longer allocates;
+  - `TwoBoneIkf/d.solve`, when an output is the target;
+  - `QuaternionCurvesf/d.squadControlPoints`, in place.
+- `Intersectionf/d.testLineSegmentSphere` treats a zero-length segment as a point. Before, it always returned
+  false.
+- `PerceptualColorf/d`: HSV and HSL input hues wrap for negative values, and output hues are always in [0, 360),
+  never 360 or −0.
+- `SobolSequence` and `HaltonSequence` batch methods rejected neither an index range past `Integer.MAX_VALUE` nor
+  overflowing offsets. Both now throw `IllegalArgumentException` before writing.
+- Up-front validation that throws `IllegalArgumentException`:
+  - `Kalman.predict`/`update` check every array and require `n, m >= 1`; before, a short array failed partway
+    through;
+  - `ShRotation` checks matrix and output lengths.
+- `Biquad.process(double[] ...)` with zero sections copies the input to the output, as the float overload does.
+- `AtmosphereModel.equals` agrees with `hashCode` for −0.0 and NaN fields.
+- `ColorSpacesd.convert` and `conversionMatrix` no longer allocate: every gamut matrix is computed once.
 - `SimdSupport.backend()` reported `VECTOR_API` for the plain jar when `jdk.incubator.vector` was present, though
   that jar has no Vector API code.
 - The `MathMode` Javadoc promised accurate double-double reductions in STRICT mode. No code implements them since

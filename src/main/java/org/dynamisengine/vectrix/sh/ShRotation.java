@@ -202,7 +202,7 @@ public final class ShRotation {
      * @param rotation a proper rotation (orthonormal, determinant 1); other matrices give meaningless results
      * @param out receives the matrix in elements 0..{@link #L2_MATRIX_SIZE} - 1
      * @return {@code out}
-     * @throws ArrayIndexOutOfBoundsException if {@code out} is shorter than {@link #L2_MATRIX_SIZE}
+     * @throws IllegalArgumentException if {@code out} is null or shorter than {@link #L2_MATRIX_SIZE}
      */
     public static float[] rotationMatrixL2(Matrix3fc rotation, float[] out) {
         return toFloat(rotation, 2, out);
@@ -216,13 +216,14 @@ public final class ShRotation {
      * @param rotation a proper rotation (orthonormal, determinant 1); other matrices give meaningless results
      * @param out receives the matrix in elements 0..{@link #L3_MATRIX_SIZE} - 1
      * @return {@code out}
-     * @throws ArrayIndexOutOfBoundsException if {@code out} is shorter than {@link #L3_MATRIX_SIZE}
+     * @throws IllegalArgumentException if {@code out} is null or shorter than {@link #L3_MATRIX_SIZE}
      */
     public static float[] rotationMatrixL3(Matrix3fc rotation, float[] out) {
         return toFloat(rotation, 3, out);
     }
 
     private static float[] toFloat(Matrix3fc rotation, int bands, float[] out) {
+        checkLength(out == null ? -1 : out.length, bands, "out");
         double[][] s = SCRATCH.get();
         double[] m = s[2];
         build(rowMajor(rotation, s[3]), bands, m);
@@ -240,9 +241,10 @@ public final class ShRotation {
      * @param rotation a proper rotation (orthonormal, determinant 1); other matrices give meaningless results
      * @param out receives the matrix in elements 0..{@link #L2_MATRIX_SIZE} - 1
      * @return {@code out}
-     * @throws ArrayIndexOutOfBoundsException if {@code out} is shorter than {@link #L2_MATRIX_SIZE}
+     * @throws IllegalArgumentException if {@code out} is null or shorter than {@link #L2_MATRIX_SIZE}
      */
     public static double[] rotationMatrixL2(Matrix3dc rotation, double[] out) {
+        checkLength(out == null ? -1 : out.length, 2, "out");
         build(rowMajor(rotation, SCRATCH.get()[3]), 2, out);
         return out;
     }
@@ -254,9 +256,10 @@ public final class ShRotation {
      * @param rotation a proper rotation (orthonormal, determinant 1); other matrices give meaningless results
      * @param out receives the matrix in elements 0..{@link #L3_MATRIX_SIZE} - 1
      * @return {@code out}
-     * @throws ArrayIndexOutOfBoundsException if {@code out} is shorter than {@link #L3_MATRIX_SIZE}
+     * @throws IllegalArgumentException if {@code out} is null or shorter than {@link #L3_MATRIX_SIZE}
      */
     public static double[] rotationMatrixL3(Matrix3dc rotation, double[] out) {
+        checkLength(out == null ? -1 : out.length, 3, "out");
         build(rowMajor(rotation, SCRATCH.get()[3]), 3, out);
         return out;
     }
@@ -270,6 +273,7 @@ public final class ShRotation {
      * @param in the coefficients to rotate
      * @param dest receives the rotated coefficients; may be {@code in}
      * @return {@code dest}
+     * @throws IllegalArgumentException if {@code matrix} is null or shorter than {@link #L2_MATRIX_SIZE}
      */
     public static ShCoeffs9f applyL2(float[] matrix, ShCoeffs9f in, ShCoeffs9f dest) {
         applyBands(matrix, in.c, dest.c, 2);
@@ -285,6 +289,7 @@ public final class ShRotation {
      * @param in the coefficients to rotate
      * @param dest receives the rotated coefficients; may be {@code in}
      * @return {@code dest}
+     * @throws IllegalArgumentException if {@code matrix} is null or shorter than {@link #L3_MATRIX_SIZE}
      */
     public static ShCoeffs16f applyL3(float[] matrix, ShCoeffs16f in, ShCoeffs16f dest) {
         applyBands(matrix, in.c, dest.c, 3);
@@ -300,6 +305,7 @@ public final class ShRotation {
      * @param in the coefficients to rotate
      * @param dest receives the rotated coefficients; may be {@code in}
      * @return {@code dest}
+     * @throws IllegalArgumentException if {@code matrix} is null or shorter than {@link #L2_MATRIX_SIZE}
      */
     public static ShCoeffs9d applyL2(double[] matrix, ShCoeffs9d in, ShCoeffs9d dest) {
         applyBands(matrix, in.c, dest.c, 2);
@@ -315,6 +321,7 @@ public final class ShRotation {
      * @param in the coefficients to rotate
      * @param dest receives the rotated coefficients; may be {@code in}
      * @return {@code dest}
+     * @throws IllegalArgumentException if {@code matrix} is null or shorter than {@link #L3_MATRIX_SIZE}
      */
     public static ShCoeffs16d applyL3(double[] matrix, ShCoeffs16d in, ShCoeffs16d dest) {
         applyBands(matrix, in.c, dest.c, 3);
@@ -322,6 +329,7 @@ public final class ShRotation {
     }
 
     private static void applyBands(float[] m, float[] in, float[] out, int bands) {
+        checkLength(m == null ? -1 : m.length, bands, "matrix");
         float[] t = SCRATCH_F.get()[1];
         out[0] = in[0];
         out[1] = in[1];
@@ -349,6 +357,7 @@ public final class ShRotation {
     }
 
     private static void applyBands(double[] m, double[] in, double[] out, int bands) {
+        checkLength(m == null ? -1 : m.length, bands, "matrix");
         double[] t = SCRATCH.get()[4];
         out[0] = in[0];
         out[1] = in[1];
@@ -428,5 +437,12 @@ public final class ShRotation {
      */
     public static ShCoeffs16d rotateL3(ShCoeffs16d in, Matrix3dc rotation, ShCoeffs16d dest) {
         return applyL3(rotationMatrixL3(rotation, SCRATCH.get()[2]), in, dest);
+    }
+
+    private static void checkLength(int length, int bands, String name) {
+        int size = bands == 2 ? L2_MATRIX_SIZE : L3_MATRIX_SIZE;
+        if (length < size) {
+            throw new IllegalArgumentException(name + " must hold " + size + " elements");
+        }
     }
 }

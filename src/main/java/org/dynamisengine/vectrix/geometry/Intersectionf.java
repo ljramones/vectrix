@@ -2248,7 +2248,7 @@ public class Intersectionf {
         float dZ = p1Z - p0Z;
         float nom = (centerX - p0X) * dX + (centerY - p0Y) * dY + (centerZ - p0Z) * dZ;
         float den = dX * dX + dY * dY + dZ * dZ;
-        float u = nom / den;
+        float u = den > 0 ? nom / den : 0; // a zero-length segment is the point p0
         if (u < 0.0f) {
             dX = p0X - centerX;
             dY = p0Y - centerY;

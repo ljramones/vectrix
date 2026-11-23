@@ -235,8 +235,8 @@ public final class SobolSequence {
      * @param outXOffset the first index written in {@code outX}
      * @param outY receives the y coordinates
      * @param outYOffset the first index written in {@code outY}
-     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, or an output range is
-     *         outside its array
+     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, the last index
+     *         {@code startIndex + count - 1} exceeds {@code Integer.MAX_VALUE}, or an output range is outside its array
      */
     public static void sobolBatch2D(int startIndex, int count, float[] outX, int outXOffset, float[] outY, int outYOffset) {
         checkBatch(startIndex, count, outX.length, outXOffset, outY.length, outYOffset);
@@ -258,8 +258,8 @@ public final class SobolSequence {
      * @param outXOffset the first index written in {@code outX}
      * @param outY receives the y coordinates
      * @param outYOffset the first index written in {@code outY}
-     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, or an output range is
-     *         outside its array
+     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, the last index
+     *         {@code startIndex + count - 1} exceeds {@code Integer.MAX_VALUE}, or an output range is outside its array
      */
     public static void sobolBatch2D(int startIndex, int count, double[] outX, int outXOffset, double[] outY, int outYOffset) {
         checkBatch(startIndex, count, outX.length, outXOffset, outY.length, outYOffset);
@@ -283,8 +283,8 @@ public final class SobolSequence {
      * @param outXOffset the first index written in {@code outX}
      * @param outY receives the y coordinates
      * @param outYOffset the first index written in {@code outY}
-     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, or an output range is
-     *         outside its array
+     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, the last index
+     *         {@code startIndex + count - 1} exceeds {@code Integer.MAX_VALUE}, or an output range is outside its array
      */
     public static void sobolScrambledBatch2D(int startIndex, int count, int seed, float[] outX, int outXOffset, float[] outY, int outYOffset) {
         checkBatch(startIndex, count, outX.length, outXOffset, outY.length, outYOffset);
@@ -308,8 +308,8 @@ public final class SobolSequence {
      * @param outXOffset the first index written in {@code outX}
      * @param outY receives the y coordinates
      * @param outYOffset the first index written in {@code outY}
-     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, or an output range is
-     *         outside its array
+     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, the last index
+     *         {@code startIndex + count - 1} exceeds {@code Integer.MAX_VALUE}, or an output range is outside its array
      */
     public static void sobolScrambledBatch2D(int startIndex, int count, int seed, double[] outX, int outXOffset, double[] outY, int outYOffset) {
         checkBatch(startIndex, count, outX.length, outXOffset, outY.length, outYOffset);
@@ -473,7 +473,11 @@ public final class SobolSequence {
         if (count < 0) {
             throw new IllegalArgumentException("count");
         }
-        if (outXOffset < 0 || outYOffset < 0 || outXOffset + count > xLen || outYOffset + count > yLen) {
+        // long arithmetic: int sums of large values would wrap and pass the checks
+        if ((long) startIndex + count - 1 > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("startIndex + count exceeds the int index range");
+        }
+        if (outXOffset < 0 || outYOffset < 0 || (long) outXOffset + count > xLen || (long) outYOffset + count > yLen) {
             throw new IllegalArgumentException("output bounds");
         }
     }
