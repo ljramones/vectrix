@@ -166,6 +166,12 @@ blas.Blasf.sum(float[],int,int) feae96a45d2263d9
 blas.Blasf.iamax(float[],int,int) bf5a694cb3a6f61b
 blas.Blasf.axpy(float,float[],int,float[],int,int) 128718db0c8c80f3
 blas.Blasf.scal(float,float[],int,int) 9b94cc1ebcfe4423
+blas.Gemmd.scratchSize(boolean,boolean,int,int,int) 010522d555258647
+blas.Gemmd.gemm(boolean,boolean,int,int,int,double,double[],int,int,double[],int,int,double,double[],int,int,double[],int) 3f971e328f8ebf27
+blas.Gemmd.gemv(boolean,int,int,double,double[],int,int,double[],int,double,double[],int,double[],int) b93b2339cbec673c
+blas.Gemmf.scratchSize(boolean,boolean,int,int,int) 07b8a947a84a81e5
+blas.Gemmf.gemm(boolean,boolean,int,int,int,float,float[],int,int,float[],int,int,float,float[],int,int,float[],int) 3f971e328f8ebf27
+blas.Gemmf.gemv(boolean,int,int,float,float[],int,int,float[],int,float,float[],int,float[],int) 59aa34b5500ca438
 brdf.DfgLutBuilder.integrateCloth(double,double,int) 9d908ecfb6b256de
 brdf.DfgLutBuilder.build(int,int,Model,float[]) 9a5df3696ae25ee0
 brdf.DfgLutBuilder.buildCloth(int,int,float[]) 14b6b32d5f98923a

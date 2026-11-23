@@ -370,6 +370,12 @@ class HotPathAllocationTest {
         assertNoAllocation("Blasf.axpy", () -> org.dynamisengine.vectrix.blas.Blasf.axpy(0.5f, bx, 0, by, 0, 5000));
         double[] bd = new double[5000];
         assertNoAllocation("Blasd.sum", () -> org.dynamisengine.vectrix.blas.Blasd.sum(bd, 0, 5000));
+        float[] ga = new float[48 * 300];
+        float[] gb = new float[300 * 40];
+        float[] gc = new float[48 * 40];
+        float[] gms = new float[org.dynamisengine.vectrix.blas.Gemmf.scratchSize(false, false, 48, 40, 300)];
+        assertNoAllocation("Gemmf.gemm", () -> org.dynamisengine.vectrix.blas.Gemmf.gemm(false, false, 48, 40, 300, 1f,
+            ga, 0, 300, gb, 0, 40, 0f, gc, 0, 40, gms, 0));
         double[] legacy = new double[2 * 4096];
         org.dynamisengine.vectrix.fft.FFT1d.forward(legacy); // builds the shared table once
         assertNoAllocation("FFT1d.forward", () -> org.dynamisengine.vectrix.fft.FFT1d.forward(legacy));
