@@ -397,6 +397,53 @@ class FftPlanTest {
     }
 
     @Test
+    void simdAndScalarPathsGiveTheSameBits() {
+        // In the simd test run the Vector API kernels are used when enabled; both paths must agree bit for bit.
+        SplittableRandom r = new SplittableRandom(6);
+        boolean was = org.dynamisengine.vectrix.experimental.KernelConfig.simdEnabled();
+        try {
+            for (int n : new int[] {2, 4, 8, 12, 16, 20, 45, 64, 96, 100, 128, 250, 256, 384, 1000, 1009, 4096, 7 * 64}) {
+                double[] x = gaussian(r, 2 * n);
+                ComplexFftd p = ComplexFftd.plan(n);
+                ComplexFftf pf = ComplexFftf.plan(n);
+                double[][] out = new double[2][];
+                float[][] outF = new float[2][];
+                for (int mode = 0; mode < 2; mode++) {
+                    org.dynamisengine.vectrix.experimental.KernelConfig.setSimdEnabled(mode == 1);
+                    double[] y = x.clone();
+                    double[] s = new double[p.scratchSize()];
+                    p.forward(y, 0, s, 0);
+                    double[] z = y.clone();
+                    p.inverse(z, 0, s, 0);
+                    out[mode] = concat(y, z);
+                    float[] yf = toFloat(x);
+                    float[] sf = new float[pf.scratchSize()];
+                    pf.forward(yf, 0, sf, 0);
+                    float[] zf = yf.clone();
+                    pf.inverse(zf, 0, sf, 0);
+                    outF[mode] = concatF(yf, zf);
+                }
+                assertTrue(Arrays.equals(out[0], out[1]), "double, n = " + n);
+                assertTrue(Arrays.equals(outF[0], outF[1]), "float, n = " + n);
+            }
+        } finally {
+            org.dynamisengine.vectrix.experimental.KernelConfig.setSimdEnabled(was);
+        }
+    }
+
+    private static double[] concat(double[] a, double[] b) {
+        double[] c = Arrays.copyOf(a, a.length + b.length);
+        System.arraycopy(b, 0, c, a.length, b.length);
+        return c;
+    }
+
+    private static float[] concatF(float[] a, float[] b) {
+        float[] c = Arrays.copyOf(a, a.length + b.length);
+        System.arraycopy(b, 0, c, a.length, b.length);
+        return c;
+    }
+
+    @Test
     void fastSizesAndContracts() {
         int[][] fast = {{1, 1}, {7, 8}, {11, 12}, {13, 15}, {17, 18}, {1001, 1024}, {1025, 1080}, {2049, 2160}};
         for (int[] f : fast) {

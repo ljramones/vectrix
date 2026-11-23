@@ -44,9 +44,10 @@ policy.** For neural networks this means:
 
 ## Signal processing
 
-1. **FFT rebuild** (done in 2.5.0: `ComplexFft`, `RealFft`, `ComplexFft2`, `RealFft2`, `BlockConvolver`; the
-   remaining work is small-size butterflies and a Vector API path, since below 4,096 points the plans are only
-   1.3–1.4× faster than the old code):
+1. **FFT rebuild** (done in 2.5.0: `ComplexFft`, `RealFft`, `ComplexFft2`, `RealFft2`, `BlockConvolver`, with
+   generated scalar and bit-identical Vector API kernels. Two optimizations were tried and left out:
+   - Radix-8 was at most 14% faster at mid sizes and slower at 16 and 65,536 points.
+   - The first pass (stride 1) is still scalar; vectorizing it needs lane-count-specific transposes.)
    - immutable plans holding exact precomputed twiddles, for error O(ε log n);
    - cache-friendly passes;
    - complex and real-input transforms;

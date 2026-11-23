@@ -13,7 +13,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
       prime butterflies); other sizes use Bluestein's algorithm.
     - `fastSize(min)` gives the nearest size with prime factors 2, 3 and 5 only.
     - The measured relative RMS error is below 6e-16 (float: 2.5e-7) at every size tested, up to 2^22.
-    - At 2^20 points it is 12 times faster than `FFT1d`.
+    - The kernels are generated from one butterfly description (`scripts/gen-fft-kernels.py`). The `-simd` jar
+      adds Vector API kernels that give exactly the same bits as the scalar ones; `FftPlanTest` checks this.
+    - Compared with `FFT1f`, a float transform is 1.9 times faster (3.2 with the `-simd` jar) from 256 to 4,096
+      points, and 14 times faster (26) at 2^20, measured on an Apple M4 Max.
   - `RealFftd`: real-input transforms with a half spectrum, about twice as fast as complex.
   - `ComplexFft2d` and `RealFft2d`: 2D transforms.
   - `BlockConvolverd`: streaming FIR filtering with caller-held state.

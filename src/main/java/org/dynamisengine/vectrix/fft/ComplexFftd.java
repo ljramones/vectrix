@@ -25,6 +25,14 @@ package org.dynamisengine.vectrix.fft;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+//#ifdef __HAS_VECTOR_API__
+import jdk.incubator.vector.DoubleVector;
+import jdk.incubator.vector.VectorMask;
+import jdk.incubator.vector.VectorOperators;
+import jdk.incubator.vector.VectorShuffle;
+import jdk.incubator.vector.VectorSpecies;
+import org.dynamisengine.vectrix.simd.SimdSupport;
+//#endif
 
 /**
  * A precomputed plan for the discrete Fourier transform of {@code n} complex values, for any {@code n}.
@@ -285,45 +293,6 @@ public final class ComplexFftd {
         }
     }
 
-    /** The unscaled transform; {@code inv} conjugates the roots. */
-    void run(double[] d, int off, double[] s, int soff, boolean inv) {
-        if (inner != null) {
-            bluestein(d, off, s, soff, inv);
-            return;
-        }
-        double sg = inv ? -1.0 : 1.0;
-        double[] src = d;
-        int so = off;
-        double[] dst = s;
-        int dso = soff;
-        int stride = 1;
-        int len = n;
-        int temp = soff + 2 * n;
-        for (int i = 0; i < radix.length; i++) {
-            int p = radix[i];
-            int m = len / p;
-            double[] tw = twiddle[i];
-            switch (p) {
-                case 4: radix4(src, so, dst, dso, m, stride, tw, sg); break;
-                case 2: radix2(src, so, dst, dso, m, stride, tw, sg); break;
-                case 3: radix3(src, so, dst, dso, m, stride, tw, sg); break;
-                case 5: radix5(src, so, dst, dso, m, stride, tw, sg); break;
-                default: radixP(src, so, dst, dso, p, m, stride, tw, primeRoots[i], sg, s, temp); break;
-            }
-            double[] ta = src;
-            src = dst;
-            dst = ta;
-            int to = so;
-            so = dso;
-            dso = to;
-            stride *= p;
-            len = m;
-        }
-        if (src != d || so != off) {
-            System.arraycopy(src, so, d, off, 2 * n);
-        }
-    }
-
     private void bluestein(double[] d, int off, double[] s, int soff, boolean inv) {
         int m = inner.n;
         double sg = inv ? -1.0 : 1.0;
@@ -360,146 +329,532 @@ public final class ComplexFftd {
         }
     }
 
-    // Stockham stages. Input element (q, k) is at q + stride·(p + k·m); output (q, j) at q + stride·(r·p + j);
-    // output j is multiplied by the twiddle W_len^(j·p).
+    // BEGIN GENERATED KERNELS: scripts/gen-fft-kernels.py; edit the generator, not this block.
 
-    private static void radix2(double[] x, int xo, double[] y, int yo, int m, int stride, double[] tw, double sg) {
+    /**
+     * The unscaled transform. The inverse uses {@code IDFT(x) = swap(DFT(swap(x)))}, where {@code swap} exchanges
+     * real and imaginary parts: the first pass reads swapped and the last pass writes swapped, so the inverse
+     * costs no more than the forward transform.
+     */
+    void run(double[] d, int off, double[] s, int soff, boolean inv) {
+        if (inner != null) {
+            bluestein(d, off, s, soff, inv);
+            return;
+        }
+        boolean simd = Simd.AVAILABLE && Simd.enabled();
+        double[] src = d;
+        int so = off;
+        double[] dst = s;
+        int dso = soff;
+        int stride = 1;
+        int len = n;
+        int temp = soff + 2 * n;
+        int last = radix.length - 1;
+        if (last < 0) {
+            return; // n = 1
+        }
+        for (int i = 0; i <= last; i++) {
+            int r = radix[i];
+            int m = len / r;
+            double[] tw = twiddle[i];
+            int xr = inv && i == 0 ? 1 : 0;
+            int yr = inv && i == last ? 1 : 0;
+            boolean vec = simd && xr == 0 && Simd.fits(2 * stride);
+            if (r > 5) {
+                radixP(src, so, xr, dst, dso, yr, r, m, stride, tw, primeRoots[i], s, temp);
+            } else if (m == 1) {
+                if (vec) {
+                    simdM1(r, src, so, dst, dso, yr == 1, stride);
+                } else {
+                    switch (r) {
+                        case 4: r4m1(src, so, xr, dst, dso, yr, stride); break;
+                        case 2: r2m1(src, so, xr, dst, dso, yr, stride); break;
+                        case 3: r3m1(src, so, xr, dst, dso, yr, stride); break;
+                        default: r5m1(src, so, xr, dst, dso, yr, stride); break;
+                    }
+                }
+            } else if (stride == 1) {
+                switch (r) {
+                    case 4: r4s1(src, so, xr, dst, dso, m, tw); break;
+                    case 2: r2s1(src, so, xr, dst, dso, m, tw); break;
+                    case 3: r3s1(src, so, xr, dst, dso, m, tw); break;
+                    default: r5s1(src, so, xr, dst, dso, m, tw); break;
+                }
+            } else if (vec) {
+                simdGeneral(r, src, so, dst, dso, m, stride, tw);
+            } else {
+                switch (r) {
+                    case 4: r4g(src, so, dst, dso, m, stride, tw); break;
+                    case 2: r2g(src, so, dst, dso, m, stride, tw); break;
+                    case 3: r3g(src, so, dst, dso, m, stride, tw); break;
+                    default: r5g(src, so, dst, dso, m, stride, tw); break;
+                }
+            }
+            double[] ta = src;
+            src = dst;
+            dst = ta;
+            int to = so;
+            so = dso;
+            dso = to;
+            stride *= r;
+            len = m;
+        }
+        if (src != d || so != off) {
+            System.arraycopy(src, so, d, off, 2 * n);
+        }
+    }
+
+    private static void twiddle(double[] y, int o, double vr, double vi, double wr, double wi) {
+        y[o] = vr * wr - vi * wi;
+        y[o + 1] = vr * wi + vi * wr;
+    }
+
+    private void r2s1(double[] x, int xo, int xr, double[] y, int yo, int m, double[] tw) {
+        int xi = 1 - xr;
+        int sm = 2 * m;
         for (int p = 0; p < m; p++) {
-            double w1r = tw[2 * p];
-            double w1i = sg * tw[2 * p + 1];
-            int a0 = xo + 2 * stride * p;
-            int a1 = a0 + 2 * stride * m;
-            int b0 = yo + 2 * stride * 2 * p;
-            int b1 = b0 + 2 * stride;
-            for (int q = 0; q < 2 * stride; q += 2) {
-                double x0r = x[a0 + q];
-                double x0i = x[a0 + q + 1];
-                double x1r = x[a1 + q];
-                double x1i = x[a1 + q + 1];
-                y[b0 + q] = x0r + x1r;
-                y[b0 + q + 1] = x0i + x1i;
-                double dr = x0r - x1r;
-                double di = x0i - x1i;
-                y[b1 + q] = dr * w1r - di * w1i;
-                y[b1 + q + 1] = dr * w1i + di * w1r;
+            int i = xo + 2 * p;
+            int o = yo + 4 * p;
+            int t = 2 * p;
+            double x0r = x[i + xr];
+            double x0i = x[i + xi];
+            double x1r = x[i + sm + xr];
+            double x1i = x[i + sm + xi];
+            double y0r = x0r + x1r;
+            double y0i = x0i + x1i;
+            double y1r = x0r - x1r;
+            double y1i = x0i - x1i;
+            y[o] = y0r;
+            y[o + 1] = y0i;
+            twiddle(y, o + 2, y1r, y1i, tw[t + 0], tw[t + 1]);
+        }
+    }
+
+    private void r2g(double[] x, int xo, double[] y, int yo, int m, int stride, double[] tw) {
+        int sm = 2 * stride * m;
+        int bs = 2 * stride;
+        for (int p = 0; p < m; p++) {
+            int t = 2 * p;
+            double w1r = tw[t + 0];
+            double w1i = tw[t + 1];
+            int ia = xo + bs * p;
+            int ob = yo + bs * 2 * p;
+            for (int q = 0; q < bs; q += 2) {
+                int i = ia + q;
+                int o = ob + q;
+                double x0r = x[i];
+                double x0i = x[i + 1];
+                double x1r = x[i + sm];
+                double x1i = x[i + sm + 1];
+                double y0r = x0r + x1r;
+                double y0i = x0i + x1i;
+                double y1r = x0r - x1r;
+                double y1i = x0i - x1i;
+                y[o] = y0r;
+                y[o + 1] = y0i;
+                twiddle(y, o + bs, y1r, y1i, w1r, w1i);
             }
         }
     }
 
-    private static void radix4(double[] x, int xo, double[] y, int yo, int m, int stride, double[] tw, double sg) {
+    private void r2m1(double[] x, int xo, int xr, double[] y, int yo, int yr, int stride) {
+        int xi = 1 - xr;
+        int yi = 1 - yr;
+        int bs = 2 * stride;
+        for (int q = 0; q < bs; q += 2) {
+            int i = xo + q;
+            int o = yo + q;
+            double x0r = x[i + xr];
+            double x0i = x[i + xi];
+            double x1r = x[i + bs + xr];
+            double x1i = x[i + bs + xi];
+            double y0r = x0r + x1r;
+            double y0i = x0i + x1i;
+            double y1r = x0r - x1r;
+            double y1i = x0i - x1i;
+            y[o + yr] = y0r;
+            y[o + yi] = y0i;
+            y[o + bs + yr] = y1r;
+            y[o + bs + yi] = y1i;
+        }
+    }
+
+    private void r4s1(double[] x, int xo, int xr, double[] y, int yo, int m, double[] tw) {
+        int xi = 1 - xr;
+        int sm = 2 * m;
+        for (int p = 0; p < m; p++) {
+            int i = xo + 2 * p;
+            int o = yo + 8 * p;
+            int t = 6 * p;
+            double x0r = x[i + xr];
+            double x0i = x[i + xi];
+            double x1r = x[i + sm + xr];
+            double x1i = x[i + sm + xi];
+            double x2r = x[i + 2 * sm + xr];
+            double x2i = x[i + 2 * sm + xi];
+            double x3r = x[i + 3 * sm + xr];
+            double x3i = x[i + 3 * sm + xi];
+            double t0r = x0r + x2r;
+            double t0i = x0i + x2i;
+            double t1r = x0r - x2r;
+            double t1i = x0i - x2i;
+            double t2r = x1r + x3r;
+            double t2i = x1i + x3i;
+            double d3r = x1r - x3r;
+            double d3i = x1i - x3i;
+            double t3r = d3i;
+            double t3i = -d3r;
+            double y0r = t0r + t2r;
+            double y0i = t0i + t2i;
+            double y1r = t1r + t3r;
+            double y1i = t1i + t3i;
+            double y2r = t0r - t2r;
+            double y2i = t0i - t2i;
+            double y3r = t1r - t3r;
+            double y3i = t1i - t3i;
+            y[o] = y0r;
+            y[o + 1] = y0i;
+            twiddle(y, o + 2, y1r, y1i, tw[t + 0], tw[t + 1]);
+            twiddle(y, o + 4, y2r, y2i, tw[t + 2], tw[t + 3]);
+            twiddle(y, o + 6, y3r, y3i, tw[t + 4], tw[t + 5]);
+        }
+    }
+
+    private void r4g(double[] x, int xo, double[] y, int yo, int m, int stride, double[] tw) {
         int sm = 2 * stride * m;
+        int bs = 2 * stride;
         for (int p = 0; p < m; p++) {
             int t = 6 * p;
-            double w1r = tw[t];
-            double w1i = sg * tw[t + 1];
+            double w1r = tw[t + 0];
+            double w1i = tw[t + 1];
             double w2r = tw[t + 2];
-            double w2i = sg * tw[t + 3];
+            double w2i = tw[t + 3];
             double w3r = tw[t + 4];
-            double w3i = sg * tw[t + 5];
-            int a0 = xo + 2 * stride * p;
-            int b0 = yo + 2 * stride * 4 * p;
-            int bs = 2 * stride;
-            for (int q = 0; q < 2 * stride; q += 2) {
-                int i0 = a0 + q;
-                double x0r = x[i0];
-                double x0i = x[i0 + 1];
-                double x1r = x[i0 + sm];
-                double x1i = x[i0 + sm + 1];
-                double x2r = x[i0 + 2 * sm];
-                double x2i = x[i0 + 2 * sm + 1];
-                double x3r = x[i0 + 3 * sm];
-                double x3i = x[i0 + 3 * sm + 1];
+            double w3i = tw[t + 5];
+            int ia = xo + bs * p;
+            int ob = yo + bs * 4 * p;
+            for (int q = 0; q < bs; q += 2) {
+                int i = ia + q;
+                int o = ob + q;
+                double x0r = x[i];
+                double x0i = x[i + 1];
+                double x1r = x[i + sm];
+                double x1i = x[i + sm + 1];
+                double x2r = x[i + 2 * sm];
+                double x2i = x[i + 2 * sm + 1];
+                double x3r = x[i + 3 * sm];
+                double x3i = x[i + 3 * sm + 1];
                 double t0r = x0r + x2r;
                 double t0i = x0i + x2i;
                 double t1r = x0r - x2r;
                 double t1i = x0i - x2i;
                 double t2r = x1r + x3r;
                 double t2i = x1i + x3i;
-                // (x1 - x3)·(-i) forward, ·(+i) inverse
-                double t3r = sg * (x1i - x3i);
-                double t3i = -sg * (x1r - x3r);
-                int o = b0 + q;
-                y[o] = t0r + t2r;
-                y[o + 1] = t0i + t2i;
-                double yr = t1r + t3r;
-                double yi = t1i + t3i;
-                y[o + bs] = yr * w1r - yi * w1i;
-                y[o + bs + 1] = yr * w1i + yi * w1r;
-                yr = t0r - t2r;
-                yi = t0i - t2i;
-                y[o + 2 * bs] = yr * w2r - yi * w2i;
-                y[o + 2 * bs + 1] = yr * w2i + yi * w2r;
-                yr = t1r - t3r;
-                yi = t1i - t3i;
-                y[o + 3 * bs] = yr * w3r - yi * w3i;
-                y[o + 3 * bs + 1] = yr * w3i + yi * w3r;
+                double d3r = x1r - x3r;
+                double d3i = x1i - x3i;
+                double t3r = d3i;
+                double t3i = -d3r;
+                double y0r = t0r + t2r;
+                double y0i = t0i + t2i;
+                double y1r = t1r + t3r;
+                double y1i = t1i + t3i;
+                double y2r = t0r - t2r;
+                double y2i = t0i - t2i;
+                double y3r = t1r - t3r;
+                double y3i = t1i - t3i;
+                y[o] = y0r;
+                y[o + 1] = y0i;
+                twiddle(y, o + bs, y1r, y1i, w1r, w1i);
+                twiddle(y, o + 2 * bs, y2r, y2i, w2r, w2i);
+                twiddle(y, o + 3 * bs, y3r, y3i, w3r, w3i);
             }
         }
     }
 
-    private void radix3(double[] x, int xo, double[] y, int yo, int m, int stride, double[] tw, double sg) {
+    private void r4m1(double[] x, int xo, int xr, double[] y, int yo, int yr, int stride) {
+        int xi = 1 - xr;
+        int yi = 1 - yr;
+        int bs = 2 * stride;
+        for (int q = 0; q < bs; q += 2) {
+            int i = xo + q;
+            int o = yo + q;
+            double x0r = x[i + xr];
+            double x0i = x[i + xi];
+            double x1r = x[i + bs + xr];
+            double x1i = x[i + bs + xi];
+            double x2r = x[i + 2 * bs + xr];
+            double x2i = x[i + 2 * bs + xi];
+            double x3r = x[i + 3 * bs + xr];
+            double x3i = x[i + 3 * bs + xi];
+            double t0r = x0r + x2r;
+            double t0i = x0i + x2i;
+            double t1r = x0r - x2r;
+            double t1i = x0i - x2i;
+            double t2r = x1r + x3r;
+            double t2i = x1i + x3i;
+            double d3r = x1r - x3r;
+            double d3i = x1i - x3i;
+            double t3r = d3i;
+            double t3i = -d3r;
+            double y0r = t0r + t2r;
+            double y0i = t0i + t2i;
+            double y1r = t1r + t3r;
+            double y1i = t1i + t3i;
+            double y2r = t0r - t2r;
+            double y2i = t0i - t2i;
+            double y3r = t1r - t3r;
+            double y3i = t1i - t3i;
+            y[o + yr] = y0r;
+            y[o + yi] = y0i;
+            y[o + bs + yr] = y1r;
+            y[o + bs + yi] = y1i;
+            y[o + 2 * bs + yr] = y2r;
+            y[o + 2 * bs + yi] = y2i;
+            y[o + 3 * bs + yr] = y3r;
+            y[o + 3 * bs + yi] = y3i;
+        }
+    }
+
+    private void r3s1(double[] x, int xo, int xr, double[] y, int yo, int m, double[] tw) {
+        int xi = 1 - xr;
+        int sm = 2 * m;
+        for (int p = 0; p < m; p++) {
+            int i = xo + 2 * p;
+            int o = yo + 6 * p;
+            int t = 4 * p;
+            double x0r = x[i + xr];
+            double x0i = x[i + xi];
+            double x1r = x[i + sm + xr];
+            double x1i = x[i + sm + xi];
+            double x2r = x[i + 2 * sm + xr];
+            double x2i = x[i + 2 * sm + xi];
+            double t1r = x1r + x2r;
+            double t1i = x1i + x2i;
+            double h1r = t1r * 0.5;
+            double h1i = t1i * 0.5;
+            double t2r = x0r - h1r;
+            double t2i = x0i - h1i;
+            double dr = x1r - x2r;
+            double di = x1i - x2i;
+            double t3r = dr * c3;
+            double t3i = di * c3;
+            double n3r = t3i;
+            double n3i = -t3r;
+            double p3r = -t3i;
+            double p3i = t3r;
+            double y0r = x0r + t1r;
+            double y0i = x0i + t1i;
+            double y1r = t2r + n3r;
+            double y1i = t2i + n3i;
+            double y2r = t2r + p3r;
+            double y2i = t2i + p3i;
+            y[o] = y0r;
+            y[o + 1] = y0i;
+            twiddle(y, o + 2, y1r, y1i, tw[t + 0], tw[t + 1]);
+            twiddle(y, o + 4, y2r, y2i, tw[t + 2], tw[t + 3]);
+        }
+    }
+
+    private void r3g(double[] x, int xo, double[] y, int yo, int m, int stride, double[] tw) {
         int sm = 2 * stride * m;
-        double s3 = sg * c3;
+        int bs = 2 * stride;
         for (int p = 0; p < m; p++) {
             int t = 4 * p;
-            double w1r = tw[t];
-            double w1i = sg * tw[t + 1];
+            double w1r = tw[t + 0];
+            double w1i = tw[t + 1];
             double w2r = tw[t + 2];
-            double w2i = sg * tw[t + 3];
-            int a0 = xo + 2 * stride * p;
-            int b0 = yo + 2 * stride * 3 * p;
-            int bs = 2 * stride;
-            for (int q = 0; q < 2 * stride; q += 2) {
-                int i0 = a0 + q;
-                double x0r = x[i0];
-                double x0i = x[i0 + 1];
-                double x1r = x[i0 + sm];
-                double x1i = x[i0 + sm + 1];
-                double x2r = x[i0 + 2 * sm];
-                double x2i = x[i0 + 2 * sm + 1];
+            double w2i = tw[t + 3];
+            int ia = xo + bs * p;
+            int ob = yo + bs * 3 * p;
+            for (int q = 0; q < bs; q += 2) {
+                int i = ia + q;
+                int o = ob + q;
+                double x0r = x[i];
+                double x0i = x[i + 1];
+                double x1r = x[i + sm];
+                double x1i = x[i + sm + 1];
+                double x2r = x[i + 2 * sm];
+                double x2i = x[i + 2 * sm + 1];
                 double t1r = x1r + x2r;
                 double t1i = x1i + x2i;
-                double t2r = x0r - 0.5 * t1r;
-                double t2i = x0i - 0.5 * t1i;
-                double t3r = s3 * (x1r - x2r);
-                double t3i = s3 * (x1i - x2i);
-                int o = b0 + q;
-                y[o] = x0r + t1r;
-                y[o + 1] = x0i + t1i;
-                // y1 = t2 - i·t3, y2 = t2 + i·t3
-                double yr = t2r + t3i;
-                double yi = t2i - t3r;
-                y[o + bs] = yr * w1r - yi * w1i;
-                y[o + bs + 1] = yr * w1i + yi * w1r;
-                yr = t2r - t3i;
-                yi = t2i + t3r;
-                y[o + 2 * bs] = yr * w2r - yi * w2i;
-                y[o + 2 * bs + 1] = yr * w2i + yi * w2r;
+                double h1r = t1r * 0.5;
+                double h1i = t1i * 0.5;
+                double t2r = x0r - h1r;
+                double t2i = x0i - h1i;
+                double dr = x1r - x2r;
+                double di = x1i - x2i;
+                double t3r = dr * c3;
+                double t3i = di * c3;
+                double n3r = t3i;
+                double n3i = -t3r;
+                double p3r = -t3i;
+                double p3i = t3r;
+                double y0r = x0r + t1r;
+                double y0i = x0i + t1i;
+                double y1r = t2r + n3r;
+                double y1i = t2i + n3i;
+                double y2r = t2r + p3r;
+                double y2i = t2i + p3i;
+                y[o] = y0r;
+                y[o + 1] = y0i;
+                twiddle(y, o + bs, y1r, y1i, w1r, w1i);
+                twiddle(y, o + 2 * bs, y2r, y2i, w2r, w2i);
             }
         }
     }
 
-    private void radix5(double[] x, int xo, double[] y, int yo, int m, int stride, double[] tw, double sg) {
+    private void r3m1(double[] x, int xo, int xr, double[] y, int yo, int yr, int stride) {
+        int xi = 1 - xr;
+        int yi = 1 - yr;
+        int bs = 2 * stride;
+        for (int q = 0; q < bs; q += 2) {
+            int i = xo + q;
+            int o = yo + q;
+            double x0r = x[i + xr];
+            double x0i = x[i + xi];
+            double x1r = x[i + bs + xr];
+            double x1i = x[i + bs + xi];
+            double x2r = x[i + 2 * bs + xr];
+            double x2i = x[i + 2 * bs + xi];
+            double t1r = x1r + x2r;
+            double t1i = x1i + x2i;
+            double h1r = t1r * 0.5;
+            double h1i = t1i * 0.5;
+            double t2r = x0r - h1r;
+            double t2i = x0i - h1i;
+            double dr = x1r - x2r;
+            double di = x1i - x2i;
+            double t3r = dr * c3;
+            double t3i = di * c3;
+            double n3r = t3i;
+            double n3i = -t3r;
+            double p3r = -t3i;
+            double p3i = t3r;
+            double y0r = x0r + t1r;
+            double y0i = x0i + t1i;
+            double y1r = t2r + n3r;
+            double y1i = t2i + n3i;
+            double y2r = t2r + p3r;
+            double y2i = t2i + p3i;
+            y[o + yr] = y0r;
+            y[o + yi] = y0i;
+            y[o + bs + yr] = y1r;
+            y[o + bs + yi] = y1i;
+            y[o + 2 * bs + yr] = y2r;
+            y[o + 2 * bs + yi] = y2i;
+        }
+    }
+
+    private void r5s1(double[] x, int xo, int xr, double[] y, int yo, int m, double[] tw) {
+        int xi = 1 - xr;
+        int sm = 2 * m;
+        for (int p = 0; p < m; p++) {
+            int i = xo + 2 * p;
+            int o = yo + 10 * p;
+            int t = 8 * p;
+            double x0r = x[i + xr];
+            double x0i = x[i + xi];
+            double x1r = x[i + sm + xr];
+            double x1i = x[i + sm + xi];
+            double x2r = x[i + 2 * sm + xr];
+            double x2i = x[i + 2 * sm + xi];
+            double x3r = x[i + 3 * sm + xr];
+            double x3i = x[i + 3 * sm + xi];
+            double x4r = x[i + 4 * sm + xr];
+            double x4i = x[i + 4 * sm + xi];
+            double b1r = x1r + x4r;
+            double b1i = x1i + x4i;
+            double b2r = x2r + x3r;
+            double b2i = x2i + x3i;
+            double d1r = x1r - x4r;
+            double d1i = x1i - x4i;
+            double d2r = x2r - x3r;
+            double d2i = x2i - x3i;
+            double e0r = x0r + b1r;
+            double e0i = x0i + b1i;
+            double y0r = e0r + b2r;
+            double y0i = e0i + b2i;
+            double u1r = b1r * c51;
+            double u1i = b1i * c51;
+            double u2r = b2r * c52;
+            double u2i = b2i * c52;
+            double v1r = x0r + u1r;
+            double v1i = x0i + u1i;
+            double r1r = v1r + u2r;
+            double r1i = v1i + u2i;
+            double u3r = b1r * c52;
+            double u3i = b1i * c52;
+            double u4r = b2r * c51;
+            double u4i = b2i * c51;
+            double v2r = x0r + u3r;
+            double v2i = x0i + u3i;
+            double r2r = v2r + u4r;
+            double r2i = v2i + u4i;
+            double g1r = d1r * s51;
+            double g1i = d1i * s51;
+            double g2r = d2r * s52;
+            double g2i = d2i * s52;
+            double i1r = g1r + g2r;
+            double i1i = g1i + g2i;
+            double g3r = d1r * s52;
+            double g3i = d1i * s52;
+            double g4r = d2r * s51;
+            double g4i = d2i * s51;
+            double i2r = g3r - g4r;
+            double i2i = g3i - g4i;
+            double n1r = i1i;
+            double n1i = -i1r;
+            double p1r = -i1i;
+            double p1i = i1r;
+            double n2r = i2i;
+            double n2i = -i2r;
+            double p2r = -i2i;
+            double p2i = i2r;
+            double y1r = r1r + n1r;
+            double y1i = r1i + n1i;
+            double y4r = r1r + p1r;
+            double y4i = r1i + p1i;
+            double y2r = r2r + n2r;
+            double y2i = r2i + n2i;
+            double y3r = r2r + p2r;
+            double y3i = r2i + p2i;
+            y[o] = y0r;
+            y[o + 1] = y0i;
+            twiddle(y, o + 2, y1r, y1i, tw[t + 0], tw[t + 1]);
+            twiddle(y, o + 4, y2r, y2i, tw[t + 2], tw[t + 3]);
+            twiddle(y, o + 6, y3r, y3i, tw[t + 4], tw[t + 5]);
+            twiddle(y, o + 8, y4r, y4i, tw[t + 6], tw[t + 7]);
+        }
+    }
+
+    private void r5g(double[] x, int xo, double[] y, int yo, int m, int stride, double[] tw) {
         int sm = 2 * stride * m;
-        double s1 = sg * s51;
-        double s2 = sg * s52;
+        int bs = 2 * stride;
         for (int p = 0; p < m; p++) {
             int t = 8 * p;
-            int a0 = xo + 2 * stride * p;
-            int b0 = yo + 2 * stride * 5 * p;
-            int bs = 2 * stride;
-            for (int q = 0; q < 2 * stride; q += 2) {
-                int i0 = a0 + q;
-                double x0r = x[i0];
-                double x0i = x[i0 + 1];
-                double x1r = x[i0 + sm];
-                double x1i = x[i0 + sm + 1];
-                double x2r = x[i0 + 2 * sm];
-                double x2i = x[i0 + 2 * sm + 1];
-                double x3r = x[i0 + 3 * sm];
-                double x3i = x[i0 + 3 * sm + 1];
-                double x4r = x[i0 + 4 * sm];
-                double x4i = x[i0 + 4 * sm + 1];
+            double w1r = tw[t + 0];
+            double w1i = tw[t + 1];
+            double w2r = tw[t + 2];
+            double w2i = tw[t + 3];
+            double w3r = tw[t + 4];
+            double w3i = tw[t + 5];
+            double w4r = tw[t + 6];
+            double w4i = tw[t + 7];
+            int ia = xo + bs * p;
+            int ob = yo + bs * 5 * p;
+            for (int q = 0; q < bs; q += 2) {
+                int i = ia + q;
+                int o = ob + q;
+                double x0r = x[i];
+                double x0i = x[i + 1];
+                double x1r = x[i + sm];
+                double x1i = x[i + sm + 1];
+                double x2r = x[i + 2 * sm];
+                double x2i = x[i + 2 * sm + 1];
+                double x3r = x[i + 3 * sm];
+                double x3i = x[i + 3 * sm + 1];
+                double x4r = x[i + 4 * sm];
+                double x4i = x[i + 4 * sm + 1];
                 double b1r = x1r + x4r;
                 double b1i = x1i + x4i;
                 double b2r = x2r + x3r;
@@ -508,66 +863,184 @@ public final class ComplexFftd {
                 double d1i = x1i - x4i;
                 double d2r = x2r - x3r;
                 double d2i = x2i - x3i;
-                double r1r = x0r + c51 * b1r + c52 * b2r;
-                double r1i = x0i + c51 * b1i + c52 * b2i;
-                double r2r = x0r + c52 * b1r + c51 * b2r;
-                double r2i = x0i + c52 * b1i + c51 * b2i;
-                double i1r = s1 * d1r + s2 * d2r;
-                double i1i = s1 * d1i + s2 * d2i;
-                double i2r = s2 * d1r - s1 * d2r;
-                double i2i = s2 * d1i - s1 * d2i;
-                int o = b0 + q;
-                y[o] = x0r + b1r + b2r;
-                y[o + 1] = x0i + b1i + b2i;
-                // y1 = r1 - i·i1, y4 = r1 + i·i1, y2 = r2 - i·i2, y3 = r2 + i·i2
-                store(y, o + bs, r1r + i1i, r1i - i1r, tw, t, sg);
-                store(y, o + 2 * bs, r2r + i2i, r2i - i2r, tw, t + 2, sg);
-                store(y, o + 3 * bs, r2r - i2i, r2i + i2r, tw, t + 4, sg);
-                store(y, o + 4 * bs, r1r - i1i, r1i + i1r, tw, t + 6, sg);
+                double e0r = x0r + b1r;
+                double e0i = x0i + b1i;
+                double y0r = e0r + b2r;
+                double y0i = e0i + b2i;
+                double u1r = b1r * c51;
+                double u1i = b1i * c51;
+                double u2r = b2r * c52;
+                double u2i = b2i * c52;
+                double v1r = x0r + u1r;
+                double v1i = x0i + u1i;
+                double r1r = v1r + u2r;
+                double r1i = v1i + u2i;
+                double u3r = b1r * c52;
+                double u3i = b1i * c52;
+                double u4r = b2r * c51;
+                double u4i = b2i * c51;
+                double v2r = x0r + u3r;
+                double v2i = x0i + u3i;
+                double r2r = v2r + u4r;
+                double r2i = v2i + u4i;
+                double g1r = d1r * s51;
+                double g1i = d1i * s51;
+                double g2r = d2r * s52;
+                double g2i = d2i * s52;
+                double i1r = g1r + g2r;
+                double i1i = g1i + g2i;
+                double g3r = d1r * s52;
+                double g3i = d1i * s52;
+                double g4r = d2r * s51;
+                double g4i = d2i * s51;
+                double i2r = g3r - g4r;
+                double i2i = g3i - g4i;
+                double n1r = i1i;
+                double n1i = -i1r;
+                double p1r = -i1i;
+                double p1i = i1r;
+                double n2r = i2i;
+                double n2i = -i2r;
+                double p2r = -i2i;
+                double p2i = i2r;
+                double y1r = r1r + n1r;
+                double y1i = r1i + n1i;
+                double y4r = r1r + p1r;
+                double y4i = r1i + p1i;
+                double y2r = r2r + n2r;
+                double y2i = r2i + n2i;
+                double y3r = r2r + p2r;
+                double y3i = r2i + p2i;
+                y[o] = y0r;
+                y[o + 1] = y0i;
+                twiddle(y, o + bs, y1r, y1i, w1r, w1i);
+                twiddle(y, o + 2 * bs, y2r, y2i, w2r, w2i);
+                twiddle(y, o + 3 * bs, y3r, y3i, w3r, w3i);
+                twiddle(y, o + 4 * bs, y4r, y4i, w4r, w4i);
             }
         }
     }
 
-    private static void store(double[] y, int o, double yr, double yi, double[] tw, int t, double sg) {
-        double wr = tw[t];
-        double wi = sg * tw[t + 1];
-        y[o] = yr * wr - yi * wi;
-        y[o + 1] = yr * wi + yi * wr;
+    private void r5m1(double[] x, int xo, int xr, double[] y, int yo, int yr, int stride) {
+        int xi = 1 - xr;
+        int yi = 1 - yr;
+        int bs = 2 * stride;
+        for (int q = 0; q < bs; q += 2) {
+            int i = xo + q;
+            int o = yo + q;
+            double x0r = x[i + xr];
+            double x0i = x[i + xi];
+            double x1r = x[i + bs + xr];
+            double x1i = x[i + bs + xi];
+            double x2r = x[i + 2 * bs + xr];
+            double x2i = x[i + 2 * bs + xi];
+            double x3r = x[i + 3 * bs + xr];
+            double x3i = x[i + 3 * bs + xi];
+            double x4r = x[i + 4 * bs + xr];
+            double x4i = x[i + 4 * bs + xi];
+            double b1r = x1r + x4r;
+            double b1i = x1i + x4i;
+            double b2r = x2r + x3r;
+            double b2i = x2i + x3i;
+            double d1r = x1r - x4r;
+            double d1i = x1i - x4i;
+            double d2r = x2r - x3r;
+            double d2i = x2i - x3i;
+            double e0r = x0r + b1r;
+            double e0i = x0i + b1i;
+            double y0r = e0r + b2r;
+            double y0i = e0i + b2i;
+            double u1r = b1r * c51;
+            double u1i = b1i * c51;
+            double u2r = b2r * c52;
+            double u2i = b2i * c52;
+            double v1r = x0r + u1r;
+            double v1i = x0i + u1i;
+            double r1r = v1r + u2r;
+            double r1i = v1i + u2i;
+            double u3r = b1r * c52;
+            double u3i = b1i * c52;
+            double u4r = b2r * c51;
+            double u4i = b2i * c51;
+            double v2r = x0r + u3r;
+            double v2i = x0i + u3i;
+            double r2r = v2r + u4r;
+            double r2i = v2i + u4i;
+            double g1r = d1r * s51;
+            double g1i = d1i * s51;
+            double g2r = d2r * s52;
+            double g2i = d2i * s52;
+            double i1r = g1r + g2r;
+            double i1i = g1i + g2i;
+            double g3r = d1r * s52;
+            double g3i = d1i * s52;
+            double g4r = d2r * s51;
+            double g4i = d2i * s51;
+            double i2r = g3r - g4r;
+            double i2i = g3i - g4i;
+            double n1r = i1i;
+            double n1i = -i1r;
+            double p1r = -i1i;
+            double p1i = i1r;
+            double n2r = i2i;
+            double n2i = -i2r;
+            double p2r = -i2i;
+            double p2i = i2r;
+            double y1r = r1r + n1r;
+            double y1i = r1i + n1i;
+            double y4r = r1r + p1r;
+            double y4i = r1i + p1i;
+            double y2r = r2r + n2r;
+            double y2i = r2i + n2i;
+            double y3r = r2r + p2r;
+            double y3i = r2i + p2i;
+            y[o + yr] = y0r;
+            y[o + yi] = y0i;
+            y[o + bs + yr] = y1r;
+            y[o + bs + yi] = y1i;
+            y[o + 2 * bs + yr] = y2r;
+            y[o + 2 * bs + yi] = y2i;
+            y[o + 3 * bs + yr] = y3r;
+            y[o + 3 * bs + yi] = y3i;
+            y[o + 4 * bs + yr] = y4r;
+            y[o + 4 * bs + yi] = y4i;
+        }
     }
 
-    /** A direct butterfly for an odd prime radix, using {@code 4p} doubles of scratch at {@code temp}. */
-    private static void radixP(double[] x, int xo, double[] y, int yo, int r, int m, int stride, double[] tw,
-            double[] roots, double sg, double[] s, int temp) {
+    /** A direct butterfly for an odd prime radix, using {@code 4r} values of scratch at {@code temp}. */
+    private static void radixP(double[] x, int xo, int xr, double[] y, int yo, int yr, int r, int m, int stride,
+            double[] tw, double[] roots, double[] s, int temp) {
+        int xi = 1 - xr;
+        int yi = 1 - yr;
         int sm = 2 * stride * m;
         int h = (r - 1) / 2;
         int bsum = temp;          // b_k = x_k + x_(r-k), k = 1..h
         int bdif = temp + 2 * r;  // d_k = x_k - x_(r-k)
+        int bs = 2 * stride;
         for (int p = 0; p < m; p++) {
             int t = 2 * (r - 1) * p;
-            int a0 = xo + 2 * stride * p;
-            int b0 = yo + 2 * stride * r * p;
-            int bs = 2 * stride;
-            for (int q = 0; q < 2 * stride; q += 2) {
+            int a0 = xo + bs * p;
+            int b0 = yo + bs * r * p;
+            for (int q = 0; q < bs; q += 2) {
                 int i0 = a0 + q;
-                double x0r = x[i0];
-                double x0i = x[i0 + 1];
+                double x0r = x[i0 + xr];
+                double x0i = x[i0 + xi];
                 double sumr = x0r;
                 double sumi = x0i;
                 for (int k = 1; k <= h; k++) {
                     int ik = i0 + k * sm;
                     int il = i0 + (r - k) * sm;
-                    double br = x[ik] + x[il];
-                    double bi = x[ik + 1] + x[il + 1];
+                    double br = x[ik + xr] + x[il + xr];
+                    double bi = x[ik + xi] + x[il + xi];
                     s[bsum + 2 * k] = br;
                     s[bsum + 2 * k + 1] = bi;
-                    s[bdif + 2 * k] = x[ik] - x[il];
-                    s[bdif + 2 * k + 1] = x[ik + 1] - x[il + 1];
+                    s[bdif + 2 * k] = x[ik + xr] - x[il + xr];
+                    s[bdif + 2 * k + 1] = x[ik + xi] - x[il + xi];
                     sumr += br;
                     sumi += bi;
                 }
                 int o = b0 + q;
-                y[o] = sumr;
-                y[o + 1] = sumi;
+                double[] out = y;
                 for (int j = 1; j <= h; j++) {
                     // root^(jk) = cos(2π jk/r) - i sin(2π jk/r)
                     double rr = x0r;
@@ -581,17 +1054,379 @@ public final class ComplexFftd {
                             e -= r;
                         }
                         double c = roots[2 * e];
-                        double sn = -sg * roots[2 * e + 1];
+                        double sn = -roots[2 * e + 1];
                         rr += c * s[bsum + 2 * k];
                         ri += c * s[bsum + 2 * k + 1];
                         ir += sn * s[bdif + 2 * k];
                         ii += sn * s[bdif + 2 * k + 1];
                     }
-                    // y_j = R - i·I, y_(r-j) = R + i·I
-                    store(y, o + j * bs, rr + ii, ri - ir, tw, t + 2 * (j - 1), sg);
-                    store(y, o + (r - j) * bs, rr - ii, ri + ir, tw, t + 2 * (r - j - 1), sg);
+                    // y_j = R - i·I, y_(r-j) = R + i·I, then the stage twiddles
+                    int oj = o + j * bs;
+                    int ok = o + (r - j) * bs;
+                    double ajr = rr + ii;
+                    double aji = ri - ir;
+                    double akr = rr - ii;
+                    double aki = ri + ir;
+                    if (m == 1) {
+                        out[oj + yr] = ajr;
+                        out[oj + yi] = aji;
+                        out[ok + yr] = akr;
+                        out[ok + yi] = aki;
+                    } else {
+                        double wjr = tw[t + 2 * (j - 1)];
+                        double wji = tw[t + 2 * (j - 1) + 1];
+                        double wkr = tw[t + 2 * (r - j - 1)];
+                        double wki = tw[t + 2 * (r - j - 1) + 1];
+                        out[oj + yr] = ajr * wjr - aji * wji;
+                        out[oj + yi] = ajr * wji + aji * wjr;
+                        out[ok + yr] = akr * wkr - aki * wki;
+                        out[ok + yi] = akr * wki + aki * wkr;
+                    }
                 }
+                out[o + yr] = sumr;
+                out[o + yi] = sumi;
             }
         }
     }
+
+    private void simdGeneral(int r, double[] x, int xo, double[] y, int yo, int m, int stride, double[] tw) {
+//#ifdef __HAS_VECTOR_API__
+        switch (r) {
+            case 4: Simd.r4g(this, x, xo, y, yo, m, stride, tw); break;
+            case 2: Simd.r2g(this, x, xo, y, yo, m, stride, tw); break;
+            case 3: Simd.r3g(this, x, xo, y, yo, m, stride, tw); break;
+            default: Simd.r5g(this, x, xo, y, yo, m, stride, tw); break;
+        }
+//#else
+        throw new AssertionError("no Vector API");
+//#endif
+    }
+
+    private void simdM1(int r, double[] x, int xo, double[] y, int yo, boolean swapOut, int stride) {
+//#ifdef __HAS_VECTOR_API__
+        switch (r) {
+            case 4: Simd.r4m1(this, x, xo, y, yo, swapOut, stride); break;
+            case 2: Simd.r2m1(this, x, xo, y, yo, swapOut, stride); break;
+            case 3: Simd.r3m1(this, x, xo, y, yo, swapOut, stride); break;
+            default: Simd.r5m1(this, x, xo, y, yo, swapOut, stride); break;
+        }
+//#else
+        throw new AssertionError("no Vector API");
+//#endif
+    }
+
+    /**
+     * Vector API kernels: the scalar operations lane by lane, so the results are the same bits. Kept in a holder so
+     * the scalar build never loads {@code jdk.incubator.vector}.
+     */
+    private static final class Simd {
+//#ifdef __HAS_VECTOR_API__
+        static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
+        static final boolean AVAILABLE = SimdSupport.isVectorApiAvailable() && SPECIES.length() >= 2;
+        static final int LANES = SPECIES.length();
+        static final VectorShuffle<Double> SWAP = VectorShuffle.fromOp(SPECIES, i -> i ^ 1);
+        static final VectorMask<Double> EVEN = VectorMask.fromLong(SPECIES, 0x5555555555555555L);
+        static final VectorMask<Double> ODD = EVEN.not();
+        static final double HALF = 0.5;
+
+        private Simd() {
+        }
+
+        /** Whether SIMD is enabled now ({@code KernelConfig.setSimdEnabled}). */
+        static boolean enabled() {
+            return SimdSupport.backend() == SimdSupport.Backend.VECTOR_API;
+        }
+
+        /** Whether a run of {@code count} values splits into whole vectors. */
+        static boolean fits(int count) {
+            return count % LANES == 0;
+        }
+
+        static void r2g(ComplexFftd p, double[] x, int xo, double[] y, int yo, int m, int stride, double[] tw) {
+            int sm = 2 * stride * m;
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q0 = 0; q0 < m; q0++) {
+                int t = 2 * q0;
+                DoubleVector w1r = DoubleVector.broadcast(SPECIES, tw[t + 0]);
+                DoubleVector w1s = DoubleVector.broadcast(SPECIES, tw[t + 1]).lanewise(VectorOperators.NEG, EVEN);
+                int ia = xo + bs * q0;
+                int ob = yo + bs * 2 * q0;
+                for (int q = 0; q < bs; q += lanes) {
+                    int i = ia + q;
+                    int o = ob + q;
+                    DoubleVector x0 = DoubleVector.fromArray(SPECIES, x, i);
+                    DoubleVector x1 = DoubleVector.fromArray(SPECIES, x, i + sm);
+                    DoubleVector y0 = x0.add(x1);
+                    DoubleVector y1 = x0.sub(x1);
+                    y0.intoArray(y, o);
+                    y1.mul(w1r).add(y1.rearrange(SWAP).mul(w1s)).intoArray(y, o + bs);
+                }
+            }
+        }
+
+        static void r2m1(ComplexFftd p, double[] x, int xo, double[] y, int yo, boolean swapOut, int stride) {
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q = 0; q < bs; q += lanes) {
+                int i = xo + q;
+                int o = yo + q;
+                DoubleVector x0 = DoubleVector.fromArray(SPECIES, x, i);
+                DoubleVector x1 = DoubleVector.fromArray(SPECIES, x, i + bs);
+                DoubleVector y0 = x0.add(x1);
+                DoubleVector y1 = x0.sub(x1);
+                (swapOut ? y0.rearrange(SWAP) : y0).intoArray(y, o);
+                (swapOut ? y1.rearrange(SWAP) : y1).intoArray(y, o + bs);
+            }
+        }
+
+        static void r4g(ComplexFftd p, double[] x, int xo, double[] y, int yo, int m, int stride, double[] tw) {
+            int sm = 2 * stride * m;
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q0 = 0; q0 < m; q0++) {
+                int t = 6 * q0;
+                DoubleVector w1r = DoubleVector.broadcast(SPECIES, tw[t + 0]);
+                DoubleVector w1s = DoubleVector.broadcast(SPECIES, tw[t + 1]).lanewise(VectorOperators.NEG, EVEN);
+                DoubleVector w2r = DoubleVector.broadcast(SPECIES, tw[t + 2]);
+                DoubleVector w2s = DoubleVector.broadcast(SPECIES, tw[t + 3]).lanewise(VectorOperators.NEG, EVEN);
+                DoubleVector w3r = DoubleVector.broadcast(SPECIES, tw[t + 4]);
+                DoubleVector w3s = DoubleVector.broadcast(SPECIES, tw[t + 5]).lanewise(VectorOperators.NEG, EVEN);
+                int ia = xo + bs * q0;
+                int ob = yo + bs * 4 * q0;
+                for (int q = 0; q < bs; q += lanes) {
+                    int i = ia + q;
+                    int o = ob + q;
+                    DoubleVector x0 = DoubleVector.fromArray(SPECIES, x, i);
+                    DoubleVector x1 = DoubleVector.fromArray(SPECIES, x, i + sm);
+                    DoubleVector x2 = DoubleVector.fromArray(SPECIES, x, i + 2 * sm);
+                    DoubleVector x3 = DoubleVector.fromArray(SPECIES, x, i + 3 * sm);
+                    DoubleVector t0 = x0.add(x2);
+                    DoubleVector t1 = x0.sub(x2);
+                    DoubleVector t2 = x1.add(x3);
+                    DoubleVector d3 = x1.sub(x3);
+                    DoubleVector t3 = d3.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                    DoubleVector y0 = t0.add(t2);
+                    DoubleVector y1 = t1.add(t3);
+                    DoubleVector y2 = t0.sub(t2);
+                    DoubleVector y3 = t1.sub(t3);
+                    y0.intoArray(y, o);
+                    y1.mul(w1r).add(y1.rearrange(SWAP).mul(w1s)).intoArray(y, o + bs);
+                    y2.mul(w2r).add(y2.rearrange(SWAP).mul(w2s)).intoArray(y, o + 2 * bs);
+                    y3.mul(w3r).add(y3.rearrange(SWAP).mul(w3s)).intoArray(y, o + 3 * bs);
+                }
+            }
+        }
+
+        static void r4m1(ComplexFftd p, double[] x, int xo, double[] y, int yo, boolean swapOut, int stride) {
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q = 0; q < bs; q += lanes) {
+                int i = xo + q;
+                int o = yo + q;
+                DoubleVector x0 = DoubleVector.fromArray(SPECIES, x, i);
+                DoubleVector x1 = DoubleVector.fromArray(SPECIES, x, i + bs);
+                DoubleVector x2 = DoubleVector.fromArray(SPECIES, x, i + 2 * bs);
+                DoubleVector x3 = DoubleVector.fromArray(SPECIES, x, i + 3 * bs);
+                DoubleVector t0 = x0.add(x2);
+                DoubleVector t1 = x0.sub(x2);
+                DoubleVector t2 = x1.add(x3);
+                DoubleVector d3 = x1.sub(x3);
+                DoubleVector t3 = d3.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                DoubleVector y0 = t0.add(t2);
+                DoubleVector y1 = t1.add(t3);
+                DoubleVector y2 = t0.sub(t2);
+                DoubleVector y3 = t1.sub(t3);
+                (swapOut ? y0.rearrange(SWAP) : y0).intoArray(y, o);
+                (swapOut ? y1.rearrange(SWAP) : y1).intoArray(y, o + bs);
+                (swapOut ? y2.rearrange(SWAP) : y2).intoArray(y, o + 2 * bs);
+                (swapOut ? y3.rearrange(SWAP) : y3).intoArray(y, o + 3 * bs);
+            }
+        }
+
+        static void r3g(ComplexFftd p, double[] x, int xo, double[] y, int yo, int m, int stride, double[] tw) {
+            int sm = 2 * stride * m;
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q0 = 0; q0 < m; q0++) {
+                int t = 4 * q0;
+                DoubleVector w1r = DoubleVector.broadcast(SPECIES, tw[t + 0]);
+                DoubleVector w1s = DoubleVector.broadcast(SPECIES, tw[t + 1]).lanewise(VectorOperators.NEG, EVEN);
+                DoubleVector w2r = DoubleVector.broadcast(SPECIES, tw[t + 2]);
+                DoubleVector w2s = DoubleVector.broadcast(SPECIES, tw[t + 3]).lanewise(VectorOperators.NEG, EVEN);
+                int ia = xo + bs * q0;
+                int ob = yo + bs * 3 * q0;
+                for (int q = 0; q < bs; q += lanes) {
+                    int i = ia + q;
+                    int o = ob + q;
+                    DoubleVector x0 = DoubleVector.fromArray(SPECIES, x, i);
+                    DoubleVector x1 = DoubleVector.fromArray(SPECIES, x, i + sm);
+                    DoubleVector x2 = DoubleVector.fromArray(SPECIES, x, i + 2 * sm);
+                    DoubleVector t1 = x1.add(x2);
+                    DoubleVector h1 = t1.mul(HALF);
+                    DoubleVector t2 = x0.sub(h1);
+                    DoubleVector d = x1.sub(x2);
+                    DoubleVector t3 = d.mul(p.c3);
+                    DoubleVector n3 = t3.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                    DoubleVector p3 = t3.rearrange(SWAP).lanewise(VectorOperators.NEG, EVEN);
+                    DoubleVector y0 = x0.add(t1);
+                    DoubleVector y1 = t2.add(n3);
+                    DoubleVector y2 = t2.add(p3);
+                    y0.intoArray(y, o);
+                    y1.mul(w1r).add(y1.rearrange(SWAP).mul(w1s)).intoArray(y, o + bs);
+                    y2.mul(w2r).add(y2.rearrange(SWAP).mul(w2s)).intoArray(y, o + 2 * bs);
+                }
+            }
+        }
+
+        static void r3m1(ComplexFftd p, double[] x, int xo, double[] y, int yo, boolean swapOut, int stride) {
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q = 0; q < bs; q += lanes) {
+                int i = xo + q;
+                int o = yo + q;
+                DoubleVector x0 = DoubleVector.fromArray(SPECIES, x, i);
+                DoubleVector x1 = DoubleVector.fromArray(SPECIES, x, i + bs);
+                DoubleVector x2 = DoubleVector.fromArray(SPECIES, x, i + 2 * bs);
+                DoubleVector t1 = x1.add(x2);
+                DoubleVector h1 = t1.mul(HALF);
+                DoubleVector t2 = x0.sub(h1);
+                DoubleVector d = x1.sub(x2);
+                DoubleVector t3 = d.mul(p.c3);
+                DoubleVector n3 = t3.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                DoubleVector p3 = t3.rearrange(SWAP).lanewise(VectorOperators.NEG, EVEN);
+                DoubleVector y0 = x0.add(t1);
+                DoubleVector y1 = t2.add(n3);
+                DoubleVector y2 = t2.add(p3);
+                (swapOut ? y0.rearrange(SWAP) : y0).intoArray(y, o);
+                (swapOut ? y1.rearrange(SWAP) : y1).intoArray(y, o + bs);
+                (swapOut ? y2.rearrange(SWAP) : y2).intoArray(y, o + 2 * bs);
+            }
+        }
+
+        static void r5g(ComplexFftd p, double[] x, int xo, double[] y, int yo, int m, int stride, double[] tw) {
+            int sm = 2 * stride * m;
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q0 = 0; q0 < m; q0++) {
+                int t = 8 * q0;
+                DoubleVector w1r = DoubleVector.broadcast(SPECIES, tw[t + 0]);
+                DoubleVector w1s = DoubleVector.broadcast(SPECIES, tw[t + 1]).lanewise(VectorOperators.NEG, EVEN);
+                DoubleVector w2r = DoubleVector.broadcast(SPECIES, tw[t + 2]);
+                DoubleVector w2s = DoubleVector.broadcast(SPECIES, tw[t + 3]).lanewise(VectorOperators.NEG, EVEN);
+                DoubleVector w3r = DoubleVector.broadcast(SPECIES, tw[t + 4]);
+                DoubleVector w3s = DoubleVector.broadcast(SPECIES, tw[t + 5]).lanewise(VectorOperators.NEG, EVEN);
+                DoubleVector w4r = DoubleVector.broadcast(SPECIES, tw[t + 6]);
+                DoubleVector w4s = DoubleVector.broadcast(SPECIES, tw[t + 7]).lanewise(VectorOperators.NEG, EVEN);
+                int ia = xo + bs * q0;
+                int ob = yo + bs * 5 * q0;
+                for (int q = 0; q < bs; q += lanes) {
+                    int i = ia + q;
+                    int o = ob + q;
+                    DoubleVector x0 = DoubleVector.fromArray(SPECIES, x, i);
+                    DoubleVector x1 = DoubleVector.fromArray(SPECIES, x, i + sm);
+                    DoubleVector x2 = DoubleVector.fromArray(SPECIES, x, i + 2 * sm);
+                    DoubleVector x3 = DoubleVector.fromArray(SPECIES, x, i + 3 * sm);
+                    DoubleVector x4 = DoubleVector.fromArray(SPECIES, x, i + 4 * sm);
+                    DoubleVector b1 = x1.add(x4);
+                    DoubleVector b2 = x2.add(x3);
+                    DoubleVector d1 = x1.sub(x4);
+                    DoubleVector d2 = x2.sub(x3);
+                    DoubleVector e0 = x0.add(b1);
+                    DoubleVector y0 = e0.add(b2);
+                    DoubleVector u1 = b1.mul(p.c51);
+                    DoubleVector u2 = b2.mul(p.c52);
+                    DoubleVector v1 = x0.add(u1);
+                    DoubleVector r1 = v1.add(u2);
+                    DoubleVector u3 = b1.mul(p.c52);
+                    DoubleVector u4 = b2.mul(p.c51);
+                    DoubleVector v2 = x0.add(u3);
+                    DoubleVector r2 = v2.add(u4);
+                    DoubleVector g1 = d1.mul(p.s51);
+                    DoubleVector g2 = d2.mul(p.s52);
+                    DoubleVector i1 = g1.add(g2);
+                    DoubleVector g3 = d1.mul(p.s52);
+                    DoubleVector g4 = d2.mul(p.s51);
+                    DoubleVector i2 = g3.sub(g4);
+                    DoubleVector n1 = i1.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                    DoubleVector p1 = i1.rearrange(SWAP).lanewise(VectorOperators.NEG, EVEN);
+                    DoubleVector n2 = i2.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                    DoubleVector p2 = i2.rearrange(SWAP).lanewise(VectorOperators.NEG, EVEN);
+                    DoubleVector y1 = r1.add(n1);
+                    DoubleVector y4 = r1.add(p1);
+                    DoubleVector y2 = r2.add(n2);
+                    DoubleVector y3 = r2.add(p2);
+                    y0.intoArray(y, o);
+                    y1.mul(w1r).add(y1.rearrange(SWAP).mul(w1s)).intoArray(y, o + bs);
+                    y2.mul(w2r).add(y2.rearrange(SWAP).mul(w2s)).intoArray(y, o + 2 * bs);
+                    y3.mul(w3r).add(y3.rearrange(SWAP).mul(w3s)).intoArray(y, o + 3 * bs);
+                    y4.mul(w4r).add(y4.rearrange(SWAP).mul(w4s)).intoArray(y, o + 4 * bs);
+                }
+            }
+        }
+
+        static void r5m1(ComplexFftd p, double[] x, int xo, double[] y, int yo, boolean swapOut, int stride) {
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q = 0; q < bs; q += lanes) {
+                int i = xo + q;
+                int o = yo + q;
+                DoubleVector x0 = DoubleVector.fromArray(SPECIES, x, i);
+                DoubleVector x1 = DoubleVector.fromArray(SPECIES, x, i + bs);
+                DoubleVector x2 = DoubleVector.fromArray(SPECIES, x, i + 2 * bs);
+                DoubleVector x3 = DoubleVector.fromArray(SPECIES, x, i + 3 * bs);
+                DoubleVector x4 = DoubleVector.fromArray(SPECIES, x, i + 4 * bs);
+                DoubleVector b1 = x1.add(x4);
+                DoubleVector b2 = x2.add(x3);
+                DoubleVector d1 = x1.sub(x4);
+                DoubleVector d2 = x2.sub(x3);
+                DoubleVector e0 = x0.add(b1);
+                DoubleVector y0 = e0.add(b2);
+                DoubleVector u1 = b1.mul(p.c51);
+                DoubleVector u2 = b2.mul(p.c52);
+                DoubleVector v1 = x0.add(u1);
+                DoubleVector r1 = v1.add(u2);
+                DoubleVector u3 = b1.mul(p.c52);
+                DoubleVector u4 = b2.mul(p.c51);
+                DoubleVector v2 = x0.add(u3);
+                DoubleVector r2 = v2.add(u4);
+                DoubleVector g1 = d1.mul(p.s51);
+                DoubleVector g2 = d2.mul(p.s52);
+                DoubleVector i1 = g1.add(g2);
+                DoubleVector g3 = d1.mul(p.s52);
+                DoubleVector g4 = d2.mul(p.s51);
+                DoubleVector i2 = g3.sub(g4);
+                DoubleVector n1 = i1.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                DoubleVector p1 = i1.rearrange(SWAP).lanewise(VectorOperators.NEG, EVEN);
+                DoubleVector n2 = i2.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                DoubleVector p2 = i2.rearrange(SWAP).lanewise(VectorOperators.NEG, EVEN);
+                DoubleVector y1 = r1.add(n1);
+                DoubleVector y4 = r1.add(p1);
+                DoubleVector y2 = r2.add(n2);
+                DoubleVector y3 = r2.add(p2);
+                (swapOut ? y0.rearrange(SWAP) : y0).intoArray(y, o);
+                (swapOut ? y1.rearrange(SWAP) : y1).intoArray(y, o + bs);
+                (swapOut ? y2.rearrange(SWAP) : y2).intoArray(y, o + 2 * bs);
+                (swapOut ? y3.rearrange(SWAP) : y3).intoArray(y, o + 3 * bs);
+                (swapOut ? y4.rearrange(SWAP) : y4).intoArray(y, o + 4 * bs);
+            }
+        }
+
+//#else
+        static final boolean AVAILABLE = false;
+
+        private Simd() {
+        }
+
+        static boolean enabled() {
+            return false;
+        }
+
+        static boolean fits(int count) {
+            return false;
+        }
+//#endif
+    }
+
+    // END GENERATED KERNELS
 }

@@ -25,6 +25,14 @@ package org.dynamisengine.vectrix.fft;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+//#ifdef __HAS_VECTOR_API__
+import jdk.incubator.vector.FloatVector;
+import jdk.incubator.vector.VectorMask;
+import jdk.incubator.vector.VectorOperators;
+import jdk.incubator.vector.VectorShuffle;
+import jdk.incubator.vector.VectorSpecies;
+import org.dynamisengine.vectrix.simd.SimdSupport;
+//#endif
 
 /**
  * A precomputed plan for the discrete Fourier transform of {@code n} complex floats, for any {@code n}; the
@@ -288,45 +296,6 @@ public final class ComplexFftf {
         }
     }
 
-    /** The unscaled transform; {@code inv} conjugates the roots. */
-    void run(float[] d, int off, float[] s, int soff, boolean inv) {
-        if (inner != null) {
-            bluestein(d, off, s, soff, inv);
-            return;
-        }
-        float sg = inv ? -1.0f : 1.0f;
-        float[] src = d;
-        int so = off;
-        float[] dst = s;
-        int dso = soff;
-        int stride = 1;
-        int len = n;
-        int temp = soff + 2 * n;
-        for (int i = 0; i < radix.length; i++) {
-            int p = radix[i];
-            int m = len / p;
-            float[] tw = twiddle[i];
-            switch (p) {
-                case 4: radix4(src, so, dst, dso, m, stride, tw, sg); break;
-                case 2: radix2(src, so, dst, dso, m, stride, tw, sg); break;
-                case 3: radix3(src, so, dst, dso, m, stride, tw, sg); break;
-                case 5: radix5(src, so, dst, dso, m, stride, tw, sg); break;
-                default: radixP(src, so, dst, dso, p, m, stride, tw, primeRoots[i], sg, s, temp); break;
-            }
-            float[] ta = src;
-            src = dst;
-            dst = ta;
-            int to = so;
-            so = dso;
-            dso = to;
-            stride *= p;
-            len = m;
-        }
-        if (src != d || so != off) {
-            System.arraycopy(src, so, d, off, 2 * n);
-        }
-    }
-
     private void bluestein(float[] d, int off, float[] s, int soff, boolean inv) {
         int m = inner.n;
         float sg = inv ? -1.0f : 1.0f;
@@ -363,146 +332,532 @@ public final class ComplexFftf {
         }
     }
 
-    // Stockham stages. Input element (q, k) is at q + stride·(p + k·m); output (q, j) at q + stride·(r·p + j);
-    // output j is multiplied by the twiddle W_len^(j·p).
+    // BEGIN GENERATED KERNELS: scripts/gen-fft-kernels.py; edit the generator, not this block.
 
-    private static void radix2(float[] x, int xo, float[] y, int yo, int m, int stride, float[] tw, float sg) {
+    /**
+     * The unscaled transform. The inverse uses {@code IDFT(x) = swap(DFT(swap(x)))}, where {@code swap} exchanges
+     * real and imaginary parts: the first pass reads swapped and the last pass writes swapped, so the inverse
+     * costs no more than the forward transform.
+     */
+    void run(float[] d, int off, float[] s, int soff, boolean inv) {
+        if (inner != null) {
+            bluestein(d, off, s, soff, inv);
+            return;
+        }
+        boolean simd = Simd.AVAILABLE && Simd.enabled();
+        float[] src = d;
+        int so = off;
+        float[] dst = s;
+        int dso = soff;
+        int stride = 1;
+        int len = n;
+        int temp = soff + 2 * n;
+        int last = radix.length - 1;
+        if (last < 0) {
+            return; // n = 1
+        }
+        for (int i = 0; i <= last; i++) {
+            int r = radix[i];
+            int m = len / r;
+            float[] tw = twiddle[i];
+            int xr = inv && i == 0 ? 1 : 0;
+            int yr = inv && i == last ? 1 : 0;
+            boolean vec = simd && xr == 0 && Simd.fits(2 * stride);
+            if (r > 5) {
+                radixP(src, so, xr, dst, dso, yr, r, m, stride, tw, primeRoots[i], s, temp);
+            } else if (m == 1) {
+                if (vec) {
+                    simdM1(r, src, so, dst, dso, yr == 1, stride);
+                } else {
+                    switch (r) {
+                        case 4: r4m1(src, so, xr, dst, dso, yr, stride); break;
+                        case 2: r2m1(src, so, xr, dst, dso, yr, stride); break;
+                        case 3: r3m1(src, so, xr, dst, dso, yr, stride); break;
+                        default: r5m1(src, so, xr, dst, dso, yr, stride); break;
+                    }
+                }
+            } else if (stride == 1) {
+                switch (r) {
+                    case 4: r4s1(src, so, xr, dst, dso, m, tw); break;
+                    case 2: r2s1(src, so, xr, dst, dso, m, tw); break;
+                    case 3: r3s1(src, so, xr, dst, dso, m, tw); break;
+                    default: r5s1(src, so, xr, dst, dso, m, tw); break;
+                }
+            } else if (vec) {
+                simdGeneral(r, src, so, dst, dso, m, stride, tw);
+            } else {
+                switch (r) {
+                    case 4: r4g(src, so, dst, dso, m, stride, tw); break;
+                    case 2: r2g(src, so, dst, dso, m, stride, tw); break;
+                    case 3: r3g(src, so, dst, dso, m, stride, tw); break;
+                    default: r5g(src, so, dst, dso, m, stride, tw); break;
+                }
+            }
+            float[] ta = src;
+            src = dst;
+            dst = ta;
+            int to = so;
+            so = dso;
+            dso = to;
+            stride *= r;
+            len = m;
+        }
+        if (src != d || so != off) {
+            System.arraycopy(src, so, d, off, 2 * n);
+        }
+    }
+
+    private static void twiddle(float[] y, int o, float vr, float vi, float wr, float wi) {
+        y[o] = vr * wr - vi * wi;
+        y[o + 1] = vr * wi + vi * wr;
+    }
+
+    private void r2s1(float[] x, int xo, int xr, float[] y, int yo, int m, float[] tw) {
+        int xi = 1 - xr;
+        int sm = 2 * m;
         for (int p = 0; p < m; p++) {
-            float w1r = tw[2 * p];
-            float w1i = sg * tw[2 * p + 1];
-            int a0 = xo + 2 * stride * p;
-            int a1 = a0 + 2 * stride * m;
-            int b0 = yo + 2 * stride * 2 * p;
-            int b1 = b0 + 2 * stride;
-            for (int q = 0; q < 2 * stride; q += 2) {
-                float x0r = x[a0 + q];
-                float x0i = x[a0 + q + 1];
-                float x1r = x[a1 + q];
-                float x1i = x[a1 + q + 1];
-                y[b0 + q] = x0r + x1r;
-                y[b0 + q + 1] = x0i + x1i;
-                float dr = x0r - x1r;
-                float di = x0i - x1i;
-                y[b1 + q] = dr * w1r - di * w1i;
-                y[b1 + q + 1] = dr * w1i + di * w1r;
+            int i = xo + 2 * p;
+            int o = yo + 4 * p;
+            int t = 2 * p;
+            float x0r = x[i + xr];
+            float x0i = x[i + xi];
+            float x1r = x[i + sm + xr];
+            float x1i = x[i + sm + xi];
+            float y0r = x0r + x1r;
+            float y0i = x0i + x1i;
+            float y1r = x0r - x1r;
+            float y1i = x0i - x1i;
+            y[o] = y0r;
+            y[o + 1] = y0i;
+            twiddle(y, o + 2, y1r, y1i, tw[t + 0], tw[t + 1]);
+        }
+    }
+
+    private void r2g(float[] x, int xo, float[] y, int yo, int m, int stride, float[] tw) {
+        int sm = 2 * stride * m;
+        int bs = 2 * stride;
+        for (int p = 0; p < m; p++) {
+            int t = 2 * p;
+            float w1r = tw[t + 0];
+            float w1i = tw[t + 1];
+            int ia = xo + bs * p;
+            int ob = yo + bs * 2 * p;
+            for (int q = 0; q < bs; q += 2) {
+                int i = ia + q;
+                int o = ob + q;
+                float x0r = x[i];
+                float x0i = x[i + 1];
+                float x1r = x[i + sm];
+                float x1i = x[i + sm + 1];
+                float y0r = x0r + x1r;
+                float y0i = x0i + x1i;
+                float y1r = x0r - x1r;
+                float y1i = x0i - x1i;
+                y[o] = y0r;
+                y[o + 1] = y0i;
+                twiddle(y, o + bs, y1r, y1i, w1r, w1i);
             }
         }
     }
 
-    private static void radix4(float[] x, int xo, float[] y, int yo, int m, int stride, float[] tw, float sg) {
+    private void r2m1(float[] x, int xo, int xr, float[] y, int yo, int yr, int stride) {
+        int xi = 1 - xr;
+        int yi = 1 - yr;
+        int bs = 2 * stride;
+        for (int q = 0; q < bs; q += 2) {
+            int i = xo + q;
+            int o = yo + q;
+            float x0r = x[i + xr];
+            float x0i = x[i + xi];
+            float x1r = x[i + bs + xr];
+            float x1i = x[i + bs + xi];
+            float y0r = x0r + x1r;
+            float y0i = x0i + x1i;
+            float y1r = x0r - x1r;
+            float y1i = x0i - x1i;
+            y[o + yr] = y0r;
+            y[o + yi] = y0i;
+            y[o + bs + yr] = y1r;
+            y[o + bs + yi] = y1i;
+        }
+    }
+
+    private void r4s1(float[] x, int xo, int xr, float[] y, int yo, int m, float[] tw) {
+        int xi = 1 - xr;
+        int sm = 2 * m;
+        for (int p = 0; p < m; p++) {
+            int i = xo + 2 * p;
+            int o = yo + 8 * p;
+            int t = 6 * p;
+            float x0r = x[i + xr];
+            float x0i = x[i + xi];
+            float x1r = x[i + sm + xr];
+            float x1i = x[i + sm + xi];
+            float x2r = x[i + 2 * sm + xr];
+            float x2i = x[i + 2 * sm + xi];
+            float x3r = x[i + 3 * sm + xr];
+            float x3i = x[i + 3 * sm + xi];
+            float t0r = x0r + x2r;
+            float t0i = x0i + x2i;
+            float t1r = x0r - x2r;
+            float t1i = x0i - x2i;
+            float t2r = x1r + x3r;
+            float t2i = x1i + x3i;
+            float d3r = x1r - x3r;
+            float d3i = x1i - x3i;
+            float t3r = d3i;
+            float t3i = -d3r;
+            float y0r = t0r + t2r;
+            float y0i = t0i + t2i;
+            float y1r = t1r + t3r;
+            float y1i = t1i + t3i;
+            float y2r = t0r - t2r;
+            float y2i = t0i - t2i;
+            float y3r = t1r - t3r;
+            float y3i = t1i - t3i;
+            y[o] = y0r;
+            y[o + 1] = y0i;
+            twiddle(y, o + 2, y1r, y1i, tw[t + 0], tw[t + 1]);
+            twiddle(y, o + 4, y2r, y2i, tw[t + 2], tw[t + 3]);
+            twiddle(y, o + 6, y3r, y3i, tw[t + 4], tw[t + 5]);
+        }
+    }
+
+    private void r4g(float[] x, int xo, float[] y, int yo, int m, int stride, float[] tw) {
         int sm = 2 * stride * m;
+        int bs = 2 * stride;
         for (int p = 0; p < m; p++) {
             int t = 6 * p;
-            float w1r = tw[t];
-            float w1i = sg * tw[t + 1];
+            float w1r = tw[t + 0];
+            float w1i = tw[t + 1];
             float w2r = tw[t + 2];
-            float w2i = sg * tw[t + 3];
+            float w2i = tw[t + 3];
             float w3r = tw[t + 4];
-            float w3i = sg * tw[t + 5];
-            int a0 = xo + 2 * stride * p;
-            int b0 = yo + 2 * stride * 4 * p;
-            int bs = 2 * stride;
-            for (int q = 0; q < 2 * stride; q += 2) {
-                int i0 = a0 + q;
-                float x0r = x[i0];
-                float x0i = x[i0 + 1];
-                float x1r = x[i0 + sm];
-                float x1i = x[i0 + sm + 1];
-                float x2r = x[i0 + 2 * sm];
-                float x2i = x[i0 + 2 * sm + 1];
-                float x3r = x[i0 + 3 * sm];
-                float x3i = x[i0 + 3 * sm + 1];
+            float w3i = tw[t + 5];
+            int ia = xo + bs * p;
+            int ob = yo + bs * 4 * p;
+            for (int q = 0; q < bs; q += 2) {
+                int i = ia + q;
+                int o = ob + q;
+                float x0r = x[i];
+                float x0i = x[i + 1];
+                float x1r = x[i + sm];
+                float x1i = x[i + sm + 1];
+                float x2r = x[i + 2 * sm];
+                float x2i = x[i + 2 * sm + 1];
+                float x3r = x[i + 3 * sm];
+                float x3i = x[i + 3 * sm + 1];
                 float t0r = x0r + x2r;
                 float t0i = x0i + x2i;
                 float t1r = x0r - x2r;
                 float t1i = x0i - x2i;
                 float t2r = x1r + x3r;
                 float t2i = x1i + x3i;
-                // (x1 - x3)·(-i) forward, ·(+i) inverse
-                float t3r = sg * (x1i - x3i);
-                float t3i = -sg * (x1r - x3r);
-                int o = b0 + q;
-                y[o] = t0r + t2r;
-                y[o + 1] = t0i + t2i;
-                float yr = t1r + t3r;
-                float yi = t1i + t3i;
-                y[o + bs] = yr * w1r - yi * w1i;
-                y[o + bs + 1] = yr * w1i + yi * w1r;
-                yr = t0r - t2r;
-                yi = t0i - t2i;
-                y[o + 2 * bs] = yr * w2r - yi * w2i;
-                y[o + 2 * bs + 1] = yr * w2i + yi * w2r;
-                yr = t1r - t3r;
-                yi = t1i - t3i;
-                y[o + 3 * bs] = yr * w3r - yi * w3i;
-                y[o + 3 * bs + 1] = yr * w3i + yi * w3r;
+                float d3r = x1r - x3r;
+                float d3i = x1i - x3i;
+                float t3r = d3i;
+                float t3i = -d3r;
+                float y0r = t0r + t2r;
+                float y0i = t0i + t2i;
+                float y1r = t1r + t3r;
+                float y1i = t1i + t3i;
+                float y2r = t0r - t2r;
+                float y2i = t0i - t2i;
+                float y3r = t1r - t3r;
+                float y3i = t1i - t3i;
+                y[o] = y0r;
+                y[o + 1] = y0i;
+                twiddle(y, o + bs, y1r, y1i, w1r, w1i);
+                twiddle(y, o + 2 * bs, y2r, y2i, w2r, w2i);
+                twiddle(y, o + 3 * bs, y3r, y3i, w3r, w3i);
             }
         }
     }
 
-    private void radix3(float[] x, int xo, float[] y, int yo, int m, int stride, float[] tw, float sg) {
+    private void r4m1(float[] x, int xo, int xr, float[] y, int yo, int yr, int stride) {
+        int xi = 1 - xr;
+        int yi = 1 - yr;
+        int bs = 2 * stride;
+        for (int q = 0; q < bs; q += 2) {
+            int i = xo + q;
+            int o = yo + q;
+            float x0r = x[i + xr];
+            float x0i = x[i + xi];
+            float x1r = x[i + bs + xr];
+            float x1i = x[i + bs + xi];
+            float x2r = x[i + 2 * bs + xr];
+            float x2i = x[i + 2 * bs + xi];
+            float x3r = x[i + 3 * bs + xr];
+            float x3i = x[i + 3 * bs + xi];
+            float t0r = x0r + x2r;
+            float t0i = x0i + x2i;
+            float t1r = x0r - x2r;
+            float t1i = x0i - x2i;
+            float t2r = x1r + x3r;
+            float t2i = x1i + x3i;
+            float d3r = x1r - x3r;
+            float d3i = x1i - x3i;
+            float t3r = d3i;
+            float t3i = -d3r;
+            float y0r = t0r + t2r;
+            float y0i = t0i + t2i;
+            float y1r = t1r + t3r;
+            float y1i = t1i + t3i;
+            float y2r = t0r - t2r;
+            float y2i = t0i - t2i;
+            float y3r = t1r - t3r;
+            float y3i = t1i - t3i;
+            y[o + yr] = y0r;
+            y[o + yi] = y0i;
+            y[o + bs + yr] = y1r;
+            y[o + bs + yi] = y1i;
+            y[o + 2 * bs + yr] = y2r;
+            y[o + 2 * bs + yi] = y2i;
+            y[o + 3 * bs + yr] = y3r;
+            y[o + 3 * bs + yi] = y3i;
+        }
+    }
+
+    private void r3s1(float[] x, int xo, int xr, float[] y, int yo, int m, float[] tw) {
+        int xi = 1 - xr;
+        int sm = 2 * m;
+        for (int p = 0; p < m; p++) {
+            int i = xo + 2 * p;
+            int o = yo + 6 * p;
+            int t = 4 * p;
+            float x0r = x[i + xr];
+            float x0i = x[i + xi];
+            float x1r = x[i + sm + xr];
+            float x1i = x[i + sm + xi];
+            float x2r = x[i + 2 * sm + xr];
+            float x2i = x[i + 2 * sm + xi];
+            float t1r = x1r + x2r;
+            float t1i = x1i + x2i;
+            float h1r = t1r * 0.5f;
+            float h1i = t1i * 0.5f;
+            float t2r = x0r - h1r;
+            float t2i = x0i - h1i;
+            float dr = x1r - x2r;
+            float di = x1i - x2i;
+            float t3r = dr * c3;
+            float t3i = di * c3;
+            float n3r = t3i;
+            float n3i = -t3r;
+            float p3r = -t3i;
+            float p3i = t3r;
+            float y0r = x0r + t1r;
+            float y0i = x0i + t1i;
+            float y1r = t2r + n3r;
+            float y1i = t2i + n3i;
+            float y2r = t2r + p3r;
+            float y2i = t2i + p3i;
+            y[o] = y0r;
+            y[o + 1] = y0i;
+            twiddle(y, o + 2, y1r, y1i, tw[t + 0], tw[t + 1]);
+            twiddle(y, o + 4, y2r, y2i, tw[t + 2], tw[t + 3]);
+        }
+    }
+
+    private void r3g(float[] x, int xo, float[] y, int yo, int m, int stride, float[] tw) {
         int sm = 2 * stride * m;
-        float s3 = sg * c3;
+        int bs = 2 * stride;
         for (int p = 0; p < m; p++) {
             int t = 4 * p;
-            float w1r = tw[t];
-            float w1i = sg * tw[t + 1];
+            float w1r = tw[t + 0];
+            float w1i = tw[t + 1];
             float w2r = tw[t + 2];
-            float w2i = sg * tw[t + 3];
-            int a0 = xo + 2 * stride * p;
-            int b0 = yo + 2 * stride * 3 * p;
-            int bs = 2 * stride;
-            for (int q = 0; q < 2 * stride; q += 2) {
-                int i0 = a0 + q;
-                float x0r = x[i0];
-                float x0i = x[i0 + 1];
-                float x1r = x[i0 + sm];
-                float x1i = x[i0 + sm + 1];
-                float x2r = x[i0 + 2 * sm];
-                float x2i = x[i0 + 2 * sm + 1];
+            float w2i = tw[t + 3];
+            int ia = xo + bs * p;
+            int ob = yo + bs * 3 * p;
+            for (int q = 0; q < bs; q += 2) {
+                int i = ia + q;
+                int o = ob + q;
+                float x0r = x[i];
+                float x0i = x[i + 1];
+                float x1r = x[i + sm];
+                float x1i = x[i + sm + 1];
+                float x2r = x[i + 2 * sm];
+                float x2i = x[i + 2 * sm + 1];
                 float t1r = x1r + x2r;
                 float t1i = x1i + x2i;
-                float t2r = x0r - 0.5f * t1r;
-                float t2i = x0i - 0.5f * t1i;
-                float t3r = s3 * (x1r - x2r);
-                float t3i = s3 * (x1i - x2i);
-                int o = b0 + q;
-                y[o] = x0r + t1r;
-                y[o + 1] = x0i + t1i;
-                // y1 = t2 - i·t3, y2 = t2 + i·t3
-                float yr = t2r + t3i;
-                float yi = t2i - t3r;
-                y[o + bs] = yr * w1r - yi * w1i;
-                y[o + bs + 1] = yr * w1i + yi * w1r;
-                yr = t2r - t3i;
-                yi = t2i + t3r;
-                y[o + 2 * bs] = yr * w2r - yi * w2i;
-                y[o + 2 * bs + 1] = yr * w2i + yi * w2r;
+                float h1r = t1r * 0.5f;
+                float h1i = t1i * 0.5f;
+                float t2r = x0r - h1r;
+                float t2i = x0i - h1i;
+                float dr = x1r - x2r;
+                float di = x1i - x2i;
+                float t3r = dr * c3;
+                float t3i = di * c3;
+                float n3r = t3i;
+                float n3i = -t3r;
+                float p3r = -t3i;
+                float p3i = t3r;
+                float y0r = x0r + t1r;
+                float y0i = x0i + t1i;
+                float y1r = t2r + n3r;
+                float y1i = t2i + n3i;
+                float y2r = t2r + p3r;
+                float y2i = t2i + p3i;
+                y[o] = y0r;
+                y[o + 1] = y0i;
+                twiddle(y, o + bs, y1r, y1i, w1r, w1i);
+                twiddle(y, o + 2 * bs, y2r, y2i, w2r, w2i);
             }
         }
     }
 
-    private void radix5(float[] x, int xo, float[] y, int yo, int m, int stride, float[] tw, float sg) {
+    private void r3m1(float[] x, int xo, int xr, float[] y, int yo, int yr, int stride) {
+        int xi = 1 - xr;
+        int yi = 1 - yr;
+        int bs = 2 * stride;
+        for (int q = 0; q < bs; q += 2) {
+            int i = xo + q;
+            int o = yo + q;
+            float x0r = x[i + xr];
+            float x0i = x[i + xi];
+            float x1r = x[i + bs + xr];
+            float x1i = x[i + bs + xi];
+            float x2r = x[i + 2 * bs + xr];
+            float x2i = x[i + 2 * bs + xi];
+            float t1r = x1r + x2r;
+            float t1i = x1i + x2i;
+            float h1r = t1r * 0.5f;
+            float h1i = t1i * 0.5f;
+            float t2r = x0r - h1r;
+            float t2i = x0i - h1i;
+            float dr = x1r - x2r;
+            float di = x1i - x2i;
+            float t3r = dr * c3;
+            float t3i = di * c3;
+            float n3r = t3i;
+            float n3i = -t3r;
+            float p3r = -t3i;
+            float p3i = t3r;
+            float y0r = x0r + t1r;
+            float y0i = x0i + t1i;
+            float y1r = t2r + n3r;
+            float y1i = t2i + n3i;
+            float y2r = t2r + p3r;
+            float y2i = t2i + p3i;
+            y[o + yr] = y0r;
+            y[o + yi] = y0i;
+            y[o + bs + yr] = y1r;
+            y[o + bs + yi] = y1i;
+            y[o + 2 * bs + yr] = y2r;
+            y[o + 2 * bs + yi] = y2i;
+        }
+    }
+
+    private void r5s1(float[] x, int xo, int xr, float[] y, int yo, int m, float[] tw) {
+        int xi = 1 - xr;
+        int sm = 2 * m;
+        for (int p = 0; p < m; p++) {
+            int i = xo + 2 * p;
+            int o = yo + 10 * p;
+            int t = 8 * p;
+            float x0r = x[i + xr];
+            float x0i = x[i + xi];
+            float x1r = x[i + sm + xr];
+            float x1i = x[i + sm + xi];
+            float x2r = x[i + 2 * sm + xr];
+            float x2i = x[i + 2 * sm + xi];
+            float x3r = x[i + 3 * sm + xr];
+            float x3i = x[i + 3 * sm + xi];
+            float x4r = x[i + 4 * sm + xr];
+            float x4i = x[i + 4 * sm + xi];
+            float b1r = x1r + x4r;
+            float b1i = x1i + x4i;
+            float b2r = x2r + x3r;
+            float b2i = x2i + x3i;
+            float d1r = x1r - x4r;
+            float d1i = x1i - x4i;
+            float d2r = x2r - x3r;
+            float d2i = x2i - x3i;
+            float e0r = x0r + b1r;
+            float e0i = x0i + b1i;
+            float y0r = e0r + b2r;
+            float y0i = e0i + b2i;
+            float u1r = b1r * c51;
+            float u1i = b1i * c51;
+            float u2r = b2r * c52;
+            float u2i = b2i * c52;
+            float v1r = x0r + u1r;
+            float v1i = x0i + u1i;
+            float r1r = v1r + u2r;
+            float r1i = v1i + u2i;
+            float u3r = b1r * c52;
+            float u3i = b1i * c52;
+            float u4r = b2r * c51;
+            float u4i = b2i * c51;
+            float v2r = x0r + u3r;
+            float v2i = x0i + u3i;
+            float r2r = v2r + u4r;
+            float r2i = v2i + u4i;
+            float g1r = d1r * s51;
+            float g1i = d1i * s51;
+            float g2r = d2r * s52;
+            float g2i = d2i * s52;
+            float i1r = g1r + g2r;
+            float i1i = g1i + g2i;
+            float g3r = d1r * s52;
+            float g3i = d1i * s52;
+            float g4r = d2r * s51;
+            float g4i = d2i * s51;
+            float i2r = g3r - g4r;
+            float i2i = g3i - g4i;
+            float n1r = i1i;
+            float n1i = -i1r;
+            float p1r = -i1i;
+            float p1i = i1r;
+            float n2r = i2i;
+            float n2i = -i2r;
+            float p2r = -i2i;
+            float p2i = i2r;
+            float y1r = r1r + n1r;
+            float y1i = r1i + n1i;
+            float y4r = r1r + p1r;
+            float y4i = r1i + p1i;
+            float y2r = r2r + n2r;
+            float y2i = r2i + n2i;
+            float y3r = r2r + p2r;
+            float y3i = r2i + p2i;
+            y[o] = y0r;
+            y[o + 1] = y0i;
+            twiddle(y, o + 2, y1r, y1i, tw[t + 0], tw[t + 1]);
+            twiddle(y, o + 4, y2r, y2i, tw[t + 2], tw[t + 3]);
+            twiddle(y, o + 6, y3r, y3i, tw[t + 4], tw[t + 5]);
+            twiddle(y, o + 8, y4r, y4i, tw[t + 6], tw[t + 7]);
+        }
+    }
+
+    private void r5g(float[] x, int xo, float[] y, int yo, int m, int stride, float[] tw) {
         int sm = 2 * stride * m;
-        float s1 = sg * s51;
-        float s2 = sg * s52;
+        int bs = 2 * stride;
         for (int p = 0; p < m; p++) {
             int t = 8 * p;
-            int a0 = xo + 2 * stride * p;
-            int b0 = yo + 2 * stride * 5 * p;
-            int bs = 2 * stride;
-            for (int q = 0; q < 2 * stride; q += 2) {
-                int i0 = a0 + q;
-                float x0r = x[i0];
-                float x0i = x[i0 + 1];
-                float x1r = x[i0 + sm];
-                float x1i = x[i0 + sm + 1];
-                float x2r = x[i0 + 2 * sm];
-                float x2i = x[i0 + 2 * sm + 1];
-                float x3r = x[i0 + 3 * sm];
-                float x3i = x[i0 + 3 * sm + 1];
-                float x4r = x[i0 + 4 * sm];
-                float x4i = x[i0 + 4 * sm + 1];
+            float w1r = tw[t + 0];
+            float w1i = tw[t + 1];
+            float w2r = tw[t + 2];
+            float w2i = tw[t + 3];
+            float w3r = tw[t + 4];
+            float w3i = tw[t + 5];
+            float w4r = tw[t + 6];
+            float w4i = tw[t + 7];
+            int ia = xo + bs * p;
+            int ob = yo + bs * 5 * p;
+            for (int q = 0; q < bs; q += 2) {
+                int i = ia + q;
+                int o = ob + q;
+                float x0r = x[i];
+                float x0i = x[i + 1];
+                float x1r = x[i + sm];
+                float x1i = x[i + sm + 1];
+                float x2r = x[i + 2 * sm];
+                float x2i = x[i + 2 * sm + 1];
+                float x3r = x[i + 3 * sm];
+                float x3i = x[i + 3 * sm + 1];
+                float x4r = x[i + 4 * sm];
+                float x4i = x[i + 4 * sm + 1];
                 float b1r = x1r + x4r;
                 float b1i = x1i + x4i;
                 float b2r = x2r + x3r;
@@ -511,66 +866,184 @@ public final class ComplexFftf {
                 float d1i = x1i - x4i;
                 float d2r = x2r - x3r;
                 float d2i = x2i - x3i;
-                float r1r = x0r + c51 * b1r + c52 * b2r;
-                float r1i = x0i + c51 * b1i + c52 * b2i;
-                float r2r = x0r + c52 * b1r + c51 * b2r;
-                float r2i = x0i + c52 * b1i + c51 * b2i;
-                float i1r = s1 * d1r + s2 * d2r;
-                float i1i = s1 * d1i + s2 * d2i;
-                float i2r = s2 * d1r - s1 * d2r;
-                float i2i = s2 * d1i - s1 * d2i;
-                int o = b0 + q;
-                y[o] = x0r + b1r + b2r;
-                y[o + 1] = x0i + b1i + b2i;
-                // y1 = r1 - i·i1, y4 = r1 + i·i1, y2 = r2 - i·i2, y3 = r2 + i·i2
-                store(y, o + bs, r1r + i1i, r1i - i1r, tw, t, sg);
-                store(y, o + 2 * bs, r2r + i2i, r2i - i2r, tw, t + 2, sg);
-                store(y, o + 3 * bs, r2r - i2i, r2i + i2r, tw, t + 4, sg);
-                store(y, o + 4 * bs, r1r - i1i, r1i + i1r, tw, t + 6, sg);
+                float e0r = x0r + b1r;
+                float e0i = x0i + b1i;
+                float y0r = e0r + b2r;
+                float y0i = e0i + b2i;
+                float u1r = b1r * c51;
+                float u1i = b1i * c51;
+                float u2r = b2r * c52;
+                float u2i = b2i * c52;
+                float v1r = x0r + u1r;
+                float v1i = x0i + u1i;
+                float r1r = v1r + u2r;
+                float r1i = v1i + u2i;
+                float u3r = b1r * c52;
+                float u3i = b1i * c52;
+                float u4r = b2r * c51;
+                float u4i = b2i * c51;
+                float v2r = x0r + u3r;
+                float v2i = x0i + u3i;
+                float r2r = v2r + u4r;
+                float r2i = v2i + u4i;
+                float g1r = d1r * s51;
+                float g1i = d1i * s51;
+                float g2r = d2r * s52;
+                float g2i = d2i * s52;
+                float i1r = g1r + g2r;
+                float i1i = g1i + g2i;
+                float g3r = d1r * s52;
+                float g3i = d1i * s52;
+                float g4r = d2r * s51;
+                float g4i = d2i * s51;
+                float i2r = g3r - g4r;
+                float i2i = g3i - g4i;
+                float n1r = i1i;
+                float n1i = -i1r;
+                float p1r = -i1i;
+                float p1i = i1r;
+                float n2r = i2i;
+                float n2i = -i2r;
+                float p2r = -i2i;
+                float p2i = i2r;
+                float y1r = r1r + n1r;
+                float y1i = r1i + n1i;
+                float y4r = r1r + p1r;
+                float y4i = r1i + p1i;
+                float y2r = r2r + n2r;
+                float y2i = r2i + n2i;
+                float y3r = r2r + p2r;
+                float y3i = r2i + p2i;
+                y[o] = y0r;
+                y[o + 1] = y0i;
+                twiddle(y, o + bs, y1r, y1i, w1r, w1i);
+                twiddle(y, o + 2 * bs, y2r, y2i, w2r, w2i);
+                twiddle(y, o + 3 * bs, y3r, y3i, w3r, w3i);
+                twiddle(y, o + 4 * bs, y4r, y4i, w4r, w4i);
             }
         }
     }
 
-    private static void store(float[] y, int o, float yr, float yi, float[] tw, int t, float sg) {
-        float wr = tw[t];
-        float wi = sg * tw[t + 1];
-        y[o] = yr * wr - yi * wi;
-        y[o + 1] = yr * wi + yi * wr;
+    private void r5m1(float[] x, int xo, int xr, float[] y, int yo, int yr, int stride) {
+        int xi = 1 - xr;
+        int yi = 1 - yr;
+        int bs = 2 * stride;
+        for (int q = 0; q < bs; q += 2) {
+            int i = xo + q;
+            int o = yo + q;
+            float x0r = x[i + xr];
+            float x0i = x[i + xi];
+            float x1r = x[i + bs + xr];
+            float x1i = x[i + bs + xi];
+            float x2r = x[i + 2 * bs + xr];
+            float x2i = x[i + 2 * bs + xi];
+            float x3r = x[i + 3 * bs + xr];
+            float x3i = x[i + 3 * bs + xi];
+            float x4r = x[i + 4 * bs + xr];
+            float x4i = x[i + 4 * bs + xi];
+            float b1r = x1r + x4r;
+            float b1i = x1i + x4i;
+            float b2r = x2r + x3r;
+            float b2i = x2i + x3i;
+            float d1r = x1r - x4r;
+            float d1i = x1i - x4i;
+            float d2r = x2r - x3r;
+            float d2i = x2i - x3i;
+            float e0r = x0r + b1r;
+            float e0i = x0i + b1i;
+            float y0r = e0r + b2r;
+            float y0i = e0i + b2i;
+            float u1r = b1r * c51;
+            float u1i = b1i * c51;
+            float u2r = b2r * c52;
+            float u2i = b2i * c52;
+            float v1r = x0r + u1r;
+            float v1i = x0i + u1i;
+            float r1r = v1r + u2r;
+            float r1i = v1i + u2i;
+            float u3r = b1r * c52;
+            float u3i = b1i * c52;
+            float u4r = b2r * c51;
+            float u4i = b2i * c51;
+            float v2r = x0r + u3r;
+            float v2i = x0i + u3i;
+            float r2r = v2r + u4r;
+            float r2i = v2i + u4i;
+            float g1r = d1r * s51;
+            float g1i = d1i * s51;
+            float g2r = d2r * s52;
+            float g2i = d2i * s52;
+            float i1r = g1r + g2r;
+            float i1i = g1i + g2i;
+            float g3r = d1r * s52;
+            float g3i = d1i * s52;
+            float g4r = d2r * s51;
+            float g4i = d2i * s51;
+            float i2r = g3r - g4r;
+            float i2i = g3i - g4i;
+            float n1r = i1i;
+            float n1i = -i1r;
+            float p1r = -i1i;
+            float p1i = i1r;
+            float n2r = i2i;
+            float n2i = -i2r;
+            float p2r = -i2i;
+            float p2i = i2r;
+            float y1r = r1r + n1r;
+            float y1i = r1i + n1i;
+            float y4r = r1r + p1r;
+            float y4i = r1i + p1i;
+            float y2r = r2r + n2r;
+            float y2i = r2i + n2i;
+            float y3r = r2r + p2r;
+            float y3i = r2i + p2i;
+            y[o + yr] = y0r;
+            y[o + yi] = y0i;
+            y[o + bs + yr] = y1r;
+            y[o + bs + yi] = y1i;
+            y[o + 2 * bs + yr] = y2r;
+            y[o + 2 * bs + yi] = y2i;
+            y[o + 3 * bs + yr] = y3r;
+            y[o + 3 * bs + yi] = y3i;
+            y[o + 4 * bs + yr] = y4r;
+            y[o + 4 * bs + yi] = y4i;
+        }
     }
 
-    /** A direct butterfly for an odd prime radix, using {@code 4p} floats of scratch at {@code temp}. */
-    private static void radixP(float[] x, int xo, float[] y, int yo, int r, int m, int stride, float[] tw,
-            float[] roots, float sg, float[] s, int temp) {
+    /** A direct butterfly for an odd prime radix, using {@code 4r} values of scratch at {@code temp}. */
+    private static void radixP(float[] x, int xo, int xr, float[] y, int yo, int yr, int r, int m, int stride,
+            float[] tw, float[] roots, float[] s, int temp) {
+        int xi = 1 - xr;
+        int yi = 1 - yr;
         int sm = 2 * stride * m;
         int h = (r - 1) / 2;
         int bsum = temp;          // b_k = x_k + x_(r-k), k = 1..h
         int bdif = temp + 2 * r;  // d_k = x_k - x_(r-k)
+        int bs = 2 * stride;
         for (int p = 0; p < m; p++) {
             int t = 2 * (r - 1) * p;
-            int a0 = xo + 2 * stride * p;
-            int b0 = yo + 2 * stride * r * p;
-            int bs = 2 * stride;
-            for (int q = 0; q < 2 * stride; q += 2) {
+            int a0 = xo + bs * p;
+            int b0 = yo + bs * r * p;
+            for (int q = 0; q < bs; q += 2) {
                 int i0 = a0 + q;
-                float x0r = x[i0];
-                float x0i = x[i0 + 1];
+                float x0r = x[i0 + xr];
+                float x0i = x[i0 + xi];
                 float sumr = x0r;
                 float sumi = x0i;
                 for (int k = 1; k <= h; k++) {
                     int ik = i0 + k * sm;
                     int il = i0 + (r - k) * sm;
-                    float br = x[ik] + x[il];
-                    float bi = x[ik + 1] + x[il + 1];
+                    float br = x[ik + xr] + x[il + xr];
+                    float bi = x[ik + xi] + x[il + xi];
                     s[bsum + 2 * k] = br;
                     s[bsum + 2 * k + 1] = bi;
-                    s[bdif + 2 * k] = x[ik] - x[il];
-                    s[bdif + 2 * k + 1] = x[ik + 1] - x[il + 1];
+                    s[bdif + 2 * k] = x[ik + xr] - x[il + xr];
+                    s[bdif + 2 * k + 1] = x[ik + xi] - x[il + xi];
                     sumr += br;
                     sumi += bi;
                 }
                 int o = b0 + q;
-                y[o] = sumr;
-                y[o + 1] = sumi;
+                float[] out = y;
                 for (int j = 1; j <= h; j++) {
                     // root^(jk) = cos(2π jk/r) - i sin(2π jk/r)
                     float rr = x0r;
@@ -584,17 +1057,379 @@ public final class ComplexFftf {
                             e -= r;
                         }
                         float c = roots[2 * e];
-                        float sn = -sg * roots[2 * e + 1];
+                        float sn = -roots[2 * e + 1];
                         rr += c * s[bsum + 2 * k];
                         ri += c * s[bsum + 2 * k + 1];
                         ir += sn * s[bdif + 2 * k];
                         ii += sn * s[bdif + 2 * k + 1];
                     }
-                    // y_j = R - i·I, y_(r-j) = R + i·I
-                    store(y, o + j * bs, rr + ii, ri - ir, tw, t + 2 * (j - 1), sg);
-                    store(y, o + (r - j) * bs, rr - ii, ri + ir, tw, t + 2 * (r - j - 1), sg);
+                    // y_j = R - i·I, y_(r-j) = R + i·I, then the stage twiddles
+                    int oj = o + j * bs;
+                    int ok = o + (r - j) * bs;
+                    float ajr = rr + ii;
+                    float aji = ri - ir;
+                    float akr = rr - ii;
+                    float aki = ri + ir;
+                    if (m == 1) {
+                        out[oj + yr] = ajr;
+                        out[oj + yi] = aji;
+                        out[ok + yr] = akr;
+                        out[ok + yi] = aki;
+                    } else {
+                        float wjr = tw[t + 2 * (j - 1)];
+                        float wji = tw[t + 2 * (j - 1) + 1];
+                        float wkr = tw[t + 2 * (r - j - 1)];
+                        float wki = tw[t + 2 * (r - j - 1) + 1];
+                        out[oj + yr] = ajr * wjr - aji * wji;
+                        out[oj + yi] = ajr * wji + aji * wjr;
+                        out[ok + yr] = akr * wkr - aki * wki;
+                        out[ok + yi] = akr * wki + aki * wkr;
+                    }
                 }
+                out[o + yr] = sumr;
+                out[o + yi] = sumi;
             }
         }
     }
+
+    private void simdGeneral(int r, float[] x, int xo, float[] y, int yo, int m, int stride, float[] tw) {
+//#ifdef __HAS_VECTOR_API__
+        switch (r) {
+            case 4: Simd.r4g(this, x, xo, y, yo, m, stride, tw); break;
+            case 2: Simd.r2g(this, x, xo, y, yo, m, stride, tw); break;
+            case 3: Simd.r3g(this, x, xo, y, yo, m, stride, tw); break;
+            default: Simd.r5g(this, x, xo, y, yo, m, stride, tw); break;
+        }
+//#else
+        throw new AssertionError("no Vector API");
+//#endif
+    }
+
+    private void simdM1(int r, float[] x, int xo, float[] y, int yo, boolean swapOut, int stride) {
+//#ifdef __HAS_VECTOR_API__
+        switch (r) {
+            case 4: Simd.r4m1(this, x, xo, y, yo, swapOut, stride); break;
+            case 2: Simd.r2m1(this, x, xo, y, yo, swapOut, stride); break;
+            case 3: Simd.r3m1(this, x, xo, y, yo, swapOut, stride); break;
+            default: Simd.r5m1(this, x, xo, y, yo, swapOut, stride); break;
+        }
+//#else
+        throw new AssertionError("no Vector API");
+//#endif
+    }
+
+    /**
+     * Vector API kernels: the scalar operations lane by lane, so the results are the same bits. Kept in a holder so
+     * the scalar build never loads {@code jdk.incubator.vector}.
+     */
+    private static final class Simd {
+//#ifdef __HAS_VECTOR_API__
+        static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
+        static final boolean AVAILABLE = SimdSupport.isVectorApiAvailable() && SPECIES.length() >= 2;
+        static final int LANES = SPECIES.length();
+        static final VectorShuffle<Float> SWAP = VectorShuffle.fromOp(SPECIES, i -> i ^ 1);
+        static final VectorMask<Float> EVEN = VectorMask.fromLong(SPECIES, 0x5555555555555555L);
+        static final VectorMask<Float> ODD = EVEN.not();
+        static final float HALF = 0.5f;
+
+        private Simd() {
+        }
+
+        /** Whether SIMD is enabled now ({@code KernelConfig.setSimdEnabled}). */
+        static boolean enabled() {
+            return SimdSupport.backend() == SimdSupport.Backend.VECTOR_API;
+        }
+
+        /** Whether a run of {@code count} values splits into whole vectors. */
+        static boolean fits(int count) {
+            return count % LANES == 0;
+        }
+
+        static void r2g(ComplexFftf p, float[] x, int xo, float[] y, int yo, int m, int stride, float[] tw) {
+            int sm = 2 * stride * m;
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q0 = 0; q0 < m; q0++) {
+                int t = 2 * q0;
+                FloatVector w1r = FloatVector.broadcast(SPECIES, tw[t + 0]);
+                FloatVector w1s = FloatVector.broadcast(SPECIES, tw[t + 1]).lanewise(VectorOperators.NEG, EVEN);
+                int ia = xo + bs * q0;
+                int ob = yo + bs * 2 * q0;
+                for (int q = 0; q < bs; q += lanes) {
+                    int i = ia + q;
+                    int o = ob + q;
+                    FloatVector x0 = FloatVector.fromArray(SPECIES, x, i);
+                    FloatVector x1 = FloatVector.fromArray(SPECIES, x, i + sm);
+                    FloatVector y0 = x0.add(x1);
+                    FloatVector y1 = x0.sub(x1);
+                    y0.intoArray(y, o);
+                    y1.mul(w1r).add(y1.rearrange(SWAP).mul(w1s)).intoArray(y, o + bs);
+                }
+            }
+        }
+
+        static void r2m1(ComplexFftf p, float[] x, int xo, float[] y, int yo, boolean swapOut, int stride) {
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q = 0; q < bs; q += lanes) {
+                int i = xo + q;
+                int o = yo + q;
+                FloatVector x0 = FloatVector.fromArray(SPECIES, x, i);
+                FloatVector x1 = FloatVector.fromArray(SPECIES, x, i + bs);
+                FloatVector y0 = x0.add(x1);
+                FloatVector y1 = x0.sub(x1);
+                (swapOut ? y0.rearrange(SWAP) : y0).intoArray(y, o);
+                (swapOut ? y1.rearrange(SWAP) : y1).intoArray(y, o + bs);
+            }
+        }
+
+        static void r4g(ComplexFftf p, float[] x, int xo, float[] y, int yo, int m, int stride, float[] tw) {
+            int sm = 2 * stride * m;
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q0 = 0; q0 < m; q0++) {
+                int t = 6 * q0;
+                FloatVector w1r = FloatVector.broadcast(SPECIES, tw[t + 0]);
+                FloatVector w1s = FloatVector.broadcast(SPECIES, tw[t + 1]).lanewise(VectorOperators.NEG, EVEN);
+                FloatVector w2r = FloatVector.broadcast(SPECIES, tw[t + 2]);
+                FloatVector w2s = FloatVector.broadcast(SPECIES, tw[t + 3]).lanewise(VectorOperators.NEG, EVEN);
+                FloatVector w3r = FloatVector.broadcast(SPECIES, tw[t + 4]);
+                FloatVector w3s = FloatVector.broadcast(SPECIES, tw[t + 5]).lanewise(VectorOperators.NEG, EVEN);
+                int ia = xo + bs * q0;
+                int ob = yo + bs * 4 * q0;
+                for (int q = 0; q < bs; q += lanes) {
+                    int i = ia + q;
+                    int o = ob + q;
+                    FloatVector x0 = FloatVector.fromArray(SPECIES, x, i);
+                    FloatVector x1 = FloatVector.fromArray(SPECIES, x, i + sm);
+                    FloatVector x2 = FloatVector.fromArray(SPECIES, x, i + 2 * sm);
+                    FloatVector x3 = FloatVector.fromArray(SPECIES, x, i + 3 * sm);
+                    FloatVector t0 = x0.add(x2);
+                    FloatVector t1 = x0.sub(x2);
+                    FloatVector t2 = x1.add(x3);
+                    FloatVector d3 = x1.sub(x3);
+                    FloatVector t3 = d3.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                    FloatVector y0 = t0.add(t2);
+                    FloatVector y1 = t1.add(t3);
+                    FloatVector y2 = t0.sub(t2);
+                    FloatVector y3 = t1.sub(t3);
+                    y0.intoArray(y, o);
+                    y1.mul(w1r).add(y1.rearrange(SWAP).mul(w1s)).intoArray(y, o + bs);
+                    y2.mul(w2r).add(y2.rearrange(SWAP).mul(w2s)).intoArray(y, o + 2 * bs);
+                    y3.mul(w3r).add(y3.rearrange(SWAP).mul(w3s)).intoArray(y, o + 3 * bs);
+                }
+            }
+        }
+
+        static void r4m1(ComplexFftf p, float[] x, int xo, float[] y, int yo, boolean swapOut, int stride) {
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q = 0; q < bs; q += lanes) {
+                int i = xo + q;
+                int o = yo + q;
+                FloatVector x0 = FloatVector.fromArray(SPECIES, x, i);
+                FloatVector x1 = FloatVector.fromArray(SPECIES, x, i + bs);
+                FloatVector x2 = FloatVector.fromArray(SPECIES, x, i + 2 * bs);
+                FloatVector x3 = FloatVector.fromArray(SPECIES, x, i + 3 * bs);
+                FloatVector t0 = x0.add(x2);
+                FloatVector t1 = x0.sub(x2);
+                FloatVector t2 = x1.add(x3);
+                FloatVector d3 = x1.sub(x3);
+                FloatVector t3 = d3.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                FloatVector y0 = t0.add(t2);
+                FloatVector y1 = t1.add(t3);
+                FloatVector y2 = t0.sub(t2);
+                FloatVector y3 = t1.sub(t3);
+                (swapOut ? y0.rearrange(SWAP) : y0).intoArray(y, o);
+                (swapOut ? y1.rearrange(SWAP) : y1).intoArray(y, o + bs);
+                (swapOut ? y2.rearrange(SWAP) : y2).intoArray(y, o + 2 * bs);
+                (swapOut ? y3.rearrange(SWAP) : y3).intoArray(y, o + 3 * bs);
+            }
+        }
+
+        static void r3g(ComplexFftf p, float[] x, int xo, float[] y, int yo, int m, int stride, float[] tw) {
+            int sm = 2 * stride * m;
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q0 = 0; q0 < m; q0++) {
+                int t = 4 * q0;
+                FloatVector w1r = FloatVector.broadcast(SPECIES, tw[t + 0]);
+                FloatVector w1s = FloatVector.broadcast(SPECIES, tw[t + 1]).lanewise(VectorOperators.NEG, EVEN);
+                FloatVector w2r = FloatVector.broadcast(SPECIES, tw[t + 2]);
+                FloatVector w2s = FloatVector.broadcast(SPECIES, tw[t + 3]).lanewise(VectorOperators.NEG, EVEN);
+                int ia = xo + bs * q0;
+                int ob = yo + bs * 3 * q0;
+                for (int q = 0; q < bs; q += lanes) {
+                    int i = ia + q;
+                    int o = ob + q;
+                    FloatVector x0 = FloatVector.fromArray(SPECIES, x, i);
+                    FloatVector x1 = FloatVector.fromArray(SPECIES, x, i + sm);
+                    FloatVector x2 = FloatVector.fromArray(SPECIES, x, i + 2 * sm);
+                    FloatVector t1 = x1.add(x2);
+                    FloatVector h1 = t1.mul(HALF);
+                    FloatVector t2 = x0.sub(h1);
+                    FloatVector d = x1.sub(x2);
+                    FloatVector t3 = d.mul(p.c3);
+                    FloatVector n3 = t3.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                    FloatVector p3 = t3.rearrange(SWAP).lanewise(VectorOperators.NEG, EVEN);
+                    FloatVector y0 = x0.add(t1);
+                    FloatVector y1 = t2.add(n3);
+                    FloatVector y2 = t2.add(p3);
+                    y0.intoArray(y, o);
+                    y1.mul(w1r).add(y1.rearrange(SWAP).mul(w1s)).intoArray(y, o + bs);
+                    y2.mul(w2r).add(y2.rearrange(SWAP).mul(w2s)).intoArray(y, o + 2 * bs);
+                }
+            }
+        }
+
+        static void r3m1(ComplexFftf p, float[] x, int xo, float[] y, int yo, boolean swapOut, int stride) {
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q = 0; q < bs; q += lanes) {
+                int i = xo + q;
+                int o = yo + q;
+                FloatVector x0 = FloatVector.fromArray(SPECIES, x, i);
+                FloatVector x1 = FloatVector.fromArray(SPECIES, x, i + bs);
+                FloatVector x2 = FloatVector.fromArray(SPECIES, x, i + 2 * bs);
+                FloatVector t1 = x1.add(x2);
+                FloatVector h1 = t1.mul(HALF);
+                FloatVector t2 = x0.sub(h1);
+                FloatVector d = x1.sub(x2);
+                FloatVector t3 = d.mul(p.c3);
+                FloatVector n3 = t3.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                FloatVector p3 = t3.rearrange(SWAP).lanewise(VectorOperators.NEG, EVEN);
+                FloatVector y0 = x0.add(t1);
+                FloatVector y1 = t2.add(n3);
+                FloatVector y2 = t2.add(p3);
+                (swapOut ? y0.rearrange(SWAP) : y0).intoArray(y, o);
+                (swapOut ? y1.rearrange(SWAP) : y1).intoArray(y, o + bs);
+                (swapOut ? y2.rearrange(SWAP) : y2).intoArray(y, o + 2 * bs);
+            }
+        }
+
+        static void r5g(ComplexFftf p, float[] x, int xo, float[] y, int yo, int m, int stride, float[] tw) {
+            int sm = 2 * stride * m;
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q0 = 0; q0 < m; q0++) {
+                int t = 8 * q0;
+                FloatVector w1r = FloatVector.broadcast(SPECIES, tw[t + 0]);
+                FloatVector w1s = FloatVector.broadcast(SPECIES, tw[t + 1]).lanewise(VectorOperators.NEG, EVEN);
+                FloatVector w2r = FloatVector.broadcast(SPECIES, tw[t + 2]);
+                FloatVector w2s = FloatVector.broadcast(SPECIES, tw[t + 3]).lanewise(VectorOperators.NEG, EVEN);
+                FloatVector w3r = FloatVector.broadcast(SPECIES, tw[t + 4]);
+                FloatVector w3s = FloatVector.broadcast(SPECIES, tw[t + 5]).lanewise(VectorOperators.NEG, EVEN);
+                FloatVector w4r = FloatVector.broadcast(SPECIES, tw[t + 6]);
+                FloatVector w4s = FloatVector.broadcast(SPECIES, tw[t + 7]).lanewise(VectorOperators.NEG, EVEN);
+                int ia = xo + bs * q0;
+                int ob = yo + bs * 5 * q0;
+                for (int q = 0; q < bs; q += lanes) {
+                    int i = ia + q;
+                    int o = ob + q;
+                    FloatVector x0 = FloatVector.fromArray(SPECIES, x, i);
+                    FloatVector x1 = FloatVector.fromArray(SPECIES, x, i + sm);
+                    FloatVector x2 = FloatVector.fromArray(SPECIES, x, i + 2 * sm);
+                    FloatVector x3 = FloatVector.fromArray(SPECIES, x, i + 3 * sm);
+                    FloatVector x4 = FloatVector.fromArray(SPECIES, x, i + 4 * sm);
+                    FloatVector b1 = x1.add(x4);
+                    FloatVector b2 = x2.add(x3);
+                    FloatVector d1 = x1.sub(x4);
+                    FloatVector d2 = x2.sub(x3);
+                    FloatVector e0 = x0.add(b1);
+                    FloatVector y0 = e0.add(b2);
+                    FloatVector u1 = b1.mul(p.c51);
+                    FloatVector u2 = b2.mul(p.c52);
+                    FloatVector v1 = x0.add(u1);
+                    FloatVector r1 = v1.add(u2);
+                    FloatVector u3 = b1.mul(p.c52);
+                    FloatVector u4 = b2.mul(p.c51);
+                    FloatVector v2 = x0.add(u3);
+                    FloatVector r2 = v2.add(u4);
+                    FloatVector g1 = d1.mul(p.s51);
+                    FloatVector g2 = d2.mul(p.s52);
+                    FloatVector i1 = g1.add(g2);
+                    FloatVector g3 = d1.mul(p.s52);
+                    FloatVector g4 = d2.mul(p.s51);
+                    FloatVector i2 = g3.sub(g4);
+                    FloatVector n1 = i1.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                    FloatVector p1 = i1.rearrange(SWAP).lanewise(VectorOperators.NEG, EVEN);
+                    FloatVector n2 = i2.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                    FloatVector p2 = i2.rearrange(SWAP).lanewise(VectorOperators.NEG, EVEN);
+                    FloatVector y1 = r1.add(n1);
+                    FloatVector y4 = r1.add(p1);
+                    FloatVector y2 = r2.add(n2);
+                    FloatVector y3 = r2.add(p2);
+                    y0.intoArray(y, o);
+                    y1.mul(w1r).add(y1.rearrange(SWAP).mul(w1s)).intoArray(y, o + bs);
+                    y2.mul(w2r).add(y2.rearrange(SWAP).mul(w2s)).intoArray(y, o + 2 * bs);
+                    y3.mul(w3r).add(y3.rearrange(SWAP).mul(w3s)).intoArray(y, o + 3 * bs);
+                    y4.mul(w4r).add(y4.rearrange(SWAP).mul(w4s)).intoArray(y, o + 4 * bs);
+                }
+            }
+        }
+
+        static void r5m1(ComplexFftf p, float[] x, int xo, float[] y, int yo, boolean swapOut, int stride) {
+            int bs = 2 * stride;
+            int lanes = SPECIES.length();
+            for (int q = 0; q < bs; q += lanes) {
+                int i = xo + q;
+                int o = yo + q;
+                FloatVector x0 = FloatVector.fromArray(SPECIES, x, i);
+                FloatVector x1 = FloatVector.fromArray(SPECIES, x, i + bs);
+                FloatVector x2 = FloatVector.fromArray(SPECIES, x, i + 2 * bs);
+                FloatVector x3 = FloatVector.fromArray(SPECIES, x, i + 3 * bs);
+                FloatVector x4 = FloatVector.fromArray(SPECIES, x, i + 4 * bs);
+                FloatVector b1 = x1.add(x4);
+                FloatVector b2 = x2.add(x3);
+                FloatVector d1 = x1.sub(x4);
+                FloatVector d2 = x2.sub(x3);
+                FloatVector e0 = x0.add(b1);
+                FloatVector y0 = e0.add(b2);
+                FloatVector u1 = b1.mul(p.c51);
+                FloatVector u2 = b2.mul(p.c52);
+                FloatVector v1 = x0.add(u1);
+                FloatVector r1 = v1.add(u2);
+                FloatVector u3 = b1.mul(p.c52);
+                FloatVector u4 = b2.mul(p.c51);
+                FloatVector v2 = x0.add(u3);
+                FloatVector r2 = v2.add(u4);
+                FloatVector g1 = d1.mul(p.s51);
+                FloatVector g2 = d2.mul(p.s52);
+                FloatVector i1 = g1.add(g2);
+                FloatVector g3 = d1.mul(p.s52);
+                FloatVector g4 = d2.mul(p.s51);
+                FloatVector i2 = g3.sub(g4);
+                FloatVector n1 = i1.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                FloatVector p1 = i1.rearrange(SWAP).lanewise(VectorOperators.NEG, EVEN);
+                FloatVector n2 = i2.rearrange(SWAP).lanewise(VectorOperators.NEG, ODD);
+                FloatVector p2 = i2.rearrange(SWAP).lanewise(VectorOperators.NEG, EVEN);
+                FloatVector y1 = r1.add(n1);
+                FloatVector y4 = r1.add(p1);
+                FloatVector y2 = r2.add(n2);
+                FloatVector y3 = r2.add(p2);
+                (swapOut ? y0.rearrange(SWAP) : y0).intoArray(y, o);
+                (swapOut ? y1.rearrange(SWAP) : y1).intoArray(y, o + bs);
+                (swapOut ? y2.rearrange(SWAP) : y2).intoArray(y, o + 2 * bs);
+                (swapOut ? y3.rearrange(SWAP) : y3).intoArray(y, o + 3 * bs);
+                (swapOut ? y4.rearrange(SWAP) : y4).intoArray(y, o + 4 * bs);
+            }
+        }
+
+//#else
+        static final boolean AVAILABLE = false;
+
+        private Simd() {
+        }
+
+        static boolean enabled() {
+            return false;
+        }
+
+        static boolean fits(int count) {
+            return false;
+        }
+//#endif
+    }
+
+    // END GENERATED KERNELS
 }
