@@ -65,12 +65,15 @@ The full list is in `CHANGELOG.md` (2.4.0, "Fixed"), and every fix has a regress
 | Ray–sphere, ray–circle | `d² = \|L\|² − tca²` | Thousands of wrong hits or misses per 10k rays at distant spheres; tangent rays missed | Perpendicular distance computed directly, stable roots |
 | Ray–triangle | Möller–Trumbore with an absolute epsilon | About 20 % of rays aimed at an edge shared by two triangles missed both; small triangles missed head-on | Woop et al.'s watertight algorithm |
 | Plane and circle helpers | Sign and factor errors | Wrong circle centre (plane–sphere, line–circle); wrong closest point on a plane; swept spheres missing planes; circle–circle intersections reported absent | Fixed against their documented contracts |
+| `intersectSweptSphereTriangle` | Front-face-only sweep with an epsilon for parallel motion | Face hits at negative times when moving away; the exit time from behind; no hit while sliding parallel into an edge; exit time for a sphere starting on a vertex | Two-sided first contact; contact at t = 0 reports the closest point; stable quadratics, matching a bisection reference to 1e-9 |
+| Point-in-triangle tests (2D and 3D) | Sign tests that are inconsistent on the boundary | Two edges of three counted as inside in 3D; edges inside for one winding only in 2D | Closed triangles; exact orientation predicates in 2D |
 | `PolygonsIntersection` | Bounds skipped each polygon's first vertex | Points inside the polygon rejected, depending on vertex order | Bounds over all vertices |
 
 Earlier releases fixed further inherited defects. For example, `findClosestPointsLineSegmentTriangle` missed
 segments that pierce the triangle; that was fixed in 2.2.0.
 
-Known issues that remain are listed in `CHANGELOG.md`.
+The four issues the audit left open (swept sphere against triangle, the two point-in-triangle tests, and moving circles
+that already overlap) were fixed in the same release.
 
 ## 3. Behaviour differences when porting from JOML
 
@@ -84,6 +87,9 @@ Most code ports unchanged. Differences in results:
 - **Squared radii.** `testCircleCircle(x, y, rA, x, y, rB)` takes squared radii, as JOML documented, though JOML's
   implementation used plain radii.
 - **Matrix Euler angles** remove scale before extracting the rotation.
+- **`intersectSweptSphereTriangle`** works from both sides, ignores `epsilon`, and reports time 0 for a sphere that
+  starts in contact.
+- **Triangle boundaries are inside** for `testPointInTriangle` and `testPointTriangle`, for either winding.
 - **`testSphereSphere` asks whether the surfaces meet.** That is the existing behaviour, now documented: a sphere
   strictly inside another reports false.
 - **Default memory backend:** FFM, not `sun.misc.Unsafe`. Options select the old backends (`docs/determinism.md`,

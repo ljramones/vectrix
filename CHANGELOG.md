@@ -84,19 +84,27 @@ twins, so twin parity could not see it. `PrecisionAuditTest` and `GeometryAuditT
   - `intersectRayTriangle(Front)` returned negative distances for triangles behind the ray.
   - The ray-triangle tests now use Woop et al.'s watertight algorithm. Möller-Trumbore let about 20 % of rays aimed
     at a shared edge miss both triangles.
+  - `intersectSweptSphereTriangle` is rewritten as a first-contact computation, two-sided:
+    - It used to report face hits at negative times for spheres moving away.
+    - It used the exit time and the wrong side for spheres approaching from behind.
+    - It reported no hit for spheres moving parallel to the plane, even when they slid into an edge.
+    - The edge 2–0 test compared against the wrong time.
+    - It returned the exit time for spheres that started overlapping a vertex.
+    - It divided by zero when moving along an edge.
+
+    A sphere already touching at t = 0 now reports time 0 and the triangle's closest point. Vertex and edge times
+    come from product-form quadratics that do not cancel, and they match a bisection reference to 1e-9.
+  - `testPointInTriangle` and the 2D `testPointTriangle` are closed triangles. The 3D test used to include two edges
+    but not the third. The 2D test included edges for one winding only; it now uses exact orientation predicates.
+  - `testMovingCircleCircle` returned false for circles that already overlapped while moving apart.
 
 ### Changed
+- `intersectSweptSphereTriangle` ignores its `epsilon` (parallel motion is exact) and works from either side; the
+  winding no longer matters.
 - The `epsilon` of the ray-triangle tests is now the minimum hit distance along the ray. It used to be a tolerance
   on the determinant; parallel rays are now handled exactly.
 - Results change in their last bits for rotation builders (through `cosFromSin`) and for float vector lengths and
   normalization. About 1000 determinism-golden entries were re-recorded; every changed method traces to a fix above.
-
-### Known issues (found by the audit, not yet fixed)
-- `Intersection*.intersectSweptSphereTriangle` handles only spheres approaching the front face. Spheres moving away,
-  approaching from the back, or sliding parallel while already cutting the plane give wrong or no results.
-- `testPointInTriangle` includes some edges and vertices but not others.
-- The 2D `testPointTriangle` treats edge points differently for clockwise and counter-clockwise triangles.
-- `testMovingCircleCircle` reports false for circles that already overlap and are moving apart.
 
 ## [2.3.0] - 2026-11-22
 New in this release: rendering math II (spherical functions, camera, atmosphere: review Part II §15.3, §15.5,

@@ -8250,8 +8250,8 @@ geometry.Intersectiond.testLineSegmentSphere(double,double,double,double,double,
 geometry.Intersectiond.testLineSegmentSphere(Vector3dc,Vector3dc,Vector3dc,double) 13f0f81636b353b1
 geometry.Intersectiond.testLineSegmentTriangle(double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double) 2dab308cb068a699
 geometry.Intersectiond.testLineSegmentTriangle(Vector3dc,Vector3dc,Vector3dc,Vector3dc,Vector3dc,double) 5d322430d742b5f4
-geometry.Intersectiond.testMovingCircleCircle(double,double,double,double,double,double,double,double) 9d908ecfb6b256de
-geometry.Intersectiond.testMovingCircleCircle(Vector2d,Vector2d,double,Vector2d,double) 01cd4e30773b923b
+geometry.Intersectiond.testMovingCircleCircle(double,double,double,double,double,double,double,double) 32edb6022c0921d9
+geometry.Intersectiond.testMovingCircleCircle(Vector2d,Vector2d,double,Vector2d,double) 7bae9d704c27b0b7
 geometry.Intersectiond.testObOb(double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double) 9d908ecfb6b256de
 geometry.Intersectiond.testObOb(Vector3d,Vector3d,Vector3d,Vector3d,Vector3d,Vector3d,Vector3d,Vector3d,Vector3d,Vector3d) 556b020b2d48be17
 geometry.Intersectiond.testPlaneSphere(double,double,double,double,double,double,double,double) 9d908ecfb6b256de
@@ -8410,7 +8410,7 @@ geometry.Intersectionf.intersectPolygonRay(Vector2fc[],float,float,float,float,V
 geometry.Intersectionf.intersectRayAar(float,float,float,float,float,float,float,float,Vector2f) a05733c7ad12cc58
 geometry.Intersectionf.intersectRayAar(Vector2fc,Vector2fc,Vector2fc,Vector2fc,Vector2f) da62d99197d29756
 geometry.Intersectionf.intersectSphereTriangle(float,float,float,float,float,float,float,float,float,float,float,float,float,Vector3f) fdf91e745f1d136b
-geometry.Intersectionf.intersectSweptSphereTriangle(float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,Vector4f) 9ff6168eedddd942
+geometry.Intersectionf.intersectSweptSphereTriangle(float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,Vector4f) b3787fa6aae8bf92
 geometry.Intersectionf.findClosestPointOnLineSegment(float,float,float,float,float,float,float,float,float,Vector3f) 476315ca880913d8
 geometry.Intersectionf.findClosestPointOnPlane(float,float,float,float,float,float,float,float,float,Vector3f) a324ad1aaf08e6a7
 geometry.Intersectionf.findClosestPointOnRectangle(float,float,float,float,float,float,float,float,float,float,float,float,Vector3f) cb20f3e5ff3f0e66

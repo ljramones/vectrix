@@ -33,6 +33,7 @@ import org.dynamisengine.vectrix.core.Matrix3d;
 import org.dynamisengine.vectrix.core.Vector2d;
 import org.dynamisengine.vectrix.core.Vector3d;
 import org.dynamisengine.vectrix.core.Vector4d;
+import org.dynamisengine.vectrix.core.Vector4f;
 import org.dynamisengine.vectrix.geometry.Intersectiond;
 import org.dynamisengine.vectrix.geometry.Intersectionf;
 import org.dynamisengine.vectrix.geometry.PolygonsIntersection;
@@ -138,6 +139,164 @@ class GeometryAuditTest {
             Vector3d ab = new Vector3d(b).sub(a);
             if (sideP.dot(ab) * sideQ.dot(ab) < 0 && Math.abs(n1.dot(dir)) > 1e-3 && Math.abs(n2.dot(dir)) > 1e-3) {
                 assertTrue(hit1 || hit2, "ray through the shared edge slipped between both triangles at trial " + i);
+            }
+        }
+    }
+
+
+    /** Distance from {@code c} to the triangle, via the closest-point routine. */
+    private static double triDist(Vector3d a, Vector3d b, Vector3d c, Vector3d p, Vector3d tmp) {
+        Intersectiond.findClosestPointOnTriangle(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z, p.x, p.y, p.z, tmp);
+        return tmp.distance(p);
+    }
+
+    /** First contact time by bisection on the convex distance function; NaN if none before maxT. */
+    private static double referenceContact(Vector3d a, Vector3d b, Vector3d c, Vector3d c0, Vector3d v, double r, double maxT) {
+        Vector3d p = new Vector3d(), tmp = new Vector3d();
+        if (triDist(a, b, c, c0, tmp) <= r) {
+            return 0;
+        }
+        double lo = 0, hi = maxT; // ternary search for the minimum distance
+        for (int i = 0; i < 200; i++) {
+            double m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3;
+            if (triDist(a, b, c, p.set(v).mul(m1).add(c0), tmp) < triDist(a, b, c, p.set(v).mul(m2).add(c0), tmp)) {
+                hi = m2;
+            } else {
+                lo = m1;
+            }
+        }
+        double tMin = (lo + hi) / 2;
+        if (triDist(a, b, c, p.set(v).mul(tMin).add(c0), tmp) > r) {
+            return Double.NaN;
+        }
+        lo = 0;
+        hi = tMin;
+        for (int i = 0; i < 200; i++) {
+            double m = (lo + hi) / 2;
+            if (triDist(a, b, c, p.set(v).mul(m).add(c0), tmp) <= r) {
+                hi = m;
+            } else {
+                lo = m;
+            }
+        }
+        return hi;
+    }
+
+    @Test
+    void sweptSphereTriangleMatchesFirstContact() {
+        SplittableRandom r = new SplittableRandom(4);
+        Vector4d res = new Vector4d();
+        Vector4f resf = new Vector4f();
+        Vector3d tmp = new Vector3d();
+        int hits = 0, kinds = 0;
+        for (int i = 0; i < 20000; i++) {
+            Vector3d a = new Vector3d(r.nextGaussian(), r.nextGaussian(), r.nextGaussian());
+            Vector3d b = new Vector3d(r.nextGaussian(), r.nextGaussian(), r.nextGaussian());
+            Vector3d c = new Vector3d(r.nextGaussian(), r.nextGaussian(), r.nextGaussian());
+            Vector3d c0 = new Vector3d(r.nextGaussian(), r.nextGaussian(), r.nextGaussian()).mul(3);
+            Vector3d v = new Vector3d(r.nextGaussian(), r.nextGaussian(), r.nextGaussian()).mul(3);
+            int kind = i % 4;
+            if (kind == 1) { // parallel to the plane, at a height where it may cut it
+                Vector3d n = new Vector3d(b).sub(a).cross(new Vector3d(c).sub(a)).normalize();
+                v.sub(new Vector3d(n).mul(v.dot(n)));
+                c0.sub(new Vector3d(n).mul(c0.dot(n) - a.dot(n))).add(new Vector3d(n).mul(r.nextDouble(-1, 1)));
+            } else if (kind == 2) { // moving away from wherever it is
+                v.set(c0).sub(new Vector3d(a).add(b).add(c).div(3)).normalize(3 * r.nextDouble());
+            }
+            double rad = r.nextDouble(0.1, 1.0), maxT = r.nextDouble(0.5, 2);
+            double ref = referenceContact(a, b, c, c0, v, rad, maxT);
+            int code = Intersectiond.intersectSweptSphereTriangle(c0.x, c0.y, c0.z, rad, v.x, v.y, v.z, a.x, a.y, a.z, b.x, b.y, b.z,
+                    c.x, c.y, c.z, 0, maxT, res);
+            String ctx = "case " + i + " kind " + kind + " ref " + ref + " got " + code + " " + res;
+            if (Double.isNaN(ref) || ref > maxT * (1 - 1e-9)) {
+                // grazing misses can be within rounding of a touch
+                if (code != 0) {
+                    Vector3d at = new Vector3d(v).mul(res.w).add(c0);
+                    assertEquals(rad, triDist(a, b, c, at, tmp), 1e-9, ctx);
+                }
+                continue;
+            }
+            assertTrue(code != 0, ctx);
+            assertEquals(ref, res.w, 1e-9 * (1 + ref), ctx);
+            Vector3d at = new Vector3d(v).mul(res.w).add(c0);
+            triDist(a, b, c, at, tmp);
+            assertTrue(tmp.distance(res.x, res.y, res.z) < 1e-7, "contact point " + ctx);
+            hits++;
+            kinds |= 1 << code;
+            int codef = Intersectionf.intersectSweptSphereTriangle((float) c0.x, (float) c0.y, (float) c0.z, (float) rad, (float) v.x,
+                    (float) v.y, (float) v.z, (float) a.x, (float) a.y, (float) a.z, (float) b.x, (float) b.y, (float) b.z, (float) c.x,
+                    (float) c.y, (float) c.z, 0, (float) maxT, resf);
+            if (ref < maxT * 0.99) {
+                assertTrue(codef != 0, "float " + ctx);
+                assertEquals(ref, resf.w, 2e-3 * (1 + ref), "float " + ctx);
+            }
+        }
+        assertTrue(hits > 800, "hits " + hits);
+        assertEquals(0b11111110, kinds, "every contact kind occurs");
+        // a sphere sitting on the face moving away still touches at t = 0, and from behind it is hit too
+        assertEquals(Intersectiond.POINT_ON_TRIANGLE_FACE, Intersectiond.intersectSweptSphereTriangle(0.2, 0.2, 1, 1, 0, 0, 1,
+                0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, res));
+        assertEquals(0.0, res.w, 0.0);
+        assertEquals(Intersectiond.POINT_ON_TRIANGLE_FACE, Intersectiond.intersectSweptSphereTriangle(0.2, 0.2, -5, 1, 0, 0, 1,
+                0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 10, res));
+        assertEquals(4.0, res.w, 1e-15);
+        assertTrue(new Vector3d(res.x, res.y, res.z).distance(0.2, 0.2, 0) < 1e-15);
+        assertEquals(0, Intersectiond.intersectSweptSphereTriangle(0.2, 0.2, 2, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 10, res));
+        // sliding parallel inside the plane into an edge
+        assertEquals(Intersectiond.POINT_ON_TRIANGLE_EDGE_20, Intersectiond.intersectSweptSphereTriangle(-3, 0.3, 0.5, 1, 1, 0, 0,
+                0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 10, res));
+        assertEquals(3 - Math.sqrt(0.75), res.w, 1e-15);
+    }
+
+    @Test
+    void pointInTriangleIsClosed() {
+        // every edge midpoint and vertex is inside, whatever the winding; just outside is not
+        double[][] tri = {{0, 0, 0}, {4, 0, 0}, {0, 4, 0}};
+        for (int w = 0; w < 2; w++) {
+            double[] p0 = tri[0], p1 = tri[w == 0 ? 1 : 2], p2 = tri[w == 0 ? 2 : 1];
+            for (double[] q : new double[][] {{2, 0}, {2, 2}, {0, 2}, {0, 0}, {4, 0}, {0, 4}, {1, 1}}) {
+                assertTrue(Intersectiond.testPointInTriangle(q[0], q[1], 7, p0[0], p0[1], p0[2], p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]),
+                        "3D " + q[0] + "," + q[1]);
+                assertTrue(Intersectionf.testPointInTriangle((float) q[0], (float) q[1], 7, (float) p0[0], (float) p0[1], (float) p0[2],
+                        (float) p1[0], (float) p1[1], (float) p1[2], (float) p2[0], (float) p2[1], (float) p2[2]));
+                assertTrue(Intersectiond.testPointTriangle(q[0], q[1], p0[0], p0[1], p1[0], p1[1], p2[0], p2[1]), "2D " + q[0] + "," + q[1]);
+                assertTrue(Intersectionf.testPointTriangle((float) q[0], (float) q[1], (float) p0[0], (float) p0[1], (float) p1[0],
+                        (float) p1[1], (float) p2[0], (float) p2[1]));
+            }
+            for (double[] q : new double[][] {{2, -1e-12}, {2.0000001, 2}, {-1e-12, 2}, {5, 0}}) {
+                assertFalse(Intersectiond.testPointInTriangle(q[0], q[1], 0, p0[0], p0[1], p0[2], p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]));
+                assertFalse(Intersectiond.testPointTriangle(q[0], q[1], p0[0], p0[1], p1[0], p1[1], p2[0], p2[1]));
+            }
+        }
+        // degenerate triangles: a segment contains its own points only
+        assertTrue(Intersectiond.testPointTriangle(1, 1, 0, 0, 2, 2, 1, 1));
+        assertFalse(Intersectiond.testPointTriangle(3, 3, 0, 0, 2, 2, 1, 1));
+        assertFalse(Intersectiond.testPointInTriangle(1, 1, 0, 0, 0, 0, 2, 2, 0, 1, 1, 0));
+    }
+
+    @Test
+    void movingCirclesMatchTheClosestApproach() {
+        assertTrue(Intersectiond.testMovingCircleCircle(0, 0, -5, 0, 1, 1, 0, 1), "overlapping and moving apart");
+        assertTrue(Intersectiond.testMovingCircleCircle(0, 0, 10, 0, 1, 12, 0, 1), "touches exactly at the end");
+        assertFalse(Intersectiond.testMovingCircleCircle(0, 0, 10, 0, 1, 12.5, 0, 1));
+        assertTrue(Intersectiond.testMovingCircleCircle(0, 0, 10, 0, 1, 5, 1.5, 1));
+        assertFalse(Intersectiond.testMovingCircleCircle(0, 0, 10, 0, 1, 5, 2.5, 1));
+        assertTrue(Intersectiond.testMovingCircleCircle(0, 0, 0, 0, 1, 1.5, 0, 1), "not moving, overlapping");
+        assertFalse(Intersectiond.testMovingCircleCircle(0, 0, 0, 0, 1, 3, 0, 1), "not moving, apart");
+        SplittableRandom r = new SplittableRandom(5);
+        for (int i = 0; i < 100000; i++) {
+            double ax = r.nextDouble(-5, 5), ay = r.nextDouble(-5, 5), mx = r.nextDouble(-8, 8), my = r.nextDouble(-8, 8);
+            double bx = r.nextDouble(-5, 5), by = r.nextDouble(-5, 5), ra = r.nextDouble(0.1, 2), rb = r.nextDouble(0.1, 2);
+            double cx = bx - ax, cy = by - ay, m2 = mx * mx + my * my;
+            double s = m2 > 0 ? Math.max(0, Math.min(1, (mx * cx + my * cy) / m2)) : 0;
+            double dist = Math.hypot(cx - s * mx, cy - s * my) - (ra + rb);
+            if (Math.abs(dist) < 1e-9) {
+                continue;
+            }
+            assertEquals(dist < 0, Intersectiond.testMovingCircleCircle(ax, ay, mx, my, ra, bx, by, rb), "case " + i);
+            if (Math.abs(dist) > 1e-4) {
+                assertEquals(dist < 0, Intersectionf.testMovingCircleCircle((float) ax, (float) ay, (float) mx, (float) my, (float) ra,
+                        (float) bx, (float) by, (float) rb), "float case " + i);
             }
         }
     }
