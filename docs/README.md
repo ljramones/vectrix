@@ -1,91 +1,35 @@
 # Docs Index
 
-This folder contains the current project documentation for Vectrix.
+User documentation for Vectrix. Start with the repository [`README.md`](../README.md), then [`API.md`](../API.md).
 
-## Canonical Docs
-- `API.md` (repo root)
-  Practical API reference with up-to-date usage examples by module.
-- `docs/vectrix-capabilities.md`
-  Consumer-oriented capability inventory for downstream libraries.
-- `docs/conventions.md`
-  Math and engine-facing conventions (handedness, layout, mutability model), the packed 3x4 affine layout and
-  the STRICT mode contract.
-- `docs/determinism.md`
-  Every setting that changes output bits, `StrictMath` mode and the replay fingerprint.
-- `docs/signal-and-ml-roadmap.md`
-  Agreed plan for the signal-processing and neural-network/LLM kernels: ownership, decisions and thread-safety
-  contract, and phases.
-- `docs/joml-divergence.md`
-  Why Vectrix forked JOML, the defects the 2.4.0 audit found in the inherited code, and behaviour differences when
-  porting from JOML.
-- `docs/api-policy.md`
-  Public/internal API stability and compatibility expectations.
-- `docs/transform-representation-policy.md`
-  Runtime/default transform form policy (TRS, packed affine, boundary matrix usage).
-- `docs/skinning-runtime-policy.md`
-  Default versus quality skinning runtime policy and measurement priorities.
-- `docs/hot-path-policy.md`
-  Enforceable rules for batch-first, locality-first hot code.
-- `docs/performance-showcase.md`
-  One-page evidence summary of runtime defaults, key benchmark wins, and regression discipline.
-- `docs/why-vectrix-is-fast.md`
-  Concise technical explainer of the mechanisms behind current Vectrix performance.
-- `docs/engine-runtime-defaults.md`
-  Current default runtime doctrine (bulk transforms, upload, skinning, experimental paths).
-- `docs/performance-state-of-the-union.md`
-  Snapshot of settled defaults, experimental areas, active gates, and parked work.
-- `docs/benchmarking-guide.md`
-  How to build, run, profile, normalize, and compare benchmark runs.
-- `docs/benchmark-environment.md`
-  Recorded benchmark environment and run discipline requirements.
-- `docs/benchmark-modulepath-resolution.md`
-  Named-module/JMH benchmark build failure diagnosis and resolved approach.
-- `docs/release-cut-checklist.md`
-  Release process and validation commands.
-- `docs/technology-explainer.md`
-  Educational guide for non-expert users (what the tech is and when to use it).
+## Using Vectrix
+- [`vectrix-capabilities.md`](vectrix-capabilities.md): what the library offers, grouped by use case, with the
+  classes to look at.
+- [`technology-explainer.md`](technology-explainer.md): the concepts behind the packages, for readers new to the
+  maths.
+- [`conventions.md`](conventions.md): handedness, layouts, the mutability model, the packed 3x4 affine layout and
+  STRICT mode.
+- [`determinism.md`](determinism.md): every setting that changes output bits, `StrictMath` mode, and the replay
+  fingerprint.
+- [`joml-divergence.md`](joml-divergence.md): why Vectrix forked JOML, what has been fixed since, and differences to
+  expect when porting from JOML.
+- [`signal-and-ml-roadmap.md`](signal-and-ml-roadmap.md): the design of the FFT, `dsp`, `blas` and `nn` packages:
+  ownership, threading, storage and determinism.
 
-## Supporting Docs
-- `docs/v1-readiness-checklist.md`
-  Final V1 readiness status snapshot (kept for release tracking history).
-- `docs/rendering-roadmap.md`
-  Historical roadmap record; implementation has already surpassed this plan.
+## Runtime and performance policies
+- [`api-policy.md`](api-policy.md): API stability and compatibility.
+- [`hot-path-policy.md`](hot-path-policy.md): rules for batch-first, locality-first hot code.
+- [`transform-representation-policy.md`](transform-representation-policy.md): which transform form to use where.
+- [`skinning-runtime-policy.md`](skinning-runtime-policy.md): default and quality skinning paths.
+- [`engine-runtime-defaults.md`](engine-runtime-defaults.md): the runtime defaults engines should use.
+- [`why-vectrix-is-fast.md`](why-vectrix-is-fast.md) and [`performance-showcase.md`](performance-showcase.md): how the
+  kernels get their speed, and the evidence.
 
-## Benchmark and Release Docs (repo root)
-- `BENCHMARKS.md`
-  Benchmark methodology plus latest baseline and normalized per-op results.
-- `CHANGELOG.md`
-  Release change history.
+## Benchmarking
+- [`benchmarking-guide.md`](benchmarking-guide.md): building, running, profiling and comparing benchmarks.
+- [`benchmark-environment.md`](benchmark-environment.md): the recorded benchmark environment.
+- [`../BENCHMARKS.md`](../BENCHMARKS.md) and [`../benchmarks/POLICY.md`](../benchmarks/POLICY.md): results and
+  regression thresholds.
 
-## Archived Working Notes
-Dated memos kept for history; see `docs/archive/README.md` for caveats (their SIMD numbers measured scalar code).
-- `docs/archive/performance-strategy.md`
-  Performance charter, benchmark tier taxonomy, and naming conventions.
-- `docs/archive/performance-phase2-findings.md`
-  Initial Phase 2 benchmark coverage and early representation observations.
-- `docs/archive/performance-phase2-decision-memo.md`
-  Constrained full-run observations and architecture recommendations.
-- `docs/archive/performance-phaseB-findings.md`
-  Pass B locality + packed-affine implementation findings and recommendations.
-- `docs/archive/performance-phaseB-decision-memo.md`
-  Pass B architecture defaults, keep/discard table, and Pass C targeting.
-- `docs/archive/performance-phaseB-packed-affine-postmortem.md`
-  Short profiler-backed explanation of why packed-affine kernels won.
-- `docs/archive/performance-phaseC-palette-locality-memo.md`
-  Initial Pass C skinning locality results and vector-path status.
-- `docs/archive/performance-phaseC-findings.md`
-  Initial Pass C skinning implementation outcomes and decisions.
-- `docs/archive/performance-passE-summary.md`
-  Consolidated Pass E hotspot resolution summary and promoted defaults.
-- `docs/archive/benchmark-dashboard-summary.md`
-  Compact scorecard of architecture-defining kernel deltas and active regression gates.
-- `docs/archive/performance-integration-slice-findings.md`
-  End-to-end composed-path validation of transform/skinning/upload winners.
-- `docs/archive/subsystem-integration-memo.md`
-  Transform-update + instance-submission subsystem replacement memo (packed default vs matrix fallback).
-- `docs/archive/perfasm-notes.md`
-  Assembly-level inspection workflow for hot JMH kernels (`-prof perfasm`) and interpretation guardrails.
-- `docs/archive/transform-materialization-audit.md`
-  Initial classification of transform materialization APIs by boundary/hot-path intent.
-- `docs/archive/skinning-work-equivalence-audit.md`
-  Legacy-vs-kernel skinning workload equivalence analysis.
+## Maintaining
+- [`release-cut-checklist.md`](release-cut-checklist.md): how a release is cut.

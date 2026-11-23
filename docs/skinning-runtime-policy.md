@@ -50,4 +50,4 @@ From Pass E equivalence resolution (`2026-03-06`):
 1. Constrained/full rerun of `skinLbs4Vector` against matrix-palette tight baseline after loop-body/vector strategy optimization.
 2. Expanded palette locality stress (small/medium/large palette with cache-cold variants).
 3. Layout variants for indices/weights.
-4. Keep work-equivalence analysis current as kernel/API shape evolves (tracked in `docs/archive/skinning-work-equivalence-audit.md`).
+4. Keep work-equivalence analysis current as kernel/API shape evolves.

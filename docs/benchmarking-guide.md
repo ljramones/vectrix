@@ -84,11 +84,3 @@ The project exposes benchmark preset profiles for repeatable settings:
 - `bench-regression`
 
 Use together with `-Pbench` when building benchmark artifacts.
-
-## Named-Module Note
-- The prior `-Pbench` named-module visibility blocker is resolved.
-- Resolution details are documented in [benchmark-modulepath-resolution.md](/Users/larrymitchell/Dynamis/vectrix/docs/benchmark-modulepath-resolution.md).
-
-## Perfasm Notes
-- For assembly-level follow-up on selected kernels, see:
-  - [archive/perfasm-notes.md](/Users/larrymitchell/Dynamis/vectrix/docs/archive/perfasm-notes.md)

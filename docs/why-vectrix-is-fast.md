@@ -54,4 +54,3 @@ This is not “Java is magically fast.” It is measured kernel design aligned t
 1. [performance-showcase.md](/Users/larrymitchell/Dynamis/vectrix/docs/performance-showcase.md)
 2. [BENCHMARKS.md](/Users/larrymitchell/Dynamis/vectrix/BENCHMARKS.md)
 3. [engine-runtime-defaults.md](/Users/larrymitchell/Dynamis/vectrix/docs/engine-runtime-defaults.md)
-4. [performance-state-of-the-union.md](/Users/larrymitchell/Dynamis/vectrix/docs/performance-state-of-the-union.md)

@@ -161,7 +161,6 @@ Takeaway:
 ## Runtime Doctrine (Current)
 See:
 1. `docs/engine-runtime-defaults.md`
-2. `docs/performance-state-of-the-union.md`
 3. `docs/skinning-runtime-policy.md`
 
 Current doctrine:
@@ -194,13 +193,3 @@ Purpose:
 ## Limits And Scope
 These results are strong for current hardware/JDK and tested workload shapes.
 Do not generalize across machines without reruns under the same methodology.
-
-## Supporting Decision Memos
-1. `docs/archive/performance-passE-gpu-layout-decision.md`
-2. `docs/archive/performance-passE-skinning-resolution.md`
-3. `docs/archive/performance-integration-slice-findings.md`
-4. `docs/archive/subsystem-integration-memo.md`
-5. `docs/archive/performance-passE-summary.md`
-6. `docs/archive/performance-passH-geometry-findings.md`
-7. `docs/archive/performance-passH-lut-findings.md`
-8. `docs/archive/performance-passH-summary.md`
