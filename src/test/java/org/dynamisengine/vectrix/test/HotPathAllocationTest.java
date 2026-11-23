@@ -403,6 +403,96 @@ class HotPathAllocationTest {
                 normals, 0, 16));
     }
 
+    /** The 3.0 fixes in gpu, soa and nn: the new up-front checks and degenerate-input paths must not allocate. */
+    @Test
+    void validatedGpuSoaAndNnKernelsDoNotAllocate() {
+        Vector3f n = new Vector3f(0.2f, 0.9f, 0.1f);
+        Vector3f t = new Vector3f(1, 0, 0);
+        Vector3f zero = new Vector3f();
+        org.dynamisengine.vectrix.core.Quaternionf qt = new org.dynamisengine.vectrix.core.Quaternionf();
+        assertNoAllocation("PackedFormats.qTangent", () -> org.dynamisengine.vectrix.gpu.PackedFormats.qTangent(n, t,
+                -1f, 16, qt));
+        assertNoAllocation("PackedFormats.packQTangent", () -> org.dynamisengine.vectrix.gpu.PackedFormats.packQTangent(n,
+                t, 1f));
+        assertNoAllocation("PackedFormats.packQTangent degenerate", () -> org.dynamisengine.vectrix.gpu.PackedFormats
+                .packQTangent(zero, zero, 1f));
+        assertNoAllocation("OctaNormal.encodeSnorm16 zero", () -> org.dynamisengine.vectrix.gpu.OctaNormal.encodeSnorm16(0,
+                0, 0));
+        org.dynamisengine.vectrix.core.Quaternionf q0 = new org.dynamisengine.vectrix.core.Quaternionf(0, 0, 0, 0);
+        assertNoAllocation("QuatCompression.packSmallest3 zero", () -> org.dynamisengine.vectrix.gpu.QuatCompression
+                .packSmallest3(q0));
+
+        int count = 64;
+        org.dynamisengine.vectrix.affine.Transformf[] tr = new org.dynamisengine.vectrix.affine.Transformf[count];
+        int[] order = new int[count];
+        for (int i = 0; i < count; i++) {
+            tr[i] = new org.dynamisengine.vectrix.affine.Transformf();
+            tr[i].translation.set(i, 1, 2);
+            order[i] = count - 1 - i;
+        }
+        org.dynamisengine.vectrix.gpu.GpuTransformLayout mixed = new org.dynamisengine.vectrix.gpu.GpuTransformLayout(36,
+                0, 12, 28, org.dynamisengine.vectrix.gpu.GpuTransformLayout.RotationEncoding.FLOAT4,
+                org.dynamisengine.vectrix.gpu.GpuTransformLayout.ScaleEncoding.HALF3);
+        java.nio.ByteBuffer buf = java.nio.ByteBuffer.allocate(mixed.requiredBytes(count));
+        assertNoAllocation("GpuTransformLayout.write", () -> mixed.write(buf, 7, tr[3]));
+        assertNoAllocation("GpuTransformWriteKernels.writeTrs", () -> org.dynamisengine.vectrix.gpu.GpuTransformWriteKernels
+                .writeTrs(mixed, tr, order, buf, count));
+        org.dynamisengine.vectrix.affine.PackedAffineArray packed = new org.dynamisengine.vectrix.affine.PackedAffineArray(
+                count);
+        float[] m16 = new float[16 * count + 5];
+        assertNoAllocation("GpuTransformWriteKernels.writeMatrix4fFromPackedAffine", () -> org.dynamisengine.vectrix.gpu
+                .GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(packed, order, m16, 5, count));
+
+        org.dynamisengine.vectrix.soa.TransformSoA joints = new org.dynamisengine.vectrix.soa.TransformSoA(8);
+        float[] palette = new float[12 * 8];
+        int[] ji = new int[4 * count];
+        float[] jw = new float[4 * count];
+        float[] px = new float[count];
+        float[] py = new float[count];
+        float[] pz = new float[count];
+        assertNoAllocation("SkinningKernels.buildMatrixPalette12", () -> org.dynamisengine.vectrix.soa.SkinningKernels
+                .buildMatrixPalette12(joints, palette, 8));
+        assertNoAllocation("SkinningKernels.skinLbs4", () -> org.dynamisengine.vectrix.soa.SkinningKernels.skinLbs4(joints,
+                ji, jw, px, py, pz, px, py, pz, count));
+        assertNoAllocation("SkinningKernels.skinLbs4MatrixPalette", () -> org.dynamisengine.vectrix.soa.SkinningKernels
+                .skinLbs4MatrixPalette(palette, ji, jw, px, py, pz, px, py, pz, count));
+        assertNoAllocation("TransformKernels.composeBatch", () -> org.dynamisengine.vectrix.soa.TransformKernels
+                .composeBatch(joints, joints, joints, 8));
+
+        org.dynamisengine.vectrix.gpu.InstanceSubmissionPipeline pipe =
+                new org.dynamisengine.vectrix.gpu.InstanceSubmissionPipeline(count);
+        float[] b0 = new float[count];
+        float[] b1 = new float[count];
+        float[] up = new float[12 * count];
+        assertNoAllocation("InstanceSubmissionPipeline.processFrame", () -> pipe.processFrame(tr, order, b0, b0, b0, b1,
+                b1, b1, px, py, pz, px, py, pz, joints, ji, jw, b0, b0, b0, b1, b1, b1, up, null, count, count,
+                org.dynamisengine.vectrix.gpu.InstanceSubmissionPipeline.Path.PACKED_AFFINE));
+
+        float[] logits = new float[1024];
+        assertNoAllocation("Sampler.argmax", () -> org.dynamisengine.vectrix.nn.Sampler.argmax(logits, 0, 1024));
+        byte[] q8 = new byte[1024];
+        float[] q8s = new float[32];
+        assertNoAllocation("Formats.quantizeInt8", () -> org.dynamisengine.vectrix.nn.Formats.quantizeInt8(logits, 0, 1024,
+                q8, 0, q8s, 0));
+        org.dynamisengine.vectrix.nn.Pool2d pool = org.dynamisengine.vectrix.nn.Pool2d.of(4, 16, 16, 2, 2, 0);
+        int[] parg = new int[4 * 8 * 8];
+        float[] pin = new float[4 * 16 * 16];
+        float[] pout = new float[4 * 8 * 8];
+        pool.max(pin, 0, pout, 0, parg, 0);
+        assertNoAllocation("Pool2d.maxBackward", () -> pool.maxBackward(parg, 0, pout, 0, pin, 0));
+        float[] ak = new float[64 * 32];
+        float[] aq = new float[32];
+        float[] ap = new float[64];
+        float[] ad = new float[32];
+        float[] ascr = new float[128];
+        float[] agrad = new float[64 * 32];
+        assertNoAllocation("Attention.backward", () -> org.dynamisengine.vectrix.nn.Attention.backward(aq, 0, 32, ak, 0,
+                32, ak, 0, 32, 32, 64, 0.17f, ap, 0, ad, 0, aq, 0, agrad, 0, agrad, 0, ascr, 0));
+        float[] stats = new float[1];
+        assertNoAllocation("Norms.rmsNorm", () -> org.dynamisengine.vectrix.nn.Norms.rmsNorm(logits, 0, null, 0, 1e-6f,
+                logits, 0, 1024, stats, 0));
+    }
+
     @Test
     void fftPlansDoNotAllocate() {
         for (int n : new int[] {1024, 1000, 1009}) { // power of two, mixed radix, Bluestein

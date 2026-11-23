@@ -34,6 +34,14 @@ public final class QuatCompression {
     private static final float INV_SQRT2 = 0.7071067811865475f;
     private static final float SQRT2 = 1.4142135623730951f;
 
+    /**
+     * The code of the identity rotation {@code (0, 0, 0, 1)}: {@code w} dropped and the other three components 0. It
+     * is also what {@link #packSmallest3} returns for a zero, NaN or infinite quaternion.
+     *
+     * @since 3.0.0
+     */
+    public static final long IDENTITY = 3L << 48;
+
     private QuatCompression() {
     }
 
@@ -45,15 +53,33 @@ public final class QuatCompression {
      * <p>
      * Bit layout of the result: bits 48-49 hold the index of the dropped component (0 = x, 1 = y, 2 = z, 3 = w),
      * bits 32-47 the first stored component, bits 16-31 the second and bits 0-15 the third; bits 50-63 are zero.
-     * On ties the lowest index is dropped. A zero or NaN quaternion encodes as 0, which decodes to
-     * {@code (1, 0, 0, 0)}.
+     * On ties the lowest index is dropped.
+     * <p>
+     * A quaternion that is not a rotation, of length zero or with a NaN or infinite component, encodes as the
+     * identity {@code (0, 0, 0, 1)} ({@link #IDENTITY}), so a bad input never becomes a visible turn. Very long or
+     * very short (subnormal) quaternions are rescaled before they are normalized, so they encode like their unit
+     * form.
      *
      * @param q the rotation; need not be normalized
      * @return the 64-bit code
      */
     public static long packSmallest3(Quaternionfc q) {
         float x = q.x(), y = q.y(), z = q.z(), w = q.w();
-        float invLen = org.dynamisengine.vectrix.core.Math.invsqrt(x * x + y * y + z * z + w * w);
+        float lenSq = x * x + y * y + z * z + w * w;
+        if (!(lenSq >= 0x1p-100f && lenSq <= 0x1p100f)) {
+            // zero, NaN, infinite, or a squared length that under- or overflows: rescale by the largest component
+            float m = java.lang.Math.max(java.lang.Math.max(java.lang.Math.abs(x), java.lang.Math.abs(y)),
+                    java.lang.Math.max(java.lang.Math.abs(z), java.lang.Math.abs(w)));
+            if (!(m > 0.0f && m < Float.POSITIVE_INFINITY)) {
+                return IDENTITY; // Math.max propagates NaN, so this also catches a NaN component
+            }
+            x /= m;
+            y /= m;
+            z /= m;
+            w /= m;
+            lenSq = x * x + y * y + z * z + w * w;
+        }
+        float invLen = org.dynamisengine.vectrix.core.Math.invsqrt(lenSq);
         x *= invLen;
         y *= invLen;
         z *= invLen;

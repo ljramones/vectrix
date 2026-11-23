@@ -30,10 +30,10 @@
  * <b>Contract.</b> Threading: the containers are mutable and not thread-safe; the kernels are static and stateless,
  * safe to call from any thread on separate outputs. Allocation: only the container constructors allocate; the
  * kernels do not. Determinism: {@code TransformKernels.composeBatch} gives the same bits on its scalar and Vector API
- * paths; the skinning kernels are scalar only. Errors: the kernels take a count and start at index 0 without
- * checking array sizes up front, so a short array or a bad joint index throws
- * {@code ArrayIndexOutOfBoundsException}; in STRICT mode {@code composeBatch} throws
- * {@code IllegalArgumentException} for non-unit rotations before writing. Precision and naming: the containers are
+ * paths; the skinning kernels are scalar only. Errors: the kernels take a count and start at index 0; they check
+ * the array sizes and joint indices first, so a negative count, a short array or a bad joint index throws
+ * {@code IllegalArgumentException} before anything is written, and so does, in STRICT mode, a non-unit rotation
+ * passed to {@code composeBatch}. Precision and naming: the containers are
  * float unless their name ends in {@code d}; the kernels work on the float containers.
  */
 package org.dynamisengine.vectrix.soa;

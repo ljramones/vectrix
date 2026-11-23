@@ -24,8 +24,6 @@
 package org.dynamisengine.vectrix.gpu;
 
 import org.dynamisengine.vectrix.color.ColorMathd;
-import org.dynamisengine.vectrix.core.Matrix3d;
-import org.dynamisengine.vectrix.core.Quaterniond;
 import org.dynamisengine.vectrix.core.Quaternionf;
 import org.dynamisengine.vectrix.core.Vector3f;
 import org.dynamisengine.vectrix.core.Vector3fc;
@@ -40,8 +38,8 @@ import org.dynamisengine.vectrix.core.Vector4f;
  * <li>sRGB 8-bit encoding;</li>
  * <li>the QTangent tangent-frame encoding.</li>
  * </ul>
- * All formats are little-endian words, with red in the low bits. The codecs are allocation-free, except the
- * QTangent encoder, which is meant for asset packing.
+ * All formats are little-endian words, with red in the low bits. The codecs, the QTangent encoder included, are
+ * allocation-free.
  *
  * @since 2.4.0
  */
@@ -261,37 +259,106 @@ public final class PackedFormats {
      * <p>
      * The tangent is first made orthogonal to the normal (Gram-Schmidt). {@code |w|} is kept at least
      * {@code 1 / (2^(bits−1) − 1)}, so that the sign survives quantization to {@code bits}-bit snorm. Writes to
-     * {@code dest}, computed in double. It allocates two temporary objects (asset-packing use).
+     * {@code dest}, computed in double. Does not allocate.
      * <p>
-     * Neither vector needs to be unit length. A zero normal, or a tangent parallel to the normal, gives NaN.
+     * Neither vector needs to be unit length. Degenerate frames still give a unit quaternion:
+     * <ul>
+     * <li>a zero normal, or one with a NaN or infinite component, is replaced by {@code +Z = (0, 0, 1)};</li>
+     * <li>a tangent that is zero, NaN, infinite or parallel to the normal (its part orthogonal to the normal shorter
+     * than {@code 1e-12} of its length) is replaced by a fixed unit tangent orthogonal to the normal, the first axis
+     * of the orthonormal basis of Duff et al., "Building an Orthonormal Basis, Revisited" (JCGT 2017):
+     * {@code (1 + s·nx²·a, s·nx·ny·a, −s·nx)} with {@code s = sign(nz)} and {@code a = −1 / (s + nz)}.</li>
+     * </ul>
      *
      * @param normal the frame's normal
      * @param tangent the frame's tangent
      * @param bitangentSign
      *            the glTF {@code tangent.w}: the bitangent is {@code bitangentSign · cross(normal, tangent)}; a
-     *            negative value negates the result, anything else (including 0) keeps {@code w} positive
+     *            negative value negates the result, anything else (including 0 and NaN) keeps {@code w} positive
      * @param bits the snorm bit count the result will be quantized to, from 2 to 31
      * @param dest receives the QTangent
      * @return {@code dest}
+     * @throws IllegalArgumentException if {@code bits} is outside {@code [2, 31]}
      */
     public static Quaternionf qTangent(Vector3fc normal, Vector3fc tangent, float bitangentSign, int bits, Quaternionf dest) {
+        if (bits < 2 || bits > 31) {
+            throw new IllegalArgumentException("bits must be in [2, 31]: " + bits);
+        }
+        qTangent(normal, tangent, bitangentSign, bits, dest, false);
+        return dest;
+    }
+
+    /**
+     * Computes the QTangent; writes it to {@code dest} and returns 0, or, with {@code pack}, returns the packed
+     * snorm16 form of {@link #packQTangent} and leaves {@code dest} alone. One body for both keeps them identical
+     * without a temporary quaternion.
+     */
+    private static long qTangent(Vector3fc normal, Vector3fc tangent, float bitangentSign, int bits, Quaternionf dest,
+            boolean pack) {
         double nx = normal.x(), ny = normal.y(), nz = normal.z();
-        double nl = Math.sqrt(nx * nx + ny * ny + nz * nz);
-        nx /= nl;
-        ny /= nl;
-        nz /= nl;
+        double nl = Math.sqrt(nx * nx + ny * ny + nz * nz); // float inputs cannot overflow or underflow in double
+        if (nl > 0 && nl < Double.POSITIVE_INFINITY) {
+            nx /= nl;
+            ny /= nl;
+            nz /= nl;
+        } else {
+            nx = 0;
+            ny = 0;
+            nz = 1;
+        }
         double tx = tangent.x(), ty = tangent.y(), tz = tangent.z();
+        double t0 = Math.sqrt(tx * tx + ty * ty + tz * tz);
         double d = tx * nx + ty * ny + tz * nz;
         tx -= d * nx;
         ty -= d * ny;
         tz -= d * nz;
         double tl = Math.sqrt(tx * tx + ty * ty + tz * tz);
-        tx /= tl;
-        ty /= tl;
-        tz /= tl;
+        if (tl > 1e-12 * t0 && tl < Double.POSITIVE_INFINITY) {
+            tx /= tl;
+            ty /= tl;
+            tz /= tl;
+        } else {
+            // Duff et al. 2017: a unit tangent orthogonal to the unit normal, continuous except across nz = 0
+            double s = nz >= 0 ? 1.0 : -1.0;
+            double a = -1.0 / (s + nz);
+            tx = 1.0 + s * nx * nx * a;
+            ty = s * nx * ny * a;
+            tz = -s * nx;
+        }
         double bx = ny * tz - nz * ty, by = nz * tx - nx * tz, bz = nx * ty - ny * tx;
-        Quaterniond q = new Quaterniond().setFromNormalized(new Matrix3d(tx, ty, tz, bx, by, bz, nx, ny, nz));
-        double x = q.x, y = q.y, z = q.z, w = q.w;
+        // the quaternion of the rotation whose columns are (t, b, n), as Quaterniond.setFromNormalized(Matrix3d)
+        double m00 = tx, m01 = ty, m02 = tz, m10 = bx, m11 = by, m12 = bz, m20 = nx, m21 = ny, m22 = nz;
+        double x, y, z, w;
+        double tr = m00 + m11 + m22;
+        if (tr >= 0.0) {
+            double t = Math.sqrt(tr + 1.0);
+            w = t * 0.5;
+            t = 0.5 / t;
+            x = (m12 - m21) * t;
+            y = (m20 - m02) * t;
+            z = (m01 - m10) * t;
+        } else if (m00 >= m11 && m00 >= m22) {
+            double t = Math.sqrt(m00 - (m11 + m22) + 1.0);
+            x = t * 0.5;
+            t = 0.5 / t;
+            y = (m10 + m01) * t;
+            z = (m02 + m20) * t;
+            w = (m12 - m21) * t;
+        } else if (m11 > m22) {
+            double t = Math.sqrt(m11 - (m22 + m00) + 1.0);
+            y = t * 0.5;
+            t = 0.5 / t;
+            z = (m21 + m12) * t;
+            x = (m10 + m01) * t;
+            w = (m20 - m02) * t;
+        } else {
+            double t = Math.sqrt(m22 - (m00 + m11) + 1.0);
+            z = t * 0.5;
+            t = 0.5 / t;
+            x = (m02 + m20) * t;
+            y = (m21 + m12) * t;
+            w = (m01 - m10) * t;
+        }
         if (w < 0) {
             x = -x;
             y = -y;
@@ -312,12 +379,18 @@ public final class PackedFormats {
             z = -z;
             w = -w;
         }
-        return dest.set((float) x, (float) y, (float) z, (float) w);
+        float fx = (float) x, fy = (float) y, fz = (float) z, fw = (float) w;
+        if (pack) {
+            return (PackedNorm.packSnorm16(fx) & 0xFFFFL) | (PackedNorm.packSnorm16(fy) & 0xFFFFL) << 16
+                    | (PackedNorm.packSnorm16(fz) & 0xFFFFL) << 32 | (PackedNorm.packSnorm16(fw) & 0xFFFFL) << 48;
+        }
+        dest.set(fx, fy, fz, fw);
+        return 0L;
     }
 
     /**
      * {@link #qTangent} with 16 bits, packed as four snorm16 values (x in the low 16 bits, then y, z, w), the layout
-     * of {@code R16G16B16A16_SNORM}. Allocates (asset-packing use).
+     * of {@code R16G16B16A16_SNORM}. Degenerate frames are handled as {@link #qTangent} describes. Does not allocate.
      *
      * @param normal the frame's normal
      * @param tangent the frame's tangent
@@ -325,9 +398,7 @@ public final class PackedFormats {
      * @return the packed QTangent
      */
     public static long packQTangent(Vector3fc normal, Vector3fc tangent, float bitangentSign) {
-        Quaternionf q = qTangent(normal, tangent, bitangentSign, 16, new Quaternionf());
-        return (PackedNorm.packSnorm16(q.x) & 0xFFFFL) | (PackedNorm.packSnorm16(q.y) & 0xFFFFL) << 16
-                | (PackedNorm.packSnorm16(q.z) & 0xFFFFL) << 32 | (PackedNorm.packSnorm16(q.w) & 0xFFFFL) << 48;
+        return qTangent(normal, tangent, bitangentSign, 16, null, true);
     }
 
     /**

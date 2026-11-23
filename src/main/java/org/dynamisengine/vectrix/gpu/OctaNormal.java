@@ -30,13 +30,24 @@ import org.dynamisengine.vectrix.core.Vector3f;
  * snorm16 values in 32 bits. Stateless and allocation-free.
  */
 public final class OctaNormal {
+    /**
+     * The code of {@code +Z = (0, 0, 1)}, the centre of the octahedral square. It is also what
+     * {@link #encodeSnorm16} returns for a zero, NaN or infinite vector.
+     *
+     * @since 3.0.0
+     */
+    public static final int UP = 0;
+
     private OctaNormal() {
     }
 
     /**
      * Encodes a direction as two snorm16 octahedral coordinates. The input is divided by its L1 norm, so it need not
-     * be unit length; the zero vector or NaN gives NaN coordinates, which encode as 0 and decode to
-     * {@code (0, 0, 1)}.
+     * be unit length. Very long or very short (subnormal) vectors are rescaled first, so they encode like their unit
+     * form.
+     * <p>
+     * A vector without a direction, the zero vector or one with a NaN or infinite component, encodes as
+     * {@link #UP}, the code of {@code +Z = (0, 0, 1)}: a defined, valid normal rather than NaN coordinates.
      *
      * @param nx the direction's x
      * @param ny the direction's y
@@ -44,7 +55,20 @@ public final class OctaNormal {
      * @return packed x in the low 16 bits, y in the high 16 bits
      */
     public static int encodeSnorm16(float nx, float ny, float nz) {
-        float invL1 = 1.0f / (java.lang.Math.abs(nx) + java.lang.Math.abs(ny) + java.lang.Math.abs(nz));
+        float l1 = java.lang.Math.abs(nx) + java.lang.Math.abs(ny) + java.lang.Math.abs(nz);
+        if (!(l1 >= 0x1p-100f && l1 <= 0x1p100f)) {
+            // zero, NaN, infinite, or an L1 norm whose reciprocal would over- or underflow
+            float m = java.lang.Math.max(java.lang.Math.abs(nx), java.lang.Math.max(java.lang.Math.abs(ny),
+                    java.lang.Math.abs(nz)));
+            if (!(m > 0.0f && m < Float.POSITIVE_INFINITY)) {
+                return UP; // Math.max propagates NaN, so this also catches a NaN component
+            }
+            nx /= m;
+            ny /= m;
+            nz /= m;
+            l1 = java.lang.Math.abs(nx) + java.lang.Math.abs(ny) + java.lang.Math.abs(nz);
+        }
+        float invL1 = 1.0f / l1;
         float x = nx * invL1;
         float y = ny * invL1;
         float z = nz * invL1;

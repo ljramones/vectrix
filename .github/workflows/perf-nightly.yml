@@ -26,7 +26,7 @@ jobs:
 
       - name: Run nightly benchmark suite
         run: |
-          java --add-modules jdk.incubator.vector -jar target/benchmarks.jar ".*(TransformComposeBenchmark|Affine4fBenchmark|FrustumCullingBenchmark|GpuPackingBenchmark|QuatCompressionBenchmark|GpuLayoutBenchmark|SkinningKernelBenchmark|MeshMathBenchmark|StdLayoutBenchmark|ReductionBenchmark).*" \
+          java --add-modules jdk.incubator.vector -jar target/benchmarks.jar ".*(TransformComposeBenchmark|Affine4fBenchmark|FrustumCullingBenchmark|GpuPackingBenchmark|QuatCompressionBenchmark|GpuLayoutBenchmark|SkinningKernelBenchmark|MeshMathBenchmark|ReductionBenchmark).*" \
             -f 2 -wi 5 -i 8 -w 250ms -r 250ms -t 1 \
             -rf csv -rff target/jmh-nightly.csv
 

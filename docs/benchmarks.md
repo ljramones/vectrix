@@ -246,7 +246,7 @@ Current benchmark suites (2026-03-06):
 - Geometry/mesh/culling:
   - `FrustumCullingBenchmark`, `MeshMathBenchmark`
 - GPU/interoperability/memory:
-  - `GpuPackingBenchmark`, `GpuLayoutBenchmark`, `StdLayoutBenchmark`, `InteropBenchmark`, `MemoryBackendBenchmark`, `QuatCompressionBenchmark`
+  - `GpuPackingBenchmark`, `GpuLayoutBenchmark`, `InteropBenchmark`, `MemoryBackendBenchmark`, `QuatCompressionBenchmark`
 - Rendering math domains:
   - `CurveBenchmark`, `ShBenchmark`, `ShHotPathBenchmark`, `FftBenchmark`, `LtcBenchmark`, `OpticsBenchmark`, `LowDiscrepancyBenchmark`, `QuaternionRotationBenchmark`
 - New expansion suites:

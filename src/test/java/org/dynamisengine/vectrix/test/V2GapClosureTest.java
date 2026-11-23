@@ -90,14 +90,17 @@ class V2GapClosureTest {
         Vector3f p1 = new Vector3f(1, 1, 0);
         Vector3f m0 = new Vector3f(1, 0, 0);
         Vector3f m1 = new Vector3f(1, 0, 0);
-        float[] h = CurveReparameterizer3f.buildArcLengthTableForHermite(p0, m0, p1, m1, 32, new float[33]);
+        float[] h = new float[33];
+        float hLength = CurveReparameterizer3f.buildArcLengthTableForHermite(p0, m0, p1, m1, 32, h);
+        assertTrue(hLength > 1.41f && hLength < 2f, "absolute length " + hLength);
         assertEquals(0.0f, h[0], 1E-6f);
         assertEquals(1.0f, h[32], 1E-6f);
         for (int i = 1; i < h.length; i++) assertTrue(h[i] >= h[i - 1]);
 
-        double[] c = CurveReparameterizer3d.buildArcLengthTableForCatmullRom(
+        double[] c = new double[33];
+        CurveReparameterizer3d.buildArcLengthTableForCatmullRom(
             new Vector3d(-1, 0, 0), new Vector3d(0, 0, 0), new Vector3d(1, 1, 0), new Vector3d(2, 1, 0),
-            0.0, 32, new double[33]);
+            0.0, 32, c);
         assertEquals(0.0, c[0], 1E-12);
         assertEquals(1.0, c[32], 1E-12);
         for (int i = 1; i < c.length; i++) assertTrue(c[i] >= c[i - 1]);

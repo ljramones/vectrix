@@ -40,19 +40,28 @@ public final class Sampler {
     }
 
     /**
-     * Returns the index of the largest logit, the first of equal ones. NaN logits after the first element are
-     * skipped. The offsets are not checked up front: a short array throws {@code ArrayIndexOutOfBoundsException}.
+     * Returns the index of the largest logit, the first of equal ones. A NaN wins over every number: if the row holds
+     * a NaN, the index of the first NaN is returned, as {@link Pool2d#max} does for a window (before 3.0 a leading
+     * NaN won and later NaNs were skipped).
      *
      * @param logits the row of logits
      * @param off the offset of the row in {@code logits}
-     * @param n the number of logits
-     * @return the index relative to {@code off}, or -1 if {@code n <= 0}
+     * @param n the number of logits, at least 0
+     * @return the index relative to {@code off}, or -1 if {@code n == 0}
+     * @throws IllegalArgumentException if {@code logits} is null or {@code n} is negative or too large for the array
+     *         from {@code off}
      */
     public static int argmax(float[] logits, int off, int n) {
+        if (logits == null || n < 0 || off < 0 || off > logits.length - n) {
+            throw new IllegalArgumentException("logits must hold " + n + " values from offset " + off);
+        }
         int best = -1;
         float m = Float.NEGATIVE_INFINITY;
         for (int i = 0; i < n; i++) {
             float v = logits[off + i];
+            if (v != v) {
+                return i;
+            }
             if (best < 0 || v > m) {
                 best = i;
                 m = v;

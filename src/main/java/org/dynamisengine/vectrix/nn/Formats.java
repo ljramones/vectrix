@@ -129,7 +129,8 @@ public final class Formats {
     /**
      * Quantizes {@code n} floats ({@code n} a multiple of {@link #QBLOCK}) to int8 by blocks of 32: each block's scale
      * is {@code max|x| / 127} and {@code q = rint(x / scale)}, so the largest element maps to ±127 exactly. An all-zero
-     * block gets scale 0 and codes 0; a block containing NaN gets a NaN scale and codes 0.
+     * block gets scale 0 and codes 0. The values must be finite: a NaN or infinite value has no int8 code and is
+     * rejected before anything is written (it used to give a NaN scale and all-zero codes).
      *
      * @param x the values
      * @param xOff the offset in {@code x}
@@ -138,8 +139,8 @@ public final class Formats {
      * @param qOff the offset in {@code q}
      * @param scales receives {@code n / 32} scales
      * @param sOff the offset in {@code scales}
-     * @throws IllegalArgumentException if {@code n} is not a non-negative multiple of 32 or an array is too short for
-     *         its offset; nothing is written then
+     * @throws IllegalArgumentException if {@code n} is not a non-negative multiple of 32, an array is too short for
+     *         its offset, or a value is NaN or infinite; nothing is written then
      */
     public static void quantizeInt8(float[] x, int xOff, int n, byte[] q, int qOff, float[] scales, int sOff) {
         if (n < 0 || n % QBLOCK != 0) {
@@ -148,6 +149,12 @@ public final class Formats {
         range(x == null ? -1 : x.length, xOff, n, "x");
         range(q == null ? -1 : q.length, qOff, n, "q");
         range(scales == null ? -1 : scales.length, sOff, n / QBLOCK, "scales");
+        for (int i = 0; i < n; i++) {
+            float v = x[xOff + i];
+            if (v - v != 0f) { // NaN or ±infinity
+                throw new IllegalArgumentException("x[" + (xOff + i) + "] = " + v + " is not finite");
+            }
+        }
         for (int b = 0; b < n / QBLOCK; b++) {
             int base = b * QBLOCK;
             float amax = 0f;
@@ -269,10 +276,9 @@ public final class Formats {
     /**
      * {@code y = W·x} for an {@code m×n} int8 block-quantized row-major {@code W} (row {@code i} at codes
      * {@code q[qOff + i·n ..]} and scales {@code scales[sOff + i·n/32 ..]}): each element is {@link #dotInt8}.
-     * Only {@code y} is checked up front; the rows are checked one by one, so a short {@code q} or {@code scales}
-     * throws after the earlier elements of {@code y} are written.
+     * Every array is checked before anything is written.
      *
-     * @param m the number of rows
+     * @param m the number of rows, at least 0
      * @param n the number of columns, a non-negative multiple of 32
      * @param q the codes of {@code W}, row-major
      * @param qOff the offset of row 0 in {@code q}
@@ -283,10 +289,19 @@ public final class Formats {
      * @param y receives {@code m} floats; must not overlap {@code x}
      * @param yOff the offset in {@code y}
      * @throws IllegalArgumentException if {@code m < 0}, {@code n} is not a non-negative multiple of 32, or an array
-     *         is too short for its offset
+     *         is too short for its offset; nothing is written then
      */
     public static void gemvInt8(int m, int n, byte[] q, int qOff, float[] scales, int sOff, float[] x, int xOff,
             float[] y, int yOff) {
+        if (m < 0) {
+            throw new IllegalArgumentException("m must not be negative: " + m);
+        }
+        if (n < 0 || n % QBLOCK != 0) {
+            throw new IllegalArgumentException("n must be a multiple of " + QBLOCK + ": " + n);
+        }
+        range(q == null ? -1 : q.length, qOff, (long) m * n, "q");
+        range(scales == null ? -1 : scales.length, sOff, (long) m * (n / QBLOCK), "scales");
+        range(x == null ? -1 : x.length, xOff, n, "x");
         range(y == null ? -1 : y.length, yOff, m, "y");
         for (int i = 0; i < m; i++) {
             y[yOff + i] = dotInt8(q, qOff + i * n, scales, sOff + i * (n / QBLOCK), x, xOff, n);
@@ -389,7 +404,7 @@ public final class Formats {
         return p;
     }
 
-    private static void range(int length, int off, int n, String name) {
+    private static void range(int length, int off, long n, String name) {
         if (length < 0 || n < 0 || off < 0 || off > length - n) {
             throw new IllegalArgumentException(name + " must hold " + n + " values from offset " + off);
         }

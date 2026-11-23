@@ -66,8 +66,9 @@ The batch and signal APIs (`soa`, `fft`, `dsp`, `blas`, `nn`, `world`, `gpu`) wo
 - **In-place.** Whether an output array may be an input array is stated per method, for example "`in` may be
   `out`".
 
-Some older batch APIs (in `animation`, `ik` and some `soa` kernels) take a count but no offsets. They start at index
-0 and rely on Java's array bounds checks, so an error appears as `ArrayIndexOutOfBoundsException`.
+Some older batch APIs (in `animation`, `ik` and `soa`) take a count but no offsets and start at index 0. The `soa`
+kernels still check sizes and indices up front; the `animation` and `ik` ones rely on Java's array bounds checks, so
+an error appears there as `ArrayIndexOutOfBoundsException`.
 
 ## Coordinates, angles and matrices
 
@@ -92,8 +93,8 @@ Some older batch APIs (in `animation`, `ik` and some `soa` kernels) take a count
 Every 12-float affine transform in Vectrix uses one layout:
 - `PackedAffineArray`;
 - the outputs of `PackedAffineKernels`;
-- `GpuTransformWriteKernels.writePackedAffine`;
-- the skinning palette (`SkinningKernels.buildRigidMatrixPalette12`, `SkinningKernels.skinLbs4MatrixPalette`).
+- the skinning palette (`SkinningKernels.buildMatrixPalette12`, `SkinningKernels.buildRigidMatrixPalette12`,
+  `SkinningKernels.skinLbs4MatrixPalette`).
 
 Each transform is three rows:
 

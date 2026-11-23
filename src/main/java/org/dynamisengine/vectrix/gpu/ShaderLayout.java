@@ -24,8 +24,10 @@
 package org.dynamisengine.vectrix.gpu;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -110,10 +112,14 @@ public final class ShaderLayout {
         /**
          * Validates the components.
          *
-         * @throws IllegalArgumentException if {@code columns} or {@code rows} is outside {@code [1, 4]}, if a matrix
-         *         is not float or double or has fewer than 2 rows, or if a non-matrix is row-major
+         * @throws IllegalArgumentException if {@code scalar} is null, {@code columns} or {@code rows} is outside
+         *         {@code [1, 4]}, a matrix is not float or double or has fewer than 2 rows, or a non-matrix is
+         *         row-major
          */
         public Basic {
+            if (scalar == null) {
+                throw new IllegalArgumentException("scalar must not be null");
+            }
             if (columns < 1 || columns > 4 || rows < 1 || rows > 4) {
                 throw new IllegalArgumentException("columns and rows must be 1..4");
             }
@@ -183,10 +189,21 @@ public final class ShaderLayout {
         /**
          * Copies {@code members} into an unmodifiable list and validates it.
          *
-         * @throws IllegalArgumentException if there are no members or two members share a name
-         * @throws NullPointerException if {@code members} or one of its elements is null
+         * @throws IllegalArgumentException if {@code name} is null or empty, {@code members} or one of its elements is
+         *         null, there are no members or two members share a name
          */
         public Struct {
+            if (name == null || name.isEmpty()) {
+                throw new IllegalArgumentException("structs need a name");
+            }
+            if (members == null) {
+                throw new IllegalArgumentException("struct " + name + ": members must not be null");
+            }
+            for (Member m : members) {
+                if (m == null) {
+                    throw new IllegalArgumentException("struct " + name + ": members must not be null");
+                }
+            }
             members = List.copyOf(members);
             if (members.isEmpty()) {
                 throw new IllegalArgumentException("structs need at least one member");
@@ -343,10 +360,14 @@ public final class ShaderLayout {
      * @param name the GLSL type name
      * @param members the members, in declaration order
      * @return the type
-     * @throws IllegalArgumentException if there are no members or two members share a name
+     * @throws IllegalArgumentException if {@code name} is null or empty, a member is null, there are no members or two
+     *         members share a name
      */
     public static Struct struct(String name, Member... members) {
-        return new Struct(name, List.of(members));
+        if (members == null) {
+            throw new IllegalArgumentException("struct " + name + ": members must not be null");
+        }
+        return new Struct(name, java.util.Arrays.asList(members));
     }
 
     private static int roundUp(int x, int a) {
@@ -497,8 +518,12 @@ public final class ShaderLayout {
      * @param rules the layout rules
      * @param block the block's members, as a struct
      * @return the layout
+     * @throws IllegalArgumentException if {@code rules} or {@code block} is null
      */
     public static Block layout(Rules rules, Struct block) {
+        if (rules == null || block == null) {
+            throw new IllegalArgumentException("rules and block must not be null");
+        }
         return new Block(rules, block);
     }
 
@@ -677,22 +702,35 @@ public final class ShaderLayout {
          * {@code layout(<rules>, binding = <binding>) <storage> <blockName> { ... } <instanceName>;}. With
          * {@code SCALAR}, or {@code STD430} for a uniform block, the declaration is preceded by
          * {@code #extension GL_EXT_scalar_block_layout : require}. GLSL allows {@code layout(row_major)} on block
-         * members only, so a struct holding a row-major matrix is rejected.
+         * members only, so a struct holding a row-major matrix is rejected. Each struct type is declared once, before
+         * its first use; GLSL has one name per struct type, so two different structs with the same name are rejected
+         * (the same struct used twice is fine).
          *
-         * @param storage
-         *            {@code "uniform"} or {@code "buffer"}; written as given, not validated
-         * @param blockName the block name
-         * @param instanceName the instance name
-         * @param binding the binding number
+         * @param storage {@code "uniform"} or {@code "buffer"}
+         * @param blockName the block name, not empty
+         * @param instanceName the instance name; empty for an anonymous block, whose members are referred to without a
+         *        prefix
+         * @param binding the binding number, at least 0
          * @return the GLSL source, one declaration per line
-         * @throws IllegalArgumentException if a struct contains a row-major matrix
+         * @throws IllegalArgumentException if {@code storage} is neither {@code "uniform"} nor {@code "buffer"},
+         *         {@code blockName} is null or empty, {@code instanceName} is null, {@code binding} is negative, a
+         *         struct contains a row-major matrix, or two different structs share a name
          */
         public String toGlsl(String storage, String blockName, String instanceName, int binding) {
+            if (!"uniform".equals(storage) && !"buffer".equals(storage)) {
+                throw new IllegalArgumentException("storage must be \"uniform\" or \"buffer\": " + storage);
+            }
+            if (blockName == null || blockName.isEmpty() || instanceName == null) {
+                throw new IllegalArgumentException("blockName must not be empty, instanceName must not be null");
+            }
+            if (binding < 0) {
+                throw new IllegalArgumentException("binding must not be negative: " + binding);
+            }
             StringBuilder sb = new StringBuilder();
             if (rules == Rules.SCALAR || (rules == Rules.STD430 && "uniform".equals(storage))) {
                 sb.append("#extension GL_EXT_scalar_block_layout : require\n");
             }
-            List<String> declared = new ArrayList<>();
+            Map<String, Struct> declared = new HashMap<>();
             for (Member m : type.members()) {
                 declareStructs(m.type(), declared, sb);
             }
@@ -701,19 +739,29 @@ public final class ShaderLayout {
             for (Member m : type.members()) {
                 sb.append("    ").append(declaration(m)).append(";\n");
             }
-            sb.append("} ").append(instanceName).append(";\n");
+            sb.append(instanceName.isEmpty() ? "};\n" : "} " + instanceName + ";\n");
             return sb.toString();
         }
 
-        private static void declareStructs(Type t, List<String> declared, StringBuilder sb) {
+        private static void declareStructs(Type t, Map<String, Struct> declared, StringBuilder sb) {
             while (t instanceof ArrayOf a) {
                 t = a.element();
             }
-            if (t instanceof Struct s && !declared.contains(s.name())) {
+            if (t instanceof Struct s) {
+                Struct prior = declared.get(s.name());
+                if (prior != null) {
+                    if (!prior.equals(s)) {
+                        throw new IllegalArgumentException("two different structs are named " + s.name());
+                    }
+                    return;
+                }
                 for (Member m : s.members()) {
                     declareStructs(m.type(), declared, sb);
                 }
-                declared.add(s.name());
+                if (declared.containsKey(s.name())) { // a nested struct of the same name, necessarily different
+                    throw new IllegalArgumentException("two different structs are named " + s.name());
+                }
+                declared.put(s.name(), s);
                 sb.append("struct ").append(s.name()).append(" {\n");
                 for (Member m : s.members()) {
                     Type mt = m.type();

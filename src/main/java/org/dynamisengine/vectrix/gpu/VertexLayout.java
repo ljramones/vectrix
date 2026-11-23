@@ -31,8 +31,8 @@ import java.util.List;
  * An interleaved vertex layout: a vertex stride and its attributes, validated on construction. Immutable.
  * <p>
  * Validation requires every attribute offset to be a multiple of its component size, every attribute to end within
- * the stride, no two attributes to overlap and no two to share a name. The stride itself is not checked for
- * alignment.
+ * the stride, no two attributes to overlap and no two to share a name. The stride must be a multiple of the largest
+ * component size, so that the attributes of every vertex, not only the first, are aligned.
  */
 public final class VertexLayout {
     /** The size of one vertex in bytes. */
@@ -43,17 +43,24 @@ public final class VertexLayout {
     /**
      * Creates and validates a layout. The list is copied.
      *
-     * @param strideBytes the size of one vertex in bytes, at least 1
-     * @param attributes the attributes, at least one
-     * @throws IllegalArgumentException if {@code strideBytes} is not positive, the list is null or empty, or the
-     *         attributes are misaligned, exceed the stride, overlap or share a name
+     * @param strideBytes the size of one vertex in bytes, at least 1 and a multiple of every attribute's component
+     *        size
+     * @param attributes the attributes, at least one, none null
+     * @throws IllegalArgumentException if {@code strideBytes} is not positive or not a multiple of an attribute's
+     *         component size, the list is null or empty or holds a null attribute, or the attributes are misaligned,
+     *         exceed the stride, overlap or share a name
      */
     public VertexLayout(int strideBytes, List<VertexAttribute> attributes) {
         if (strideBytes <= 0) {
-            throw new IllegalArgumentException("strideBytes");
+            throw new IllegalArgumentException("strideBytes must be positive: " + strideBytes);
         }
         if (attributes == null || attributes.isEmpty()) {
-            throw new IllegalArgumentException("attributes");
+            throw new IllegalArgumentException("attributes must not be null or empty");
+        }
+        for (VertexAttribute a : attributes) {
+            if (a == null) {
+                throw new IllegalArgumentException("attributes must not hold null");
+            }
         }
         this.strideBytes = strideBytes;
         this.attributes = Collections.unmodifiableList(new ArrayList<VertexAttribute>(attributes));
@@ -63,12 +70,16 @@ public final class VertexLayout {
     /**
      * Creates and validates a layout from an attribute array; see the constructor.
      *
-     * @param strideBytes the size of one vertex in bytes, at least 1
-     * @param attributes the attributes, at least one
+     * @param strideBytes the size of one vertex in bytes, at least 1 and a multiple of every attribute's component
+     *        size
+     * @param attributes the attributes, at least one, none null
      * @return the layout
      * @throws IllegalArgumentException if the layout is invalid (see the constructor)
      */
     public static VertexLayout ofInterleaved(int strideBytes, VertexAttribute... attributes) {
+        if (attributes == null) {
+            throw new IllegalArgumentException("attributes must not be null");
+        }
         ArrayList<VertexAttribute> list = new ArrayList<VertexAttribute>(attributes.length);
         Collections.addAll(list, attributes);
         return new VertexLayout(strideBytes, list);
@@ -97,13 +108,17 @@ public final class VertexLayout {
             if ((a.offsetBytes % align) != 0) {
                 throw new IllegalArgumentException("Attribute offset is not aligned: " + a.name);
             }
-            int end = a.offsetBytes + a.byteSize();
+            if (strideBytes % align != 0) {
+                throw new IllegalArgumentException("strideBytes " + strideBytes + " is not a multiple of the "
+                        + align + "-byte components of " + a.name);
+            }
+            long end = (long) a.offsetBytes + a.byteSize();
             if (end > strideBytes) {
                 throw new IllegalArgumentException("Attribute exceeds stride: " + a.name);
             }
             for (int j = i + 1; j < attributes.size(); j++) {
                 VertexAttribute b = attributes.get(j);
-                if (rangesOverlap(a.offsetBytes, end, b.offsetBytes, b.offsetBytes + b.byteSize())) {
+                if (rangesOverlap(a.offsetBytes, end, b.offsetBytes, (long) b.offsetBytes + b.byteSize())) {
                     throw new IllegalArgumentException("Attributes overlap: " + a.name + " and " + b.name);
                 }
                 if (a.name.equals(b.name)) {
@@ -113,7 +128,7 @@ public final class VertexLayout {
         }
     }
 
-    private static boolean rangesOverlap(int a0, int a1, int b0, int b1) {
+    private static boolean rangesOverlap(long a0, long a1, long b0, long b1) {
         return a0 < b1 && b0 < a1;
     }
 }

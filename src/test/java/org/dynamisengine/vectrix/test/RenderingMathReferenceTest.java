@@ -66,7 +66,7 @@ class RenderingMathReferenceTest {
         PackedAffineArray packed = new PackedAffineArray(3);
         PackedAffineKernels.trsToPackedAffineBatch(t, packed, 3);
         float[] out = new float[48];
-        GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(packed, new int[] {0, 1, 2}, out, 3);
+        GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(packed, new int[] {0, 1, 2}, out, 0, 3);
         for (int i = 0; i < 3; i++) {
             float[] expected = new Matrix4f().translationRotateScale(t[i].translation, t[i].rotation, t[i].scale)
                     .get(new float[16]);
