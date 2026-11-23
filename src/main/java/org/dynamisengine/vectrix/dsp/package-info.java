@@ -53,7 +53,8 @@
  * give the gating distance of a measurement without updating ({@code innovationDistance}), and
  * {@link org.dynamisengine.vectrix.dsp.InnovationFunction} lets the extended filter wrap angle innovations. Precision and naming: unsuffixed classes are double; {@code Stftf},
  * {@code Dctf} and {@code Mdctf} are the float twins of the {@code ...d} plans; the float overloads of
- * {@code Windows}, {@code Biquad}, {@code Goertzel}, {@code Resampler}, {@code Correlation}, {@code Toeplitz} and
- * {@code Wavelet} compute in double and round only their outputs, and {@code Smoothers.median} works on floats.
+ * {@code Windows}, {@code Biquad}, {@code Goertzel}, {@code Resampler}, {@code Correlation}, {@code Toeplitz},
+ * {@code Wavelet}, {@code Spectra} and {@code Wiener} compute in double and round only their outputs, and
+ * {@code Smoothers.median} works on floats.
  */
 package org.dynamisengine.vectrix.dsp;

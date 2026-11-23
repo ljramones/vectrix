@@ -35,9 +35,9 @@ guide: [state-estimation.md](state-estimation.md).
 
 Unsuffixed `dsp` classes work in double. Classes ending in `f` work in float; where a `dsp` method has a float
 overload without a float class (`Biquad.process`, `Resampler.process`, `Goertzel.dft`, `Windows.hann` and the other
-windows, `Correlation.correlate`, `Toeplitz.solve`, `Toeplitz.levinsonDurbin`, `Wavelet.forward` and
-`Wavelet.inverse`), it computes in double and rounds once: the result is the double method's on the widened inputs,
-rounded to float. Their scratch arrays are double.
+windows, `Correlation.correlate`, `Toeplitz.solve`, `Toeplitz.levinsonDurbin`, `Wavelet.forward`,
+`Wavelet.inverse`, the `Spectra` estimates and the `Wiener` filters), it computes in double and rounds once: the
+result is the double method's on the widened inputs, rounded to float. Their scratch arrays are double.
 
 ## Units and conventions
 
@@ -161,6 +161,8 @@ The methods of `Spectra`:
   phase. The FFT treats the signal as periodic, so expect edge effects at both ends.
 
 Scratch for the first two is `Spectra.scratchSize(RealFftd)`, for `analytic` `Spectra.scratchSize(ComplexFftd)`.
+The float overloads keep their sums in double, so they take more: `Spectra.floatScratchSize(RealFftd)`,
+`Spectra.floatCrossScratchSize(RealFftd)` and `Spectra.floatScratchSize(ComplexFftd)`.
 
 **Scaling.** PSDs are one-sided and density-scaled for frequencies in cycles per sample:
 
@@ -402,7 +404,8 @@ Notes:
   plain inverse filtering, unstable where `H` is small; larger values trade sharpness for less noise. An overload
   takes one ratio per bin (`n/2 + 1` values). Ratios must be `>= 0`. Scratch is `Wiener.deconvolveScratchSize(plan)`.
 - `Wiener.deconvolve2d` takes a `RealFft2d` plan, a row-major image and a `kRows × kCols` kernel; scratch is
-  `Wiener.deconvolve2dScratchSize(plan)`. Pad the image if you do not want the blur to wrap around the edges.
+  `Wiener.deconvolve2dScratchSize(plan)` (`Wiener.deconvolve2dFloatScratchSize(plan)` for the float overload). Pad
+  the image if you do not want the blur to wrap around the edges.
 - `Wiener.adaptive2d(img, rows, cols, half, noiseVariance, out, scratch)` works on `(2·half + 1)²` windows (like
   MATLAB's `wiener2`). Pass a noise variance of 0 or less to estimate it as the mean local variance; the method
   returns the variance it used. Scratch is `2·(rows + 1)·(cols + 1)` doubles.
