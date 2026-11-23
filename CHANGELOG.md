@@ -25,6 +25,28 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - Plans are immutable and can be shared between threads. Calls take caller-owned scratch, do not allocate,
     and are deterministic. The 1D plans also accept `MemorySegment` data.
 
+- **Signal processing** (`dsp`, phase 2 of the roadmap):
+  - `Windows`:
+    - Hann, Hamming, Blackman, Blackman–Harris, Nuttall, flat top, Kaiser, Tukey, Gaussian, Dolph–Chebyshev and
+      sine windows;
+    - each symmetric or periodic, and bit-exactly symmetric;
+    - coherent gain and equivalent noise bandwidth.
+  - `FirDesign`:
+    - window-method low-pass, high-pass, band-pass and band-stop, scaled to exactly unit gain;
+    - Kaiser's β and length formulas;
+    - FIR frequency response.
+  - `BiquadDesign`:
+    - the RBJ cookbook sections (low/high/band-pass, notch, all-pass, peaking, shelves);
+    - Butterworth cascades of any order, matching the analytic response to 1e-12;
+    - `1 ± cos w` computed as `2sin²(w/2)`/`2cos²(w/2)`, so low-frequency designs don't cancel.
+  - `Biquad`:
+    - cascade processing in transposed direct form II, in double, with caller-held state;
+    - a float-sample overload;
+    - frequency response.
+- `AccurateMath.cosTurns/sinTurns(e, d)`: cos and sin of `2π·e/d`, with the angle reduced exactly in integers. The
+  symmetries are exact (odd multiples of π/4 give the correctly rounded √½ for both). The FFT twiddles now use
+  them.
+
 ### Added (projection queries)
 - `DepthRange` forms of the projection queries inherited from JOML, which assumed OpenGL's [-1, 1] depth:
   - `Matrix4f/d`:

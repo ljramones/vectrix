@@ -34,38 +34,13 @@ import org.dynamisengine.vectrix.core.AccurateMath;
  */
 final class FftMath {
 
-    private static final double HALF_PI = 0.5 * java.lang.Math.PI;
-
     private FftMath() {
     }
 
     /** Writes {@code exp(-2πi e/d)} to {@code out[o]} (real) and {@code out[o + 1]} (imaginary). */
     static void root(long e, long d, double[] out, int o) {
-        long r = java.lang.Math.floorMod(e, d);
-        long q = (4 * r) / d;            // quadrant of the angle 2π r/d
-        long t = 4 * r - q * d;          // remainder: the angle within the quadrant is (π/2)·t/d
-        double c;
-        double s;
-        if (2 * t <= d) {
-            double a = HALF_PI * ((double) t / d);
-            c = AccurateMath.cos(a);
-            s = AccurateMath.sin(a);
-        } else {
-            double a = HALF_PI * ((double) (d - t) / d);
-            c = AccurateMath.sin(a);
-            s = AccurateMath.cos(a);
-        }
-        double cr;
-        double sr;
-        switch ((int) q) {
-            case 0: cr = c; sr = s; break;
-            case 1: cr = -s; sr = c; break;
-            case 2: cr = -c; sr = -s; break;
-            default: cr = s; sr = -c; break;
-        }
-        // exp(-iθ) = cos θ - i sin θ; "+ 0.0" turns a negative zero positive
-        out[o] = cr + 0.0;
-        out[o + 1] = -sr + 0.0;
+        out[o] = AccurateMath.cosTurns(e, d);
+        out[o + 1] = -AccurateMath.sinTurns(e, d) + 0.0; // "+ 0.0" turns a negative zero positive
     }
 
     /** The interleaved roots {@code exp(-2πi k/d)}, {@code k < count}. */

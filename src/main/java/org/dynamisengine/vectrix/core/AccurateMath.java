@@ -83,6 +83,65 @@ public final class AccurateMath {
         return STRICT ? StrictMath.pow(a, b) : java.lang.Math.pow(a, b);
     }
 
+    /**
+     * {@code cos(2π·e/d)}: the cosine of {@code e/d} turns, with the angle reduced exactly in integer arithmetic to at
+     * most π/4 before the cosine is taken. The result is within about one ulp for every {@code e}, and the
+     * symmetries are exact: {@code cosTurns(d - e, d) == cosTurns(e, d)}, quarter and half turns give exactly 0 and
+     * ±1.
+     *
+     * @param e the numerator, any value
+     * @param d the denominator, {@code 1 <= d <= 2^60}
+     * @return the cosine
+     * @since 2.5.0
+     */
+    public static double cosTurns(long e, long d) {
+        return turns(e, d, true);
+    }
+
+    /**
+     * {@code sin(2π·e/d)}, reduced exactly as for {@link #cosTurns(long, long)}:
+     * {@code sinTurns(d - e, d) == -sinTurns(e, d)}.
+     *
+     * @param e the numerator, any value
+     * @param d the denominator, {@code 1 <= d <= 2^60}
+     * @return the sine
+     * @since 2.5.0
+     */
+    public static double sinTurns(long e, long d) {
+        return turns(e, d, false);
+    }
+
+    private static double turns(long e, long d, boolean cosine) {
+        if (d < 1 || d > (1L << 60)) {
+            throw new IllegalArgumentException("denominator must be in [1, 2^60]: " + d);
+        }
+        long r = java.lang.Math.floorMod(e, d);
+        long q = (4 * r) / d;            // quadrant of the angle 2π r/d
+        long t = 4 * r - q * d;          // the angle within the quadrant is (π/2)·t/d
+        double c;
+        double s;
+        if (2 * t == d) { // exactly an odd multiple of π/4: both are √½, correctly rounded
+            c = java.lang.Math.sqrt(0.5);
+            s = c;
+        } else if (2 * t < d) {
+            double a = 0.5 * java.lang.Math.PI * ((double) t / d);
+            c = cos(a);
+            s = sin(a);
+        } else {
+            double a = 0.5 * java.lang.Math.PI * ((double) (d - t) / d);
+            c = sin(a);
+            s = cos(a);
+        }
+        double v;
+        switch ((int) q) {
+            case 0: v = cosine ? c : s; break;
+            case 1: v = cosine ? -s : c; break;
+            case 2: v = cosine ? -c : -s; break;
+            default: v = cosine ? s : -c; break;
+        }
+        return v + 0.0; // no negative zero
+    }
+
     /** Cube root, sign-preserving ({@code cbrt(-8) = -2}). */
     public static double cbrt(double a) {
         return STRICT ? StrictMath.cbrt(a) : java.lang.Math.cbrt(a);
