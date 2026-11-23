@@ -78,7 +78,8 @@ public final class InertiaTensorf {
     }
 
     /**
-     * Solid cone aligned along the +Y/-Y axis with apex at +Y.
+     * Solid cone aligned along the +Y/-Y axis with apex at +Y, about its center of mass, which lies {@code height/4}
+     * above the base.
      */
     public static Vector3f cone(float mass, float radius, float height, Vector3f dest) {
         float r2 = radius * radius;

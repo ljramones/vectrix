@@ -101,6 +101,50 @@ public class GeometryUtils {
     }
 
     /**
+     * Double-precision form of {@link #perpendicular(float, float, float, Vector3f, Vector3f)}: two unit vectors that
+     * form an orthonormal basis with the unit vector {@code (x, y, z)}.
+     *
+     * @since 2.4.0
+     */
+    public static void perpendicular(double x, double y, double z, Vector3d dest1, Vector3d dest2) {
+        double magX = z * z + y * y;
+        double magY = z * z + x * x;
+        double magZ = y * y + x * x;
+        double d1x, d1y, d1z, mag;
+        if (magX > magY && magX > magZ) {
+            d1x = 0;
+            d1y = z;
+            d1z = -y;
+            mag = magX;
+        } else if (magY > magZ) {
+            d1x = -z;
+            d1y = 0;
+            d1z = x;
+            mag = magY;
+        } else {
+            d1x = y;
+            d1y = -x;
+            d1z = 0;
+            mag = magZ;
+        }
+        double len = 1.0 / java.lang.Math.sqrt(mag);
+        d1x *= len;
+        d1y *= len;
+        d1z *= len;
+        dest1.set(d1x, d1y, d1z);
+        dest2.set(y * d1z - z * d1y, z * d1x - x * d1z, x * d1y - y * d1x);
+    }
+
+    /**
+     * Double-precision form of {@link #perpendicular(Vector3fc, Vector3f, Vector3f)}.
+     *
+     * @since 2.4.0
+     */
+    public static void perpendicular(Vector3dc v, Vector3d dest1, Vector3d dest2) {
+        perpendicular(v.x(), v.y(), v.z(), dest1, dest2);
+    }
+
+    /**
      * Calculate the normal of a surface defined by points <code>v1</code>, <code>v2</code> and <code>v3</code> and store it in <code>dest</code>.
      * 
      * @param v0

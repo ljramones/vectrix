@@ -152,4 +152,103 @@ public final class ClosestPointsd {
         }
         return best;
     }
+
+    /** The point of box {@code [min, max]} closest to {@code p} (that is, {@code p} clamped to the box). */
+    public static Vector3d closestPointAab(Vector3dc p, Vector3dc min, Vector3dc max, Vector3d dest) {
+        double px = p.x(), py = p.y(), pz = p.z();
+        return dest.set(Math.min(Math.max(px, min.x()), max.x()), Math.min(Math.max(py, min.y()), max.y()),
+                Math.min(Math.max(pz, min.z()), max.z()));
+    }
+
+    /** Squared distance from {@code p} to box {@code [min, max]}; {@code 0} inside. */
+    public static double distanceSquaredPointAab(Vector3dc p, Vector3dc min, Vector3dc max) {
+        double dx = axisGap(p.x(), min.x(), max.x()), dy = axisGap(p.y(), min.y(), max.y()), dz = axisGap(p.z(), min.z(), max.z());
+        return (dx * dx + dy * dy + dz * dz);
+    }
+
+    private static double axisGap(double x, double lo, double hi) {
+        return x < lo ? lo - x : x > hi ? x - hi : 0;
+    }
+
+    /**
+     * Closest points between segment {@code a}–{@code b} and box {@code [min, max]}, exactly.
+     * <p>
+     * The squared distance along the segment is convex and piecewise quadratic, so its minimum lies at an endpoint,
+     * at one of the at most six points where the segment crosses a slab plane, or at the minimizer of one of the
+     * quadratic pieces. Every candidate is evaluated, in double, with no iteration and no allocation. When the
+     * segment meets the box the distance is 0, and the points are one common point. A zero-length segment is a point.
+     *
+     * @return the squared distance
+     */
+    public static double segmentAab(Vector3dc a, Vector3dc b, Vector3dc min, Vector3dc max, Vector3d onSegment,
+            Vector3d onBox) {
+        return segmentAab(a.x(), a.y(), a.z(), b.x(), b.y(), b.z(), min.x(), min.y(), min.z(), max.x(), max.y(), max.z(),
+                onSegment, onBox);
+    }
+
+    /** Scalar form of {@link #segmentAab(Vector3dc, Vector3dc, Vector3dc, Vector3dc, Vector3d, Vector3d)}. */
+    public static double segmentAab(double ax, double ay, double az, double bx, double by, double bz, double minX, double minY,
+            double minZ, double maxX, double maxY, double maxZ, Vector3d onSegment, Vector3d onBox) {
+        double dx = (double) bx - ax, dy = (double) by - ay, dz = (double) bz - az;
+        double bestS = 0, best = segBox2(0, ax, ay, az, dx, dy, dz, minX, minY, minZ, maxX, maxY, maxZ);
+        double f = segBox2(1, ax, ay, az, dx, dy, dz, minX, minY, minZ, maxX, maxY, maxZ);
+        if (f < best) {
+            best = f;
+            bestS = 1;
+        }
+        // slab crossings
+        for (int i = 0; i < 6; i++) {
+            double d = i < 2 ? dx : i < 4 ? dy : dz;
+            if (d == 0) {
+                continue;
+            }
+            double o = i < 2 ? ax : i < 4 ? ay : az;
+            double bound = i == 0 ? minX : i == 1 ? maxX : i == 2 ? minY : i == 3 ? maxY : i == 4 ? minZ : maxZ;
+            double s = (bound - o) / d;
+            if (s > 0 && s < 1) {
+                f = segBox2(s, ax, ay, az, dx, dy, dz, minX, minY, minZ, maxX, maxY, maxZ);
+                if (f < best) {
+                    best = f;
+                    bestS = s;
+                }
+            }
+        }
+        // minimizers of each quadratic piece: every axis below (0), inside (1) or above (2) its slab
+        for (int combo = 0; combo < 27; combo++) {
+            double num = 0, den = 0;
+            for (int i = 0, c = combo; i < 3; i++, c /= 3) {
+                int state = c % 3;
+                if (state == 1) {
+                    continue;
+                }
+                double d = i == 0 ? dx : i == 1 ? dy : dz;
+                double o = i == 0 ? ax : i == 1 ? ay : az;
+                double bound = state == 0 ? (i == 0 ? minX : i == 1 ? minY : minZ) : (i == 0 ? maxX : i == 1 ? maxY : maxZ);
+                num += d * (o - bound);
+                den += d * d;
+            }
+            if (den > 0) {
+                double s = -num / den;
+                if (s > 0 && s < 1) {
+                    f = segBox2(s, ax, ay, az, dx, dy, dz, minX, minY, minZ, maxX, maxY, maxZ);
+                    if (f < best) {
+                        best = f;
+                        bestS = s;
+                    }
+                }
+            }
+        }
+        double px = ax + bestS * dx, py = ay + bestS * dy, pz = az + bestS * dz;
+        onSegment.set(px, py, pz);
+        onBox.set(Math.min(Math.max(px, minX), maxX), Math.min(Math.max(py, minY), maxY),
+                Math.min(Math.max(pz, minZ), maxZ));
+        return best;
+    }
+
+    private static double segBox2(double s, double ax, double ay, double az, double dx, double dy, double dz, double minX,
+            double minY, double minZ, double maxX, double maxY, double maxZ) {
+        double gx = axisGap(ax + s * dx, minX, maxX), gy = axisGap(ay + s * dy, minY, maxY), gz = axisGap(az + s * dz, minZ, maxZ);
+        return gx * gx + gy * gy + gz * gz;
+    }
+
 }

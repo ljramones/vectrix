@@ -79,7 +79,9 @@ class TwinParityTest {
         "sampling.Warp", "sampling.GgxSampling", "sampling.SphericalSampling",
         "color.TransferFunctions", "color.PerceptualColor", "color.Tonemap", "color.Exposure", "color.ColorSpaces",
         "linalg.Eigen3", "linalg.Svd3", "linalg.Polar3", "linalg.Qr", "linalg.Solvers", "linalg.Lie3", "linalg.LeastSquares",
-        "geometry.ClosestPoints", "geometry.BoundingVolumes",
+        "geometry.ClosestPoints", "geometry.BoundingVolumes", "geometry.Contacts",
+        "physics.SpringDamper", "physics.Pacejka", "physics.MassProperties", "physics.InertiaTensor", "physics.PdControllers",
+        "physics.PbdConstraints",
     };
     private static final String[] INT_LONG = {"core.Vector2", "core.Vector3", "core.Vector4"};
     private static final String[] OVERLOADS = {"core.Math", "curve.CubicCurveMath", "sh.ShBasis", "sh.ShProjection",

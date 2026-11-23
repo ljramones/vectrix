@@ -1216,7 +1216,9 @@ public class Intersectionf {
      */
     public static Vector3f findClosestPointOnLineSegment(float aX, float aY, float aZ, float bX, float bY, float bZ, float pX, float pY, float pZ, Vector3f result) {
         float abX = bX - aX, abY = bY - aY, abZ = bZ - aZ;
-        float t = ((pX - aX) * abX + (pY - aY) * abY + (pZ - aZ) * abZ) / (abX * abX + abY * abY + abZ * abZ);
+        float len2 = abX * abX + abY * abY + abZ * abZ;
+        // a zero-length segment is the point a (before 2.4.0 this divided by zero and gave NaN)
+        float t = len2 > 0.0f ? ((pX - aX) * abX + (pY - aY) * abY + (pZ - aZ) * abZ) / len2 : 0.0f;
         if (t < 0.0f) t = 0.0f;
         if (t > 1.0f) t = 1.0f;
         result.x = aX + t * abX;

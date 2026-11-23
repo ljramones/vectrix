@@ -23,6 +23,8 @@
  */
 package org.dynamisengine.vectrix.physics;
 
+import org.dynamisengine.vectrix.core.AccurateMath;
+
 /**
  * Spring-damper helper functions.
  *
@@ -36,18 +38,80 @@ public final class SpringDamperf {
         return -stiffness * displacement - damping * velocity;
     }
 
+    /**
+     * One exact step of a critically damped spring toward {@code target}: {@code x'' = -ω² x - 2ω x'}, with
+     * {@code x = current - target}. The step is exact for any {@code dt}, so the result is frame-rate independent.
+     * The new velocity goes to {@code velOut[0]}.
+     * <p>
+     * Before 2.4.0 the decay {@code e^(-ω dt)} came from a cubic rational approximation, which was 0.1 % off at
+     * {@code ω dt = 1}. It is now evaluated exactly, in double.
+     */
     public static float criticallyDamped(
             float current, float target, float velocity, float angularFrequency, float dt, float[] velOut) {
-        float x = current - target;
-        float omegaDt = angularFrequency * dt;
-        float exp = 1.0f / (1.0f + omegaDt + 0.48f * omegaDt * omegaDt + 0.235f * omegaDt * omegaDt * omegaDt);
-        float temp = (velocity + angularFrequency * x) * dt;
-        float newVelocity = (velocity - angularFrequency * temp) * exp;
-        float newValue = target + (x + temp) * exp;
-        velOut[0] = newVelocity;
-        return newValue;
+        double x = (double) current - target;
+        double w = angularFrequency, v = velocity;
+        double e = AccurateMath.exp(-w * dt);
+        double temp = (v + w * x) * dt;
+        velOut[0] = (float) ((v - w * temp) * e);
+        return (float) (target + (x + temp) * e);
     }
 
+    /**
+     * One exact step of a damped spring toward {@code target}, for unit mass: {@code x'' = -k x - c x'} with
+     * {@code x = current - target}, {@code k = stiffness} and {@code c = damping} (per unit mass, both at least 0).
+     * <p>
+     * All regimes are exact: underdamped, critically damped and overdamped. The step is therefore frame-rate
+     * independent, and stable for any {@code dt}, including stiff springs. The new velocity goes to {@code velOut[0]}.
+     * The computation runs in double and avoids cancellation:
+     * <ul>
+     * <li>near critical damping, a series replaces {@code sin}/{@code sinh};</li>
+     * <li>when strongly overdamped, the two exponentials are evaluated separately, with the slow rate
+     * {@code k / (γ + β)} instead of {@code γ − β}.</li>
+     * </ul>
+     *
+     * @since 2.4.0
+     */
+    public static float dampedStep(
+            float current, float target, float velocity, float stiffness, float damping, float dt, float[] velOut) {
+        double x = (double) current - target, v = velocity, k = stiffness, g = 0.5 * damping, t = dt;
+        double u = g * g - k; // > 0 overdamped, < 0 underdamped, 0 critical
+        double ut2 = u * t * t;
+        double ec; // e^(-g t) C(t), with C = cosh(b t) or cos(w t)
+        double es; // e^(-g t) S(t), with S = sinh(b t)/b or sin(w t)/w
+        if (Math.abs(ut2) < 0.25) {
+            double c = 1, s = 1, ct = 1, st = 1;
+            for (int n = 1; n <= 8; n++) {
+                ct *= ut2 / ((2 * n - 1) * (2 * n));
+                st *= ut2 / ((2 * n) * (2 * n + 1));
+                c += ct;
+                s += st;
+            }
+            double e = AccurateMath.exp(-g * t);
+            ec = e * c;
+            es = e * t * s;
+        } else if (u > 0) {
+            double b = Math.sqrt(u);
+            double slow = AccurateMath.exp(-k / (g + b) * t); // e^(-(g - b) t) without cancellation
+            double fast = AccurateMath.exp(-(g + b) * t);
+            ec = 0.5 * (slow + fast);
+            es = 0.5 * (slow - fast) / b;
+        } else {
+            double w = Math.sqrt(-u);
+            double e = AccurateMath.exp(-g * t);
+            ec = e * AccurateMath.cos(w * t);
+            es = e * AccurateMath.sin(w * t) / w;
+        }
+        velOut[0] = (float) (v * ec - (g * v + k * x) * es);
+        return (float) (target + (x * ec + (v + g * x) * es));
+    }
+
+    /**
+     * One semi-implicit Euler step of a damped spring. Despite the name, this is not an overdamped solution: it is
+     * first-order accurate and unstable for stiff springs or large {@code dt}.
+     *
+     * @deprecated since 2.4.0; use {@link #dampedStep}, which is exact in every damping regime.
+     */
+    @Deprecated
     public static float overdamped(
             float current, float target, float velocity, float stiffness, float damping, float dt, float[] velOut) {
         float x = current - target;
@@ -58,8 +122,72 @@ public final class SpringDamperf {
         return newValue;
     }
 
+    /**
+     * Suspension force from the spring's current length: {@code k (restLength − length) − c · lengthRate}.
+     * <p>
+     * The parameters were misnamed: {@code compression} is the current length, and {@code compressionRate} is the
+     * rate of change of that length. Passing the actual compression gives the largest force at full extension and
+     * damping in the wrong direction.
+     *
+     * @deprecated since 2.4.0; use {@link #suspensionForceFromLength} or {@link #suspensionForceFromCompression},
+     *             which name their inputs unambiguously.
+     */
+    @Deprecated
     public static float suspensionForce(
             float compression, float restLength, float stiffness, float compressionRate, float damping) {
-        return stiffness * (restLength - compression) - damping * compressionRate;
+        return suspensionForceFromLength(compression, restLength, compressionRate, stiffness, damping);
+    }
+
+    /**
+     * Suspension force along the strut, positive pushing the wheel away from the body, from the current spring
+     * length: {@code k (restLength − length) − c · lengthRate}.
+     *
+     * @since 2.4.0
+     */
+    public static float suspensionForceFromLength(float length, float restLength, float lengthRate, float stiffness,
+            float damping) {
+        return stiffness * (restLength - length) - damping * lengthRate;
+    }
+
+    /**
+     * Suspension force along the strut, positive pushing the wheel away from the body, from the compression
+     * (how far the spring is shortened from rest, positive when compressed) and its rate:
+     * {@code k · compression + c · compressionRate}.
+     *
+     * @since 2.4.0
+     */
+    public static float suspensionForceFromCompression(float compression, float compressionRate, float stiffness,
+            float damping) {
+        return stiffness * compression + damping * compressionRate;
+    }
+
+    /**
+     * The damping coefficient {@code 2 sqrt(k m)} that makes a spring of stiffness {@code k} on mass {@code m}
+     * critically damped. The common shortcut {@code 2 sqrt(k)} is critical only for unit mass.
+     *
+     * @since 2.4.0
+     */
+    public static float criticalDamping(float stiffness, float mass) {
+        return (float) (2.0 * Math.sqrt((double) stiffness * mass));
+    }
+
+    /**
+     * The damping coefficient {@code 2 ζ sqrt(k m)} for damping ratio {@code ζ}: below 1 underdamped, 1 critical,
+     * above 1 overdamped.
+     *
+     * @since 2.4.0
+     */
+    public static float dampingForRatio(float dampingRatio, float stiffness, float mass) {
+        return (float) (2.0 * dampingRatio * Math.sqrt((double) stiffness * mass));
+    }
+
+    /**
+     * The stiffness {@code m (2π f)²} that makes mass {@code m} oscillate at {@code frequencyHz} (undamped).
+     *
+     * @since 2.4.0
+     */
+    public static float stiffnessForFrequency(float frequencyHz, float mass) {
+        double w = 2.0 * Math.PI * frequencyHz;
+        return (float) (mass * w * w);
     }
 }

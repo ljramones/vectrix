@@ -1216,7 +1216,9 @@ public class Intersectiond {
      */
     public static Vector3d findClosestPointOnLineSegment(double aX, double aY, double aZ, double bX, double bY, double bZ, double pX, double pY, double pZ, Vector3d result) {
         double abX = bX - aX, abY = bY - aY, abZ = bZ - aZ;
-        double t = ((pX - aX) * abX + (pY - aY) * abY + (pZ - aZ) * abZ) / (abX * abX + abY * abY + abZ * abZ);
+        double len2 = abX * abX + abY * abY + abZ * abZ;
+        // a zero-length segment is the point a (before 2.4.0 this divided by zero and gave NaN)
+        double t = len2 > 0.0 ? ((pX - aX) * abX + (pY - aY) * abY + (pZ - aZ) * abZ) / len2 : 0.0;
         if (t < 0.0) t = 0.0;
         if (t > 1.0) t = 1.0;
         result.x = aX + t * abX;

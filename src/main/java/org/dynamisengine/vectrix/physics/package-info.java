@@ -22,6 +22,16 @@
  * THE SOFTWARE.
  */
 /**
- * Physics-focused math helpers (inertia tensors and PD controllers).
+ * Physics math kernels, in float and double twins:
+ * <ul>
+ * <li>mass properties: primitive inertia, volumes, the parallel-axis shift, tensor rotation, combining bodies, and
+ * exact polyhedral mass properties;</li>
+ * <li>exact damped-spring steps, damping and stiffness helpers, and suspension forces;</li>
+ * <li>PD controllers;</li>
+ * <li>Pacejka tyre kernels;</li>
+ * <li>position-based constraint projections.</li>
+ * </ul>
+ * These are pure functions. Vectrix never steps a simulation: bodies, solvers, integration and vehicle models belong
+ * to the physics library. Contact kernels are in {@code geometry.Contacts*}.
  */
 package org.dynamisengine.vectrix.physics;

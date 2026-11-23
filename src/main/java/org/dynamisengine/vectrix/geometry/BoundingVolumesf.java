@@ -24,8 +24,11 @@
 package org.dynamisengine.vectrix.geometry;
 
 import org.dynamisengine.vectrix.core.Matrix3f;
+import org.dynamisengine.vectrix.core.Matrix3fc;
+import org.dynamisengine.vectrix.core.Matrix4x3fc;
 import org.dynamisengine.vectrix.core.Vector2f;
 import org.dynamisengine.vectrix.core.Vector3f;
+import org.dynamisengine.vectrix.core.Vector3fc;
 import org.dynamisengine.vectrix.core.Vector4f;
 import org.dynamisengine.vectrix.linalg.Eigen3f;
 
@@ -402,4 +405,82 @@ public final class BoundingVolumesf {
             minMax[2 * d + 1] = hi;
         }
     }
+
+    /**
+     * Axis-aligned bounds of an oriented box: center {@code center}, unit axes in the columns of {@code axes}, half
+     * extents {@code halfExtents}. Each world half extent is {@code Σ_j |axes_ij| h_j}, which is exact (tight).
+     *
+     * @since 2.4.0
+     */
+    public static void aabOfObb(Vector3fc center, Matrix3fc axes, Vector3fc halfExtents, Vector3f min, Vector3f max) {
+        float hx = halfExtents.x(), hy = halfExtents.y(), hz = halfExtents.z();
+        float cx = center.x(), cy = center.y(), cz = center.z();
+        float ex = Math.abs(axes.m00()) * hx + Math.abs(axes.m10()) * hy + Math.abs(axes.m20()) * hz;
+        float ey = Math.abs(axes.m01()) * hx + Math.abs(axes.m11()) * hy + Math.abs(axes.m21()) * hz;
+        float ez = Math.abs(axes.m02()) * hx + Math.abs(axes.m12()) * hy + Math.abs(axes.m22()) * hz;
+        min.set(cx - ex, cy - ey, cz - ez);
+        max.set(cx + ex, cy + ey, cz + ez);
+    }
+
+    /**
+     * Axis-aligned bounds of a capsule (segment {@code a}–{@code b}, radius {@code r}). Exact.
+     *
+     * @since 2.4.0
+     */
+    public static void aabOfCapsule(Vector3fc a, Vector3fc b, float r, Vector3f min, Vector3f max) {
+        float ax = a.x(), ay = a.y(), az = a.z(), bx = b.x(), by = b.y(), bz = b.z();
+        min.set(Math.min(ax, bx) - r, Math.min(ay, by) - r, Math.min(az, bz) - r);
+        max.set(Math.max(ax, bx) + r, Math.max(ay, by) + r, Math.max(az, bz) + r);
+    }
+
+    /**
+     * Axis-aligned bounds of a solid cylinder with cap centers {@code a} and {@code b} and radius {@code r}.
+     * <p>
+     * The bounds are exact: along world axis {@code i}, each cap disc extends {@code r · sqrt(u_j² + u_k²) / |u|},
+     * where {@code u = b − a}. That form does not cancel. A zero-length cylinder has no defined disc orientation, so
+     * it is bounded as a sphere of radius {@code r}.
+     *
+     * @since 2.4.0
+     */
+    public static void aabOfCylinder(Vector3fc a, Vector3fc b, float r, Vector3f min, Vector3f max) {
+        float ax = a.x(), ay = a.y(), az = a.z(), bx = b.x(), by = b.y(), bz = b.z();
+        double ux = (double) bx - ax, uy = (double) by - ay, uz = (double) bz - az;
+        double len = Math.sqrt(ux * ux + uy * uy + uz * uz);
+        float ex = r, ey = r, ez = r;
+        if (len > 0) {
+            ex = (float) (r * Math.sqrt(uy * uy + uz * uz) / len);
+            ey = (float) (r * Math.sqrt(ux * ux + uz * uz) / len);
+            ez = (float) (r * Math.sqrt(ux * ux + uy * uy) / len);
+        }
+        min.set(Math.min(ax, bx) - ex, Math.min(ay, by) - ey, Math.min(az, bz) - ez);
+        max.set(Math.max(ax, bx) + ex, Math.max(ay, by) + ey, Math.max(az, bz) + ez);
+    }
+
+    /**
+     * Axis-aligned bounds of {@code count} points ({@code xyz}, packed) transformed by the affine {@code m}, with no
+     * allocation. With {@code count == 0}, {@code min} is {@code +∞} and {@code max} is {@code −∞}.
+     *
+     * @since 2.4.0
+     */
+    public static void aabOfTransformedPoints(float[] xyz, int count, Matrix4x3fc m, Vector3f min, Vector3f max) {
+        float m00 = m.m00(), m01 = m.m01(), m02 = m.m02(), m10 = m.m10(), m11 = m.m11(), m12 = m.m12();
+        float m20 = m.m20(), m21 = m.m21(), m22 = m.m22(), m30 = m.m30(), m31 = m.m31(), m32 = m.m32();
+        float minX = Float.POSITIVE_INFINITY, minY = Float.POSITIVE_INFINITY, minZ = Float.POSITIVE_INFINITY;
+        float maxX = Float.NEGATIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY, maxZ = Float.NEGATIVE_INFINITY;
+        for (int i = 0; i < count; i++) {
+            float x = xyz[3 * i], y = xyz[3 * i + 1], z = xyz[3 * i + 2];
+            float tx = Math.fma(m00, x, Math.fma(m10, y, Math.fma(m20, z, m30)));
+            float ty = Math.fma(m01, x, Math.fma(m11, y, Math.fma(m21, z, m31)));
+            float tz = Math.fma(m02, x, Math.fma(m12, y, Math.fma(m22, z, m32)));
+            minX = Math.min(minX, tx);
+            minY = Math.min(minY, ty);
+            minZ = Math.min(minZ, tz);
+            maxX = Math.max(maxX, tx);
+            maxY = Math.max(maxY, ty);
+            maxZ = Math.max(maxZ, tz);
+        }
+        min.set(minX, minY, minZ);
+        max.set(maxX, maxY, maxZ);
+    }
+
 }

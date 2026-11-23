@@ -29,6 +29,38 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - Masked and N-way weighted blends.
   - Additive layers. Applying a layer at weight 1 restores the pose it was made from.
 
+- Physics phase-1 kernels, for DynamisCollision and DynamisPhysics to adopt in place of their own copies. All are
+  allocation-free, in float and double. The whole `physics` package now has double twins (`*d`), since Collision
+  computes in double.
+  - **`geometry.Contactsf/d`**: contact kernels returning signed depth, a unit normal from the first volume to the
+    second, and a contact point.
+    - Sphere–sphere, with a solid overlap test that includes containment.
+    - AABB–AABB, using the exact minimum translation, not the axis of least overlap.
+    - Sphere–AABB, through the nearest face when the center is inside.
+    - Capsule–AABB. When the segment is inside the box, its depth comes from an exact separating-axis test.
+    - The nearest box face to a point.
+  - **`ClosestPointsf/d`**:
+    - `closestPointAab` and `distanceSquaredPointAab`.
+    - `segmentAab`, the exact closest points between a segment and a box: piecewise-quadratic minimization with no
+      iteration. It replaces Collision's 48-step ternary search.
+  - **`BoundingVolumesf/d`**: tight bounds of an oriented box, a capsule and a cylinder (cancellation-free disc
+    extents), and an allocation-free bound of a transformed point array.
+  - **`GeometryUtils.perpendicular`**: double overloads.
+  - **`physics.MassPropertiesf/d`**:
+    - primitive volumes;
+    - parallel-axis shift;
+    - `R I Rᵀ`;
+    - combining two bodies;
+    - exact polyhedral mass properties (Eberly), integrated about the mean vertex so distant meshes keep their
+      precision.
+  - **`physics.Pacejkaf/d`**: the magic formula, with and without shifts; a signed slip ratio, correct in reverse;
+    an `atan2` slip angle.
+  - **`SpringDamperf/d`**:
+    - `dampedStep`, exact for underdamped, critical and overdamped springs, stable for stiff springs at any step;
+    - `criticalDamping(k, m) = 2√(km)` (the shortcut `2√k` is critical only for unit mass);
+    - `dampingForRatio`, `stiffnessForFrequency`;
+    - `suspensionForceFromLength` / `suspensionForceFromCompression`.
+
 ### Fixed (precision and correctness audit of the JOML-inherited core)
 The inherited `core` and `geometry` code was checked against independent references: BigDecimal, direct evaluation,
 exact identities, brute force and separating-axis references. Almost every finding was shared by the float and double
@@ -99,6 +131,15 @@ twins, so twin parity could not see it. `PrecisionAuditTest` and `GeometryAuditT
   - `testMovingCircleCircle` returned false for circles that already overlapped while moving apart.
 
 ### Changed
+- `SpringDamperf.criticallyDamped` now evaluates `e^(−ω dt)` exactly. It used a cubic approximation, 0.1 % off at
+  `ω dt = 1`.
+- `Intersection*.findClosestPointOnLineSegment` returns the point `a` for a zero-length segment. It used to return NaN.
+
+### Deprecated
+- `SpringDamperf.overdamped`: it is one semi-implicit Euler step, not an overdamped solution. Use `dampedStep`.
+- `SpringDamperf.suspensionForce`: its parameters were misnamed. It computes `k (rest − length) − c · lengthRate`, so
+  passing compression gave inverted forces. Use `suspensionForceFromLength` or `suspensionForceFromCompression`.
+
 - `intersectSweptSphereTriangle` ignores its `epsilon` (parallel motion is exact) and works from either side; the
   winding no longer matters.
 - The `epsilon` of the ray-triangle tests is now the minimum hit distance along the ray. It used to be a tolerance

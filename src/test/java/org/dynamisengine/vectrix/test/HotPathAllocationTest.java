@@ -223,6 +223,30 @@ class HotPathAllocationTest {
                 .blendRotations(posePoses, poseWeights, 2, poseOut, 5));
         assertNoAllocation("PoseKernelsf.applyAdditiveRotations", () -> org.dynamisengine.vectrix.animation.PoseKernelsf
                 .applyAdditiveRotations(poseR, poseB, 0.5f, poseOut, 5));
+        // physics phase-1 kernels (2.4.0): per contact or per body per step
+        org.dynamisengine.vectrix.core.Vector3f ca = new org.dynamisengine.vectrix.core.Vector3f(0.2f, 0.1f, 0);
+        org.dynamisengine.vectrix.core.Vector3f cb = new org.dynamisengine.vectrix.core.Vector3f(1.7f, -0.3f, 0.4f);
+        org.dynamisengine.vectrix.core.Vector3f bmin = new org.dynamisengine.vectrix.core.Vector3f(-1, -1, -1);
+        org.dynamisengine.vectrix.core.Vector3f bmax = new org.dynamisengine.vectrix.core.Vector3f(1, 1, 1);
+        org.dynamisengine.vectrix.core.Vector3f cn = new org.dynamisengine.vectrix.core.Vector3f();
+        org.dynamisengine.vectrix.core.Vector3f cp = new org.dynamisengine.vectrix.core.Vector3f();
+        org.dynamisengine.vectrix.core.Matrix3f mi = new org.dynamisengine.vectrix.core.Matrix3f().scaling(2, 3, 4);
+        org.dynamisengine.vectrix.core.Matrix3f mr = new org.dynamisengine.vectrix.core.Matrix3f().rotateXYZ(0.3f, 0.2f, 0.1f);
+        org.dynamisengine.vectrix.core.Matrix3f mo = new org.dynamisengine.vectrix.core.Matrix3f();
+        float[] springVel = new float[1];
+        assertNoAllocation("Contactsf.capsuleAabb", () -> org.dynamisengine.vectrix.geometry.Contactsf.capsuleAabb(ca, cb, 0.3f,
+                bmin, bmax, cn, cp));
+        assertNoAllocation("Contactsf.sphereAabb", () -> org.dynamisengine.vectrix.geometry.Contactsf.sphereAabb(ca, 0.5f, bmin,
+                bmax, cn, cp));
+        assertNoAllocation("ClosestPointsf.segmentAab", () -> org.dynamisengine.vectrix.geometry.ClosestPointsf.segmentAab(ca,
+                cb, bmin, bmax, cn, cp));
+        assertNoAllocation("MassPropertiesf.rotate", () -> org.dynamisengine.vectrix.physics.MassPropertiesf.rotate(mi, mr, mo));
+        assertNoAllocation("MassPropertiesf.combine", () -> org.dynamisengine.vectrix.physics.MassPropertiesf.combine(1, ca, mi,
+                2, cb, mi, cn, mo));
+        assertNoAllocation("SpringDamperf.dampedStep", () -> org.dynamisengine.vectrix.physics.SpringDamperf.dampedStep(1, 0,
+                0.5f, 100, 3, 0.016f, springVel));
+        assertNoAllocation("Pacejkaf.magicFormula", () -> org.dynamisengine.vectrix.physics.Pacejkaf.magicFormula(0.1f, 10,
+                1.9f, 1, 0.97f));
         assertNoAllocation("ShProduct.multiplyL2", () -> org.dynamisengine.vectrix.sh.ShProduct.multiplyL2(c9, c9, c9));
         assertNoAllocation("ShWindowing.windowL3", () -> org.dynamisengine.vectrix.sh.ShWindowing.windowL3(c16,
                 org.dynamisengine.vectrix.sh.ShWindowing.Window.HANN, 4f, c16));
