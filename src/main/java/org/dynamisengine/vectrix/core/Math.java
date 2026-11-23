@@ -415,15 +415,67 @@ public class Math {
         return a > b ? a : b;
     }
 
+    /**
+     * Clamps {@code val} to {@code [a, b]}: returns {@code max(a, min(b, val))}.
+     * <p>
+     * <b>Argument order: minimum, maximum, value.</b> This is JOML's order. It is the <em>opposite</em> of the JDK's
+     * {@code java.lang.Math.clamp(value, min, max)} (Java 21+). Calling this method in the JDK order compiles
+     * without warning but silently drops the upper bound. For example, {@code clamp(5, 0, 1)} returns 5, not 1,
+     * because it clamps 1 to {@code [5, 0]}. DynamisPhysics shipped exactly this mistake at 16 call sites.
+     *
+     * @param a the lower bound
+     * @param b the upper bound, at least {@code a}
+     * @param val the value to clamp
+     * @return {@code val} clamped to {@code [a, b]}
+     */
     public static float clamp(float a, float b, float val){
         return max(a,min(b,val));
     }
+    /**
+     * Clamps {@code val} to {@code [a, b]}: returns {@code max(a, min(b, val))}.
+     * <p>
+     * <b>Argument order: minimum, maximum, value.</b> This is JOML's order. It is the <em>opposite</em> of the JDK's
+     * {@code java.lang.Math.clamp(value, min, max)} (Java 21+). Calling this method in the JDK order compiles
+     * without warning but silently drops the upper bound. For example, {@code clamp(5, 0, 1)} returns 5, not 1,
+     * because it clamps 1 to {@code [5, 0]}. DynamisPhysics shipped exactly this mistake at 16 call sites.
+     *
+     * @param a the lower bound
+     * @param b the upper bound, at least {@code a}
+     * @param val the value to clamp
+     * @return {@code val} clamped to {@code [a, b]}
+     */
     public static double clamp(double a, double b, double val) {
         return max(a,min(b,val));
     }
+    /**
+     * Clamps {@code val} to {@code [a, b]}: returns {@code max(a, min(b, val))}.
+     * <p>
+     * <b>Argument order: minimum, maximum, value.</b> This is JOML's order. It is the <em>opposite</em> of the JDK's
+     * {@code java.lang.Math.clamp(value, min, max)} (Java 21+). Calling this method in the JDK order compiles
+     * without warning but silently drops the upper bound. For example, {@code clamp(5, 0, 1)} returns 5, not 1,
+     * because it clamps 1 to {@code [5, 0]}. DynamisPhysics shipped exactly this mistake at 16 call sites.
+     *
+     * @param a the lower bound
+     * @param b the upper bound, at least {@code a}
+     * @param val the value to clamp
+     * @return {@code val} clamped to {@code [a, b]}
+     */
     public static int clamp(int a, int b, int val) {
         return max(a, min(b, val));
     }
+    /**
+     * Clamps {@code val} to {@code [a, b]}: returns {@code max(a, min(b, val))}.
+     * <p>
+     * <b>Argument order: minimum, maximum, value.</b> This is JOML's order. It is the <em>opposite</em> of the JDK's
+     * {@code java.lang.Math.clamp(value, min, max)} (Java 21+). Calling this method in the JDK order compiles
+     * without warning but silently drops the upper bound. For example, {@code clamp(5, 0, 1)} returns 5, not 1,
+     * because it clamps 1 to {@code [5, 0]}. DynamisPhysics shipped exactly this mistake at 16 call sites.
+     *
+     * @param a the lower bound
+     * @param b the upper bound, at least {@code a}
+     * @param val the value to clamp
+     * @return {@code val} clamped to {@code [a, b]}
+     */
     public static long clamp(long a, long b, long val) {
         return max(a, min(b, val));
     }

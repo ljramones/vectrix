@@ -162,6 +162,9 @@ twins, so twin parity could not see it. `PrecisionAuditTest` and `GeometryAuditT
   `ω dt = 1`.
 - `Intersection*.findClosestPointOnLineSegment` returns the point `a` for a zero-length segment. It used to return NaN.
 
+- `core.Math.clamp` documents its argument order, `(min, max, value)` (JOML's), which is the opposite of the JDK's
+  `java.lang.Math.clamp(value, min, max)`. Called in the JDK order it compiles and silently drops the upper bound.
+
 ### Deprecated
 - `SpringDamperf.overdamped`: it is one semi-implicit Euler step, not an overdamped solution. Use `dampedStep`.
 - `SpringDamperf.suspensionForce`: its parameters were misnamed. It computes `k (rest − length) − c · lengthRate`, so
