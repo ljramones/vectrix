@@ -121,6 +121,22 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     dot product and results are batch-invariant.
   - `Pool2d`: max pooling (with argmax for the backward pass) and average pooling over the in-bounds cells, forward
     and backward.
+- **More signal processing** (`dsp`):
+  - `FirDesign.remez`: Parks–McClellan optimal equiripple FIR design (any bands, gains and weights).
+  - `Wavelet`: periodized orthogonal DWT, single and multilevel.
+    - Daubechies filters of 1–10 vanishing moments are computed reproducibly by spectral factorization.
+    - The filters are orthonormal to 1e-15.
+  - `Kalman`: linear predict/update with a Cholesky gain and Joseph-form covariance. It returns the innovation's
+    Mahalanobis distance.
+  - `Toeplitz`: Levinson's solver and the Levinson–Durbin recursion (linear prediction, reflection coefficients).
+  - `Wiener`: the optimal FIR Wiener filter, and the frequency-domain Wiener gain for STFT denoising.
+  - `AdaptiveFilter`: LMS, normalized LMS and RLS.
+  - `Smoothers`: Savitzky–Golay coefficients (smoothing and derivatives), a running median, the alpha-beta
+    tracker, and the One Euro filter for jittery input.
+- **More neural-network kernels** (`nn`):
+  - `Attention.groupedQuery` (and its backward): grouped-query and multi-query attention over shared caches.
+  - Vector API paths for tanh, tanh-GELU and the layer/RMS norm loops (2–3.4 times faster). They give the same
+    bits as the scalar paths.
 - `AccurateMath.cosTurns/sinTurns(e, d)`: cos and sin of `2π·e/d`, with the angle reduced exactly in integers. The
   symmetries are exact (odd multiples of π/4 give the correctly rounded √½ for both). The FFT twiddles now use
   them.

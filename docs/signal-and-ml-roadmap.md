@@ -70,7 +70,9 @@ policy.** For neural networks this means:
    - the Hilbert transform;
    - Welch PSD;
    - cross-correlation.
-3. **Later, if needed:** wavelets and Kalman filter steps.
+3. **Done in 2.5.0 as well:**
+   - Parks–McClellan, wavelets and the Kalman filter;
+   - Wiener filtering, adaptive filters (LMS, NLMS, RLS), Levinson–Durbin and smoothers.
 
 The first consumer is DynamisAudio.
 

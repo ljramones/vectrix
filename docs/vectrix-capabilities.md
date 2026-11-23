@@ -133,6 +133,10 @@ This document lists what downstream libraries can rely on today, grouped by use-
   Location: `dsp.Stftd/f`, `dsp.Spectra`, `dsp.Correlation`, `dsp.Goertzel`.
 - DCT-II/III/IV, MDCT, and rational polyphase resampling.
   Location: `dsp.Dctd/f`, `dsp.Mdctd/f`, `dsp.Resampler`.
+- Parks–McClellan equiripple FIR design; Daubechies wavelets (DWT); Kalman, Wiener, LMS/NLMS/RLS filters;
+  Levinson–Durbin; Savitzky–Golay, median, alpha-beta and One Euro smoothers.
+  Location: `dsp.FirDesign.remez`, `dsp.Wavelet`, `dsp.Kalman`, `dsp.Wiener`, `dsp.AdaptiveFilter`,
+  `dsp.Toeplitz`, `dsp.Smoothers`.
 
 ## Machine Learning Kernels
 - BLAS level 1 (dot, sum, nrm2, axpy, ...) with one documented reduction order. Arrays and `MemorySegment`s.
