@@ -25,6 +25,8 @@ package org.dynamisengine.vectrix.nn;
 
 //#ifdef __HAS_VECTOR_API__
 import jdk.incubator.vector.FloatVector;
+import jdk.incubator.vector.IntVector;
+import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
 import org.dynamisengine.vectrix.simd.SimdSupport;
 //#endif
@@ -81,11 +83,7 @@ public final class Activations {
         int i = 0;
 //#ifdef __HAS_VECTOR_API__
         if (Simd.on()) {
-            for (int b = n - n % Simd.LANES; i < b; i += Simd.LANES) {
-                FloatVector v = FloatVector.fromArray(Simd.S, x, xOff + i);
-                FloatVector e = NnMath.exp(v.neg());
-                FloatVector.broadcast(Simd.S, 1f).div(e.add(1f)).intoArray(y, yOff + i);
-            }
+            i = Simd.logistic(x, xOff, y, yOff, n, false);
         }
 //#endif
         for (; i < n; i++) {
@@ -100,11 +98,7 @@ public final class Activations {
         int i = 0;
 //#ifdef __HAS_VECTOR_API__
         if (Simd.on()) {
-            for (int b = n - n % Simd.LANES; i < b; i += Simd.LANES) {
-                FloatVector v = FloatVector.fromArray(Simd.S, x, xOff + i);
-                FloatVector s = FloatVector.broadcast(Simd.S, 1f).div(NnMath.exp(v.neg()).add(1f));
-                v.mul(s).intoArray(y, yOff + i);
-            }
+            i = Simd.logistic(x, xOff, y, yOff, n, true);
         }
 //#endif
         for (; i < n; i++) {
@@ -199,6 +193,40 @@ public final class Activations {
 
         static boolean on() {
             return AVAILABLE && SimdSupport.backend() == SimdSupport.Backend.VECTOR_API;
+        }
+
+        static final FloatVector ONE = FloatVector.broadcast(S, 1f);
+        static final FloatVector MLN2_HI = FloatVector.broadcast(S, -NnMath.LN2_HI);
+        static final FloatVector MLN2_LO = FloatVector.broadcast(S, -NnMath.LN2_LO);
+        static final FloatVector E5V = FloatVector.broadcast(S, NnMath.E5);
+        static final FloatVector E4V = FloatVector.broadcast(S, NnMath.E4);
+        static final FloatVector E3V = FloatVector.broadcast(S, NnMath.E3);
+        static final FloatVector E2V = FloatVector.broadcast(S, NnMath.E2);
+
+        /** Sigmoid ({@code silu} false) or SiLU on whole vectors, with {@link NnMath#exp} expanded inline. */
+        static int logistic(float[] x, int xOff, float[] y, int yOff, int n, boolean silu) {
+            int i = 0;
+            for (int b = n - n % LANES; i < b; i += LANES) {
+                FloatVector v = FloatVector.fromArray(S, x, xOff + i);
+                FloatVector nv = v.neg();
+                FloatVector ec = nv.max(-104f).min(89f);
+                FloatVector ek = ec.mul(NnMath.LOG2E).add(NnMath.ROUND).sub(NnMath.ROUND);
+                FloatVector er = ek.fma(MLN2_HI, ec);
+                er = ek.fma(MLN2_LO, er);
+                FloatVector ep = er.fma(NnMath.E7, NnMath.E6);
+                ep = er.fma(ep, E5V);
+                ep = er.fma(ep, E4V);
+                ep = er.fma(ep, E3V);
+                ep = er.fma(ep, E2V);
+                FloatVector et = ep.fma(er.mul(er), er).add(1f);
+                IntVector eki = (IntVector) ek.convert(VectorOperators.F2I, 0);
+                IntVector ek1 = eki.lanewise(VectorOperators.ASHR, 1);
+                FloatVector e = et.mul(ek1.add(127).lanewise(VectorOperators.LSHL, 23).reinterpretAsFloats())
+                        .mul(eki.sub(ek1).add(127).lanewise(VectorOperators.LSHL, 23).reinterpretAsFloats());
+                FloatVector s = ONE.div(e.add(1f));
+                (silu ? v.mul(s) : s).intoArray(y, yOff + i);
+            }
+            return i;
         }
 //#else
         private Simd() {

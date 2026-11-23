@@ -26,6 +26,7 @@ package org.dynamisengine.vectrix.nn;
 import org.dynamisengine.vectrix.blas.Blasf;
 //#ifdef __HAS_VECTOR_API__
 import jdk.incubator.vector.FloatVector;
+import jdk.incubator.vector.IntVector;
 import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
 import org.dynamisengine.vectrix.simd.SimdSupport;
@@ -136,24 +137,15 @@ public final class Softmax {
         int i = 0;
 //#ifdef __HAS_VECTOR_API__
         if (Simd.on()) {
-            for (int b = n - n % Simd.LANES; i < b; i += Simd.LANES) {
-                FloatVector a = FloatVector.fromArray(Simd.S, x, xOff + i);
-                FloatVector s = a.sub(m);
-                FloatVector bv = s.sub(a);
-                FloatVector av = s.sub(bv);
-                FloatVector err = a.sub(av).add(bv.neg().sub(m));
-                err = err.blend(0f, s.compare(VectorOperators.GE, -104f).not()); // e^s underflows there anyway
-                FloatVector e = NnMath.exp(s);
-                e.fma(err, e).intoArray(y, yOff + i);
-            }
+            i = Simd.expShifted(x, xOff, y, yOff, n, m);
         }
 //#endif
         for (; i < n; i++) {
-            float a = x[xOff + i];
+            float a = Math.max(x[xOff + i], m - 1e38f); // e^(x - m) is 0 below; keeps x - m finite for TwoSum
             float s = a - m;
             float bv = s - a;
             float av = s - bv;
-            float err = s >= -104f ? (a - av) + (-bv - m) : 0f; // e^s underflows otherwise; s may be -∞
+            float err = (a - av) + (-bv - m);
             float e = NnMath.exp(s);
             y[yOff + i] = Math.fma(e, err, e);
         }
@@ -177,6 +169,42 @@ public final class Softmax {
 
         static boolean on() {
             return AVAILABLE && SimdSupport.backend() == SimdSupport.Backend.VECTOR_API;
+        }
+
+        static final FloatVector MLN2_HI = FloatVector.broadcast(S, -NnMath.LN2_HI);
+        static final FloatVector MLN2_LO = FloatVector.broadcast(S, -NnMath.LN2_LO);
+        static final FloatVector E5V = FloatVector.broadcast(S, NnMath.E5);
+        static final FloatVector E4V = FloatVector.broadcast(S, NnMath.E4);
+        static final FloatVector E3V = FloatVector.broadcast(S, NnMath.E3);
+        static final FloatVector E2V = FloatVector.broadcast(S, NnMath.E2);
+
+        /** {@link Softmax#expShifted} on whole vectors, with {@link NnMath#exp} expanded inline; returns the index reached. */
+        static int expShifted(float[] x, int xOff, float[] y, int yOff, int n, float m) {
+            int i = 0;
+            float floor = m - 1e38f; // e^(x - m) is 0 below it; clamping keeps x - m finite for TwoSum
+            for (int b = n - n % LANES; i < b; i += LANES) {
+                FloatVector a = FloatVector.fromArray(S, x, xOff + i).max(floor);
+                FloatVector s = a.sub(m);
+                FloatVector bv = s.sub(a);
+                FloatVector av = s.sub(bv);
+                FloatVector err = a.sub(av).add(bv.neg().sub(m));
+                FloatVector ec = s.max(-104f).min(89f);
+                FloatVector ek = ec.mul(NnMath.LOG2E).add(NnMath.ROUND).sub(NnMath.ROUND);
+                FloatVector er = ek.fma(MLN2_HI, ec);
+                er = ek.fma(MLN2_LO, er);
+                FloatVector ep = er.fma(NnMath.E7, NnMath.E6);
+                ep = er.fma(ep, E5V);
+                ep = er.fma(ep, E4V);
+                ep = er.fma(ep, E3V);
+                ep = er.fma(ep, E2V);
+                FloatVector et = ep.fma(er.mul(er), er).add(1f);
+                IntVector eki = (IntVector) ek.convert(VectorOperators.F2I, 0);
+                IntVector ek1 = eki.lanewise(VectorOperators.ASHR, 1);
+                FloatVector e = et.mul(ek1.add(127).lanewise(VectorOperators.LSHL, 23).reinterpretAsFloats())
+                        .mul(eki.sub(ek1).add(127).lanewise(VectorOperators.LSHL, 23).reinterpretAsFloats());
+                e.fma(err, e).intoArray(y, yOff + i);
+            }
+            return i;
         }
 //#else
         private Simd() {

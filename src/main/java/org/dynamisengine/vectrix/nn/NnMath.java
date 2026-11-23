@@ -23,13 +23,6 @@
  */
 package org.dynamisengine.vectrix.nn;
 
-//#ifdef __HAS_VECTOR_API__
-import jdk.incubator.vector.FloatVector;
-import jdk.incubator.vector.IntVector;
-import jdk.incubator.vector.VectorMask;
-import jdk.incubator.vector.VectorOperators;
-//#endif
-
 /**
  * Float transcendental functions for neural-network kernels, reproducible bit for bit everywhere.
  * <p>
@@ -275,25 +268,4 @@ public final class NnMath {
         return expD(-a * a) / (SQRT_PI_D * t);
     }
 
-//#ifdef __HAS_VECTOR_API__
-    /** {@link #exp} lane by lane, with the same operations. */
-    static FloatVector exp(FloatVector x) {
-        FloatVector c = x.max(-104f).min(89f);
-        FloatVector kf = c.mul(LOG2E).add(ROUND).sub(ROUND);
-        FloatVector r = kf.fma(FloatVector.broadcast(x.species(), -LN2_HI), c);
-        r = kf.fma(FloatVector.broadcast(x.species(), -LN2_LO), r);
-        FloatVector p = r.fma(E7, E6);
-        p = r.fma(p, FloatVector.broadcast(x.species(), E5));
-        p = r.fma(p, FloatVector.broadcast(x.species(), E4));
-        p = r.fma(p, FloatVector.broadcast(x.species(), E3));
-        p = r.fma(p, FloatVector.broadcast(x.species(), E2));
-        FloatVector t = p.fma(r.mul(r), r).add(1f);
-        IntVector k = (IntVector) kf.convert(VectorOperators.F2I, 0);
-        IntVector k1 = k.lanewise(VectorOperators.ASHR, 1);
-        IntVector k2 = k.sub(k1);
-        FloatVector s1 = k1.add(127).lanewise(VectorOperators.LSHL, 23).reinterpretAsFloats();
-        FloatVector s2 = k2.add(127).lanewise(VectorOperators.LSHL, 23).reinterpretAsFloats();
-        return t.mul(s1).mul(s2);
-    }
-//#endif
 }
