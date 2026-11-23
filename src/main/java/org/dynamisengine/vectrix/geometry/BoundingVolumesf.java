@@ -30,6 +30,7 @@ import org.dynamisengine.vectrix.core.Vector2f;
 import org.dynamisengine.vectrix.core.Vector3f;
 import org.dynamisengine.vectrix.core.Vector3fc;
 import org.dynamisengine.vectrix.core.Vector4f;
+import org.dynamisengine.vectrix.core.Vector4fc;
 import org.dynamisengine.vectrix.linalg.Eigen3f;
 
 /**
@@ -481,6 +482,29 @@ public final class BoundingVolumesf {
         }
         min.set(minX, minY, minZ);
         max.set(maxX, maxY, maxZ);
+    }
+
+
+    /**
+     * The bounding sphere of a sphere ({@code sphere.xyz} center, {@code sphere.w} radius) under the affine
+     * {@code m}. The radius is scaled by the exact largest singular value of the linear part, computed in double,
+     * then rounded up, so the result always contains the transformed sphere. That stays true under shear, where the
+     * largest-column-length shortcut is too small. See {@link BoundingVolumesd#transformSphere}.
+     *
+     * @since 2.4.0
+     */
+    public static Vector4f transformSphere(Vector4fc sphere, Matrix4x3fc m, Vector4f dest) {
+        double x = sphere.x(), y = sphere.y(), z = sphere.z(), r = sphere.w();
+        double s = BoundingVolumesd.maxStretch(m.m00(), m.m01(), m.m02(), m.m10(), m.m11(), m.m12(), m.m20(), m.m21(),
+                m.m22());
+        double rd = r * s;
+        float rf = (float) rd;
+        if (rf < rd) {
+            rf = Math.nextUp(rf);
+        }
+        return dest.set((float) (m.m00() * x + m.m10() * y + m.m20() * z + m.m30()),
+                (float) (m.m01() * x + m.m11() * y + m.m21() * z + m.m31()),
+                (float) (m.m02() * x + m.m12() * y + m.m22() * z + m.m32()), rf);
     }
 
 }

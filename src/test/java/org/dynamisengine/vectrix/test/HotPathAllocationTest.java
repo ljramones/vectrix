@@ -247,6 +247,22 @@ class HotPathAllocationTest {
                 0.5f, 100, 3, 0.016f, springVel));
         assertNoAllocation("Pacejkaf.magicFormula", () -> org.dynamisengine.vectrix.physics.Pacejkaf.magicFormula(0.1f, 10,
                 1.9f, 1, 0.97f));
+        // GPU contracts (2.4.0): per vertex, per texel or per cluster
+        org.dynamisengine.vectrix.core.Vector4f sph = new org.dynamisengine.vectrix.core.Vector4f(0.1f, 0.2f, 0.3f, 1.5f);
+        org.dynamisengine.vectrix.core.Vector4f sphOut = new org.dynamisengine.vectrix.core.Vector4f();
+        org.dynamisengine.vectrix.core.Matrix4x3f sphM = new org.dynamisengine.vectrix.core.Matrix4x3f().rotateXYZ(0.3f, 0.2f,
+                0.1f).scale(2, 1, 0.5f);
+        assertNoAllocation("PackedFormats.packRgb9e5", () -> org.dynamisengine.vectrix.gpu.PackedFormats.packRgb9e5(1.5f, 20f,
+                0.01f));
+        assertNoAllocation("PackedFormats.packR11G11B10F", () -> org.dynamisengine.vectrix.gpu.PackedFormats.packR11G11B10F(
+                1.5f, 20f, 0.01f));
+        assertNoAllocation("PackedFormats.encodeSrgb8", () -> org.dynamisengine.vectrix.gpu.PackedFormats.encodeSrgb8(0.4f));
+        assertNoAllocation("MeshletCones.isBackfacing", () -> org.dynamisengine.vectrix.gpu.MeshletCones.isBackfacing(0, 0, 0,
+                1, 0, 0, 1, 0.8f, 0, 0, -10));
+        assertNoAllocation("MeshletCones.quantize", () -> org.dynamisengine.vectrix.gpu.MeshletCones.quantize(0.6f, 0, 0.8f,
+                0.7f));
+        assertNoAllocation("BoundingVolumesf.transformSphere", () -> org.dynamisengine.vectrix.geometry.BoundingVolumesf
+                .transformSphere(sph, sphM, sphOut));
         assertNoAllocation("ShProduct.multiplyL2", () -> org.dynamisengine.vectrix.sh.ShProduct.multiplyL2(c9, c9, c9));
         assertNoAllocation("ShWindowing.windowL3", () -> org.dynamisengine.vectrix.sh.ShWindowing.windowL3(c16,
                 org.dynamisengine.vectrix.sh.ShWindowing.Window.HANN, 4f, c16));

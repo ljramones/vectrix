@@ -85,4 +85,23 @@ public class FrustumPlanes {
         z[i] = pz;
         w[i] = pw;
     }
+
+    /**
+     * Writes the planes as six {@code vec4}s (normal xyz, distance w), in index order {@code PLANE_NX} to
+     * {@code PLANE_PZ}, into {@code dest} from {@code offset}. This is the GLSL {@code vec4 planes[6]} layout under
+     * std140, std430 and scalar alike (stride 16 bytes).
+     *
+     * @return {@code dest}
+     * @since 2.4.0
+     */
+    public float[] getVec4Array(float[] dest, int offset) {
+        for (int i = 0; i < COUNT; i++) {
+            dest[offset + 4 * i] = x[i];
+            dest[offset + 4 * i + 1] = y[i];
+            dest[offset + 4 * i + 2] = z[i];
+            dest[offset + 4 * i + 3] = w[i];
+        }
+        return dest;
+    }
+
 }

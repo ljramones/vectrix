@@ -22,6 +22,22 @@
  * THE SOFTWARE.
  */
 /**
- * GPU packing helpers, half types, and memory layouts.
+ * GPU data contracts: the layouts and encodings that CPU writers and shaders must agree on.
+ * <ul>
+ * <li>Interface-block layouts ({@code ShaderLayout}: std140, std430 and scalar, checked against glslang), which can
+ * emit their GLSL declarations.</li>
+ * <li>Transform layouts and writers (always little-endian).</li>
+ * <li>Vertex layouts.</li>
+ * <li>Codecs:
+ * <ul>
+ * <li>half floats;</li>
+ * <li>unorm/snorm 8 and 16 bits;</li>
+ * <li>10_10_10_2, RGB9E5 and R11G11B10F;</li>
+ * <li>sRGB8;</li>
+ * <li>octahedral normals, QTangent and smallest-three quaternions.</li>
+ * </ul></li>
+ * <li>Meshlet normal cones.</li>
+ * </ul>
+ * Vectrix never calls a graphics API: DynamisGPU binds these contracts.
  */
 package org.dynamisengine.vectrix.gpu;

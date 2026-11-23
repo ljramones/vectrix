@@ -142,5 +142,13 @@ class GpuPackingTest {
         assertEquals(t.scale.x, Half.unpack(b.getShort(20)), 0.001f);
         assertEquals(t.scale.y, Half.unpack(b.getShort(22)), 0.001f);
         assertEquals(t.scale.z, Half.unpack(b.getShort(24)), 0.001f);
+        // GPUs read little-endian: a default (big-endian) buffer receives exactly the same bytes
+        for (GpuTransformLayout layout : new GpuTransformLayout[] {full, compact}) {
+            ByteBuffer le = ByteBuffer.allocate(layout.requiredBytes(1)).order(ByteOrder.LITTLE_ENDIAN);
+            ByteBuffer be = ByteBuffer.allocate(layout.requiredBytes(1));
+            layout.write(le, 0, t);
+            layout.write(be, 0, t);
+            assertEquals(le.rewind(), be.rewind());
+        }
     }
 }

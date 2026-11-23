@@ -61,6 +61,28 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     - `dampingForRatio`, `stiffnessForFrequency`;
     - `suspensionForceFromLength` / `suspensionForceFromCompression`.
 
+- GPU data contracts (X1, X5), checked against the compiler and the Vulkan definitions:
+  - **`gpu.ShaderLayout`**: an interface-block layout calculator for std140, std430 and scalar layouts, covering
+    scalars, vectors, matrices (column- or row-major), arrays (multidimensional too) and nested structs.
+    - It gives member offsets, array and matrix strides, and the block size. Paths such as `lights[3].color` work.
+    - It emits the block's GLSL declaration, so writers and shaders share one definition.
+    - It matches glslang on 450 random blocks, every member checked. The glslang data is recorded by
+      `scripts/gen-shader-layout-golden.py`, so CI needs no tools.
+  - **`gpu.PackedFormats`**, bit-exact to Vulkan:
+    - `A2B10G10R10` unorm/snorm.
+    - RGB9E5 shared exponent: the specification's algorithm, bit-equal to a direct transcription of it.
+    - R11G11B10F unsigned floats, round to nearest-even, with NaN, Inf and negative inputs handled.
+    - sRGB8 from the exact transfer function, with a decode table.
+    - QTangent frames whose bitangent sign survives quantization.
+  - **`gpu.MeshletCones`**:
+    - the tightest normal cone of a cluster (from the minimal enclosing ball of its normals);
+    - an exact back-face test for a cluster's bounding sphere, `(d·a) cos α − |d × a| sin α > r`, which never culls
+      a visible triangle;
+    - conservative 32-bit quantization.
+  - **`BoundingVolumesf/d.transformSphere`**: sphere bounds under an affine transform, scaled by the exact largest
+    singular value (Jacobi, rounded up). The largest-column-length shortcut is too small under shear.
+  - **`FrustumPlanes.getVec4Array`**: the `vec4 planes[6]` layout shaders use.
+
 ### Fixed (precision and correctness audit of the JOML-inherited core)
 The inherited `core` and `geometry` code was checked against independent references: BigDecimal, direct evaluation,
 exact identities, brute force and separating-axis references. Almost every finding was shared by the float and double
@@ -131,6 +153,11 @@ twins, so twin parity could not see it. `PrecisionAuditTest` and `GeometryAuditT
   - `testMovingCircleCircle` returned false for circles that already overlapped while moving apart.
 
 ### Changed
+- `GpuTransformLayout` writers always write little-endian bytes, the order GPUs read. They used the buffer's order,
+  so a default (big-endian) `ByteBuffer` received byte-swapped values. The float TRS layout is documented as a
+  scalar-layout struct; it is not std430.
+- `PackedNorm` decodes exactly (`c / (2^b − 1)`); it multiplied by a rounded reciprocal, one ulp off for some codes.
+  Encoding forms the product in double.
 - `SpringDamperf.criticallyDamped` now evaluates `e^(−ω dt)` exactly. It used a cubic approximation, 0.1 % off at
   `ω dt = 1`.
 - `Intersection*.findClosestPointOnLineSegment` returns the point `a` for a zero-length segment. It used to return NaN.

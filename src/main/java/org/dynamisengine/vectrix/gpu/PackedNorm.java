@@ -24,50 +24,56 @@
 package org.dynamisengine.vectrix.gpu;
 
 /**
- * Helpers for SNORM/UNORM packing used by vertex formats.
+ * Normalized integer codecs (unorm/snorm 8 and 16 bits), as Vulkan defines them:
+ * <ul>
+ * <li><b>Decoding</b> is the exact quotient {@code c / (2^b − 1)}, clamped to {@code −1} for snorm. Before 2.4.0
+ * it multiplied by a rounded reciprocal, which was one ulp off for some codes.</li>
+ * <li><b>Encoding</b> rounds {@code clamp(v) × (2^b − 1)} to nearest, ties toward +∞ ({@code Math.round}). The product is formed
+ * exactly, in double. NaN encodes as 0.</li>
+ * </ul>
  */
 public final class PackedNorm {
     private PackedNorm() {
     }
 
     public static int packUnorm8(float v) {
-        int q = (int) java.lang.Math.round(clamp(v, 0.0f, 1.0f) * 255.0f);
+        int q = (int) java.lang.Math.round(clamp(v, 0.0f, 1.0f) * 255.0);
         return q & 0xFF;
     }
 
     public static float unpackUnorm8(int packed) {
-        return (packed & 0xFF) * (1.0f / 255.0f);
+        return (packed & 0xFF) / 255.0f;
     }
 
     public static int packUnorm16(float v) {
-        int q = (int) java.lang.Math.round(clamp(v, 0.0f, 1.0f) * 65535.0f);
+        int q = (int) java.lang.Math.round(clamp(v, 0.0f, 1.0f) * 65535.0);
         return q & 0xFFFF;
     }
 
     public static float unpackUnorm16(int packed) {
-        return (packed & 0xFFFF) * (1.0f / 65535.0f);
+        return (packed & 0xFFFF) / 65535.0f;
     }
 
     public static int packSnorm8(float v) {
         float clamped = clamp(v, -1.0f, 1.0f);
-        int q = (int) java.lang.Math.round(clamped * 127.0f);
+        int q = (int) java.lang.Math.round(clamped * 127.0);
         return q & 0xFF;
     }
 
     public static float unpackSnorm8(int packed) {
         int s = (byte) (packed & 0xFF);
-        return clamp(s * (1.0f / 127.0f), -1.0f, 1.0f);
+        return java.lang.Math.max(s / 127.0f, -1.0f);
     }
 
     public static int packSnorm16(float v) {
         float clamped = clamp(v, -1.0f, 1.0f);
-        int q = (int) java.lang.Math.round(clamped * 32767.0f);
+        int q = (int) java.lang.Math.round(clamped * 32767.0);
         return q & 0xFFFF;
     }
 
     public static float unpackSnorm16(int packed) {
         int s = (short) (packed & 0xFFFF);
-        return clamp(s * (1.0f / 32767.0f), -1.0f, 1.0f);
+        return java.lang.Math.max(s / 32767.0f, -1.0f);
     }
 
     public static int packUnorm8x4(float x, float y, float z, float w) {

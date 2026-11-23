@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.geometry;
 
+import org.dynamisengine.vectrix.core.Vector4dc;
 import org.dynamisengine.vectrix.core.Matrix4x3dc;
 import org.dynamisengine.vectrix.core.Matrix3dc;
 import org.dynamisengine.vectrix.core.Matrix3d;
@@ -481,6 +482,86 @@ public final class BoundingVolumesd {
         }
         min.set(minX, minY, minZ);
         max.set(maxX, maxY, maxZ);
+    }
+
+
+    /**
+     * The largest singular value of the 3×3 matrix with columns {@code (m00, m01, m02)}, {@code (m10, m11, m12)} and
+     * {@code (m20, m21, m22)}: the most it stretches any vector.
+     * <p>
+     * It is computed as the square root of the largest eigenvalue of {@code LᵀL}, by cyclic Jacobi rotations,
+     * which are accurate to rounding even when eigenvalues coincide. It is then rounded up by a few ulps, so a
+     * radius scaled by it never under-covers. The largest column length, a common shortcut, equals this value only
+     * for orthogonal columns; under shear it is smaller, and the bound is then too small.
+     */
+    static double maxStretch(double m00, double m01, double m02, double m10, double m11, double m12, double m20,
+            double m21, double m22) {
+        // A = L^T L, symmetric: a_ij = column_i . column_j
+        double a00 = m00 * m00 + m01 * m01 + m02 * m02, a11 = m10 * m10 + m11 * m11 + m12 * m12;
+        double a22 = m20 * m20 + m21 * m21 + m22 * m22;
+        double a01 = m00 * m10 + m01 * m11 + m02 * m12, a02 = m00 * m20 + m01 * m21 + m02 * m22;
+        double a12 = m10 * m20 + m11 * m21 + m12 * m22;
+        for (int sweep = 0; sweep < 12; sweep++) {
+            double off = a01 * a01 + a02 * a02 + a12 * a12;
+            if (off <= 1e-36 * (a00 * a00 + a11 * a11 + a22 * a22)) {
+                break;
+            }
+            // rotate (0,1)
+            if (a01 != 0) {
+                double th = (a11 - a00) / (2 * a01);
+                double t = Math.copySign(1.0, th) / (Math.abs(th) + Math.sqrt(th * th + 1));
+                double c = 1 / Math.sqrt(t * t + 1), sn = t * c;
+                a00 -= t * a01;
+                a11 += t * a01;
+                double r0 = a02, r1 = a12;
+                a02 = c * r0 - sn * r1;
+                a12 = sn * r0 + c * r1;
+                a01 = 0;
+            }
+            // rotate (0,2)
+            if (a02 != 0) {
+                double th = (a22 - a00) / (2 * a02);
+                double t = Math.copySign(1.0, th) / (Math.abs(th) + Math.sqrt(th * th + 1));
+                double c = 1 / Math.sqrt(t * t + 1), sn = t * c;
+                a00 -= t * a02;
+                a22 += t * a02;
+                double r0 = a01, r1 = a12;
+                a01 = c * r0 - sn * r1;
+                a12 = sn * r0 + c * r1;
+                a02 = 0;
+            }
+            // rotate (1,2)
+            if (a12 != 0) {
+                double th = (a22 - a11) / (2 * a12);
+                double t = Math.copySign(1.0, th) / (Math.abs(th) + Math.sqrt(th * th + 1));
+                double c = 1 / Math.sqrt(t * t + 1), sn = t * c;
+                a11 -= t * a12;
+                a22 += t * a12;
+                double r0 = a01, r1 = a02;
+                a01 = c * r0 - sn * r1;
+                a02 = sn * r0 + c * r1;
+                a12 = 0;
+            }
+        }
+        double lambda = Math.max(a00, Math.max(a11, a22));
+        double sigma = Math.sqrt(Math.max(lambda, 0));
+        return sigma + 8 * Math.ulp(sigma);
+    }
+
+    /**
+     * The bounding sphere of a sphere ({@code sphere.xyz} center, {@code sphere.w} radius) under the affine
+     * {@code m}: the transformed center, and the radius scaled by the largest singular value of {@code m}'s linear
+     * part ({@link #maxStretch}). That radius is exact for any linear part, including shear and non-uniform scale,
+     * and rounded up.
+     *
+     * @since 2.4.0
+     */
+    public static Vector4d transformSphere(Vector4dc sphere, Matrix4x3dc m, Vector4d dest) {
+        double x = sphere.x(), y = sphere.y(), z = sphere.z(), r = sphere.w();
+        double s = maxStretch(m.m00(), m.m01(), m.m02(), m.m10(), m.m11(), m.m12(), m.m20(), m.m21(), m.m22());
+        double rr = r * s;
+        return dest.set(m.m00() * x + m.m10() * y + m.m20() * z + m.m30(), m.m01() * x + m.m11() * y + m.m21() * z + m.m31(),
+                m.m02() * x + m.m12() * y + m.m22() * z + m.m32(), rr + 2 * Math.ulp(rr));
     }
 
 }
