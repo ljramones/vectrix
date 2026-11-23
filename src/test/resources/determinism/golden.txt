@@ -8227,6 +8227,14 @@ experimental.Reduction.dotStrict(float[],float[]) 4bdff576493e23f0
 experimental.Reduction.sum(float[]) e47a9d5030a14fa1
 experimental.Reduction.sumFast(float[]) 9223a6ea8e90e2af
 experimental.Reduction.sumStrict(float[]) ce6d2940b133d9e3
+fft.BlockConvolverd.plan(double[],int,int,int) 172f93a8bcc0fc11
+fft.BlockConvolverf.plan(float[],int,int,int) 2b21e4171b478fbe
+fft.ComplexFft2d.plan(int,int) ddd417b633b1cf4c
+fft.ComplexFft2f.plan(int,int) a676f6653437b6ca
+fft.ComplexFftd.fastSize(int) d508856d0de23e89
+fft.ComplexFftd.plan(int) aae9e204441d96cb
+fft.ComplexFftf.fastSize(int) d508856d0de23e89
+fft.ComplexFftf.plan(int) 2ec29d370d8cb512
 fft.Complexd.add(Complexd,Complexd) 58f4adafb71fc81b
 fft.Complexd.conjugate(Complexd) d3e7d9c944e1183e
 fft.Complexd.mul(Complexd,Complexd) c93668c94f4ebcb9
@@ -8251,6 +8259,10 @@ fft.FFT1d.inverse(double[]) 3f971e328f8ebf27
 fft.FFT1f.isPowerOfTwoSize(int) 2dab308cb068a699
 fft.FFT1f.forward(float[]) 3f971e328f8ebf27
 fft.FFT1f.inverse(float[]) 3f971e328f8ebf27
+fft.RealFft2d.plan(int,int) f9e15c2af5c401df
+fft.RealFft2f.plan(int,int) f619d2d86d8e1334
+fft.RealFftd.plan(int) 0c135cd67e897e19
+fft.RealFftf.plan(int) 0210389671524942
 geometry.BoundingVolumesd.approximateMinimalObb(double[],int,Vector3d,Matrix3d,Vector3d) d93f9e5b0d3bd202
 geometry.BoundingVolumesd.minimalAreaRectangle(double[],int,Vector2d,Vector2d,Vector2d) bb5788fe9c01e6c3
 geometry.BoundingVolumesd.kDopDirections(int,double[]) 3f971e328f8ebf27

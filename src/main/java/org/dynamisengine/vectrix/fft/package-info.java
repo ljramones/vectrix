@@ -22,7 +22,18 @@
  * THE SOFTWARE.
  */
 /**
- * 1D FFT and FFT-based convolution utilities over interleaved complex arrays for signal-processing workloads
- * such as ocean simulation and frequency-domain filtering.
+ * Fourier transforms and FFT convolution.
+ * <ul>
+ * <li>{@link org.dynamisengine.vectrix.fft.ComplexFftd} / {@link org.dynamisengine.vectrix.fft.RealFftd}: planned
+ * 1D transforms of any size (mixed radix 2/3/4/5, direct prime butterflies, Bluestein), complex and real input.</li>
+ * <li>{@link org.dynamisengine.vectrix.fft.ComplexFft2d} / {@link org.dynamisengine.vectrix.fft.RealFft2d}: 2D
+ * transforms.</li>
+ * <li>{@link org.dynamisengine.vectrix.fft.BlockConvolverd}: streaming FIR filtering, direct or overlap-add.</li>
+ * <li>{@link org.dynamisengine.vectrix.fft.FFT1d} and {@link org.dynamisengine.vectrix.fft.Convolutiond}: the
+ * original in-place radix-2 API, kept for compatibility.</li>
+ * </ul>
+ * Each has a float twin ({@code ...f}). Plans are immutable and shareable between threads; calls take caller-owned
+ * scratch, never allocate, and are deterministic. Twiddle factors are computed with exact argument reduction, so
+ * the error grows only with {@code log n}. See {@code docs/signal-and-ml-roadmap.md}.
  */
 package org.dynamisengine.vectrix.fft;

@@ -6,6 +6,23 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 ### Added
+- **FFT rebuild** (`fft`), the first phase of the signal-processing roadmap (`docs/signal-and-ml-roadmap.md`).
+  Every class has a float twin (`...f`):
+  - `ComplexFftd`: planned transforms of any size.
+    - Sizes with prime factors up to 61 use a self-sorting mixed-radix algorithm (radix 4, 2, 3, 5 and direct
+      prime butterflies); other sizes use Bluestein's algorithm.
+    - `fastSize(min)` gives the nearest size with prime factors 2, 3 and 5 only.
+    - The measured relative RMS error is below 6e-16 (float: 2.5e-7) at every size tested, up to 2^22.
+    - At 2^20 points it is 12 times faster than `FFT1d`.
+  - `RealFftd`: real-input transforms with a half spectrum, about twice as fast as complex.
+  - `ComplexFft2d` and `RealFft2d`: 2D transforms.
+  - `BlockConvolverd`: streaming FIR filtering with caller-held state.
+    - It picks direct convolution or FFT overlap-add from a measured cost model.
+    - It accepts chunks of any size.
+  - Plans are immutable and can be shared between threads. Calls take caller-owned scratch, do not allocate,
+    and are deterministic. The 1D plans also accept `MemorySegment` data.
+
+### Added (projection queries)
 - `DepthRange` forms of the projection queries inherited from JOML, which assumed OpenGL's [-1, 1] depth:
   - `Matrix4f/d`:
     - `perspectiveNear`/`perspectiveFar`;
@@ -137,6 +154,10 @@ Each fix has a regression test in `MatrixAudit2Test`, `VectorQuatAudit2Test` or 
   - The triangle interpolators are documented as returning NaN for degenerate triangles.
 
 ### Fixed
+- `FFT1d`/`FFT1f` (and `Convolutiond/f`, which use them) generated twiddle factors by recurrence. The error grew
+  with the size: relative leakage of 1.1e-13 at 2^14 and 7.8e-12 at 2^20. They now read an exactly reduced table,
+  shared and immutable: at most 1.2e-16 at every size measured. The API, in-place operation and no-allocation
+  behaviour are unchanged.
 - `Matrix4f/d.perspectiveFrustumSlice` scaled `m00` and `m11` by `near / oldNear`, which changed the field of view:
   slicing a 1.1 rad projection to [1, 10] made it about ten times narrower. A slice now keeps the field of view,
   aspect and off-centre terms, and changes only the depth terms. This is an inherited JOML defect.

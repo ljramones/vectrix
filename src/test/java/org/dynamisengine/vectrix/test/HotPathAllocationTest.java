@@ -288,6 +288,36 @@ class HotPathAllocationTest {
         assertTrue(perTable <= 64, "arc-length table builder allocates " + perTable + " bytes per table");
     }
 
+    @Test
+    void fftPlansDoNotAllocate() {
+        for (int n : new int[] {1024, 1000, 1009}) { // power of two, mixed radix, Bluestein
+            org.dynamisengine.vectrix.fft.ComplexFftd c = org.dynamisengine.vectrix.fft.ComplexFftd.plan(n);
+            double[] data = new double[2 * n];
+            double[] s = new double[c.scratchSize()];
+            assertNoAllocation("ComplexFftd.forward " + n, () -> c.forward(data, 0, s, 0));
+            org.dynamisengine.vectrix.fft.RealFftf r = org.dynamisengine.vectrix.fft.RealFftf.plan(n);
+            float[] in = new float[n];
+            float[] out = new float[r.spectrumLength()];
+            float[] rs = new float[r.scratchSize()];
+            assertNoAllocation("RealFftf.forward " + n, () -> r.forward(in, 0, out, 0, rs, 0));
+            assertNoAllocation("RealFftf.inverse " + n, () -> r.inverse(out, 0, in, 0, rs, 0));
+        }
+        org.dynamisengine.vectrix.fft.ComplexFft2f g = org.dynamisengine.vectrix.fft.ComplexFft2f.plan(48, 40);
+        float[] grid = new float[2 * 48 * 40];
+        float[] gs = new float[g.scratchSize()];
+        assertNoAllocation("ComplexFft2f.forward", () -> g.forward(grid, 0, gs, 0));
+        float[] h = new float[300];
+        h[0] = 1;
+        org.dynamisengine.vectrix.fft.BlockConvolverf b = org.dynamisengine.vectrix.fft.BlockConvolverf.plan(h, 0, 300, 256);
+        float[] x = new float[256];
+        float[] st = new float[b.stateSize()];
+        float[] bs = new float[b.scratchSize()];
+        assertNoAllocation("BlockConvolverf.process", () -> b.process(x, 0, 256, x, 0, st, 0, bs, 0));
+        double[] legacy = new double[2 * 4096];
+        org.dynamisengine.vectrix.fft.FFT1d.forward(legacy); // builds the shared table once
+        assertNoAllocation("FFT1d.forward", () -> org.dynamisengine.vectrix.fft.FFT1d.forward(legacy));
+    }
+
     /** The previous squadControlPoint, written with the public API (it allocated eight quaternions). */
     private static Quaternionf referenceControlPoint(Quaternionf q, Quaternionf prev, Quaternionf next) {
         Quaternionf pv = new Quaternionf(prev), nx = new Quaternionf(next);
