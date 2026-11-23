@@ -102,7 +102,13 @@ class DocReferencesTest {
                     continue;
                 }
                 boolean aboutDeprecation = line.toLowerCase(Locale.ROOT).contains("deprecat");
-                Matcher span = SPAN.matcher(line);
+                String checked = line;
+                if (doc.getFileName().toString().startsWith("migrating-") && line.startsWith("|")) {
+                    // a migration guide's tables name removed API in their first column; check the rest
+                    int second = line.indexOf('|', 1);
+                    checked = second < 0 ? "" : line.substring(second);
+                }
+                Matcher span = SPAN.matcher(checked);
                 while (span.find()) {
                     Matcher m = REF.matcher(span.group(1).trim());
                     if (m.matches() && !(m.group(3) != null && FILE.matcher(m.group(3)).matches())

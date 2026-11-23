@@ -13,6 +13,7 @@ pages is quoted from the tested programs in [`../examples`](../examples/README.m
 - [Performance](performance.md): why it is fast, hot-path rules, and which paths to use. Measured numbers are in
   [benchmarks.md](benchmarks.md).
 - [API policy](api-policy.md): stability, `@Internal`, deprecation and versioning.
+- [Migrating to 3.0](migrating-to-3.0.md): what changed from 2.x, including the changes the compiler cannot catch.
 - [JOML divergence](joml-divergence.md): why Vectrix forked JOML, and what has changed since.
 
 ## Guides
@@ -34,6 +35,6 @@ pages is quoted from the tested programs in [`../examples`](../examples/README.m
 ## For maintainers
 
 - [Release checklist](maintainers/release-cut-checklist.md)
-- [Known issues](maintainers/known-issues.md): defects and API oddities found by code reading, with their status
+- [Known issues](maintainers/known-issues.md): open defects and deliberate limitations
 - [Benchmarking guide](maintainers/benchmarking-guide.md) and [benchmark environment](maintainers/benchmark-environment.md)
 - [Benchmark policy](../benchmarks/POLICY.md)

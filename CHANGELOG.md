@@ -6,8 +6,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
-Major release: the deprecations of 2.6.0 are removed, and every known issue that needed an API change is fixed in
-place. See the migration notes under "Changed (breaking)".
+Major release: the deprecations of 2.6.0 are removed, and the issues catalogued in 2.6.0 are fixed, including those
+that needed an API change. Upgrading: read [`docs/migrating-to-3.0.md`](docs/migrating-to-3.0.md) first. It lists
+the changes that keep their signatures but change their results (the sphere and circle radius convention,
+`Rangef.clamp` order, skinning with joint scale), which the compiler cannot catch.
 
 ### Removed
 - Deprecated in 2.6.0:
@@ -30,8 +32,100 @@ place. See the migration notes under "Changed (breaking)".
   `Intersectionf/d`, `GeometryUtils`, `sampling.Convolution` and the sampling holders), which are now `final`.
 
 ### Changed (breaking)
+The migration guide covers each of these.
+- **Results change, signatures do not:**
+  - `Intersectionf`/`Intersectiond`: every sphere and circle method takes the plain radius. Thirteen methods used to
+    take the squared radius.
+  - `testSphereSphere` counts containment as intersecting.
+  - `Rangef`/`Ranged.clamp` take `(min, max, value)`.
+  - `SkinningKernels.skinLbs4` and `skinLbs4SoA` apply joint scale.
+  - `new PackedAffineArray(n)` starts as identity transforms.
+  - `Contacts*.nearestFace` returns the distance to the box for outside points.
+  - `InstanceSubmissionPipeline` writes bounds per slot.
+  - `Easing*.spring` ends exactly at 1, and `Sampler.argmax` treats NaN like `Pool2d.max`.
+- **Removed:**
+  - `gpu.StdLayout` (use `ShaderLayout`);
+  - `GpuTransformWriteKernels.writePackedAffine` (use `PackedAffineKernels.uploadPackedAffine`);
+  - `GpuTransformLayout.writeFloatTrs`/`writeCompactTrs` and the `GpuTransformWriteKernels` equivalents (the
+    layout decides the encoding).
+- **Renamed or re-signed:**
+  - `Affine4d.toMatrix4f(Matrix4d)` is now `toMatrix4d`, and `ShConvolution.evaluateIrradiance` is now
+    `evaluateL2`.
+  - `SphericalGaussians*.fit` takes offsets.
+  - `Atmosphere.multipleScatteringLut` and `MeshMath.vertexTangents` take caller scratch.
+  - `CurveReparameterizer3*` table builders return the segment length.
+  - `Toeplitz.levinsonDurbin` needs `levinsonDurbinScratchSize(p)`.
+  - `GpuTransformWriteKernels.writeMatrix4fFromPackedAffine` takes an output offset.
+  - `RealFft2*.inverse` preserves its input (size scratch with `scratchSize()`).
+- **Read-only parameters:** `testObOb`, `testMovingCircleCircle`, `PbdConstraints*` and
+  `Interpolationf.bilinearVec3` take `...c` interfaces. This is source-compatible; recompile.
+- **New exceptions for invalid input:**
+  - `Transform*.invertRigidFast` (non-unit scale);
+  - `DualQuatTransform*.blend` (no transforms or all-zero weights);
+  - `PoseKernels*` (only one scale array);
+  - `PdControllers*.clampTorque` (negative limit);
+  - `UnscentedKalman` (`n + kappa <= 0`);
+  - `Wavelet.fromLowpass` (taps that are not orthonormal);
+  - `FirDesign.kaiserBeta`/`kaiserTaps`;
+  - `Kalman.scratchSize`;
+  - `Formats.quantizeInt8` (NaN or infinite input);
+  - `Attention` (row strides);
+  - `UniformBSpline1*` (copies its control points);
+  - `GpuTransformLayout` (invalid layouts);
+  - `VertexLayout` (misaligned stride);
+  - `ShaderLayout` (two structs with the same name);
+  - `AtmosphereModel` (non-finite fields).
+- **Last-bit differences:** `ComplexFft2*.inverse` now rounds once, and `UnscentedKalman.update` uses the Joseph
+  form.
 - `CoreConfig.determinismFingerprint` names its entries `vectrix.*` and leaves out the SIMD settings, which never
   change result bits.
+
+### Added
+- `Kalman`, `ExtendedKalman` and `UnscentedKalman` gain `innovationDistance`, the gating distance without
+  updating, and `dsp.InnovationFunction` lets the extended filter wrap angle innovations.
+- `hash.Philox` gains `uniformDouble`, and `fillUniform`/`fillNormal` for doubles (53-bit).
+- Float overloads of `Correlation.correlate`, `Toeplitz.solve`/`levinsonDurbin` and `Wavelet.forward`/`inverse`.
+- `RobustPredicates.incircle` and `insphere` for floats.
+- `LeastSquares*.solve` with caller scratch.
+- `Projections*.ndcDepth(proj, x, y, z)`, exact for oblique projections.
+- `PackedAffineKernels.uploadPackedAffine` with an output offset.
+- `SkinningKernels.buildMatrixPalette12`, with scale.
+- `ShCoeffs16*.get`/`set`, and `ShConvolution.evaluateL2` on arrays.
+- `ColorSpacesf.toXyz`/`fromXyz` and the matrix getters.
+- `Matrix4dc.frustumAabb`.
+- `Interpolationd.bilinearVec3`.
+- `QuatCompression.IDENTITY` and `OctaNormal.UP`.
+
+### Fixed
+- `SphericalGaussians*.irradianceFitted` was wrong below sharpness 1: NaN at 0, about −3e15 at 1e-6, still negative
+  at 0.5. It now computes the exact value there.
+- `QuatCompression` encoded a zero or NaN quaternion as a half turn. It is now the identity, and `OctaNormal`
+  defines zero and NaN input too.
+- `RobustPredicates` threw `NumberFormatException` for NaN or infinite input. It now returns NaN.
+- `BoundingVolumes*.transformSphere` and `aabOfCylinder` could cut into the shape. Both are now conservative.
+- `SpatialCodes.morton2dX`/`Y` mis-decoded codes with the top bit set.
+- `GpuTransformLayout.write` silently used the compact encoding for mixed layouts.
+- `WorldPos.normalize`, `add` and `set` are atomic.
+- `Affine4*.getTransform` returns a unit rotation for reflections and shear.
+- `JointLimits*` with a zero limit gave NaN. `DampedLeastSquares*` with `lambda = 0` on a straight chain gave NaN.
+- `PbdConstraints*` degeneracy thresholds are relative to the configuration's size.
+- `Atmosphere.densityIntegrals` integrated backwards for a negative length.
+- `DfgLutBuilder` accepted invalid input. Roughness 0 gives the mirror limit.
+- NaN indices of refraction passed the optics checks.
+- `UnscentedKalman.update` could lose positive semi-definiteness. It now uses the Joseph form.
+- `ComplexFft2*.inverse` and `RealFft2*.inverse` scale once.
+- Up-front validation, with no partial writes:
+  - `Spectra`, `FirDesign`, `Biquad.response`, `Toeplitz`, `Wavelet`, `Smoothers.median`, `Wiener`, `Gemm*`;
+  - `Kalman`, `ExtendedKalman` and `UnscentedKalman`;
+  - `ShProduct`, `ShWindowing`, `AliasTable`, `CieObserver`;
+  - `PackedAffineKernels`, `PoseKernels*`, `IntegratorRK4*`, `Projections*.haltonJitter`;
+  - the `soa` kernels;
+  - every `nn` kernel;
+  - `InstanceSubmissionPipeline`, `PackedFormats.qTangent`, `Conv2d.of`/`Pool2d.of`.
+- Allocation removed from:
+  - `ColorSpacesd.adaptationMatrix`, the LTC clipped form factors and the atmosphere quadrature;
+  - `SpatialCodes.hilbert3d`, `MeshMath`, `BoundingVolumes*.kDop` and least squares;
+  - `PackedFormats.qTangent` and the chunked packed-affine kernels.
 
 ## [2.6.0] - 2026-11-23
 New in this release:
