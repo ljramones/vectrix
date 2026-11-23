@@ -116,22 +116,24 @@ public final class UniformBSpline3d {
 
     /**
      * Evaluates the segment {@code segmentIndex} at {@code length} parameters, writing one point, one array per
-     * coordinate. The arrays are not checked up front; an output array may be {@code tValues} at the same offset.
+     * coordinate. The arrays and offsets are checked before anything is written; an output array may be {@code tValues} at the same offset.
      *
      * @param segmentIndex the segment, in {@code [0, segmentCount())}
      * @param tValues the curve parameters
      * @param tOffset the offset of the first parameter in {@code tValues}
-     * @param length the number of parameters to evaluate
+     * @param length the number of parameters to evaluate, at least 0
      * @param outX receives the x coordinates
      * @param outXOffset the offset of the first coordinate in {@code outX}
      * @param outY receives the y coordinates
      * @param outYOffset the offset of the first coordinate in {@code outY}
      * @param outZ receives the z coordinates
      * @param outZOffset the offset of the first coordinate in {@code outZ}
-     * @throws IllegalArgumentException if {@code segmentIndex} is out of range
+     * @throws IllegalArgumentException if {@code segmentIndex} is out of range, {@code length} is negative, or an
+     *         array is null or too short for its offset; nothing is written then
      */
     public void evaluateBatch(int segmentIndex, double[] tValues, int tOffset, int length, double[] outX, int outXOffset, double[] outY, int outYOffset, double[] outZ, int outZOffset) {
         int s = checkedSegment(segmentIndex);
+        checkBatch(tValues, tOffset, length, outX, outXOffset, outY, outYOffset, outZ, outZOffset);
         double c0x = controlPoints[s].x(), c1x = controlPoints[s + 1].x(), c2x = controlPoints[s + 2].x(), c3x = controlPoints[s + 3].x();
         double c0y = controlPoints[s].y(), c1y = controlPoints[s + 1].y(), c2y = controlPoints[s + 2].y(), c3y = controlPoints[s + 3].y();
         double c0z = controlPoints[s].z(), c1z = controlPoints[s + 1].z(), c2z = controlPoints[s + 2].z(), c3z = controlPoints[s + 3].z();
@@ -146,5 +148,15 @@ public final class UniformBSpline3d {
     private int checkedSegment(int segmentIndex) {
         if (segmentIndex < 0 || segmentIndex >= segmentCount()) throw new IllegalArgumentException("segmentIndex");
         return segmentIndex;
+    }
+
+    private static void checkBatch(double[] tValues, int tOffset, int length, double[] outX, int outXOffset, double[] outY, int outYOffset, double[] outZ, int outZOffset) {
+        if (length < 0 || !fits(tValues, tOffset, length) || !fits(outX, outXOffset, length) || !fits(outY, outYOffset, length) || !fits(outZ, outZOffset, length)) {
+            throw new IllegalArgumentException("tValues, outX, outY and outZ must hold " + length + " values from their offsets");
+        }
+    }
+
+    private static boolean fits(double[] array, int offset, int length) {
+        return array != null && offset >= 0 && offset <= array.length - length;
     }
 }
