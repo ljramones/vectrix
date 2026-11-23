@@ -110,6 +110,14 @@ Each fix has a regression test in `MatrixAudit2Test`, `VectorQuatAudit2Test` or 
   - Float `Matrix4f.invert`/`invertAffine`, `Matrix3f.invert` and `Matrix4x3f.invert` gave ∞ or NaN for
     well-conditioned matrices of extreme scale, because the float determinant underflowed below about 1e-15 per
     axis. They now compute in double and round each element once, which is also more precise.
+- **Fast-math mode** (`-Djoml.fastmath`, opt-in):
+  - The polynomial `sin`/`cos` flipped sign beyond about 6.7e9 rad, and `sin(1e19)` was 0. The lookup table returned
+    values like `sin(1e6) = 176395.95`.
+  - `cos(float)` shifted by π/2 in float, so for \|x\| ≥ 2²⁵ it returned the sine.
+  - `atan2` gave NaN for zeros and infinities, and lost the sign of zero.
+  - The approximations are now used only within their accurate range, and everything else takes the accurate path.
+    The error bounds are documented in `docs/determinism.md`: polynomial sin 1e-10, cos 2e-10; lookup 4e-5 below
+    256 rad; atan2 2.1e-4 rad.
 - **Documentation:**
   - `obliqueZ` documented `y' = y + a·z`; the code correctly uses `b`.
 

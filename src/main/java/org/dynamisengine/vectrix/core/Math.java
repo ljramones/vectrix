@@ -208,30 +208,79 @@ public class Math {
     public static float sin(float rad) {
         if (FAST_MATH) {
             if (Options.SIN_LOOKUP)
-                return sin_theagentd_lookup(rad);
-            return (float) sin_roquen_newk(rad);
+                return lookupSin(rad);
+            return (float) fastSin(rad);
         }
         return (float) AccurateMath.sin(rad);
     }
     public static double sin(double rad) {
         if (FAST_MATH) {
             if (Options.SIN_LOOKUP)
-                return sin_theagentd_lookup((float) rad);
-            return sin_roquen_newk(rad);
+                return lookupSin((float) rad);
+            return fastSin(rad);
         }
         return AccurateMath.sin(rad);
     }
 
     public static float cos(float rad) {
         if (FAST_MATH)
-            return sin(rad + PI_OVER_2_f);
+            return Options.SIN_LOOKUP ? lookupCos(rad) : (float) fastCos(rad);
         return (float) AccurateMath.cos(rad);
     }
     public static double cos(double rad) {
         if (FAST_MATH)
-            return sin(rad + PI_OVER_2);
+            return Options.SIN_LOOKUP ? lookupCos((float) rad) : fastCos(rad);
         return AccurateMath.cos(rad);
     }
+
+    /**
+     * The fast-math sine: a minimax polynomial after reduction by pi, within 1e-10 of the exact value for
+     * {@code |v| < FAST_SIN_LIMIT} (1e6). Beyond that, and for NaN and infinities, it uses the accurate path. Before
+     * 2.5.0 the reduction's int conversion saturated beyond about 6.7e9 rad, which flipped the sign, and
+     * {@code sin(1e19)} returned 0.
+     */
+    static double fastSin(double v) {
+        if (!(java.lang.Math.abs(v) < FAST_SIN_LIMIT))
+            return AccurateMath.sin(v);
+        if (v == 0)
+            return v; // keeps -0
+        return sin_roquen_newk(v);
+    }
+
+    /**
+     * The fast-math cosine: {@code sin(v + pi/2)}, with the shift taken in double. It is within 2e-10 of the exact value
+     * for {@code |v| < 1e6} (the shift rounds to the argument's ulp), and uses the accurate path beyond.
+     */
+    static double fastCos(double v) {
+        if (!(java.lang.Math.abs(v) < FAST_SIN_LIMIT))
+            return AccurateMath.cos(v);
+        return sin_roquen_newk(v + PI_OVER_2);
+    }
+
+    /**
+     * The lookup-table sine ({@code -Djoml.sinLookup}). The table index is a float, so its angle error grows with
+     * {@code |rad|}. Within {@code LOOKUP_LIMIT} (256 rad) the sine and cosine are within 4e-5 of the exact values; beyond that, and for NaN and
+     * infinities, it uses the accurate path. Before 2.5.0 large arguments gave values like {@code sin(1e6) = 176395.95}.
+     */
+    static float lookupSin(float rad) {
+        if (!(java.lang.Math.abs(rad) < LOOKUP_LIMIT))
+            return (float) AccurateMath.sin(rad);
+        if (rad == 0)
+            return rad;
+        return sin_theagentd_lookup(rad);
+    }
+
+    /** The lookup-table cosine: the shift by pi/2 is taken in double before the table lookup. */
+    static float lookupCos(float rad) {
+        if (!(java.lang.Math.abs(rad) < LOOKUP_LIMIT))
+            return (float) AccurateMath.cos(rad);
+        return sin_theagentd_lookup((float) (rad + PI_OVER_2));
+    }
+
+    /** |argument| below which the fast-math polynomial sine is used. */
+    static final double FAST_SIN_LIMIT = 1e6;
+    /** |argument| below which the lookup-table sine is used. */
+    static final float LOOKUP_LIMIT = 256f;
 
     /**
      * {@code cos(angle)} given {@code sin = sin(angle)}. Where {@code |cos| ≥ |sin|} the identity
@@ -242,7 +291,7 @@ public class Math {
      */
     public static float cosFromSin(float sin, float angle) {
         if (FAST_MATH)
-            return sin(angle + PI_OVER_2_f);
+            return cos(angle);
         if (java.lang.Math.abs(sin) > 0.70710677f || !(java.lang.Math.abs(angle) < 1e9f))
             return (float) AccurateMath.cos(angle);
         float cos = (float) java.lang.Math.sqrt(1.0 - (double) sin * sin);
@@ -250,7 +299,7 @@ public class Math {
     }
     public static double cosFromSin(double sin, double angle) {
         if (FAST_MATH)
-            return sin(angle + PI_OVER_2);
+            return cos(angle);
         if (java.lang.Math.abs(sin) > 0.7071067811865476 || !(java.lang.Math.abs(angle) < 1e9))
             return AccurateMath.cos(angle);
         double cos = sqrt(1.0 - sin * sin);
@@ -325,6 +374,17 @@ public class Math {
     /**
      * https://math.stackexchange.com/questions/1098487/atan2-faster-approximation/1105038#answer-1105038
      */
+    /**
+     * The fast-math atan2: a polynomial within 2.1e-4 rad of the exact value. Zeros (with their signs), infinities
+     * and NaN go to the accurate path. Before 2.5.0 they gave NaN (for example {@code atan2(0, 0)}) or a lost sign
+     * ({@code atan2(-0, -1)} gave +pi).
+     */
+    static double fastAtan2Guarded(double y, double x) {
+        if (y == 0 || x == 0 || !(java.lang.Math.abs(x) < Double.POSITIVE_INFINITY) || !(java.lang.Math.abs(y) < Double.POSITIVE_INFINITY))
+            return AccurateMath.atan2(y, x);
+        return fastAtan2(y, x);
+    }
+
     private static double fastAtan2(double y, double x) {
         double ax = x >= 0.0 ? x : -x, ay = y >= 0.0 ? y : -y;
         double a = ay > ax ? ax / ay : ay / ax;
@@ -350,12 +410,12 @@ public class Math {
 
     public static float atan2(float y, float x) {
         if (FAST_MATH)
-            return fastAtan2(y, x);
+            return (float) fastAtan2Guarded(y, x);
         return (float) AccurateMath.atan2(y, x);
     }
     public static double atan2(double y, double x) {
         if (FAST_MATH)
-            return fastAtan2(y, x);
+            return fastAtan2Guarded(y, x);
         return AccurateMath.atan2(y, x);
     }
     public static float atan(float r) {
