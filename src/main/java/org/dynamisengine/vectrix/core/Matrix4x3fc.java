@@ -2841,7 +2841,7 @@ public interface Matrix4x3fc {
      * The oblique transformation is defined as:
      * <pre>
      * x' = x + a*z
-     * y' = y + a*z
+     * y' = y + b*z
      * z' = z
      * </pre>
      * or in matrix form:

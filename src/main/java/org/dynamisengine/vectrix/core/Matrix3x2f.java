@@ -1512,6 +1512,25 @@ public class Matrix3x2f implements Matrix3x2fc, Externalizable, Cloneable {
     }
 
     /**
+     * Pre-multiply scaling to this matrix by scaling the base axes by the given sx and sy factors while using
+     * <code>(ox, oy)</code> as the scaling origin.
+     *
+     * @param sx
+     *            the scaling factor of the x component
+     * @param sy
+     *            the scaling factor of the y component
+     * @param ox
+     *            the x coordinate of the scaling origin
+     * @param oy
+     *            the y coordinate of the scaling origin
+     * @return this
+     * @since 2.5.0
+     */
+    public Matrix3x2f scaleAroundLocal(float sx, float sy, float ox, float oy) {
+        return scaleAroundLocal(sx, sy, ox, oy, this);
+    }
+
+    /**
      * Pre-multiply scaling to this matrix by scaling the base axes by the given sx and
      * sy factors while using <code>(ox, oy)</code> as the scaling origin.
      * <p>
@@ -1535,7 +1554,10 @@ public class Matrix3x2f implements Matrix3x2fc, Externalizable, Cloneable {
      * @param oz
      *            the z coordinate of the scaling origin
      * @return this
+     * @deprecated since 2.5.0: a 3D leftover; {@code sz} and {@code oz} are ignored. Use
+     *             {@link #scaleAroundLocal(float, float, float, float)}.
      */
+    @Deprecated
     public Matrix3x2f scaleAroundLocal(float sx, float sy, float sz, float ox, float oy, float oz) {
         return scaleAroundLocal(sx, sy, ox, oy, this);
     }

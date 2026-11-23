@@ -3333,6 +3333,13 @@ public interface Matrix4dc {
     Matrix4d unprojectRay(double winX, double winY, int[] viewport, Vector3d originDest, Vector3d dirDest);
 
     /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    Matrix4d unprojectRay(double winX, double winY, int[] viewport, DepthRange depthRange, Vector3d originDest, Vector3d dirDest);
+
+    /**
      * Unproject the given 2D window coordinates <code>winCoords</code> by <code>this</code> matrix using the specified viewport
      * and compute the origin and the direction of the resulting ray which starts at NDC <code>z = -1.0</code> and goes through NDC <code>z = +1.0</code>.
      * <p>
@@ -3522,6 +3529,13 @@ public interface Matrix4dc {
      * @return this
      */
     Matrix4d unprojectInvRay(double winX, double winY, int[] viewport, Vector3d originDest, Vector3d dirDest);
+
+    /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    Matrix4d unprojectInvRay(double winX, double winY, int[] viewport, DepthRange depthRange, Vector3d originDest, Vector3d dirDest);
 
     /**
      * Project the given <code>(x, y, z)</code> position via <code>this</code> matrix using the specified viewport
@@ -5742,7 +5756,7 @@ public interface Matrix4dc {
      * The oblique transformation is defined as:
      * <pre>
      * x' = x + a*z
-     * y' = y + a*z
+     * y' = y + b*z
      * z' = z
      * </pre>
      * or in matrix form:

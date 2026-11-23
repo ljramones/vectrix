@@ -431,7 +431,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
      */
     public Matrix4d m13(double m13) {
         this.m13 = m13;
-        if (m03 != 0.0)
+        if (m13 != 0.0)
             properties = PROPERTY_UNKNOWN;
         return this;
     }
@@ -1382,7 +1382,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(nm31)
         ._m32(nm32)
         ._m33(nm33)
-        ._properties(PROPERTY_AFFINE);
+        ._properties(r03 == 0 && r13 == 0 && r23 == 0 && r33 == 1.0 ? PROPERTY_AFFINE : 0);
     }
     private Matrix4d mulGeneric(
             double r00, double r01, double r02, double r03,
@@ -3271,7 +3271,8 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m20(nm20)
         ._m21(nm21)
         ._m22(m22)
-        ._properties(this.properties & (PROPERTY_AFFINE | PROPERTY_ORTHONORMAL | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
+        ._properties(dest == this ? this.properties & (PROPERTY_AFFINE | PROPERTY_ORTHONORMAL | PROPERTY_IDENTITY | PROPERTY_TRANSLATION)
+                : (dest.properties() & PROPERTY_AFFINE) != 0 ? PROPERTY_AFFINE | (this.properties & PROPERTY_ORTHONORMAL) : 0);
     }
 
     public Matrix3d transpose3x3(Matrix3d dest) {
@@ -3840,10 +3841,10 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     public Matrix4d rotationTowardsXY(double dirX, double dirY) {
         if ((properties & PROPERTY_IDENTITY) == 0)
             this._identity();
-        this.m00 = dirY;
-        this.m01 = dirX;
-        this.m10 = -dirX;
-        this.m11 = dirY;
+        this.m00 = dirX;
+        this.m01 = dirY;
+        this.m10 = -dirY;
+        this.m11 = dirX;
         properties = PROPERTY_AFFINE | PROPERTY_ORTHONORMAL;
         return this;
     }
@@ -5099,7 +5100,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(-nm01 * ox - nm11 * oy - dest.m21 * oz + tm31)
         ._m32(-nm02 * ox - nm12 * oy - dest.m22 * oz + tm32)
         ._m33(1.0)
-        ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
+        ._properties((properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL));
         return dest;
     }
 
@@ -5153,7 +5154,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(-nm01 * ox - nm11 * oy - dest.m21 * oz + tm31)
         ._m32(-nm02 * ox - nm12 * oy - dest.m22 * oz + tm32)
         ._m33(m33)
-        ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
+        ._properties((properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL));
         return dest;
     }
 
@@ -5200,7 +5201,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         this._m31(-m01 * ox - m11 * oy - m21 * oz + oy);
         this._m32(-m02 * ox - m12 * oy - m22 * oz + oz);
         this._m33(1.0);
-        this.properties = PROPERTY_AFFINE | PROPERTY_ORTHONORMAL;
+        this.properties = PROPERTY_AFFINE | (Flags.isUnit(quat) ? PROPERTY_ORTHONORMAL : 0);
         return this;
     }
 
@@ -5384,7 +5385,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(lm01 * tm30 + lm11 * tm31 + lm21 * tm32 + oy * m33)
         ._m32(lm02 * tm30 + lm12 * tm31 + lm22 * tm32 + oz * m33)
         ._m33(m33)
-        ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
+        ._properties((properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL));
         return dest;
     }
 
@@ -6202,7 +6203,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     private Matrix4d rotateZInternal(double ang, Matrix4d dest) {
         double sin = Math.sin(ang);
         double cos = Math.cosFromSin(sin, ang);
-        return rotateTowardsXY(sin, cos, dest);
+        return rotateTowardsXY(cos, sin, dest); // +X goes to (cos, sin)
     }
 
     /**
@@ -6250,10 +6251,10 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     public Matrix4d rotateTowardsXY(double dirX, double dirY, Matrix4d dest) {
         if ((properties & PROPERTY_IDENTITY) != 0)
             return dest.rotationTowardsXY(dirX, dirY);
-        double rm00 = dirY;
-        double rm01 = dirX;
-        double rm10 = -dirX;
-        double rm11 = dirY;
+        double rm00 = dirX;
+        double rm01 = dirY;
+        double rm10 = -dirY;
+        double rm11 = dirX;
         double nm00 = m00 * rm00 + m10 * rm01;
         double nm01 = m01 * rm00 + m11 * rm01;
         double nm02 = m02 * rm00 + m12 * rm01;
@@ -6919,7 +6920,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         _m20(dyw + dxz).
         _m21(dyz - dxw).
         _m22(z2 - y2 - x2 + w2).
-        _properties(PROPERTY_AFFINE | PROPERTY_ORTHONORMAL);
+        _properties(PROPERTY_AFFINE | (Flags.isUnit(quat) ? PROPERTY_ORTHONORMAL : 0));
         return this;
     }
 
@@ -6966,7 +6967,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         _m20(dyw + dxz).
         _m21(dyz - dxw).
         _m22(z2 - y2 - x2 + w2).
-        _properties(PROPERTY_AFFINE | PROPERTY_ORTHONORMAL);
+        _properties(PROPERTY_AFFINE | (Flags.isUnit(quat) ? PROPERTY_ORTHONORMAL : 0));
         return this;
     }
 
@@ -7040,7 +7041,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         _m31(ty).
         _m32(tz).
         _m33(1.0).
-        properties = PROPERTY_AFFINE | (one ? PROPERTY_ORTHONORMAL : 0);
+        properties = PROPERTY_AFFINE | (one ? (Flags.isUnit(qx, qy, qz, qw) ? PROPERTY_ORTHONORMAL : 0) : 0);
         return this;
     }
 
@@ -7473,7 +7474,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         this.m31 = m31;
         this.m33 = 1.0;
         boolean one = Math.absEqualsOne(sx) && Math.absEqualsOne(sy) && Math.absEqualsOne(sz);
-        properties = PROPERTY_AFFINE | (one && (m.properties & PROPERTY_ORTHONORMAL) != 0 ? PROPERTY_ORTHONORMAL : 0);
+        properties = PROPERTY_AFFINE | (one && (m.properties & (Flags.isUnit(qx, qy, qz, qw) ? PROPERTY_ORTHONORMAL : 0)) != 0 ? (Flags.isUnit(qx, qy, qz, qw) ? PROPERTY_ORTHONORMAL : 0) : 0);
         return this;
     }
 
@@ -7566,8 +7567,11 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         this.m30 = tx;
         this.m31 = ty;
         this.m32 = tz;
+        this.m03 = 0.0;
+        this.m13 = 0.0;
+        this.m23 = 0.0;
         this.m33 = 1.0;
-        this.properties = PROPERTY_AFFINE | PROPERTY_ORTHONORMAL;
+        this.properties = PROPERTY_AFFINE | (Flags.isUnit(qx, qy, qz, qw) ? PROPERTY_ORTHONORMAL : 0);
         return this;
     }
 
@@ -7683,7 +7687,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(-m01 * tx - m11 * ty - m21 * tz)
         ._m32(-m02 * tx - m12 * ty - m22 * tz)
         ._m33(1.0)
-        ._properties(PROPERTY_AFFINE | PROPERTY_ORTHONORMAL);
+        ._properties(PROPERTY_AFFINE | (Flags.isUnit(qx, qy, qz, qw) ? PROPERTY_ORTHONORMAL : 0));
     }
 
     /**
@@ -7780,7 +7784,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(m31)
         ._m32(m32)
         ._m33(m33)
-        ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
+        ._properties((properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL));
         return dest;
     }
 
@@ -7863,7 +7867,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(m31)
         ._m32(m32)
         ._m33(m33)
-        ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
+        ._properties((properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL));
         return dest;
     }
 
@@ -7986,7 +7990,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(m31)
         ._m32(m32)
         ._m33(m33)
-        ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
+        ._properties((properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL));
         return dest;
     }
 
@@ -8078,7 +8082,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(m31)
         ._m32(m32)
         ._m33(1.0)
-        ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
+        ._properties((properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL));
         return dest;
     }
 
@@ -8152,7 +8156,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(m31)
         ._m32(m32)
         ._m33(1.0)
-        ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
+        ._properties((properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL));
         return dest;
     }
 
@@ -8228,7 +8232,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(nm31)
         ._m32(nm32)
         ._m33(m33)
-        ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
+        ._properties((properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL));
         return dest;
     }
 
@@ -8329,7 +8333,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(m31)
         ._m32(m32)
         ._m33(m33)
-        ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
+        ._properties((properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL));
         return dest;
     }
 
@@ -8439,7 +8443,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(nm31)
         ._m32(nm32)
         ._m33(m33)
-        ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
+        ._properties((properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL));
         return dest;
     }
 
@@ -9331,6 +9335,63 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         return this;
     }
 
+    /**
+     * Like {@link #unprojectRay(double, double, int[], Vector3d, Vector3d)}, for the given {@link DepthRange}: the origin
+     * lies on the near plane (NDC depth {@code depthRange.nearNdc()}), and the direction points to the point
+     * halfway in NDC depth, which is finite even for an infinite reverse-Z projection.
+     *
+     * @since 2.5.0
+     */
+    public Matrix4d unprojectRay(double winX, double winY, int[] viewport, DepthRange depthRange, Vector3d originDest, Vector3d dirDest) {
+        double a = m00 * m11 - m01 * m10;
+        double b = m00 * m12 - m02 * m10;
+        double c = m00 * m13 - m03 * m10;
+        double d = m01 * m12 - m02 * m11;
+        double e = m01 * m13 - m03 * m11;
+        double f = m02 * m13 - m03 * m12;
+        double g = m20 * m31 - m21 * m30;
+        double h = m20 * m32 - m22 * m30;
+        double i = m20 * m33 - m23 * m30;
+        double j = m21 * m32 - m22 * m31;
+        double k = m21 * m33 - m23 * m31;
+        double l = m22 * m33 - m23 * m32;
+        double det = a * l - b * k + c * j + d * i - e * h + f * g;
+        det = 1.0 / det;
+        double im00 = ( m11 * l - m12 * k + m13 * j) * det;
+        double im01 = (-m01 * l + m02 * k - m03 * j) * det;
+        double im02 = ( m31 * f - m32 * e + m33 * d) * det;
+        double im03 = (-m21 * f + m22 * e - m23 * d) * det;
+        double im10 = (-m10 * l + m12 * i - m13 * h) * det;
+        double im11 = ( m00 * l - m02 * i + m03 * h) * det;
+        double im12 = (-m30 * f + m32 * c - m33 * b) * det;
+        double im13 = ( m20 * f - m22 * c + m23 * b) * det;
+        double im20 = ( m10 * k - m11 * i + m13 * g) * det;
+        double im21 = (-m00 * k + m01 * i - m03 * g) * det;
+        double im22 = ( m30 * e - m31 * c + m33 * a) * det;
+        double im23 = (-m20 * e + m21 * c - m23 * a) * det;
+        double im30 = (-m10 * j + m11 * h - m12 * g) * det;
+        double im31 = ( m00 * j - m01 * h + m02 * g) * det;
+        double im32 = (-m30 * d + m31 * b - m32 * a) * det;
+        double im33 = ( m20 * d - m21 * b + m22 * a) * det;
+        double ndcX = (winX-viewport[0])/viewport[2]*2.0-1.0;
+        double ndcY = (winY-viewport[1])/viewport[3]*2.0-1.0;
+        double px = im00 * ndcX + im10 * ndcY + im30;
+        double py = im01 * ndcX + im11 * ndcY + im31;
+        double pz = im02 * ndcX + im12 * ndcY + im32;
+        double cn = depthRange.nearNdc(), cm = 0.5 * (depthRange.nearNdc() + depthRange.farNdc());
+        double invNearW = 1.0 / (im03 * ndcX + im13 * ndcY + cn * im23 + im33);
+        double nearX = (px + cn * im20) * invNearW;
+        double nearY = (py + cn * im21) * invNearW;
+        double nearZ = (pz + cn * im22) * invNearW;
+        double invW0 = 1.0 / (im03 * ndcX + im13 * ndcY + cm * im23 + im33);
+        double x0 = (px + cm * im20) * invW0;
+        double y0 = (py + cm * im21) * invW0;
+        double z0 = (pz + cm * im22) * invW0;
+        originDest.x = nearX; originDest.y = nearY; originDest.z = nearZ;
+        dirDest.x = x0 - nearX; dirDest.y = y0 - nearY; dirDest.z = z0 - nearZ;
+        return this;
+    }
+
     public Matrix4d unprojectRay(Vector2dc winCoords, int[] viewport, Vector3d originDest, Vector3d dirDest) {
         return unprojectRay(winCoords.x(), winCoords.y(), viewport, originDest, dirDest);
     }
@@ -9402,6 +9463,33 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         double x0 = px * invW0;
         double y0 = py * invW0;
         double z0 = pz * invW0;
+        originDest.x = nearX; originDest.y = nearY; originDest.z = nearZ;
+        dirDest.x = x0 - nearX; dirDest.y = y0 - nearY; dirDest.z = z0 - nearZ;
+        return this;
+    }
+
+    /**
+     * Like {@link #unprojectInvRay(double, double, int[], Vector3d, Vector3d)}, for the given {@link DepthRange}: the origin
+     * lies on the near plane (NDC depth {@code depthRange.nearNdc()}), and the direction points to the point
+     * halfway in NDC depth, which is finite even for an infinite reverse-Z projection.
+     *
+     * @since 2.5.0
+     */
+    public Matrix4d unprojectInvRay(double winX, double winY, int[] viewport, DepthRange depthRange, Vector3d originDest, Vector3d dirDest) {
+        double ndcX = (winX-viewport[0])/viewport[2]*2.0-1.0;
+        double ndcY = (winY-viewport[1])/viewport[3]*2.0-1.0;
+        double px = m00 * ndcX + m10 * ndcY + m30;
+        double py = m01 * ndcX + m11 * ndcY + m31;
+        double pz = m02 * ndcX + m12 * ndcY + m32;
+        double cn = depthRange.nearNdc(), cm = 0.5 * (depthRange.nearNdc() + depthRange.farNdc());
+        double invNearW = 1.0 / (m03 * ndcX + m13 * ndcY + cn * m23 + m33);
+        double nearX = (px + cn * m20) * invNearW;
+        double nearY = (py + cn * m21) * invNearW;
+        double nearZ = (pz + cn * m22) * invNearW;
+        double invW0 = 1.0 / (m03 * ndcX + m13 * ndcY + cm * m23 + m33);
+        double x0 = (px + cm * m20) * invW0;
+        double y0 = (py + cm * m21) * invW0;
+        double z0 = (pz + cm * m22) * invW0;
         originDest.x = nearX; originDest.y = nearY; originDest.z = nearZ;
         dirDest.x = x0 - nearX; dirDest.y = y0 - nearY; dirDest.z = z0 - nearZ;
         return this;
@@ -12352,7 +12440,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m21(nm21)
         ._m22(nm22)
         ._m23(nm23)
-        ._properties(properties & ~(PROPERTY_AFFINE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION | PROPERTY_ORTHONORMAL));
+        ._properties(properties & ~(PROPERTY_AFFINE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION | PROPERTY_ORTHONORMAL | PROPERTY_PERSPECTIVE));
         return dest;
     }
 
@@ -12535,7 +12623,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m21(nm21)
         ._m22(nm22)
         ._m23(nm23)
-        ._properties(properties & ~(PROPERTY_AFFINE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION | PROPERTY_ORTHONORMAL));
+        ._properties(properties & ~(PROPERTY_AFFINE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION | PROPERTY_ORTHONORMAL | PROPERTY_PERSPECTIVE));
         return dest;
     }
 
@@ -13537,7 +13625,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
             rm32 = (e - (zZeroToOne ? 1.0 : 2.0)) * zNear;
         } else if (nearInf) {
             double e = 1E-6;
-            rm22 = (zZeroToOne ? 0.0 : 1.0) - e;
+            rm22 = (zZeroToOne ? 0.0 : -1.0) + e;
             rm32 = ((zZeroToOne ? 1.0 : 2.0) - e) * zFar;
         } else {
             rm22 = (zZeroToOne ? zFar : zFar + zNear) / (zFar - zNear);
@@ -13564,7 +13652,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m21(nm21)
         ._m22(nm22)
         ._m23(nm23)
-        ._properties(properties & ~(PROPERTY_AFFINE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION | PROPERTY_ORTHONORMAL));
+        ._properties(properties & ~(PROPERTY_AFFINE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION | PROPERTY_ORTHONORMAL | PROPERTY_PERSPECTIVE));
         return dest;
     }
 
@@ -13716,7 +13804,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
             _m32((e - (zZeroToOne ? 1.0 : 2.0)) * zNear);
         } else if (nearInf) {
             double e = 1E-6;
-            _m22((zZeroToOne ? 0.0 : 1.0) - e).
+            _m22((zZeroToOne ? 0.0 : -1.0) + e).
             _m32(((zZeroToOne ? 1.0 : 2.0) - e) * zFar);
         } else {
             _m22((zZeroToOne ? zFar : zFar + zNear) / (zFar - zNear)).
@@ -14109,8 +14197,8 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         // calculate right matrix elements
         double rm00 = (zNear + zNear) / (right - left);
         double rm11 = (zNear + zNear) / (top - bottom);
-        double rm20 = (right + left) / (right - left);
-        double rm21 = (top + bottom) / (top - bottom);
+        double rm20 = -(right + left) / (right - left);
+        double rm21 = -(top + bottom) / (top - bottom);
         double rm22;
         double rm32;
         boolean farInf = zFar > 0 && Double.isInfinite(zFar);
@@ -14122,7 +14210,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
             rm32 = (e - (zZeroToOne ? 1.0 : 2.0)) * zNear;
         } else if (nearInf) {
             double e = 1E-6;
-            rm22 = (zZeroToOne ? 0.0 : 1.0) - e;
+            rm22 = (zZeroToOne ? 0.0 : -1.0) + e;
             rm32 = ((zZeroToOne ? 1.0 : 2.0) - e) * zFar;
         } else {
             rm22 = (zZeroToOne ? zFar : zFar + zNear) / (zFar - zNear);
@@ -14309,8 +14397,8 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
             _identity();
         _m00((zNear + zNear) / (right - left)).
         _m11((zNear + zNear) / (top - bottom)).
-        _m20((right + left) / (right - left)).
-        _m21((top + bottom) / (top - bottom));
+        _m20(-(right + left) / (right - left)).
+        _m21(-(top + bottom) / (top - bottom));
         boolean farInf = zFar > 0 && Double.isInfinite(zFar);
         boolean nearInf = zNear > 0 && Double.isInfinite(zNear);
         if (farInf) {
@@ -14320,7 +14408,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
             _m32((e - (zZeroToOne ? 1.0 : 2.0)) * zNear);
         } else if (nearInf) {
             double e = 1E-6;
-            _m22((zZeroToOne ? 0.0 : 1.0) - e).
+            _m22((zZeroToOne ? 0.0 : -1.0) + e).
             _m32(((zZeroToOne ? 1.0 : 2.0) - e) * zFar);
         } else {
             _m22((zZeroToOne ? zFar : zFar + zNear) / (zFar - zNear)).
@@ -14397,7 +14485,6 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         double l00 = 2.0 / imgWidth;
         double l11 = 2.0 / imgHeight;
         double invNearFar = 1.0 / (near - far);
-        double l22 = 2.0 * invNearFar;
         this.m00 = l00 * alphaX;
         this.m01 = 0.0;
         this.m02 = 0.0;
@@ -14406,15 +14493,15 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         this.m11 = l11 * alphaY;
         this.m12 = 0.0;
         this.m13 = 0.0;
-        this.m20 = l00 * u0 - 1.0;
-        this.m21 = l11 * v0 - 1.0;
-        this.m22 = l22 * -(near + far) + (far + near) * invNearFar;
+        this.m20 = 1.0 - l00 * u0;
+        this.m21 = 1.0 - l11 * v0;
+        this.m22 = (far + near) * invNearFar;
         this.m23 = -1.0;
         this.m30 = 0.0;
         this.m31 = 0.0;
-        this.m32 = l22 * -near * far;
+        this.m32 = (near + near) * far * invNearFar;
         this.m33 = 0.0;
-        this.properties = PROPERTY_PERSPECTIVE;
+        this.properties = gamma == 0 && u0 * l00 == 1 && v0 * l11 == 1 ? PROPERTY_PERSPECTIVE : 0;
         return this;
     }
 
@@ -14816,7 +14903,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m21(nm21)
         ._m22(nm22)
         ._m23(nm23)
-        ._properties(properties & ~(PROPERTY_PERSPECTIVE | PROPERTY_IDENTITY | PROPERTY_TRANSLATION | PROPERTY_ORTHONORMAL));
+        ._properties(PROPERTY_UNKNOWN);
         return dest;
     }
 
@@ -15743,7 +15830,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         ._m31(Math.fma(other.m31() - m31, t, m31))
         ._m32(Math.fma(other.m32() - m32, t, m32))
         ._m33(Math.fma(other.m33() - m33, t, m33))
-        ._properties(properties & other.properties());
+        ._properties(properties & other.properties() & ~PROPERTY_ORTHONORMAL);
         return dest;
     }
 
@@ -16238,7 +16325,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
      * The oblique transformation is defined as:
      * <pre>
      * x' = x + a*z
-     * y' = y + a*z
+     * y' = y + b*z
      * z' = z
      * </pre>
      * or in matrix form:
@@ -16275,7 +16362,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
      * The oblique transformation is defined as:
      * <pre>
      * x' = x + a*z
-     * y' = y + a*z
+     * y' = y + b*z
      * z' = z
      * </pre>
      * or in matrix form:

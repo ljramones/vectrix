@@ -11,8 +11,11 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     - `perspectiveNear`/`perspectiveFar`;
     - `frustumPlane`, `frustumCorner`, `frustumAabb`;
     - `orthoCrop`, `projectedGridRange`, `perspectiveFrustumSlice`;
-    - the scalar `project`, `unproject` and `unprojectInv`.
+    - the scalar `project`, `unproject` and `unprojectInv`;
+    - `unprojectRay` and `unprojectInvRay`. Their origin lies on the near plane, and for an infinite reverse-Z
+      projection their direction points forward.
   - `FrustumIntersection.set` and `FrustumPlanes.set`, which now also express reverse-Z.
+- `Matrix3x2f/d.scaleAroundLocal(sx, sy, ox, oy)`, an in-place 2D form.
 
   For a `zZeroToOne` projection the OpenGL forms are wrong:
   - `perspectiveNear` returns about half the near distance.
@@ -23,10 +26,44 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   The OpenGL forms are unchanged and documented as such. Each new form gives the same physical frustum for
   [-1, 1], [0, 1] and reverse-Z.
 
+### Fixed (second audit of the JOML-inherited code)
+Each fix has a regression test in `MatrixAudit2Test`, `VectorQuatAudit2Test` or `GeometryAudit2Test`.
+
+- **Matrix property flags.** Wrong flags sent later `invert()`, `mul()` or `transformProject()` calls down fast paths
+  that gave wrong results, off by up to 19 in the tests:
+  - `translationRotate` never wrote the 4th row, so a matrix that had held a projection kept `m23 = -1` while it
+    was flagged affine.
+  - `Matrix4d.m13(double)` tested `m03`, so it kept the affine and translation flags.
+  - `shadow` kept `PROPERTY_AFFINE`; a shadow projection is projective.
+  - `mul` with 16 scalars flagged the result affine whatever the right matrix was.
+  - `lerp` kept `PROPERTY_ORTHONORMAL`; element-wise interpolation of rotations is not a rotation. This affected
+    `Matrix4f/d` and `Matrix4x3f/d`.
+  - `transpose3x3(dest)` gave `dest` the flags of `this`, although `dest` keeps its own 4th row and column.
+  - `perspective`, `perspectiveLH`, `perspectiveRect` and `perspectiveOffCenter` applied to a perspective matrix
+    kept `PROPERTY_PERSPECTIVE`.
+  - Matrices built from, or rotated by, a **non-unit quaternion** were flagged orthonormal, although they hold
+    `|q|² R`, so `invert()` transposed them. The flag is now set only for unit quaternions, to within the precision
+    of their components.
+- **Projection builders:**
+  - `setFromIntrinsic` had the signs of `m20`, `m21`, `m22` and `m32` reversed. The optical axis landed on pixel
+    `(W - u0, H - v0)`, and depth ran backwards. It now follows the cited construction, `glOrtho(0, W, 0, H, n, f) · K`,
+    and is flagged perspective only without skew or principal-point offset.
+  - `frustumLH`, `setFrustumLH` and `perspectiveOffCenterFovLH` used the right-handed signs for off-centre frustums.
+    A left-handed frustum is now exactly the right-handed one with z flipped.
+  - Left-handed projections with `zNear = +∞` copied the right-handed depth limit, which clipped almost everything
+    and reversed depth.
+  - `rotationTowardsXY`/`rotateTowardsXY` sent +X to `(dirY, dirX)`, contrary to their documentation. `rotateZ`,
+    which is built on them, is unchanged.
+- **Documentation:**
+  - `obliqueZ` documented `y' = y + a·z`; the code correctly uses `b`.
+
 ### Fixed
 - `Matrix4f/d.perspectiveFrustumSlice` scaled `m00` and `m11` by `near / oldNear`, which changed the field of view:
   slicing a 1.1 rad projection to [1, 10] made it about ten times narrower. A slice now keeps the field of view,
   aspect and off-centre terms, and changes only the depth terms. This is an inherited JOML defect.
+
+### Deprecated
+- `Matrix3x2f/d.scaleAroundLocal(sx, sy, sz, ox, oy, oz)`, a 3D leftover that ignores `sz` and `oz`.
 
 ### Tests
 - The twin-parity, determinism and aliasing harnesses now drive methods with enum parameters, which they used to

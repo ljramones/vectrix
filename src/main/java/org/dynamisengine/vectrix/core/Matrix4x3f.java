@@ -807,7 +807,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         m30 = 0.0f;
         m31 = 0.0f;
         m32 = 0.0f;
-        properties = PROPERTY_ORTHONORMAL;
+        properties = (Flags.isUnit(q) ? PROPERTY_ORTHONORMAL : 0);
         return this;
     }
 
@@ -1611,7 +1611,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         dest.m20 = nm20;
         dest.m21 = nm21;
         dest.m22 = nm22;
-        dest.properties = properties;
+        dest.properties = dest == this ? properties : properties & PROPERTY_ORTHONORMAL;
         return dest;
     }
 
@@ -2590,7 +2590,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         _m30(0.0f);
         _m31(0.0f);
         _m32(0.0f);
-        properties = PROPERTY_ORTHONORMAL;
+        properties = (Flags.isUnit(quat) ? PROPERTY_ORTHONORMAL : 0);
         return this;
     }
 
@@ -2869,7 +2869,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         m30 = tx;
         m31 = ty;
         m32 = tz;
-        properties = PROPERTY_ORTHONORMAL;
+        properties = (Flags.isUnit(quat) ? PROPERTY_ORTHONORMAL : 0);
         return this;
     }
 
@@ -2927,7 +2927,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         this.m30 = tx;
         this.m31 = ty;
         this.m32 = tz;
-        this.properties = PROPERTY_ORTHONORMAL;
+        this.properties = (Flags.isUnit(qx, qy, qz, qw) ? PROPERTY_ORTHONORMAL : 0);
         return this;
     }
 
@@ -3114,7 +3114,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         ._m30(-m00 * tx - m10 * ty - m20 * tz)
         ._m31(-m01 * tx - m11 * ty - m21 * tz)
         ._m32(-m02 * tx - m12 * ty - m22 * tz)
-        ._properties(PROPERTY_ORTHONORMAL);
+        ._properties((Flags.isUnit(qx, qy, qz, qw) ? PROPERTY_ORTHONORMAL : 0));
     }
 
     /**
@@ -4179,7 +4179,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         ._m30(-nm00 * ox - nm10 * oy - dest.m20 * oz + tm30)
         ._m31(-nm01 * ox - nm11 * oy - dest.m21 * oz + tm31)
         ._m32(-nm02 * ox - nm12 * oy - dest.m22 * oz + tm32)
-        ._properties(properties & ~(PROPERTY_IDENTITY | PROPERTY_TRANSLATION));
+        ._properties((properties & ~(PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL));
         return dest;
     }
 
@@ -4228,7 +4228,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         this._m30(-m00 * ox - m10 * oy - m20 * oz + ox);
         this._m31(-m01 * ox - m11 * oy - m21 * oz + oy);
         this._m32(-m02 * ox - m12 * oy - m22 * oz + oz);
-        this.properties = PROPERTY_ORTHONORMAL;
+        this.properties = (Flags.isUnit(quat) ? PROPERTY_ORTHONORMAL : 0);
         return this;
     }
 
@@ -7071,7 +7071,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         dest.m30 = m30;
         dest.m31 = m31;
         dest.m32 = m32;
-        dest.properties = properties & ~(PROPERTY_IDENTITY | PROPERTY_TRANSLATION);
+        dest.properties = (properties & ~(PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL);
         return dest;
     }
 
@@ -7157,7 +7157,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         dest.m30 = m30;
         dest.m31 = m31;
         dest.m32 = m32;
-        dest.properties = properties & ~(PROPERTY_IDENTITY | PROPERTY_TRANSLATION);
+        dest.properties = (properties & ~(PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL);
         return dest;
     }
 
@@ -7231,7 +7231,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         dest.m30 = nm30;
         dest.m31 = nm31;
         dest.m32 = nm32;
-        dest.properties = properties & ~(PROPERTY_IDENTITY | PROPERTY_TRANSLATION);
+        dest.properties = (properties & ~(PROPERTY_IDENTITY | PROPERTY_TRANSLATION)) & (Flags.isUnit(quat) ? ~0 : ~PROPERTY_ORTHONORMAL);
         return dest;
     }
 
@@ -8786,7 +8786,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
         dest.m30 = Math.fma(other.m30() - m30, t, m30);
         dest.m31 = Math.fma(other.m31() - m31, t, m31);
         dest.m32 = Math.fma(other.m32() - m32, t, m32);
-        dest.properties = properties & other.properties();
+        dest.properties = properties & other.properties() & ~PROPERTY_ORTHONORMAL;
         return dest;
     }
 
@@ -9175,7 +9175,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
      * The oblique transformation is defined as:
      * <pre>
      * x' = x + a*z
-     * y' = y + a*z
+     * y' = y + b*z
      * z' = z
      * </pre>
      * or in matrix form:
@@ -9211,7 +9211,7 @@ public class Matrix4x3f implements Externalizable, Cloneable, Matrix4x3fc {
      * The oblique transformation is defined as:
      * <pre>
      * x' = x + a*z
-     * y' = y + a*z
+     * y' = y + b*z
      * z' = z
      * </pre>
      * or in matrix form:
