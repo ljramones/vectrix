@@ -281,8 +281,9 @@ and picks one with your uniform number `u` in [0, 1). It needs `n` floats and `n
 | fp16 | `gpu.Half.pack` | `gpu.Half.unpack` | IEEE half precision |
 
 All `Formats` conversions round to nearest, ties to even, and decoding is exact. For int8, `n` must be a multiple of
-32; `Formats.dotInt8` and `Formats.gemvInt8` multiply quantized weights with float activations without
-dequantizing. Int8 saves memory (a quarter of float), not time: on an Apple M4 Max with the Vector API a 4096×4096
+32. A block of tiny values whose scale would be subnormal gets it rounded up, so its codes stay within ±127 and
+stay proportional to the values (a block of subnormal values below 127·2⁻¹⁴⁹ is encoded exactly). `Formats.dotInt8` and `Formats.gemvInt8` multiply quantized weights
+with float activations without dequantizing. Int8 saves memory (a quarter of float), not time: on an Apple M4 Max with the Vector API a 4096×4096
 `gemvInt8` takes 1.8 ms against 1.05 ms for the float `Gemmf.gemv`. Use it when the float weights would not fit in
 memory or cache.
 
