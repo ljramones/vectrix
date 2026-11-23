@@ -143,12 +143,13 @@ public final class Biquad {
      * @param sections the number of sections; 0 gives a response of 1
      * @param f the frequency in cycles per sample
      * @param dest receives the real part at {@code dest[0]} and the imaginary part at {@code dest[1]}
-     * @throws IllegalArgumentException if {@code sections} is negative or {@code coeffs} does not hold the sections
+     * @throws IllegalArgumentException if {@code sections} is negative, {@code coeffs} does not hold the sections,
+     *         or {@code dest} holds fewer than 2 values (checked before anything is written)
      */
     public static void response(double[] coeffs, int coeffOff, int sections, double f, double[] dest) {
-        if (coeffs == null || sections < 0 || coeffOff < 0
-                || coeffOff > coeffs.length - BiquadDesign.STRIDE * sections) {
-            throw new IllegalArgumentException("coeffs must hold " + sections + " sections from " + coeffOff);
+        checkCoeffs(coeffs, coeffOff, sections);
+        if (dest == null || dest.length < 2) {
+            throw new IllegalArgumentException("dest must hold 2 values");
         }
         double w = 2 * java.lang.Math.PI * f;
         double c1 = AccurateMath.cos(w);
@@ -185,10 +186,7 @@ public final class Biquad {
      * @throws IllegalArgumentException if {@code sections} is negative or {@code coeffs} does not hold the sections
      */
     public static double magnitude(double[] coeffs, int coeffOff, int sections, double f) {
-        if (coeffs == null || sections < 0 || coeffOff < 0
-                || coeffOff > coeffs.length - BiquadDesign.STRIDE * sections) {
-            throw new IllegalArgumentException("coeffs must hold " + sections + " sections from " + coeffOff);
-        }
+        checkCoeffs(coeffs, coeffOff, sections);
         double w = 2 * java.lang.Math.PI * f;
         double c1 = AccurateMath.cos(w);
         double s1 = -AccurateMath.sin(w);
@@ -210,11 +208,18 @@ public final class Biquad {
         if (sections < 0) {
             throw new IllegalArgumentException("sections must be >= 0: " + sections);
         }
-        range(coeffs == null ? -1 : coeffs.length, coeffOff, BiquadDesign.STRIDE * sections, "coeffs");
-        range(state == null ? -1 : state.length, stateOff, STATE_STRIDE * sections, "state");
+        range(coeffs == null ? -1 : coeffs.length, coeffOff, (long) BiquadDesign.STRIDE * sections, "coeffs");
+        range(state == null ? -1 : state.length, stateOff, (long) STATE_STRIDE * sections, "state");
     }
 
-    private static void range(int length, int off, int count, String name) {
+    private static void checkCoeffs(double[] coeffs, int coeffOff, int sections) {
+        if (sections < 0) {
+            throw new IllegalArgumentException("sections must be >= 0: " + sections);
+        }
+        range(coeffs == null ? -1 : coeffs.length, coeffOff, (long) BiquadDesign.STRIDE * sections, "coeffs");
+    }
+
+    private static void range(int length, int off, long count, String name) {
         if (length < 0 || count < 0 || off < 0 || off > length - count) {
             throw new IllegalArgumentException(name + " must hold " + count + " values from offset " + off);
         }

@@ -73,7 +73,8 @@ Bluestein's algorithm and are limited to 2²⁷.
 **2D.** `ComplexFft2d.plan(rows, cols)` and `RealFft2d.plan(rows, cols)` transform row-major grids. Complex element
 `(r, c)` is at `off + 2·(r·cols + c)`. `RealFft2d` keeps `cols/2 + 1` complex values per row
 (`spectrumRowLength()` doubles), so the spectrum is `rows × spectrumRowLength()`. For `RealFft2d`, input and output
-must not overlap, and **`inverse` overwrites the spectrum it reads**.
+must not overlap; neither `forward` nor `inverse` modifies its input. The 2D inverses divide once by `rows·cols`,
+after both passes.
 
 **Off-heap data.** `ComplexFftd`, `ComplexFftf`, `RealFftd` and `RealFftf` have `MemorySegment` overloads of
 `forward` and `inverse`. They read native-order values from the start of the segment and need a heap scratch array
@@ -213,8 +214,8 @@ to exactly unit gain at DC (low-pass, band-stop), Nyquist (high-pass) or the ban
 band-stop need an **odd** number of taps. Pass a symmetric window (`periodic = false`).
 
 **Kaiser formulas.** Specify the stop-band attenuation in dB and the transition width in cycles per sample.
-`FirDesign.kaiserTaps` estimates the length and `FirDesign.kaiserBeta` the window shape. Put the cutoff in the middle
-of the transition band.
+`FirDesign.kaiserTaps` estimates the length and `FirDesign.kaiserBeta` the window shape; both reject an attenuation
+that is not positive and finite. Put the cutoff in the middle of the transition band.
 
 **Parks–McClellan.** `FirDesign.remez(h, off, n, bands, desired, weights)` designs the optimal equiripple filter: for
 a given length, it has the smallest maximum weighted error and beats any window design. `n` must be odd and at least
@@ -335,7 +336,9 @@ them if you need the signals aligned.
 ## Wavelets
 
 `Wavelet.haar()`, `Wavelet.daubechies(p)` (p vanishing moments, 1 to 10, `2p` taps) or `Wavelet.fromLowpass(taps)`
-(your own orthonormal low-pass) make an immutable wavelet. Boundaries are periodic.
+(your own orthonormal low-pass) make an immutable wavelet. `fromLowpass` checks that the taps are orthonormal to
+their even shifts within `Wavelet.ORTHONORMALITY_TOLERANCE` (1e-9), the condition for exact reconstruction.
+Boundaries are periodic.
 
 - `forward(x, xOff, n, out, outOff)`: one level. `n` is even; `out[0 .. n/2)` receives the approximation
   (low-pass) and `out[n/2 .. n)` the detail (high-pass) coefficients. `out` must not overlap `x`.
@@ -392,7 +395,7 @@ Notes:
 - `Wiener.deconvolve(plan, y, yOff, kernel, kOff, kLen, nsr, out, outOff, scratch, scratchOff)` assumes circular
   convolution with a kernel of `kLen <= n` taps (tap 0 unshifted). `nsr` is the noise-to-signal power ratio: 0 is
   plain inverse filtering, unstable where `H` is small; larger values trade sharpness for less noise. An overload
-  takes one ratio per bin (`n/2 + 1` values). Scratch is `Wiener.deconvolveScratchSize(plan)`.
+  takes one ratio per bin (`n/2 + 1` values). Ratios must be `>= 0`. Scratch is `Wiener.deconvolveScratchSize(plan)`.
 - `Wiener.deconvolve2d` takes a `RealFft2d` plan, a row-major image and a `kRows × kCols` kernel; scratch is
   `Wiener.deconvolve2dScratchSize(plan)`. Pad the image if you do not want the blur to wrap around the edges.
 - `Wiener.adaptive2d(img, rows, cols, half, noiseVariance, out, scratch)` works on `(2·half + 1)²` windows (like
@@ -440,14 +443,16 @@ For trackers with a full motion model and uncertainty, see [state-estimation.md]
 A symmetric Toeplitz matrix is given by its first row `r` (`T[i][j] = r[|i - j|]`), typically an autocorrelation.
 `Toeplitz` solves such systems in O(n²) instead of O(n³):
 
-- `Toeplitz.solve(r, b, n, x, scratch)` solves `T·x = b` (Levinson's algorithm); scratch is `2n` doubles.
+- `Toeplitz.solve(r, b, n, x, scratch)` solves `T·x = b` (Levinson's algorithm); scratch is
+  `Toeplitz.solveScratchSize(n)`, `2n` doubles. `x` may be `b`.
 - `Toeplitz.levinsonDurbin(r, p, a, reflection, scratch)` solves the Yule–Walker equations of linear prediction:
   given `r[0..p]` it writes `a[0..p]` with `a[0] = 1` such that `x[t] ≈ -Σ a[k]·x[t - k]`, optionally the `p`
   reflection (PARCOR) coefficients (pass `null` to skip them), and returns the final prediction error power.
-  Scratch is `p + 1` doubles.
+  Scratch is `Toeplitz.levinsonDurbinScratchSize(p)`, `2p + 1` doubles. `a` may be `r`.
 
 Both throw `IllegalArgumentException` when a leading submatrix is singular or (for Levinson–Durbin) the recursion
-becomes unstable, which cannot happen for a positive-definite autocorrelation. `Wiener.fir` is built on
+becomes unstable, which cannot happen for a positive-definite autocorrelation. They work in the scratch and write
+their outputs only when they succeed, so the outputs are unchanged when they throw. `Wiener.fir` is built on
 `Toeplitz.solve`.
 
 ## Accuracy, allocation and threading

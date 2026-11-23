@@ -76,8 +76,14 @@ public final class Wiener {
      * @param n the number of bins
      * @param floor the smallest gain, normally in [0, 1)
      * @param gain receives {@code n} gains; may be either input
+     * @throws IllegalArgumentException if {@code n} is negative or an array holds fewer than {@code n} values
+     *         (checked before anything is written)
      */
     public static void gain(double[] signalPower, double[] noisePower, int n, double floor, double[] gain) {
+        count(n);
+        check(signalPower, 0, n, "signalPower");
+        check(noisePower, 0, n, "noisePower");
+        check(gain, 0, n, "gain");
         for (int i = 0; i < n; i++) {
             double s = Math.max(signalPower[i], 0);
             double t = s + Math.max(noisePower[i], 0);
@@ -94,8 +100,14 @@ public final class Wiener {
      * @param pxy {@code bins} complex cross-spectrum values, interleaved
      * @param bins the number of frequency bins
      * @param h receives {@code bins} complex responses, interleaved; may be {@code pxy}
+     * @throws IllegalArgumentException if {@code bins} is negative or an array is too short (checked before
+     *         anything is written)
      */
     public static void noncausal(double[] pxx, double[] pxy, int bins, double[] h) {
+        count(bins);
+        check(pxx, 0, bins, "pxx");
+        check(pxy, 0, 2 * bins, "pxy");
+        check(h, 0, 2 * bins, "h");
         for (int k = 0; k < bins; k++) {
             double d = pxx[k];
             h[2 * k] = d > 0 ? pxy[2 * k] / d : 0.0;
@@ -111,10 +123,14 @@ public final class Wiener {
      * @param h the {@code n/2 + 1} complex responses, interleaved
      * @param taps receives {@code n} taps; must not be {@code scratch}
      * @param scratch {@code plan.spectrumLength() + plan.scratchSize()} doubles
+     * @throws IllegalArgumentException if an array is too short (checked before anything is written)
      */
     public static void impulseResponse(RealFftd plan, double[] h, double[] taps, double[] scratch) {
         int n = plan.size();
         int sp = plan.spectrumLength();
+        check(h, 0, sp, "h");
+        check(taps, 0, n, "taps");
+        check(scratch, 0, sp + plan.scratchSize(), "scratch");
         System.arraycopy(h, 0, scratch, 0, sp);
         plan.inverse(scratch, 0, scratch, 0, scratch, sp);
         for (int i = 0; i < n; i++) {
@@ -146,9 +162,11 @@ public final class Wiener {
      * @param nsr the noise-to-signal ratio, {@code >= 0}, the same for every bin; see the overload for one per bin
      * @param out receives the {@code n} restored samples; may be {@code y}
      * @param outOff the offset of the first restored sample
-     * @param scratch {@link #deconvolveScratchSize(RealFftd)} doubles of working memory
+     * @param scratch {@link #deconvolveScratchSize(RealFftd)} doubles of working memory; must not overlap the other
+     *        arrays
      * @param scratchOff the offset into {@code scratch}
-     * @throws IllegalArgumentException if {@code kLen} is outside {@code [1, n]} or {@code scratch} is too short
+     * @throws IllegalArgumentException if {@code kLen} is outside {@code [1, n]}, {@code nsr} is negative or NaN, or
+     *         an array does not hold its values from its offset (checked before anything is written)
      */
     public static void deconvolve(RealFftd plan, double[] y, int yOff, double[] kernel, int kOff, int kLen, double nsr,
             double[] out, int outOff, double[] scratch, int scratchOff) {
@@ -168,12 +186,18 @@ public final class Wiener {
      * @param nsrPerBin {@code n/2 + 1} noise-to-signal ratios, {@code >= 0}, from DC to Nyquist, from index 0
      * @param out receives the {@code n} restored samples; may be {@code y}
      * @param outOff the offset of the first restored sample
-     * @param scratch {@link #deconvolveScratchSize(RealFftd)} doubles of working memory
+     * @param scratch {@link #deconvolveScratchSize(RealFftd)} doubles of working memory; must not overlap the other
+     *        arrays
      * @param scratchOff the offset into {@code scratch}
-     * @throws IllegalArgumentException if {@code kLen} is outside {@code [1, n]} or {@code scratch} is too short
+     * @throws IllegalArgumentException if {@code kLen} is outside {@code [1, n]}, {@code nsrPerBin} is null or
+     *         shorter than {@code n/2 + 1} or holds a negative or NaN ratio, or an array does not hold its values
+     *         from its offset (checked before anything is written)
      */
     public static void deconvolve(RealFftd plan, double[] y, int yOff, double[] kernel, int kOff, int kLen,
             double[] nsrPerBin, double[] out, int outOff, double[] scratch, int scratchOff) {
+        if (nsrPerBin == null) {
+            throw new IllegalArgumentException("nsrPerBin must not be null");
+        }
         deconvolve(plan, y, yOff, kernel, kOff, kLen, nsrPerBin, 0.0, out, outOff, scratch, scratchOff);
     }
 
@@ -181,8 +205,20 @@ public final class Wiener {
             double[] nsrBins, double nsr, double[] out, int outOff, double[] scratch, int scratchOff) {
         int n = plan.size();
         int sp = plan.spectrumLength();
-        if (kLen < 1 || kLen > n || scratch.length - scratchOff < deconvolveScratchSize(plan)) {
-            throw new IllegalArgumentException("need 1 <= kLen <= n and deconvolveScratchSize doubles of scratch");
+        if (kLen < 1 || kLen > n) {
+            throw new IllegalArgumentException("need 1 <= kLen <= n: " + kLen);
+        }
+        check(y, yOff, n, "y");
+        check(kernel, kOff, kLen, "kernel");
+        check(out, outOff, n, "out");
+        check(scratch, scratchOff, deconvolveScratchSize(plan), "scratch");
+        if (nsrBins == null) {
+            checkNsr(nsr);
+        } else {
+            check(nsrBins, 0, n / 2 + 1, "nsrPerBin");
+            for (int k = 0; k <= n / 2; k++) {
+                checkNsr(nsrBins[k]);
+            }
         }
         int by = scratchOff;
         int bh = scratchOff + sp;
@@ -196,6 +232,24 @@ public final class Wiener {
             divide(scratch, by + 2 * k, bh + 2 * k, nsrBins == null ? nsr : nsrBins[k]);
         }
         plan.inverse(scratch, by, out, outOff, scratch, work);
+    }
+
+    private static void check(double[] a, int off, int count, String name) {
+        if (a == null || off < 0 || off > a.length - count) {
+            throw new IllegalArgumentException(name + " must hold " + count + " doubles from offset " + off);
+        }
+    }
+
+    private static void count(int n) {
+        if (n < 0 || n > Integer.MAX_VALUE / 2) {
+            throw new IllegalArgumentException("count out of range: " + n);
+        }
+    }
+
+    private static void checkNsr(double nsr) {
+        if (!(nsr >= 0)) {
+            throw new IllegalArgumentException("noise-to-signal ratios must be >= 0: " + nsr);
+        }
     }
 
     /** {@code Y ← conj(H)·Y / (|H|² + nsr)} for one bin. */
@@ -238,20 +292,25 @@ public final class Wiener {
      * @param nsr the noise-to-signal ratio, {@code >= 0}, the same for every bin
      * @param out receives the {@code rows·cols} restored pixels, row-major; may be {@code y}
      * @param outOff the offset of the first restored pixel
-     * @param scratch {@link #deconvolve2dScratchSize(RealFft2d)} doubles of working memory
+     * @param scratch {@link #deconvolve2dScratchSize(RealFft2d)} doubles of working memory; must not overlap the
+     *        other arrays
      * @param scratchOff the offset into {@code scratch}
-     * @throws IllegalArgumentException if the kernel is empty or larger than the image, or {@code scratch} is too
-     *         short
+     * @throws IllegalArgumentException if the kernel is empty or larger than the image, {@code nsr} is negative or
+     *         NaN, or an array does not hold its values from its offset (checked before anything is written)
      */
     public static void deconvolve2d(RealFft2d plan, double[] y, int yOff, double[] kernel, int kOff, int kRows,
             int kCols, double nsr, double[] out, int outOff, double[] scratch, int scratchOff) {
         int rows = plan.rows();
         int cols = plan.cols();
         int sp = plan.spectrumLength();
-        if (kRows < 1 || kCols < 1 || kRows > rows || kCols > cols
-                || scratch.length - scratchOff < deconvolve2dScratchSize(plan)) {
-            throw new IllegalArgumentException("the kernel must fit the image; scratch deconvolve2dScratchSize");
+        if (kRows < 1 || kCols < 1 || kRows > rows || kCols > cols) {
+            throw new IllegalArgumentException("the kernel must fit the image: " + kRows + " x " + kCols);
         }
+        check(y, yOff, rows * cols, "y");
+        check(kernel, kOff, kRows * kCols, "kernel");
+        check(out, outOff, rows * cols, "out");
+        check(scratch, scratchOff, deconvolve2dScratchSize(plan), "scratch");
+        checkNsr(nsr);
         int by = scratchOff;
         int bh = scratchOff + sp;
         int work = scratchOff + 2 * sp;
@@ -288,8 +347,9 @@ public final class Wiener {
      */
     public static double adaptive2d(double[] img, int rows, int cols, int half, double noiseVariance, double[] out,
             double[] scratch) {
-        if (rows < 1 || cols < 1 || half < 0 || img.length < rows * cols || out.length < rows * cols
-                || scratch.length < 2 * (rows + 1) * (cols + 1)) {
+        if (rows < 1 || cols < 1 || half < 0 || img == null || out == null || scratch == null
+                || 2L * (rows + 1L) * (cols + 1L) > Integer.MAX_VALUE - 8 || img.length < (long) rows * cols
+                || out.length < (long) rows * cols || scratch.length < 2L * (rows + 1L) * (cols + 1L)) {
             throw new IllegalArgumentException("need rows·cols pixels and 2·(rows+1)·(cols+1) doubles of scratch");
         }
         int w = cols + 1;
@@ -356,8 +416,13 @@ public final class Wiener {
      * @param off the offset of the first bin
      * @param gain {@code bins} gains, from index 0
      * @param bins the number of complex bins
+     * @throws IllegalArgumentException if {@code bins} is negative or an array is too short from its offset
+     *         (checked before anything is written)
      */
     public static void apply(double[] spectrum, int off, double[] gain, int bins) {
+        count(bins);
+        check(spectrum, off, 2 * bins, "spectrum");
+        check(gain, 0, bins, "gain");
         for (int k = 0; k < bins; k++) {
             spectrum[off + 2 * k] *= gain[k];
             spectrum[off + 2 * k + 1] *= gain[k];

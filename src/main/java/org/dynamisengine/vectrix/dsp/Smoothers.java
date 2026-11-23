@@ -136,19 +136,23 @@ public final class Smoothers {
      *
      * @param x the samples
      * @param xOff the offset of the first sample
-     * @param n the number of samples
+     * @param n the number of samples, {@code >= 0}
      * @param half the half-width of the window, {@code >= 0}
      * @param y receives {@code n} values; must not overlap {@code x}
      * @param yOff the offset of the first output
-     * @param scratch {@code 2·half + 1} floats
-     * @throws IllegalArgumentException if {@code half < 0}, {@code scratch} is too short, or {@code x} or {@code y}
-     *         does not hold {@code n} values from its offset
+     * @param scratch {@code 2·half + 1} floats, used from index 0
+     * @throws IllegalArgumentException if {@code n} or {@code half} is negative, an array is null, {@code scratch} is
+     *         too short, or {@code x} or {@code y} does not hold {@code n} values from its offset (checked before
+     *         anything is written)
      */
     public static void median(float[] x, int xOff, int n, int half, float[] y, int yOff, float[] scratch) {
-        int len = 2 * half + 1;
-        if (half < 0 || scratch.length < len || x.length - xOff < n || y.length - yOff < n) {
-            throw new IllegalArgumentException("need n values and 2·half + 1 floats of scratch");
+        if (n < 0 || half < 0 || half > (Integer.MAX_VALUE - 1) / 2 || x == null || y == null || scratch == null
+                || scratch.length < 2 * half + 1 || xOff < 0 || xOff > x.length - n || yOff < 0
+                || yOff > y.length - n) {
+            throw new IllegalArgumentException("need n >= 0 values from each offset and 2·half + 1 floats of scratch: n "
+                    + n + ", half " + half);
         }
+        int len = 2 * half + 1;
         for (int i = 0; i < n; i++) {
             // insertion sort of the window (small windows: O(w²) is fine and allocation-free)
             for (int k = 0; k < len; k++) {

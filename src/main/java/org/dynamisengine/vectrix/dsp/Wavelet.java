@@ -121,18 +121,39 @@ public final class Wavelet {
     }
 
     /**
-     * Creates a wavelet from caller-supplied orthonormal low-pass taps (copied). The taps are not checked for
-     * orthonormality; the inverse reconstructs exactly only if they are orthonormal.
+     * The largest deviation from orthonormality {@link #fromLowpass} accepts: every
+     * {@code Σ h[k]·h[k + 2j]} must be within this of {@code δ(j)}.
+     *
+     * @since 3.0.0
+     */
+    public static final double ORTHONORMALITY_TOLERANCE = 1e-9;
+
+    /**
+     * Creates a wavelet from caller-supplied orthonormal low-pass taps (copied): the taps and their even shifts must
+     * be orthonormal, {@code Σ_k h[k]·h[k + 2j] = δ(j)} within {@link #ORTHONORMALITY_TOLERANCE}, which is what
+     * makes the inverse reconstruct exactly. Published tables with at least ten significant digits pass.
      *
      * @param lowpass the low-pass (scaling) filter taps, an even number of at least 2
      * @return a new plan
-     * @throws IllegalArgumentException if {@code lowpass} is {@code null} or its length is odd or less than 2
+     * @throws IllegalArgumentException if {@code lowpass} is {@code null}, its length is odd or less than 2, or the
+     *         taps are not orthonormal to its even shifts (NaN included)
      */
     public static Wavelet fromLowpass(double[] lowpass) {
         if (lowpass == null || lowpass.length < 2 || (lowpass.length & 1) != 0) {
             throw new IllegalArgumentException("an orthogonal low-pass filter has an even number of taps");
         }
-        return new Wavelet(lowpass.clone());
+        double[] h = lowpass.clone();
+        for (int j = 0; 2 * j < h.length; j++) {
+            double sum = 0;
+            for (int k = 0; k + 2 * j < h.length; k++) {
+                sum = Math.fma(h[k], h[k + 2 * j], sum);
+            }
+            if (!(Math.abs(sum - (j == 0 ? 1 : 0)) <= ORTHONORMALITY_TOLERANCE)) {
+                throw new IllegalArgumentException("the taps are not orthonormal to their even shifts: shift " + 2 * j
+                        + " gives " + sum);
+            }
+        }
+        return new Wavelet(h);
     }
 
     /**
@@ -219,12 +240,13 @@ public final class Wavelet {
      * @param outOff the offset of the first coefficient
      * @param scratch {@code n} doubles of working memory
      * @param scratchOff the offset into {@code scratch}
-     * @throws IllegalArgumentException if {@code levels < 1} or {@code n} is not divisible by {@code 2^levels};
-     *         array bounds are left to the per-level checks and {@link System#arraycopy}
+     * @throws IllegalArgumentException if {@code levels < 1}, {@code n} is not divisible by {@code 2^levels}, or an
+     *         array does not hold {@code n} values from its offset (checked before anything is written)
      */
     public void forward(double[] x, int xOff, int n, int levels, double[] out, int outOff, double[] scratch,
             int scratchOff) {
         checkLevels(n, levels);
+        checkArrays(x, xOff, out, outOff, scratch, scratchOff, n);
         System.arraycopy(x, xOff, scratch, scratchOff, n);
         int len = n;
         for (int lv = 0; lv < levels; lv++) {
@@ -246,12 +268,13 @@ public final class Wavelet {
      * @param xOff the offset of the first sample
      * @param scratch {@code n} doubles of working memory
      * @param scratchOff the offset into {@code scratch}
-     * @throws IllegalArgumentException if {@code levels < 1} or {@code n} is not divisible by {@code 2^levels};
-     *         array bounds are left to the per-level checks and {@link System#arraycopy}
+     * @throws IllegalArgumentException if {@code levels < 1}, {@code n} is not divisible by {@code 2^levels}, or an
+     *         array does not hold {@code n} values from its offset (checked before anything is written)
      */
     public void inverse(double[] coeffs, int cOff, int n, int levels, double[] x, int xOff, double[] scratch,
             int scratchOff) {
         checkLevels(n, levels);
+        checkArrays(coeffs, cOff, x, xOff, scratch, scratchOff, n);
         int len = n >> levels;
         System.arraycopy(coeffs, cOff, x, xOff, len);
         for (int lv = 0; lv < levels; lv++) {
@@ -263,8 +286,15 @@ public final class Wavelet {
     }
 
     private static void checkLevels(int n, int levels) {
-        if (levels < 1 || n < 2 || (n & ((1 << levels) - 1)) != 0) {
+        if (levels < 1 || levels > 30 || n < 2 || (n & ((1 << levels) - 1)) != 0) {
             throw new IllegalArgumentException("n must be divisible by 2^levels: " + n + ", " + levels);
+        }
+    }
+
+    private static void checkArrays(double[] a, int aOff, double[] b, int bOff, double[] c, int cOff, int n) {
+        if (a == null || b == null || c == null || aOff < 0 || aOff > a.length - n || bOff < 0
+                || bOff > b.length - n || cOff < 0 || cOff > c.length - n) {
+            throw new IllegalArgumentException("each array must hold n = " + n + " values from its offset");
         }
     }
 

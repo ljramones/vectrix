@@ -80,7 +80,7 @@ class DspFilterFamilyTest {
         double[] ra = autocorr(ar, p + 1);
         double[] a = new double[p + 1];
         double[] k = new double[p];
-        double err = Toeplitz.levinsonDurbin(ra, p, a, k, new double[p + 1]);
+        double err = Toeplitz.levinsonDurbin(ra, p, a, k, new double[2 * p + 1]);
         for (int i = 1; i <= p; i++) {
             double v = 0;
             for (int j = 0; j <= p; j++) {

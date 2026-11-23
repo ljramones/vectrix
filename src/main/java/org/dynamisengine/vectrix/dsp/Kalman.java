@@ -44,36 +44,46 @@ public final class Kalman {
     }
 
     /**
-     * Returns the scratch size of {@link #predict} and {@link #update}.
+     * Returns the scratch size of {@link #predict}, {@link #update} and {@link #innovationDistance}.
      *
-     * @param n the number of states
-     * @param m the number of measurements (0 for {@link #predict} alone)
+     * @param n the number of states, at least 1
+     * @param m the number of measurements, at least 0 (0 for {@link #predict} alone)
      * @return the number of scratch doubles
+     * @throws IllegalArgumentException if {@code n < 1}, {@code m < 0}, or the size exceeds an array
      */
     public static int scratchSize(int n, int m) {
-        return 3 * n * n + 2 * n * m + m * m + 2 * m + n;
+        if (n < 1 || m < 0) {
+            throw new IllegalArgumentException("need n >= 1 and m >= 0: " + n + ", " + m);
+        }
+        long nn = n;
+        long size = 3 * nn * nn + 2 * nn * m + (long) m * m + 2L * m + nn;
+        if (size > Integer.MAX_VALUE - 8) {
+            throw new IllegalArgumentException("dimensions too large: " + n + ", " + m);
+        }
+        return (int) size;
     }
 
     /**
      * Predict: {@code x = F·x}, {@code P = F·P·Fᵀ + Q}.
      *
-     * @param n the number of states
+     * @param n the number of states, at least 1
      * @param x the {@code n} state values, updated
      * @param p the {@code n×n} covariance, updated
      * @param f the {@code n×n} transition matrix
      * @param q the {@code n×n} process noise covariance
      * @param scratch at least {@code scratchSize(n, 0)} doubles of working memory
-     * @throws IllegalArgumentException if {@code n} (or {@code m}) is less than 1, or an array is null or too short
+     * @throws IllegalArgumentException if {@code n < 1} or an array is null or too short (checked before anything
+     *         is written)
      */
     public static void predict(int n, double[] x, double[] p, double[] f, double[] q, double[] scratch) {
         if (n < 1) {
             throw new IllegalArgumentException("n must be at least 1: " + n);
         }
+        need(scratch, scratchSize(n, 0));
         need(x, n, "x");
         need(p, n * n, "p");
         need(f, n * n, "f");
         need(q, n * n, "q");
-        need(scratch, scratchSize(n, 0));
         int xs = 0;
         int fp = n;
         for (int i = 0; i < n; i++) {
@@ -96,29 +106,63 @@ public final class Kalman {
      * Update with a measurement {@code z}: innovation {@code y = z - H·x}, gain {@code K = P·Hᵀ·S⁻¹},
      * {@code x += K·y}, and the Joseph-form covariance.
      *
-     * @param n the number of states
-     * @param m the number of measurements
+     * @param n the number of states, at least 1
+     * @param m the number of measurements, at least 1
      * @param x the {@code n} state values, updated
      * @param p the {@code n×n} covariance, updated
      * @param h the {@code m×n} measurement matrix
      * @param r the {@code m×m} measurement noise covariance
      * @param z the {@code m} measurements
      * @param scratch at least {@code scratchSize(n, m)} doubles of working memory
-     * @return the squared Mahalanobis distance {@code yᵀ·S⁻¹·y} of the innovation (for gating)
-     * @throws IllegalArgumentException if {@code n} (or {@code m}) is less than 1, or an array is null or too short
+     * @return the squared Mahalanobis distance {@code yᵀ·S⁻¹·y} of the innovation, as
+     *         {@link #innovationDistance} returns it
+     * @throws IllegalArgumentException if {@code n} or {@code m} is less than 1, or an array is null or too short
+     *         (checked before anything is written)
      * @throws IllegalStateException if {@code S} is not positive definite; {@code x} and {@code p} are then unchanged
      */
     public static double update(int n, int m, double[] x, double[] p, double[] h, double[] r, double[] z,
             double[] scratch) {
+        innovation(n, m, x, p, h, r, z, scratch);
+        return correct(n, m, x, p, h, r, scratch);
+    }
+
+    /**
+     * The squared Mahalanobis distance {@code yᵀ·S⁻¹·y} of the innovation {@code y = z - H·x}, with
+     * {@code S = H·P·Hᵀ + R}, without updating the estimate: gate a measurement with it, then call {@link #update}
+     * only for the measurements you accept. For a correct measurement it follows a chi-square distribution with
+     * {@code m} degrees of freedom. The value is the one {@link #update} returns for the same arguments, bit for bit.
+     *
+     * @param n the number of states, at least 1
+     * @param m the number of measurements, at least 1
+     * @param x the {@code n} state values, not modified
+     * @param p the {@code n×n} covariance, not modified
+     * @param h the {@code m×n} measurement matrix
+     * @param r the {@code m×m} measurement noise covariance
+     * @param z the {@code m} measurements
+     * @param scratch at least {@code scratchSize(n, m)} doubles of working memory
+     * @return the squared Mahalanobis distance of the innovation
+     * @throws IllegalArgumentException if {@code n} or {@code m} is less than 1, or an array is null or too short
+     * @throws IllegalStateException if {@code S} is not positive definite
+     * @since 3.0.0
+     */
+    public static double innovationDistance(int n, int m, double[] x, double[] p, double[] h, double[] r,
+            double[] z, double[] scratch) {
+        innovation(n, m, x, p, h, r, z, scratch);
+        return distance(n, m, p, h, r, scratch);
+    }
+
+    /** Checks the arguments of an update and writes the innovation {@code y = z - H·x} to {@code scratch[0 .. m)}. */
+    private static void innovation(int n, int m, double[] x, double[] p, double[] h, double[] r, double[] z,
+            double[] scratch) {
         if (n < 1 || m < 1) {
             throw new IllegalArgumentException("n and m must be at least 1: " + n + ", " + m);
         }
+        need(scratch, scratchSize(n, m));
         need(x, n, "x");
         need(p, n * n, "p");
         need(h, m * n, "h");
         need(r, m * m, "r");
         need(z, m, "z");
-        need(scratch, scratchSize(n, m));
         for (int i = 0; i < m; i++) {
             double v = z[i];
             for (int j = 0; j < n; j++) {
@@ -126,7 +170,43 @@ public final class Kalman {
             }
             scratch[i] = v;
         }
-        return correct(n, m, x, p, h, r, scratch);
+    }
+
+    /**
+     * The squared Mahalanobis distance of the innovation {@code y = scratch[0 .. m)}, given the measurement
+     * Jacobian {@code h}, computed as {@link #correct} computes it.
+     */
+    static double distance(int n, int m, double[] p, double[] h, double[] r, double[] scratch) {
+        int y = 0;
+        int s = y + m;
+        int ph = s + m * m;      // P·Hᵀ, n×m
+        int w = ph + 2 * n * m + 3 * n * n;
+        factorS(n, m, p, h, r, scratch, s, ph);
+        System.arraycopy(scratch, y, scratch, w, m);
+        solve(m, scratch, s, scratch, w);
+        double maha = 0;
+        for (int i = 0; i < m; i++) {
+            maha = Math.fma(scratch[y + i], scratch[w + i], maha);
+        }
+        return maha;
+    }
+
+    /** {@code P·Hᵀ} at {@code ph}, and the Cholesky factor of {@code S = H·P·Hᵀ + R} at {@code s}. */
+    private static void factorS(int n, int m, double[] p, double[] h, double[] r, double[] scratch, int s, int ph) {
+        matmul(n, n, m, p, 0, false, h, 0, true, scratch, ph);      // P·Hᵀ
+        for (int i = 0; i < m; i++) {                                // S = H·(P·Hᵀ) + R
+            for (int j = 0; j < m; j++) {
+                double v = r[i * m + j];
+                for (int l = 0; l < n; l++) {
+                    v = Math.fma(h[i * n + l], scratch[ph + l * m + j], v);
+                }
+                scratch[s + i * m + j] = v;
+            }
+        }
+        symmetrize(m, scratch, s);
+        if (!cholesky(m, scratch, s)) {
+            throw new IllegalStateException("the innovation covariance is not positive definite");
+        }
     }
 
     /**
@@ -142,18 +222,7 @@ public final class Kalman {
         int t1 = ikh + n * n;    // n×n
         int t2 = t1 + n * n;     // n×n
         int w = t2 + n * n;      // m + n
-        matmul(n, n, m, p, 0, false, h, 0, true, scratch, ph);      // P·Hᵀ
-        for (int i = 0; i < m; i++) {                                // S = H·(P·Hᵀ) + R
-            for (int j = 0; j < m; j++) {
-                double v = r[i * m + j];
-                for (int l = 0; l < n; l++) {
-                    v = Math.fma(h[i * n + l], scratch[ph + l * m + j], v);
-                }
-                scratch[s + i * m + j] = v;
-            }
-        }
-        symmetrize(m, scratch, s);
-        cholesky(m, scratch, s);
+        factorS(n, m, p, h, r, scratch, s, ph);
         // K = P·Hᵀ·S⁻¹: each row of K solves S·kᵀ = (row of P·Hᵀ)ᵀ
         for (int i = 0; i < n; i++) {
             System.arraycopy(scratch, ph + i * m, scratch, w, m);
@@ -235,15 +304,18 @@ public final class Kalman {
         }
     }
 
-    /** In-place Cholesky factor {@code L} (lower triangle) of a symmetric positive-definite matrix. */
-    static void cholesky(int m, double[] a, int off) {
+    /**
+     * In-place Cholesky factor {@code L} (lower triangle) of a symmetric positive-definite matrix; returns false,
+     * leaving the matrix partly factored, when it is not positive definite.
+     */
+    static boolean cholesky(int m, double[] a, int off) {
         for (int j = 0; j < m; j++) {
             double d = a[off + j * m + j];
             for (int l = 0; l < j; l++) {
                 d = Math.fma(-a[off + j * m + l], a[off + j * m + l], d);
             }
             if (!(d > 0)) {
-                throw new IllegalStateException("the innovation covariance is not positive definite");
+                return false;
             }
             double ljj = Math.sqrt(d);
             a[off + j * m + j] = ljj;
@@ -255,6 +327,7 @@ public final class Kalman {
                 a[off + i * m + j] = v / ljj;
             }
         }
+        return true;
     }
 
     /** Solves {@code L·Lᵀ·v = b} in place ({@code b} at {@code vOff}). */
@@ -279,7 +352,7 @@ public final class Kalman {
         need(scratch, size, "scratch");
     }
 
-    private static void need(double[] a, int size, String name) {
+    static void need(double[] a, int size, String name) {
         if (a == null || a.length < size) {
             throw new IllegalArgumentException(name + " must hold " + size + " doubles");
         }

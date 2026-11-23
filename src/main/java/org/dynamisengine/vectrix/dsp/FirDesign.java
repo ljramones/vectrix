@@ -37,9 +37,9 @@ import org.dynamisengine.vectrix.core.AccurateMath;
  * For a Kaiser design, {@link #kaiserBeta} and {@link #kaiserTaps} give the window shape and length for a
  * stop-band attenuation and transition width (Kaiser's formulas).
  * <p>
- * The window designs and the responses do not allocate; {@link #remez} allocates its frequency grid. Argument errors
- * throw {@link IllegalArgumentException} before any tap is written, except that a design with no gain at its
- * reference frequency is detected only after the taps are computed.
+ * The window designs and the responses do not allocate; {@link #remez} allocates its frequency grid. Argument errors,
+ * including a design with no gain at its reference frequency, throw {@link IllegalArgumentException} before any tap
+ * is written.
  *
  * @since 2.5.0
  */
@@ -51,10 +51,12 @@ public final class FirDesign {
     /**
      * Kaiser's window shape for a stop-band attenuation.
      *
-     * @param attenuationDb the attenuation in dB, {@code > 0}; below 21 dB the result is 0 (rectangular)
+     * @param attenuationDb the attenuation in dB, positive and finite; below 21 dB the result is 0 (rectangular)
      * @return β for {@link Windows#kaiser}
+     * @throws IllegalArgumentException if {@code attenuationDb} is not positive and finite
      */
     public static double kaiserBeta(double attenuationDb) {
+        checkAttenuation(attenuationDb);
         double a = attenuationDb;
         if (a > 50) {
             return 0.1102 * (a - 8.7);
@@ -68,17 +70,28 @@ public final class FirDesign {
     /**
      * Kaiser's estimate of the taps needed for a stop-band attenuation and transition width.
      *
-     * @param attenuationDb the attenuation in dB, {@code > 0}
+     * @param attenuationDb the attenuation in dB, positive and finite
      * @param transitionWidth the transition band in cycles per sample, in (0, 0.5)
      * @return the number of taps, at least 1
-     * @throws IllegalArgumentException if {@code transitionWidth} is outside (0, 0.5)
+     * @throws IllegalArgumentException if {@code attenuationDb} is not positive and finite, {@code transitionWidth}
+     *         is outside (0, 0.5), or the estimate exceeds {@link Integer#MAX_VALUE}
      */
     public static int kaiserTaps(double attenuationDb, double transitionWidth) {
+        checkAttenuation(attenuationDb);
         if (!(transitionWidth > 0 && transitionWidth < 0.5)) {
             throw new IllegalArgumentException("transition width must be in (0, 0.5): " + transitionWidth);
         }
-        double taps = (attenuationDb - 7.95) / (14.357 * transitionWidth) + 1;
-        return (int) java.lang.Math.max(1, java.lang.Math.ceil(taps));
+        double taps = java.lang.Math.ceil((attenuationDb - 7.95) / (14.357 * transitionWidth) + 1);
+        if (!(taps <= Integer.MAX_VALUE)) {
+            throw new IllegalArgumentException("the filter would need more than 2^31 - 1 taps: " + taps);
+        }
+        return (int) java.lang.Math.max(1, taps);
+    }
+
+    private static void checkAttenuation(double attenuationDb) {
+        if (!(attenuationDb > 0 && attenuationDb < Double.POSITIVE_INFINITY)) {
+            throw new IllegalArgumentException("attenuation must be positive and finite: " + attenuationDb);
+        }
     }
 
     /**
@@ -96,10 +109,7 @@ public final class FirDesign {
     public static void lowpass(double[] h, int off, int n, double cutoff, double[] window, int windowOff) {
         checkBand(cutoff);
         check(h, off, n, window, windowOff);
-        for (int k = 0; k < n; k++) {
-            h[off + k] = sinc(cutoff, k, n) * w(window, windowOff, k);
-        }
-        normalize(h, off, n, 0.0);
+        design(LOWPASS, cutoff, 0, h, off, n, window, windowOff, 0.0);
     }
 
     /**
@@ -119,10 +129,7 @@ public final class FirDesign {
         checkBand(cutoff);
         check(h, off, n, window, windowOff);
         requireOdd(n);
-        for (int k = 0; k < n; k++) {
-            h[off + k] = (delta(k, n) - sinc(cutoff, k, n)) * w(window, windowOff, k);
-        }
-        normalize(h, off, n, 0.5);
+        design(HIGHPASS, cutoff, 0, h, off, n, window, windowOff, 0.5);
     }
 
     /**
@@ -145,10 +152,7 @@ public final class FirDesign {
             throw new IllegalArgumentException("band edges must increase: " + low + ", " + high);
         }
         check(h, off, n, window, windowOff);
-        for (int k = 0; k < n; k++) {
-            h[off + k] = (sinc(high, k, n) - sinc(low, k, n)) * w(window, windowOff, k);
-        }
-        normalize(h, off, n, 0.5 * (low + high));
+        design(BANDPASS, low, high, h, off, n, window, windowOff, 0.5 * (low + high));
     }
 
     /**
@@ -172,10 +176,7 @@ public final class FirDesign {
         }
         check(h, off, n, window, windowOff);
         requireOdd(n);
-        for (int k = 0; k < n; k++) {
-            h[off + k] = (delta(k, n) - sinc(high, k, n) + sinc(low, k, n)) * w(window, windowOff, k);
-        }
-        normalize(h, off, n, 0.0);
+        design(BANDSTOP, low, high, h, off, n, window, windowOff, 0.0);
     }
 
     /**
@@ -402,10 +403,14 @@ public final class FirDesign {
      * @param n the number of taps, at least 1
      * @param f the frequency in cycles per sample
      * @param dest receives the real part at {@code dest[0]} and the imaginary part at {@code dest[1]}
-     * @throws IllegalArgumentException if {@code n < 1} or {@code h} does not hold {@code n} taps from {@code off}
+     * @throws IllegalArgumentException if {@code n < 1}, {@code h} does not hold {@code n} taps from {@code off},
+     *         or {@code dest} holds fewer than 2 values (checked before anything is written)
      */
     public static void response(double[] h, int off, int n, double f, double[] dest) {
         check(h, off, n, null, 0);
+        if (dest == null || dest.length < 2) {
+            throw new IllegalArgumentException("dest must hold 2 values");
+        }
         double re = 0.0;
         double im = 0.0;
         for (int k = 0; k < n; k++) {
@@ -461,14 +466,50 @@ public final class FirDesign {
         return window == null ? 1.0 : window[off + k];
     }
 
-    /** Scales the taps to unit gain at {@code f}. */
-    private static void normalize(double[] h, int off, int n, double f) {
-        double g = magnitude(h, off, n, f);
-        if (!(g > 0)) {
-            throw new IllegalArgumentException("the design has no gain at its reference frequency " + f);
+    private static final int LOWPASS = 0;
+    private static final int HIGHPASS = 1;
+    private static final int BANDPASS = 2;
+    private static final int BANDSTOP = 3;
+
+    /** Tap {@code k} of a window design, before normalization. */
+    private static double tap(int kind, double a, double b, int k, int n, double[] window, int windowOff) {
+        double v;
+        switch (kind) {
+            case LOWPASS: v = sinc(a, k, n); break;
+            case HIGHPASS: v = delta(k, n) - sinc(a, k, n); break;
+            case BANDPASS: v = sinc(b, k, n) - sinc(a, k, n); break;
+            default: v = delta(k, n) - sinc(b, k, n) + sinc(a, k, n); break;
         }
+        return v * w(window, windowOff, k);
+    }
+
+    /**
+     * Writes the taps scaled to unit gain at {@code f}. The gain is computed from the unscaled taps before any is
+     * written, so a design without gain throws with {@code h} untouched; the window may be {@code h} itself.
+     */
+    private static void design(int kind, double a, double b, double[] h, int off, int n, double[] window,
+            int windowOff, double f) {
+        double re = 0.0;
+        double im = 0.0;
         for (int k = 0; k < n; k++) {
-            h[off + k] /= g;
+            double t = tap(kind, a, b, k, n, window, windowOff);
+            double ang = 2 * java.lang.Math.PI * reduce(f * k);
+            re += t * AccurateMath.cos(ang);
+            im -= t * AccurateMath.sin(ang);
+        }
+        double g = java.lang.Math.sqrt(re * re + im * im);
+        if (!(g > 0 && g < Double.POSITIVE_INFINITY)) {
+            throw new IllegalArgumentException("the design has no finite gain at its reference frequency " + f);
+        }
+        if (window == h && windowOff < off) {
+            // the window lies in h before the taps: write backwards, so no window value is overwritten unread
+            for (int k = n - 1; k >= 0; k--) {
+                h[off + k] = tap(kind, a, b, k, n, window, windowOff) / g;
+            }
+        } else {
+            for (int k = 0; k < n; k++) {
+                h[off + k] = tap(kind, a, b, k, n, window, windowOff) / g;
+            }
         }
     }
 
