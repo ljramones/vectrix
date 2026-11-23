@@ -275,6 +275,64 @@ class NnBatch4bTest {
     }
 
     @Test
+    void groupedQueryAttentionIsPerHeadAttentionOverSharedCaches() {
+        SplittableRandom r = new SplittableRandom(5);
+        int heads = 8;
+        int d = 16;
+        int dv = 12;
+        int t = 11;
+        for (int kvHeads : new int[] {1, 2, 8}) {
+            float[] q = rndF(r, heads * d);
+            float[] kc = rndF(r, t * kvHeads * d);
+            float[] vc = rndF(r, t * kvHeads * dv);
+            float[] p = new float[heads * t];
+            float[] out = new float[heads * dv];
+            float scale = 0.25f;
+            Attention.groupedQuery(q, 0, heads, d, kc, 0, vc, 0, kvHeads, dv, t, scale, null, 0, p, 0, out, 0,
+                new float[t], 0);
+            float[] dOut = rndF(r, heads * dv);
+            float[] dq = new float[heads * d];
+            float[] dk = new float[t * kvHeads * d];
+            float[] dV = new float[t * kvHeads * dv];
+            Attention.groupedQueryBackward(q, 0, heads, d, kc, 0, vc, 0, kvHeads, dv, t, scale, p, 0, dOut, 0, dq, 0, dk,
+                0, dV, 0, new float[2 * t], 0);
+            float[] dk2 = new float[dk.length];
+            float[] dV2 = new float[dV.length];
+            int group = heads / kvHeads;
+            for (int h = 0; h < heads; h++) {
+                int g = h / group;
+                float[] ph = new float[t];
+                float[] oh = new float[dv];
+                Attention.forward(q, h * d, d, kc, g * d, kvHeads * d, vc, g * dv, kvHeads * dv, dv, t, scale, null, 0,
+                    ph, 0, oh, 0, new float[t], 0);
+                for (int c = 0; c < dv; c++) {
+                    assertEquals(oh[c], out[h * dv + c], 0f, "head " + h);
+                }
+                float[] dqh = new float[d];
+                Attention.backward(q, h * d, d, kc, g * d, kvHeads * d, vc, g * dv, kvHeads * dv, dv, t, scale, ph, 0, dOut,
+                    h * dv, dqh, 0, dk2, g * d, dV2, g * dv, new float[2 * t], 0);
+                for (int c = 0; c < d; c++) {
+                    assertEquals(dqh[c], dq[h * d + c], 0f);
+                }
+            }
+            for (int i = 0; i < dk.length; i++) {
+                assertEquals(dk2[i], dk[i], 0f, "dk, kvHeads " + kvHeads);
+            }
+            for (int i = 0; i < dV.length; i++) {
+                assertEquals(dV2[i], dV[i], 0f, "dv");
+            }
+        }
+    }
+
+    private static float[] rndF(SplittableRandom r, int n) {
+        float[] a = new float[n];
+        for (int i = 0; i < n; i++) {
+            a[i] = (float) r.nextDouble(-1, 1);
+        }
+        return a;
+    }
+
+    @Test
     void optimizersFollowTheirDefinitions() {
         float[] p = {1f, -2f, 0.5f};
         float[] g = {0.1f, -0.3f, 2f};

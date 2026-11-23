@@ -107,6 +107,57 @@ public final class Attention {
         }
     }
 
+    /**
+     * Grouped-query attention for one position: {@code heads} query heads share {@code kvHeads} key/value heads,
+     * query head {@code h} using key/value head {@code h / (heads / kvHeads)}. {@code kvHeads = 1} is multi-query
+     * attention, {@code kvHeads = heads} ordinary multi-head attention. Each head is exactly {@link #forward}.
+     * <p>
+     * Layouts: {@code q} is {@code heads × d}; each cache row (one position) holds every key/value head,
+     * {@code kvHeads × d} keys and {@code kvHeads × dv} values; {@code out} is {@code heads × dv}; {@code p} receives
+     * {@code heads × t} probabilities for the backward pass. For causal self-attention over a sequence, call this
+     * for each position with {@code t = position + 1}.
+     *
+     * @param scratch {@code t} floats of working memory
+     */
+    public static void groupedQuery(float[] q, int qOff, int heads, int d, float[] kCache, int kOff, float[] vCache,
+            int vOff, int kvHeads, int dv, int t, float scale, float[] mask, int maskOff, float[] p, int pOff, float[] out,
+            int outOff, float[] scratch, int scratchOff) {
+        int group = groupSize(heads, kvHeads);
+        for (int h = 0; h < heads; h++) {
+            int g = h / group;
+            forward(q, qOff + h * d, d, kCache, kOff + g * d, kvHeads * d, vCache, vOff + g * dv, kvHeads * dv, dv, t,
+                    scale, mask, maskOff, p, pOff + h * t, out, outOff + h * dv, scratch, scratchOff);
+        }
+    }
+
+    /**
+     * Backward pass of {@link #groupedQuery}: writes {@code dq} ({@code heads × d}) and accumulates the key and value
+     * gradients into {@code dk} and {@code dV}, laid out like the caches; query heads that share a key/value head add
+     * into it in head order.
+     *
+     * @param scratch {@code 2t} floats of working memory
+     */
+    public static void groupedQueryBackward(float[] q, int qOff, int heads, int d, float[] kCache, int kOff,
+            float[] vCache, int vOff, int kvHeads, int dv, int t, float scale, float[] p, int pOff, float[] dOut,
+            int dOutOff, float[] dq, int dqOff, float[] dk, int dkOff, float[] dV, int dvOff, float[] scratch,
+            int scratchOff) {
+        int group = groupSize(heads, kvHeads);
+        for (int h = 0; h < heads; h++) {
+            int g = h / group;
+            backward(q, qOff + h * d, d, kCache, kOff + g * d, kvHeads * d, vCache, vOff + g * dv, kvHeads * dv, dv, t,
+                    scale, p, pOff + h * t, dOut, dOutOff + h * dv, dq, dqOff + h * d, dk, dkOff + g * d, dV,
+                    dvOff + g * dv, scratch, scratchOff);
+        }
+    }
+
+    private static int groupSize(int heads, int kvHeads) {
+        if (heads < 1 || kvHeads < 1 || heads % kvHeads != 0) {
+            throw new IllegalArgumentException("heads must be a positive multiple of kvHeads: " + heads + ", "
+                    + kvHeads);
+        }
+        return heads / kvHeads;
+    }
+
     private static void range(float[] a, int off, int n, String name) {
         if (a == null || off < 0 || off > a.length - n) {
             throw new IllegalArgumentException(name + " must hold " + n + " values from offset " + off);
