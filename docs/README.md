@@ -12,6 +12,9 @@ This folder contains the current project documentation for Vectrix.
   the STRICT mode contract.
 - `docs/determinism.md`
   Every setting that changes output bits, `StrictMath` mode and the replay fingerprint.
+- `docs/joml-divergence.md`
+  Why Vectrix forked JOML, the defects the 2.4.0 audit found in the inherited code, and behaviour differences when
+  porting from JOML.
 - `docs/api-policy.md`
   Public/internal API stability and compatibility expectations.
 - `docs/transform-representation-policy.md`

@@ -4,7 +4,8 @@ Vectrix is a pure Java math kernel for real-time graphics, simulation, and engin
 
 **JDK 25 is the target platform.** Vectrix is tuned for modern JIT behavior and Vector API-enabled execution paths, with scalar fallbacks for portability and correctness.
 
-MIT licensed. JOML lineage attribution is documented in `NOTICE`.
+MIT licensed. JOML lineage attribution is documented in `NOTICE`; why Vectrix forked JOML, and how the inherited
+code has been corrected since, is in [`docs/joml-divergence.md`](docs/joml-divergence.md).
 
 ---
 ## Current Benchmarks (Prominent)
