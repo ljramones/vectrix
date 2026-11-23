@@ -6,8 +6,26 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
-Structure and documentation release. Nothing is removed. Every moved or replaced API keeps a deprecated
-(`forRemoval`) forwarder until 3.0.
+## [2.6.0] - 2026-11-23
+New in this release:
+- **Documentation:**
+  - Every public type and member is documented, and the build enforces it (doclint, warnings fail).
+  - Every package states its threading, allocation, determinism and error contract.
+  - The docs were rewritten: a short README, getting started, conventions, a package map and eleven task guides.
+    All their Java code is quoted from tested examples.
+- **Examples:** `examples/`, nine runnable programs (culling, cameras, large worlds, animation, SH lighting,
+  signal processing, Kalman tracking, a small network). Each is tested and run in CI.
+- **Structure:**
+  - The packages form a dependency DAG, enforced by a test.
+  - Shared types moved down: `core.DepthRange`, `core.ReproducibleMath`, `core.Complexd`/`Complexf`,
+    `hash.Philox` and `soa.TransformKernels`.
+  - The SIMD switch (`SimdSupport`) is public API.
+  - The OSGi bundle exports every package.
+- **Fixes:** `ReproducibleMath.exp(double)` over its whole range, several output-aliasing and edge-case bugs, and
+  up-front validation in `Kalman`, `ShRotation` and the Sobol/Halton batches.
+
+Nothing is removed. Every moved or replaced API keeps a deprecated (`forRemoval`) forwarder until 3.0. The
+remaining issues found by reading every method are listed in `docs/maintainers/known-issues.md`.
 
 ### Added
 - `simd.SimdSupport` is supported API. `isEnabled()`/`setEnabled(boolean)` switch the SIMD paths at run time
