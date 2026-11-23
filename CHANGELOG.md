@@ -51,6 +51,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - `Correlation`: full cross-correlation plans. They sum directly or use FFTs, whichever is cheaper.
   - `Goertzel`: one DFT value at any frequency. Near DC and Nyquist it uses Reinsch's stabilized recurrences,
     about 10^5 times more accurate there than the classic form.
+  - `Dctd`/`Dctf`: DCT-II of any size and its exact inverse, and DCT-IV, in FFTW's conventions, via one FFT.
+  - `Mdctd`/`Mdctf`: MDCT and inverse. The inverse is scaled so that windowed overlap-add reconstructs exactly.
+  - `Resampler`: streaming rational sample-rate conversion (any up/down) through a polyphase Kaiser filter,
+    computed in double for double and float samples. Any chunking gives identical output.
 - `AccurateMath.cosTurns/sinTurns(e, d)`: cos and sin of `2π·e/d`, with the angle reduced exactly in integers. The
   symmetries are exact (odd multiples of π/4 give the correctly rounded √½ for both). The FFT twiddles now use
   them.

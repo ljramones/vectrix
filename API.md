@@ -373,18 +373,53 @@ fitting tools and allocate scratch.
 
 ## 8) FFT and Convolution (`org.dynamisengine.vectrix.fft`)
 
-Data is interleaved complex: `data[2*i] = real`, `data[2*i+1] = imag`.
+Plans transform any size; they are immutable and shareable, and every call takes caller-owned scratch and never
+allocates. Complex data is interleaved: `data[2*i] = real`, `data[2*i+1] = imag`. Forward transforms are
+unscaled; inverses divide by `n`. Every class has a float twin (`...f`).
 
 ```java
-float[] data = ...; // length = 2 * N, N power-of-two
-FFT1f.forward(data);
-FFT1f.inverse(data); // inverse scales by 1/N
+ComplexFftd fft = ComplexFftd.plan(1000);          // any size: mixed radix, or Bluestein for large primes
+double[] scratch = new double[fft.scratchSize()];   // one per thread
+fft.forward(data, 0, scratch, 0);                   // in place, 2*1000 doubles
+fft.inverse(data, 0, scratch, 0);
 
-float[] a = ...;
-float[] b = ...;
-float[] out = new float[a.length];
-Convolutionf.circular(a, b, out);
+RealFftd real = RealFftd.plan(4096);                // real input, half spectrum of n/2+1 complex values
+real.forward(samples, 0, spectrum, 0, rs, 0);       // spectrum.length >= real.spectrumLength()
+
+BlockConvolverd fir = BlockConvolverd.plan(taps, 0, taps.length, 512);  // streaming FIR filter
+fir.process(in, 0, 512, out, 0, state, 0, firScratch, 0);              // state: fir.stateSize() doubles
+
+int n = ComplexFftd.fastSize(1031);                 // nearest size with factors 2, 3, 5: 1080
 ```
+
+`ComplexFft2d`/`RealFft2d` transform 2D grids. The original `FFT1f`/`FFT1d` (in-place, power-of-two) and
+`Convolutionf`/`Convolutiond` remain for compatibility.
+
+## 8a) Signal processing (`org.dynamisengine.vectrix.dsp`)
+
+Frequencies are in cycles per sample (`f / sampleRate`). Filter and stream state is held by the caller.
+
+```java
+double[] w = new double[1024];
+Windows.hann(w, 0, 1024, true);                     // periodic, for analysis; also Kaiser, Chebyshev, ...
+
+double[] h = new double[FirDesign.kaiserTaps(90, 0.01) | 1];
+double[] kw = new double[h.length];
+Windows.kaiser(kw, 0, h.length, FirDesign.kaiserBeta(90), false);
+FirDesign.lowpass(h, 0, h.length, 0.2, kw, 0);      // unit DC gain, linear phase
+
+double[] eq = new double[BiquadDesign.STRIDE * 2];
+BiquadDesign.peaking(eq, 0, 1000.0 / 48000, 1.0, 6.0);
+BiquadDesign.highShelf(eq, BiquadDesign.STRIDE, 8000.0 / 48000, 0.707, -3.0);
+Biquad.process(eq, 0, 2, eqState, 0, block, 0, block, 0, block.length);   // eqState: 4 doubles per channel
+
+Stftd stft = Stftd.plan(1024, 256, w, 0, null, 0);  // exact reconstruction for any windows and hop
+Resampler rs = Resampler.plan(160, 147);            // 44.1 kHz -> 48 kHz
+int produced = rs.process(in, 0, count, out, 0, rsState, 0);
+```
+
+Also: `Spectra` (periodogram, Welch PSD, analytic signal), `Correlation`, `Goertzel`, `Dctd`
+(DCT-II/III/IV), `Mdctd` (MDCT with exact overlap-add reconstruction).
 
 ## 9) Optics and Color
 

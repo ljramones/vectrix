@@ -57,7 +57,9 @@ policy.** For neural networks this means:
    - streaming convolution (overlap-add; overlap-save offers no advantage with caller-held state);
    - float and double twins;
    - `MemorySegment` overloads.
-2. **Filters and spectra:**
+2. **Filters and spectra** (done in 2.5.0, package `dsp`. Every class is checked against an independent reference,
+   and its processing paths are allocation-free. Wavelets, Kalman steps and a Parks–McClellan FIR design remain
+   optional.):
    - window functions (Hann, Hamming, Blackman, Kaiser, Dolph–Chebyshev);
    - FIR design;
    - IIR biquads in transposed direct form II, with caller-held state;

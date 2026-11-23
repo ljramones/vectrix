@@ -61,12 +61,18 @@ public final class Goertzel {
 
     /** {@code |X(f)|²}. */
     public static double power(double[] x, int off, int n, double f) {
-        double[] r = new double[2];
-        dft(x, off, n, f, r);
-        return r[0] * r[0] + r[1] * r[1];
+        check(x == null ? -1 : x.length, off, n);
+        return run(x, null, off, n, f, null);
     }
 
-    private static void run(double[] xd, float[] xf, int off, int n, double f, double[] dest) {
+    /** {@code |X(f)|²} of float samples, computed in double. */
+    public static double power(float[] x, int off, int n, double f) {
+        check(x == null ? -1 : x.length, off, n);
+        return run(null, x, off, n, f, null);
+    }
+
+    /** Writes {@code X(f)} to {@code dest} unless it is null; returns {@code |X(f)|²}. */
+    private static double run(double[] xd, float[] xf, int off, int n, double f, double[] dest) {
         double t = f - java.lang.Math.rint(f); // turns, in [-0.5, 0.5]
         double w = 2 * java.lang.Math.PI * t;
         double sh = AccurateMath.sin(0.5 * w);
@@ -112,6 +118,9 @@ public final class Goertzel {
             yr = s - AccurateMath.cos(w) * v;
             yi = sw * v;
         }
+        if (dest == null) {
+            return yr * yr + yi * yi; // the phase factor below has unit magnitude
+        }
         // X = exp(-iw(n-1))·y
         double ph = (n - 1) * t;
         double a = 2 * java.lang.Math.PI * (ph - java.lang.Math.rint(ph));
@@ -119,6 +128,7 @@ public final class Goertzel {
         double sn = -AccurateMath.sin(a);
         dest[0] = yr * c - yi * sn;
         dest[1] = yr * sn + yi * c;
+        return yr * yr + yi * yi;
     }
 
     private static void check(int length, int off, int n) {

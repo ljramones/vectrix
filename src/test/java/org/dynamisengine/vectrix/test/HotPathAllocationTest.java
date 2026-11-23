@@ -323,6 +323,43 @@ class HotPathAllocationTest {
         float[] st = new float[b.stateSize()];
         float[] bs = new float[b.scratchSize()];
         assertNoAllocation("BlockConvolverf.process", () -> b.process(x, 0, 256, x, 0, st, 0, bs, 0));
+        // signal processing (dsp)
+        double[] bq = new double[org.dynamisengine.vectrix.dsp.BiquadDesign.STRIDE * 3];
+        int sec = org.dynamisengine.vectrix.dsp.BiquadDesign.butterworthLowpass(bq, 0, 6, 0.1);
+        double[] bqs = new double[2 * sec];
+        double[] sig = new double[512];
+        float[] sigf = new float[512];
+        assertNoAllocation("Biquad.process", () -> org.dynamisengine.vectrix.dsp.Biquad.process(bq, 0, sec, bqs, 0,
+            sig, 0, sig, 0, 512));
+        assertNoAllocation("Biquad.process float", () -> org.dynamisengine.vectrix.dsp.Biquad.process(bq, 0, sec, bqs,
+            0, sigf, 0, sigf, 0, 512));
+        assertNoAllocation("Biquad.magnitude", () -> org.dynamisengine.vectrix.dsp.Biquad.magnitude(bq, 0, sec, 0.2));
+        double[] hw = new double[256];
+        org.dynamisengine.vectrix.dsp.Windows.hann(hw, 0, 256, true);
+        org.dynamisengine.vectrix.dsp.Stftd stft = org.dynamisengine.vectrix.dsp.Stftd.plan(256, 64, hw, 0, null, 0);
+        double[] spec = new double[stft.spectrumLength()];
+        double[] stState = new double[stft.stateSize()];
+        double[] stScratch = new double[stft.scratchSize()];
+        assertNoAllocation("Stftd.analyze", () -> stft.analyze(sig, 0, spec, 0, stScratch, 0));
+        assertNoAllocation("Stftd.synthesize", () -> stft.synthesize(spec, 0, sig, 0, stState, 0, stScratch, 0));
+        org.dynamisengine.vectrix.dsp.Correlation corr = org.dynamisengine.vectrix.dsp.Correlation.plan(300, 400);
+        double[] cx = new double[400];
+        double[] cout = new double[corr.outputLength()];
+        double[] cs = new double[corr.scratchSize()];
+        assertNoAllocation("Correlation.correlate", () -> corr.correlate(cx, 0, cx, 0, cout, 0, cs, 0));
+        assertNoAllocation("Goertzel.power", () -> org.dynamisengine.vectrix.dsp.Goertzel.power(sig, 0, 512, 0.1));
+        org.dynamisengine.vectrix.dsp.Mdctd mdct = org.dynamisengine.vectrix.dsp.Mdctd.plan(256);
+        double[] mc = new double[256];
+        double[] ms = new double[mdct.scratchSize()];
+        assertNoAllocation("Mdctd.forward", () -> mdct.forward(sig, 0, mc, 0, ms, 0));
+        assertNoAllocation("Mdctd.inverse", () -> mdct.inverse(mc, 0, sig, 0, ms, 0));
+        org.dynamisengine.vectrix.dsp.Dctf dct = org.dynamisengine.vectrix.dsp.Dctf.plan(300);
+        float[] ds = new float[dct.scratchSize()];
+        assertNoAllocation("Dctf.forward", () -> dct.forward(sigf, 0, sigf, 0, ds, 0));
+        org.dynamisengine.vectrix.dsp.Resampler rs = org.dynamisengine.vectrix.dsp.Resampler.plan(160, 147);
+        float[] rout = new float[rs.maxOutput(441)];
+        double[] rst = new double[rs.stateSize()];
+        assertNoAllocation("Resampler.process", () -> rs.process(sigf, 0, 441, rout, 0, rst, 0));
         double[] legacy = new double[2 * 4096];
         org.dynamisengine.vectrix.fft.FFT1d.forward(legacy); // builds the shared table once
         assertNoAllocation("FFT1d.forward", () -> org.dynamisengine.vectrix.fft.FFT1d.forward(legacy));

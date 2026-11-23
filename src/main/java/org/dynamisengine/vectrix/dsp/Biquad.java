@@ -153,9 +153,25 @@ public final class Biquad {
 
     /** {@code |H(f)|} of the cascade. */
     public static double magnitude(double[] coeffs, int coeffOff, int sections, double f) {
-        double[] r = new double[2];
-        response(coeffs, coeffOff, sections, f, r);
-        return java.lang.Math.sqrt(r[0] * r[0] + r[1] * r[1]);
+        if (coeffs == null || sections < 0 || coeffOff < 0
+                || coeffOff > coeffs.length - BiquadDesign.STRIDE * sections) {
+            throw new IllegalArgumentException("coeffs must hold " + sections + " sections from " + coeffOff);
+        }
+        double w = 2 * java.lang.Math.PI * f;
+        double c1 = AccurateMath.cos(w);
+        double s1 = -AccurateMath.sin(w);
+        double c2 = AccurateMath.cos(2 * w);
+        double s2 = -AccurateMath.sin(2 * w);
+        double m = 1.0;
+        for (int sec = 0; sec < sections; sec++) { // the product of the sections' magnitudes
+            int c = coeffOff + BiquadDesign.STRIDE * sec;
+            double nr = coeffs[c] + coeffs[c + 1] * c1 + coeffs[c + 2] * c2;
+            double ni = coeffs[c + 1] * s1 + coeffs[c + 2] * s2;
+            double dr = 1.0 + coeffs[c + 3] * c1 + coeffs[c + 4] * c2;
+            double di = coeffs[c + 3] * s1 + coeffs[c + 4] * s2;
+            m *= java.lang.Math.sqrt((nr * nr + ni * ni) / (dr * dr + di * di));
+        }
+        return m;
     }
 
     private static void check(double[] coeffs, int coeffOff, int sections, double[] state, int stateOff) {
