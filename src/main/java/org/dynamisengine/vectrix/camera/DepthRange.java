@@ -72,6 +72,14 @@ public enum DepthRange {
      * @return the same convention as a {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     public org.dynamisengine.vectrix.core.DepthRange toCore() {
-        return org.dynamisengine.vectrix.core.DepthRange.values()[ordinal()];
+        // a switch, not values()[ordinal()]: values() copies its array on every call
+        switch (this) {
+            case NEGATIVE_ONE_TO_ONE:
+                return org.dynamisengine.vectrix.core.DepthRange.NEGATIVE_ONE_TO_ONE;
+            case ZERO_TO_ONE:
+                return org.dynamisengine.vectrix.core.DepthRange.ZERO_TO_ONE;
+            default:
+                return org.dynamisengine.vectrix.core.DepthRange.REVERSED_ZERO_TO_ONE;
+        }
     }
 }

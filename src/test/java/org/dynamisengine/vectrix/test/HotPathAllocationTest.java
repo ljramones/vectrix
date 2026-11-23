@@ -151,7 +151,7 @@ class HotPathAllocationTest {
         assertNoAllocation("ShRotation.rotationMatrixL3", () -> org.dynamisengine.vectrix.sh.ShRotation.rotationMatrixL3(shRot, shMat));
         assertNoAllocation("ShRotation.applyL3", () -> org.dynamisengine.vectrix.sh.ShRotation.applyL3(shMat, c16, c16));
         org.dynamisengine.vectrix.core.Matrix4f camProj = org.dynamisengine.vectrix.camera.Projectionsf.perspective(1f, 1.5f,
-                0.1f, 100f, org.dynamisengine.vectrix.camera.DepthRange.REVERSED_ZERO_TO_ONE,
+                0.1f, 100f, org.dynamisengine.vectrix.core.DepthRange.REVERSED_ZERO_TO_ONE,
                 new org.dynamisengine.vectrix.core.Matrix4f());
         org.dynamisengine.vectrix.core.Matrix4f camOut = new org.dynamisengine.vectrix.core.Matrix4f();
         org.dynamisengine.vectrix.core.Matrix4f camView = new org.dynamisengine.vectrix.core.Matrix4f();
@@ -159,12 +159,14 @@ class HotPathAllocationTest {
         org.dynamisengine.vectrix.core.Vector3f camUp = new org.dynamisengine.vectrix.core.Vector3f(0, 1, 0);
         org.dynamisengine.vectrix.core.Vector3f lightDir = new org.dynamisengine.vectrix.core.Vector3f(0.3f, -1f, 0.2f);
         assertNoAllocation("Projectionsf.obliqueNearPlane", () -> org.dynamisengine.vectrix.camera.Projectionsf
-                .obliqueNearPlane(camProj, mirror, org.dynamisengine.vectrix.camera.DepthRange.REVERSED_ZERO_TO_ONE, camOut));
+                .obliqueNearPlane(camProj, mirror, org.dynamisengine.vectrix.core.DepthRange.REVERSED_ZERO_TO_ONE, camOut));
+        assertNoAllocation("Projectionsf.obliqueNearPlane (deprecated camera.DepthRange forwarder)",
+                () -> deprecatedOblique(camProj, mirror, camOut));
         assertNoAllocation("Projectionsf.applyJitter", () -> org.dynamisengine.vectrix.camera.Projectionsf.applyJitter(camProj,
                 0.001f, -0.002f, camOut));
         assertNoAllocation("ShadowCascadesf.stableLightMatrices", () -> org.dynamisengine.vectrix.camera.ShadowCascadesf
                 .stableLightMatrices(dir, 20f, lightDir, camUp, 40f, 2048,
-                        org.dynamisengine.vectrix.camera.DepthRange.ZERO_TO_ONE, camView, camOut));
+                        org.dynamisengine.vectrix.core.DepthRange.ZERO_TO_ONE, camView, camOut));
         org.dynamisengine.vectrix.core.Vector3f viewPos = new org.dynamisengine.vectrix.core.Vector3f(0.5f, 0.2f, -7f);
         assertNoAllocation("ClusterGridf.clusterOf", () -> org.dynamisengine.vectrix.camera.ClusterGridf.clusterOf(
                 viewPos, 0.8f, 0.45f, 16, 9, 24, 0.1f, 1000f));
@@ -550,5 +552,12 @@ class HotPathAllocationTest {
         Vector4f alias = new Vector4f(p1);
         // It used to evaluate the curve into dest first, corrupting p1 when dest == p1.
         assertEquals(expected, CatmullRom4f.derivative(p0, alias, p2, p3, 0.4f, 0.5f, alias));
+    }
+
+    @SuppressWarnings("removal")
+    private static void deprecatedOblique(org.dynamisengine.vectrix.core.Matrix4fc proj,
+            org.dynamisengine.vectrix.core.Vector4fc plane, org.dynamisengine.vectrix.core.Matrix4f dest) {
+        org.dynamisengine.vectrix.camera.Projectionsf.obliqueNearPlane(proj, plane,
+            org.dynamisengine.vectrix.camera.DepthRange.REVERSED_ZERO_TO_ONE, dest);
     }
 }
