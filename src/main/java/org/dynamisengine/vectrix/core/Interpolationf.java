@@ -172,13 +172,10 @@ public class Interpolationf {
             float v0X, float v0Y, float f0X, float f0Y,
             float v1X, float v1Y, float f1X, float f1Y,
             float v2X, float v2Y, float f2X, float f2Y, Vector2f dest) {
-        float v12Y = v1Y - v2Y;
-        float v02Y = v0Y - v2Y;
-        float den = v12Y * (v0X - v2X) + (v2X - v1X) * v02Y;
-        float l3_1 = den - v12Y + v02Y;
-        float invDen = 1.0f / den;
-        dest.x = invDen * (v12Y * f0X - v02Y * f1X + l3_1 * f2X) - f2X;
-        dest.y = invDen * (v12Y * f0Y - v02Y * f1Y + l3_1 * f2Y) - f2Y;
+        double v12Y = (double) v1Y - v2Y, v02Y = (double) v0Y - v2Y;
+        double den = v12Y * ((double) v0X - v2X) + ((double) v2X - v1X) * v02Y;
+        dest.x = (float) ((v12Y * ((double) f0X - f2X) - v02Y * ((double) f1X - f2X)) / den);
+        dest.y = (float) ((v12Y * ((double) f0Y - f2Y) - v02Y * ((double) f1Y - f2Y)) / den);
         return dest;
     }
 
@@ -222,13 +219,10 @@ public class Interpolationf {
             float v1X, float v1Y, float f1X, float f1Y,
             float v2X, float v2Y, float f2X, float f2Y,
             Vector2f dest) {
-        float v21X = v2X - v1X;
-        float v02X = v0X - v2X;
-        float den = (v1Y - v2Y) * v02X + v21X * (v0Y - v2Y);
-        float l3_1 = den - v21X - v02X;
-        float invDen = 1.0f / den;
-        dest.x = invDen * (v21X * f0X + v02X * f1X + l3_1 * f2X) - f2X;
-        dest.y = invDen * (v21X * f0Y + v02X * f1Y + l3_1 * f2Y) - f2Y;
+        double v21X = (double) v2X - v1X, v02X = (double) v0X - v2X;
+        double den = ((double) v1Y - v2Y) * v02X + v21X * ((double) v0Y - v2Y);
+        dest.x = (float) ((v21X * ((double) f0X - f2X) + v02X * ((double) f1X - f2X)) / den);
+        dest.y = (float) ((v21X * ((double) f0Y - f2Y) + v02X * ((double) f1Y - f2Y)) / den);
         return dest;
     }
 

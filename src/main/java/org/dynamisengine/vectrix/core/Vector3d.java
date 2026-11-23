@@ -1986,6 +1986,13 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
     }
 
     private Vector3d rotateAxisInternal(double angle, double aX, double aY, double aZ, Vector3d dest) {
+        double an2 = (double) aX * aX + (double) aY * aY + (double) aZ * aZ;
+        if (java.lang.Math.abs(an2 - 1.0) > 1e-12) { // the rotation is about the axis direction, of any length
+            double inv = 1.0 / Norms.norm3(aX, aY, aZ);
+            aX = (aX * inv);
+            aY = (aY * inv);
+            aZ = (aZ * inv);
+        }
         double hangle = angle * 0.5;
         double sinAngle = Math.sin(hangle);
         double qx = aX * sinAngle, qy = aY * sinAngle, qz = aZ * sinAngle;
@@ -2226,17 +2233,11 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
     }
 
     public double distance(Vector3dc v) {
-        double dx = this.x - v.x();
-        double dy = this.y - v.y();
-        double dz = this.z - v.z();
-        return Math.sqrt(Math.fma(dx, dx, Math.fma(dy, dy, dz * dz)));
+        return Norms.norm3((double) this.x - v.x(), (double) this.y - v.y(), (double) this.z - v.z());
     }
 
     public double distance(double x, double y, double z) {
-        double dx = this.x - x;
-        double dy = this.y - y;
-        double dz = this.z - z;
-        return Math.sqrt(Math.fma(dx, dx, Math.fma(dy, dy, dz * dz)));
+        return Norms.norm3((double) this.x - x, (double) this.y - y, (double) this.z - z);
     }
 
     public double distanceSquared(Vector3dc v) {
@@ -2271,7 +2272,7 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
      * @return the euclidean distance
      */
     public static double distance(double x1, double y1, double z1, double x2, double y2, double z2) {
-        return Math.sqrt(distanceSquared(x1, y1, z1, x2, y2, z2));
+        return Norms.norm3((double) x1 - x2, (double) y1 - y2, (double) z1 - z2);
     }
 
     /**
@@ -2315,18 +2316,17 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
     }
 
     public double angleSigned(Vector3dc v, Vector3dc n) {
-        double x = v.x();
-        double y = v.y();
-        double z = v.z();
-        return Math.atan2(
-        (this.y * z - this.z * y) * n.x() + (this.z * x - this.x * z) * n.y() + (this.x * y - this.y * x) * n.z(),
-        this.x * x + this.y * y + this.z * z);
+        return angleSigned(v.x(), v.y(), v.z(), n.x(), n.y(), n.z());
     }
 
     public double angleSigned(double x, double y, double z, double nx, double ny, double nz) {
-        return Math.atan2(
-                (this.y * z - this.z * y) * nx + (this.z * x - this.x * z) * ny + (this.x * y - this.y * x) * nz,
-                this.x * x + this.y * y + this.z * z);
+        // atan2 is invariant under positive scaling: bring both vectors near unit size with exact power-of-two
+        // factors so the cross and dot products cannot overflow or underflow; the normal is normalized
+        double sa = scaleOf(this.x, this.y, this.z), sb = scaleOf(x, y, z);
+        double ax = this.x * sa, ay = this.y * sa, az = this.z * sa, bx = x * sb, by = y * sb, bz = z * sb;
+        double nl = Norms.norm3(nx, ny, nz);
+        double cx = ay * bz - az * by, cy = az * bx - ax * bz, cz = ax * by - ay * bx;
+        return AccurateMath.atan2((cx * nx + cy * ny + cz * nz) / nl, ax * bx + ay * by + az * bz);
     }
 
     /**
@@ -2592,20 +2592,20 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
     }
 
     public Vector3d smoothStep(Vector3dc v, double t, Vector3d dest) {
-        double t2 = t * t;
-        double t3 = t2 * t;
-        dest.x = (x + x - v.x() - v.x()) * t3 + (3.0 * v.x() - 3.0 * x) * t2 + x * t + x;
-        dest.y = (y + y - v.y() - v.y()) * t3 + (3.0 * v.y() - 3.0 * y) * t2 + y * t + y;
-        dest.z = (z + z - v.z() - v.z()) * t3 + (3.0 * v.z() - 3.0 * z) * t2 + z * t + z;
+        double tt = t;
+        double s = tt * tt * (3 - 2 * tt);
+        dest.x = java.lang.Math.fma(s, v.x(), java.lang.Math.fma(-s, x, x));
+        dest.y = java.lang.Math.fma(s, v.y(), java.lang.Math.fma(-s, y, y));
+        dest.z = java.lang.Math.fma(s, v.z(), java.lang.Math.fma(-s, z, z));
         return dest;
     }
 
     public Vector3d hermite(Vector3dc t0, Vector3dc v1, Vector3dc t1, double t, Vector3d dest) {
-        double t2 = t * t;
-        double t3 = t2 * t;
-        dest.x = (x + x - v1.x() - v1.x() + t1.x() + t0.x()) * t3 + (3.0 * v1.x() - 3.0 * x - t0.x() - t0.x() - t1.x()) * t2 + x * t + x;
-        dest.y = (y + y - v1.y() - v1.y() + t1.y() + t0.y()) * t3 + (3.0 * v1.y() - 3.0 * y - t0.y() - t0.y() - t1.y()) * t2 + y * t + y;
-        dest.z = (z + z - v1.z() - v1.z() + t1.z() + t0.z()) * t3 + (3.0 * v1.z() - 3.0 * z - t0.z() - t0.z() - t1.z()) * t2 + z * t + z;
+        double tt = t, t2 = tt * tt, t3 = t2 * tt;
+        double h00 = 2 * t3 - 3 * t2 + 1, h10 = t3 - 2 * t2 + tt, h01 = 3 * t2 - 2 * t3, h11 = t3 - t2;
+        dest.x = (h00 * x + h10 * t0.x() + h01 * v1.x() + h11 * t1.x());
+        dest.y = (h00 * y + h10 * t0.y() + h01 * v1.y() + h11 * t1.y());
+        dest.z = (h00 * z + h10 * t0.z() + h01 * v1.z() + h11 * t1.z());
         return dest;
     }
 
@@ -2630,9 +2630,9 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
     }
 
     public Vector3d lerp(Vector3dc other, double t, Vector3d dest) {
-        dest.x = Math.fma(other.x() - x, t, x);
-        dest.y = Math.fma(other.y() - y, t, y);
-        dest.z = Math.fma(other.z() - z, t, z);
+        dest.x = java.lang.Math.fma((double) t, other.x(), java.lang.Math.fma(-(double) t, x, x));
+        dest.y = java.lang.Math.fma((double) t, other.y(), java.lang.Math.fma(-(double) t, y, y));
+        dest.z = java.lang.Math.fma((double) t, other.z(), java.lang.Math.fma(-(double) t, z, z));
         return dest;
     }
 
@@ -2695,23 +2695,17 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
     }
 
     public Vector3d orthogonalize(Vector3dc v, Vector3d dest) {
-        /*
-         * http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
-         */
-        double rx, ry, rz;
-        if (Math.abs(v.x()) > Math.abs(v.z())) {
-            rx = -v.y();
-            ry = v.x();
-            rz = 0.0;
-        } else {
-            rx = 0.0;
-            ry = -v.z();
-            rz = v.y();
-        }
-        double invLen = Math.invsqrt(rx * rx + ry * ry + rz * rz);
-        dest.x = rx * invLen;
-        dest.y = ry * invLen;
-        dest.z = rz * invLen;
+        double vx = v.x(), vy = v.y(), vz = v.z();
+        double vl = Norms.norm3(vx, vy, vz);
+        vx /= vl;
+        vy /= vl;
+        vz /= vl;
+        double d = x * vx + y * vy + z * vz;
+        double rx = java.lang.Math.fma(-d, vx, x), ry = java.lang.Math.fma(-d, vy, y), rz = java.lang.Math.fma(-d, vz, z);
+        double rl = Norms.norm3(rx, ry, rz);
+        dest.x = (rx / rl);
+        dest.y = (ry / rl);
+        dest.z = (rz / rl);
         return dest;
     }
 
@@ -2729,7 +2723,14 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
     }
 
     public Vector3d orthogonalizeUnit(Vector3dc v, Vector3d dest) {
-        return orthogonalize(v, dest);
+        double vx = v.x(), vy = v.y(), vz = v.z();
+        double d = x * vx + y * vy + z * vz;
+        double rx = java.lang.Math.fma(-d, vx, x), ry = java.lang.Math.fma(-d, vy, y), rz = java.lang.Math.fma(-d, vz, z);
+        double rl = Norms.norm3(rx, ry, rz);
+        dest.x = (rx / rl);
+        dest.y = (ry / rl);
+        dest.z = (rz / rl);
+        return dest;
     }
 
     /**
@@ -2803,9 +2804,9 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
     }
 
     public Vector3d round(Vector3d dest) {
-        dest.x = Math.round(x);
-        dest.y = Math.round(y);
-        dest.z = Math.round(z);
+        dest.x = roundHalfUp(x);
+        dest.y = roundHalfUp(y);
+        dest.z = roundHalfUp(z);
         return dest;
     }
 
@@ -2815,6 +2816,19 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
 
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
+    }
+
+
+    /** Math.round semantics (half up) without the integer conversion: NaN, infinities and |v| >= 0x1p52 stay as they are. */
+    private static double roundHalfUp(double v) {
+        return java.lang.Math.abs(v) < 0x1p52 ? (double) java.lang.Math.round(v) : v;
+    }
+
+
+    /** A power of two bringing the largest component of (x, y, z) into [1, 2); 1 for the zero vector. */
+    private static double scaleOf(double x, double y, double z) {
+        double m = java.lang.Math.max(java.lang.Math.abs(x), java.lang.Math.max(java.lang.Math.abs(y), java.lang.Math.abs(z)));
+        return m > 0 && m < Double.POSITIVE_INFINITY ? java.lang.Math.scalb(1.0, -java.lang.Math.getExponent(m)) : 1.0;
     }
 
 }

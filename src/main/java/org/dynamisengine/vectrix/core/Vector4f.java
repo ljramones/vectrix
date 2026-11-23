@@ -1487,6 +1487,13 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
         return rotateAxisInternal(angle, aX, aY, aZ, dest);
     }
     private Vector4f rotateAxisInternal(float angle, float aX, float aY, float aZ, Vector4f dest) {
+        double an2 = (double) aX * aX + (double) aY * aY + (double) aZ * aZ;
+        if (java.lang.Math.abs(an2 - 1.0) > 1e-6) { // the rotation is about the axis direction, of any length
+            double inv = 1.0 / Norms.norm3(aX, aY, aZ);
+            aX = (float) (aX * inv);
+            aY = (float) (aY * inv);
+            aZ = (float) (aZ * inv);
+        }
         float hangle = angle * 0.5f;
         float sinAngle = Math.sin(hangle);
         float qx = aX * sinAngle, qy = aY * sinAngle, qz = aZ * sinAngle;
@@ -1678,15 +1685,11 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
     }
 
     public float distance(Vector4fc v) {
-        return distance(v.x(), v.y(), v.z(), v.w());
+        return (float) Norms.norm4((double) this.x - v.x(), (double) this.y - v.y(), (double) this.z - v.z(), (double) this.w - v.w());
     }
 
     public float distance(float x, float y, float z, float w) {
-        float dx = this.x - x;
-        float dy = this.y - y;
-        float dz = this.z - z;
-        float dw = this.w - w;
-        return Math.sqrt(Math.fma(dx, dx, Math.fma(dy, dy, Math.fma(dz, dz, dw * dw))));
+        return (float) Norms.norm4((double) this.x - x, (double) this.y - y, (double) this.z - z, (double) this.w - w);
     }
 
     public float distanceSquared(Vector4fc v) {
@@ -1723,11 +1726,7 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
      * @return the euclidean distance
      */
     public static float distance(float x1, float y1, float z1, float w1, float x2, float y2, float z2, float w2) {
-        float dx = x1 - x2;
-        float dy = y1 - y2;
-        float dz = z1 - z2;
-        float dw = w1 - w2;
-        return Math.sqrt(Math.fma(dx, dx, Math.fma(dy, dy, Math.fma(dz, dz, dw * dw))));
+        return (float) Norms.norm4((double) x1 - x2, (double) y1 - y2, (double) z1 - z2, (double) w1 - w2);
     }
 
     /**
@@ -1938,24 +1937,22 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
     }
 
     public Vector4f smoothStep(Vector4fc v, float t, Vector4f dest) {
-        float t2 = t * t;
-        float t3 = t2 * t;
-        float x = this.x, y = this.y, z = this.z, w = this.w;
-        dest.x = (x + x - v.x() - v.x()) * t3 + (3.0f * v.x() - 3.0f * x) * t2 + x * t + x;
-        dest.y = (y + y - v.y() - v.y()) * t3 + (3.0f * v.y() - 3.0f * y) * t2 + y * t + y;
-        dest.z = (z + z - v.z() - v.z()) * t3 + (3.0f * v.z() - 3.0f * z) * t2 + z * t + z;
-        dest.w = (w + w - v.w() - v.w()) * t3 + (3.0f * v.w() - 3.0f * w) * t2 + w * t + w;
+        double tt = t;
+        double s = tt * tt * (3 - 2 * tt);
+        dest.x = (float) java.lang.Math.fma(s, v.x(), java.lang.Math.fma(-s, x, x));
+        dest.y = (float) java.lang.Math.fma(s, v.y(), java.lang.Math.fma(-s, y, y));
+        dest.z = (float) java.lang.Math.fma(s, v.z(), java.lang.Math.fma(-s, z, z));
+        dest.w = (float) java.lang.Math.fma(s, v.w(), java.lang.Math.fma(-s, w, w));
         return dest;
     }
 
     public Vector4f hermite(Vector4fc t0, Vector4fc v1, Vector4fc t1, float t, Vector4f dest) {
-        float t2 = t * t;
-        float t3 = t2 * t;
-        float x = this.x, y = this.y, z = this.z, w = this.w;
-        dest.x = (x + x - v1.x() - v1.x() + t1.x() + t0.x()) * t3 + (3.0f * v1.x() - 3.0f * x - t0.x() - t0.x() - t1.x()) * t2 + x * t + x;
-        dest.y = (y + y - v1.y() - v1.y() + t1.y() + t0.y()) * t3 + (3.0f * v1.y() - 3.0f * y - t0.y() - t0.y() - t1.y()) * t2 + y * t + y;
-        dest.z = (z + z - v1.z() - v1.z() + t1.z() + t0.z()) * t3 + (3.0f * v1.z() - 3.0f * z - t0.z() - t0.z() - t1.z()) * t2 + z * t + z;
-        dest.w = (w + w - v1.w() - v1.w() + t1.w() + t0.w()) * t3 + (3.0f * v1.w() - 3.0f * w - t0.w() - t0.w() - t1.w()) * t2 + w * t + w;
+        double tt = t, t2 = tt * tt, t3 = t2 * tt;
+        double h00 = 2 * t3 - 3 * t2 + 1, h10 = t3 - 2 * t2 + tt, h01 = 3 * t2 - 2 * t3, h11 = t3 - t2;
+        dest.x = (float) (h00 * x + h10 * t0.x() + h01 * v1.x() + h11 * t1.x());
+        dest.y = (float) (h00 * y + h10 * t0.y() + h01 * v1.y() + h11 * t1.y());
+        dest.z = (float) (h00 * z + h10 * t0.z() + h01 * v1.z() + h11 * t1.z());
+        dest.w = (float) (h00 * w + h10 * t0.w() + h01 * v1.w() + h11 * t1.w());
         return dest;
     }
 
@@ -1977,10 +1974,10 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
     }
 
     public Vector4f lerp(Vector4fc other, float t, Vector4f dest) {
-        dest.x = Math.fma(other.x() - x, t, x);
-        dest.y = Math.fma(other.y() - y, t, y);
-        dest.z = Math.fma(other.z() - z, t, z);
-        dest.w = Math.fma(other.w() - w, t, w);
+        dest.x = (float) java.lang.Math.fma((double) t, other.x(), java.lang.Math.fma(-(double) t, x, x));
+        dest.y = (float) java.lang.Math.fma((double) t, other.y(), java.lang.Math.fma(-(double) t, y, y));
+        dest.z = (float) java.lang.Math.fma((double) t, other.z(), java.lang.Math.fma(-(double) t, z, z));
+        dest.w = (float) java.lang.Math.fma((double) t, other.w(), java.lang.Math.fma(-(double) t, w, w));
         return dest;
     }
 
@@ -2102,10 +2099,10 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
     }
 
     public Vector4f round(Vector4f dest) {
-        dest.x = Math.round(x);
-        dest.y = Math.round(y);
-        dest.z = Math.round(z);
-        dest.w = Math.round(w);
+        dest.x = roundHalfUp(x);
+        dest.y = roundHalfUp(y);
+        dest.z = roundHalfUp(z);
+        dest.w = roundHalfUp(w);
         return dest;
     }
 
@@ -2132,6 +2129,12 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
 
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
+    }
+
+
+    /** Math.round semantics (half up) without the integer conversion: NaN, infinities and |v| >= 0x1p23f stay as they are. */
+    private static float roundHalfUp(float v) {
+        return java.lang.Math.abs(v) < 0x1p23f ? (float) java.lang.Math.round(v) : v;
     }
 
 }

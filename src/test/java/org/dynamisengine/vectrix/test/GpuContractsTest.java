@@ -193,7 +193,7 @@ class GpuContractsTest {
                 do {
                     nrm = new Vector3d(r.nextGaussian(), r.nextGaussian(), r.nextGaussian()).normalize();
                 } while (Math.acos(Math.min(1, nrm.dot(a0))) > spread);
-                Vector3d u = new Vector3d(nrm).orthogonalize(new Vector3d(r.nextGaussian(), r.nextGaussian(), r.nextGaussian()));
+                Vector3d u = new Vector3d(r.nextGaussian(), r.nextGaussian(), r.nextGaussian()).orthogonalize(nrm);
                 Vector3d w = new Vector3d(nrm).cross(u);
                 Vector3d p = new Vector3d(r.nextDouble(-1, 1), r.nextDouble(-1, 1), r.nextDouble(-1, 1));
                 Vector3d[] v = {p, new Vector3d(p).add(new Vector3d(u).mul(0.1)), new Vector3d(p).add(new Vector3d(w).mul(0.1))};

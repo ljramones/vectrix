@@ -272,11 +272,23 @@ public class Math {
         return java.lang.Math.sqrt(r);
     }
 
+    /** {@code 1 / sqrt(r)}, computed in double and rounded once (before 2.5.0 two float roundings, up to 1.47 ulp). */
     public static float invsqrt(float r) {
-        return 1.0f / (float) java.lang.Math.sqrt(r);
+        return (float) (1.0 / java.lang.Math.sqrt(r));
     }
+    /**
+     * {@code 1 / sqrt(r)}, refined by one Newton step on the exactly evaluated residual {@code 1 - r y²}, which makes
+     * it correctly rounded in nearly all cases. The plain quotient rounds twice and errs by up to 1.45 ulp. Outside
+     * {@code [2^-1000, 2^1000]}, and for 0, infinities and NaN, the plain quotient is returned.
+     */
     public static double invsqrt(double r) {
-        return 1.0 / java.lang.Math.sqrt(r);
+        double y = 1.0 / java.lang.Math.sqrt(r);
+        if (!(r > 0x1p-1000 && r < 0x1p1000)) {
+            return y;
+        }
+        double hi = y * y, lo = java.lang.Math.fma(y, y, -hi);
+        double e = java.lang.Math.fma(-r, hi, 1.0) - r * lo;
+        return java.lang.Math.fma(0.5 * y, e, y);
     }
 
     public static float tan(float r) {

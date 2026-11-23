@@ -1620,6 +1620,13 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
         return rotateAxisInternal(angle, aX, aY, aZ, dest);
     }
     private Vector4d rotateAxisInternal(double angle, double aX, double aY, double aZ, Vector4d dest) {
+        double an2 = (double) aX * aX + (double) aY * aY + (double) aZ * aZ;
+        if (java.lang.Math.abs(an2 - 1.0) > 1e-12) { // the rotation is about the axis direction, of any length
+            double inv = 1.0 / Norms.norm3(aX, aY, aZ);
+            aX = (aX * inv);
+            aY = (aY * inv);
+            aZ = (aZ * inv);
+        }
         double hangle = angle * 0.5;
         double sinAngle = Math.sin(hangle);
         double qx = aX * sinAngle, qy = aY * sinAngle, qz = aZ * sinAngle;
@@ -1799,19 +1806,11 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
     }
 
     public double distance(Vector4dc v) {
-        double dx = this.x - v.x();
-        double dy = this.y - v.y();
-        double dz = this.z - v.z();
-        double dw = this.w - v.w();
-        return Math.sqrt(Math.fma(dx, dx, Math.fma(dy, dy, Math.fma(dz, dz, dw * dw))));
+        return Norms.norm4((double) this.x - v.x(), (double) this.y - v.y(), (double) this.z - v.z(), (double) this.w - v.w());
     }
 
     public double distance(double x, double y, double z, double w) {
-        double dx = this.x - x;
-        double dy = this.y - y;
-        double dz = this.z - z;
-        double dw = this.w - w;
-        return Math.sqrt(Math.fma(dx, dx, Math.fma(dy, dy, Math.fma(dz, dz, dw * dw))));
+        return Norms.norm4((double) this.x - x, (double) this.y - y, (double) this.z - z, (double) this.w - w);
     }
 
     public double distanceSquared(Vector4dc v) {
@@ -1852,11 +1851,7 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
      * @return the euclidean distance
      */
     public static double distance(double x1, double y1, double z1, double w1, double x2, double y2, double z2, double w2) {
-        double dx = x1 - x2;
-        double dy = y1 - y2;
-        double dz = z1 - z2;
-        double dw = w1 - w2;
-        return Math.sqrt(Math.fma(dx, dx, Math.fma(dy, dy, Math.fma(dz, dz, dw * dw))));
+        return Norms.norm4((double) x1 - x2, (double) y1 - y2, (double) z1 - z2, (double) w1 - w2);
     }
 
     /**
@@ -2074,22 +2069,22 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
     }
 
     public Vector4d smoothStep(Vector4dc v, double t, Vector4d dest) {
-        double t2 = t * t;
-        double t3 = t2 * t;
-        dest.x = (x + x - v.x() - v.x()) * t3 + (3.0 * v.x() - 3.0 * x) * t2 + x * t + x;
-        dest.y = (y + y - v.y() - v.y()) * t3 + (3.0 * v.y() - 3.0 * y) * t2 + y * t + y;
-        dest.z = (z + z - v.z() - v.z()) * t3 + (3.0 * v.z() - 3.0 * z) * t2 + z * t + z;
-        dest.w = (w + w - v.w() - v.w()) * t3 + (3.0 * v.w() - 3.0 * w) * t2 + w * t + w;
+        double tt = t;
+        double s = tt * tt * (3 - 2 * tt);
+        dest.x = java.lang.Math.fma(s, v.x(), java.lang.Math.fma(-s, x, x));
+        dest.y = java.lang.Math.fma(s, v.y(), java.lang.Math.fma(-s, y, y));
+        dest.z = java.lang.Math.fma(s, v.z(), java.lang.Math.fma(-s, z, z));
+        dest.w = java.lang.Math.fma(s, v.w(), java.lang.Math.fma(-s, w, w));
         return dest;
     }
 
     public Vector4d hermite(Vector4dc t0, Vector4dc v1, Vector4dc t1, double t, Vector4d dest) {
-        double t2 = t * t;
-        double t3 = t2 * t;
-        dest.x = (x + x - v1.x() - v1.x() + t1.x() + t0.x()) * t3 + (3.0 * v1.x() - 3.0 * x - t0.x() - t0.x() - t1.x()) * t2 + x * t + x;
-        dest.y = (y + y - v1.y() - v1.y() + t1.y() + t0.y()) * t3 + (3.0 * v1.y() - 3.0 * y - t0.y() - t0.y() - t1.y()) * t2 + y * t + y;
-        dest.z = (z + z - v1.z() - v1.z() + t1.z() + t0.z()) * t3 + (3.0 * v1.z() - 3.0 * z - t0.z() - t0.z() - t1.z()) * t2 + z * t + z;
-        dest.w = (w + w - v1.w() - v1.w() + t1.w() + t0.w()) * t3 + (3.0 * v1.w() - 3.0 * w - t0.w() - t0.w() - t1.w()) * t2 + w * t + w;
+        double tt = t, t2 = tt * tt, t3 = t2 * tt;
+        double h00 = 2 * t3 - 3 * t2 + 1, h10 = t3 - 2 * t2 + tt, h01 = 3 * t2 - 2 * t3, h11 = t3 - t2;
+        dest.x = (h00 * x + h10 * t0.x() + h01 * v1.x() + h11 * t1.x());
+        dest.y = (h00 * y + h10 * t0.y() + h01 * v1.y() + h11 * t1.y());
+        dest.z = (h00 * z + h10 * t0.z() + h01 * v1.z() + h11 * t1.z());
+        dest.w = (h00 * w + h10 * t0.w() + h01 * v1.w() + h11 * t1.w());
         return dest;
     }
 
@@ -2111,10 +2106,10 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
     }
 
     public Vector4d lerp(Vector4dc other, double t, Vector4d dest) {
-        dest.x = Math.fma(other.x() - x, t, x);
-        dest.y = Math.fma(other.y() - y, t, y);
-        dest.z = Math.fma(other.z() - z, t, z);
-        dest.w = Math.fma(other.w() - w, t, w);
+        dest.x = java.lang.Math.fma((double) t, other.x(), java.lang.Math.fma(-(double) t, x, x));
+        dest.y = java.lang.Math.fma((double) t, other.y(), java.lang.Math.fma(-(double) t, y, y));
+        dest.z = java.lang.Math.fma((double) t, other.z(), java.lang.Math.fma(-(double) t, z, z));
+        dest.w = java.lang.Math.fma((double) t, other.w(), java.lang.Math.fma(-(double) t, w, w));
         return dest;
     }
 
@@ -2236,10 +2231,10 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
     }
 
     public Vector4d round(Vector4d dest) {
-        dest.x = Math.round(x);
-        dest.y = Math.round(y);
-        dest.z = Math.round(z);
-        dest.w = Math.round(w);
+        dest.x = roundHalfUp(x);
+        dest.y = roundHalfUp(y);
+        dest.z = roundHalfUp(z);
+        dest.w = roundHalfUp(w);
         return dest;
     }
 
@@ -2266,6 +2261,12 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
 
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
+    }
+
+
+    /** Math.round semantics (half up) without the integer conversion: NaN, infinities and |v| >= 0x1p52 stay as they are. */
+    private static double roundHalfUp(double v) {
+        return java.lang.Math.abs(v) < 0x1p52 ? (double) java.lang.Math.round(v) : v;
     }
 
 }

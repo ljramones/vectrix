@@ -125,7 +125,7 @@ class SphericalFunctionsTest {
             float[] dirs = new float[3 * n], w = new float[n];
             Vector3d axis = randomDir(rnd);
             Vector3d t1 = new Vector3d(), t2 = new Vector3d();
-            axis.orthogonalizeUnit(Math.abs(axis.x) < 0.9 ? new Vector3d(1, 0, 0) : new Vector3d(0, 1, 0), t1);
+            (Math.abs(axis.x) < 0.9 ? new Vector3d(1, 0, 0) : new Vector3d(0, 1, 0)).orthogonalizeUnit(axis, t1);
             axis.cross(t1, t2);
             for (int i = 0; i < n; i++) {
                 double c = 1 + Math.log(rnd.nextDouble() * (1 - Math.exp(-2 * lambda)) + Math.exp(-2 * lambda)) / lambda;

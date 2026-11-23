@@ -54,6 +54,30 @@ Each fix has a regression test in `MatrixAudit2Test`, `VectorQuatAudit2Test` or 
     and reversed depth.
   - `rotationTowardsXY`/`rotateTowardsXY` sent +X to `(dirY, dirX)`, contrary to their documentation. `rotateZ`,
     which is built on them, is unchanged.
+- **Vectors:**
+  - `smoothStep` (Vector3/4) added a spurious `x·t` term. It now returns `x + (v − x)(3t² − 2t³)`, exactly at both
+    ends.
+  - `hermite` (Vector3/4) used the point where the tangent belongs. At t = 1 it returned (3, −3, 0) for the
+    endpoint (2, 0, 0).
+  - `orthogonalize`/`orthogonalizeUnit` (Vector3) ignored `this` and returned an arbitrary perpendicular of `v`.
+    They now perform the documented Gram–Schmidt step.
+  - Vector `lerp` (all six classes) missed `other` at t = 1 for large magnitudes. `Math.lerp` was fixed in 2.4.0,
+    and the vectors now use the same exact form.
+  - `round` turned NaN into 0 and saturated beyond the int/long range. It now returns NaN, infinities and
+    already-integral values unchanged.
+  - `rotateAxis` assumed a unit axis without saying so; a non-unit axis is now normalized.
+  - `angleSigned` overflowed or underflowed at extreme magnitudes, and a non-unit normal distorted the angle.
+  - `distance` overflowed and underflowed. Only `length` had been fixed in 2.4.0.
+- **Quaternions:**
+  - `positiveX/Y/Z` and `transformPositiveX/Y/Z` were wrong for non-unit quaternions.
+  - `normalize`, `fromAxisAngleRad` and `rotationAxis` gave NaN, ∞ or 0 at extreme magnitudes.
+  - `lookAlong` lost orthogonality as `up` approached the direction, the defect 2.4.0 fixed in the matrices.
+  - `Quaterniond.integrate` truncated its small-angle series at 1e-8; it now truncates at 1e-18.
+- **`Interpolation*.dFdxLinear`/`dFdyLinear`:** these added and then subtracted `f2`, which cancelled. They now use
+  the direct form, exact to rounding.
+- **`Math.invsqrt`:** it rounded twice, with errors up to 1.47 ulp in float and 1.45 ulp in double. Float now
+  rounds once from double; double adds one Newton step on the exactly evaluated residual, which makes it correctly
+  rounded in practice. This changes the last bits of the many results that normalize through it.
 - **Documentation:**
   - `obliqueZ` documented `y' = y + a·z`; the code correctly uses `b`.
 

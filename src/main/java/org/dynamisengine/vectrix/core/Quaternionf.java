@@ -203,7 +203,7 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     }
 
     public Quaternionf normalize(Quaternionf dest) {
-        float invNorm = Math.invsqrt(Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w))));
+        float invNorm = (float) (1.0 / Norms.norm4(x, y, z, w));
         dest.x = x * invNorm;
         dest.y = y * invNorm;
         dest.z = z * invNorm;
@@ -345,7 +345,7 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         float z = this.z;
         float w = this.w;
         if (w > 1.0f) {
-            float invNorm = Math.invsqrt(Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w))));
+            float invNorm = (float) (1.0 / Norms.norm4(x, y, z, w));
             x *= invNorm;
             y *= invNorm;
             z *= invNorm;
@@ -374,7 +374,7 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         float z = this.z;
         float w = this.w;
         if (w > 1.0f) {
-            float invNorm = Math.invsqrt(Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w))));
+            float invNorm = (float) (1.0 / Norms.norm4(x, y, z, w));
             x *= invNorm;
             y *= invNorm;
             z *= invNorm;
@@ -597,7 +597,7 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     public Quaternionf rotationAxis(float angle, float axisX, float axisY, float axisZ) {
         float hangle = angle / 2.0f;
         float sinAngle = Math.sin(hangle);
-        float invVLength = Math.invsqrt(axisX * axisX + axisY * axisY + axisZ * axisZ);
+        float invVLength = (float) (1.0 / Norms.norm3(axisX, axisY, axisZ));
         return set(axisX * invVLength * sinAngle,
                    axisY * invVLength * sinAngle,
                    axisZ * invVLength * sinAngle,
@@ -953,7 +953,7 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     public Quaternionf fromAxisAngleRad(float axisX, float axisY, float axisZ, float angle) {
         float hangle = angle / 2.0f;
         float sinAngle = Math.sin(hangle);
-        float invVLength = 1.0f / Math.sqrt(axisX * axisX + axisY * axisY + axisZ * axisZ);
+        float invVLength = (float) (1.0 / Norms.norm3(axisX, axisY, axisZ));
         float invVLengthTimesSinAngle = invVLength * sinAngle;
         x = axisX * invVLengthTimesSinAngle;
         y = axisY * invVLengthTimesSinAngle;
@@ -1143,17 +1143,11 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     }
 
     public Vector3f transformPositiveX(Vector3f dest) {
-        float ww = w * w;
-        float xx = x * x;
-        float yy = y * y;
-        float zz = z * z;
-        float zw = z * w;
-        float xy = x * y;
-        float xz = x * z;
-        float yw = y * w;
-        dest.x = ww + xx - zz - yy;
-        dest.y = xy + zw + zw + xy;
-        dest.z = xz - yw + xz - yw;
+        double k = 1.0 / Norms.norm4(x, y, z, w);
+        double qx = x * k, qy = y * k, qz = z * k, qw = w * k;
+        dest.x = (float) (1 - 2 * (qy * qy + qz * qz));
+        dest.y = (float) (2 * (qx * qy + qw * qz));
+        dest.z = (float) (2 * (qx * qz - qw * qy));
         return dest;
     }
 
@@ -1191,17 +1185,11 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     }
 
     public Vector3f transformPositiveY(Vector3f dest) {
-        float ww = w * w;
-        float xx = x * x;
-        float yy = y * y;
-        float zz = z * z;
-        float zw = z * w;
-        float xy = x * y;
-        float yz = y * z;
-        float xw = x * w;
-        dest.x = -zw + xy - zw + xy;
-        dest.y = yy - zz + ww - xx;
-        dest.z = yz + yz + xw + xw;
+        double k = 1.0 / Norms.norm4(x, y, z, w);
+        double qx = x * k, qy = y * k, qz = z * k, qw = w * k;
+        dest.x = (float) (2 * (qx * qy - qw * qz));
+        dest.y = (float) (1 - 2 * (qx * qx + qz * qz));
+        dest.z = (float) (2 * (qy * qz + qw * qx));
         return dest;
     }
 
@@ -1234,12 +1222,11 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     }
 
     public Vector3f transformPositiveZ(Vector3f dest) {
-        float ww = w * w, xx = x * x, yy = y * y;
-        float zz = z * z, xz = x * z, yw = y * w;
-        float yz = y * z, xw = x * w;
-        dest.x = yw + xz + xz + yw;
-        dest.y = yz + yz - xw - xw;
-        dest.z = zz - yy - xx + ww;
+        double k = 1.0 / Norms.norm4(x, y, z, w);
+        double qx = x * k, qy = y * k, qz = z * k, qw = w * k;
+        dest.x = (float) (2 * (qx * qz + qw * qy));
+        dest.y = (float) (2 * (qy * qz - qw * qx));
+        dest.z = (float) (1 - 2 * (qx * qx + qy * qy));
         return dest;
     }
 
@@ -2610,8 +2597,8 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         float s;
         float dqX, dqY, dqZ, dqW;
         if (thetaMagSq * thetaMagSq / 24.0f < 1E-8f) {
-            dqW = 1.0f - thetaMagSq * 0.5f;
-            s = 1.0f - thetaMagSq / 6.0f;
+            dqW = 1.0f - thetaMagSq * 0.5f * (1.0f - thetaMagSq / 12.0f * (1.0f - thetaMagSq / 30.0f));
+            s = 1.0f - thetaMagSq / 6.0f * (1.0f - thetaMagSq / 20.0f * (1.0f - thetaMagSq / 42.0f));
         } else {
             float thetaMag = Math.sqrt(thetaMagSq);
             float sin = Math.sin(thetaMag);
@@ -2875,6 +2862,15 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // up x dir cancels as up approaches dir: remove the residual component along dir, then renormalize
+        float leftDot = leftX * dirnX + leftY * dirnY + leftZ * dirnZ;
+        leftX -= leftDot * dirnX;
+        leftY -= leftDot * dirnY;
+        leftZ -= leftDot * dirnZ;
+        float invLeftLength2 = (float) (1.0 / Norms.norm3(leftX, leftY, leftZ));
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         float upnX = dirnY * leftZ - dirnZ * leftY;
         float upnY = dirnZ * leftX - dirnX * leftZ;
@@ -3463,7 +3459,7 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     }
 
     public Vector3f positiveX(Vector3f dir) {
-        float invNorm = 1.0f / lengthSquared();
+        float invNorm = (float) (1.0 / Norms.norm4(x, y, z, w));
         float nx = -x * invNorm;
         float ny = -y * invNorm;
         float nz = -z * invNorm;
@@ -3486,7 +3482,7 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     }
 
     public Vector3f positiveY(Vector3f dir) {
-        float invNorm = 1.0f / lengthSquared();
+        float invNorm = (float) (1.0 / Norms.norm4(x, y, z, w));
         float nx = -x * invNorm;
         float ny = -y * invNorm;
         float nz = -z * invNorm;
@@ -3511,7 +3507,7 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
     }
 
     public Vector3f positiveZ(Vector3f dir) {
-        float invNorm = 1.0f / lengthSquared();
+        float invNorm = (float) (1.0 / Norms.norm4(x, y, z, w));
         float nx = -x * invNorm;
         float ny = -y * invNorm;
         float nz = -z * invNorm;

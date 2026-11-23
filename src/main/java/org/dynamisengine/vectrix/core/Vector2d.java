@@ -916,9 +916,7 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
     }
 
     public double distance(Vector2dc v) {
-        double dx = this.x - v.x();
-        double dy = this.y - v.y();
-        return Math.sqrt(dx * dx + dy * dy);
+        return Norms.norm2((double) this.x - v.x(), (double) this.y - v.y());
     }
 
     public double distanceSquared(Vector2dc v) {
@@ -928,9 +926,7 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
     }
 
     public double distance(Vector2fc v) {
-        double dx = this.x - v.x();
-        double dy = this.y - v.y();
-        return Math.sqrt(dx * dx + dy * dy);
+        return Norms.norm2((double) this.x - v.x(), (double) this.y - v.y());
     }
 
     public double distanceSquared(Vector2fc v) {
@@ -940,9 +936,7 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
     }
 
     public double distance(double x, double y) {
-        double dx = this.x - x;
-        double dy = this.y - y;
-        return Math.sqrt(dx * dx + dy * dy);
+        return Norms.norm2((double) this.x - x, (double) this.y - y);
     }
 
     public double distanceSquared(double x, double y) {
@@ -965,9 +959,7 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
      * @return the euclidean distance
      */
     public static double distance(double x1, double y1, double x2, double y2) {
-        double dx = x1 - x2;
-        double dy = y1 - y2;
-        return Math.sqrt(dx * dx + dy * dy);
+        return Norms.norm2((double) x1 - x2, (double) y1 - y2);
     }
 
     /**
@@ -1131,8 +1123,8 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
     }
 
     public Vector2d lerp(Vector2dc other, double t, Vector2d dest) {
-        dest.x = x + (other.x() - x) * t;
-        dest.y = y + (other.y() - y) * t;
+        dest.x = java.lang.Math.fma((double) t, other.x(), java.lang.Math.fma(-(double) t, x, x));
+        dest.y = java.lang.Math.fma((double) t, other.y(), java.lang.Math.fma(-(double) t, y, y));
         return dest;
     }
 
@@ -1339,8 +1331,8 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
     }
 
     public Vector2d round(Vector2d dest) {
-        dest.x = Math.round(x);
-        dest.y = Math.round(y);
+        dest.x = roundHalfUp(x);
+        dest.y = roundHalfUp(y);
         return dest;
     }
 
@@ -1365,6 +1357,12 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
 
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
+    }
+
+
+    /** Math.round semantics (half up) without the integer conversion: NaN, infinities and |v| >= 0x1p52 stay as they are. */
+    private static double roundHalfUp(double v) {
+        return java.lang.Math.abs(v) < 0x1p52 ? (double) java.lang.Math.round(v) : v;
     }
 
 }

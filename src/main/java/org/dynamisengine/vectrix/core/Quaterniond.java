@@ -178,7 +178,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * @return this
      */
     public Quaterniond normalize() {
-        double invNorm = Math.invsqrt(lengthSquared());
+        double invNorm = 1.0 / Norms.norm4(x, y, z, w);
         x *= invNorm;
         y *= invNorm;
         z *= invNorm;
@@ -187,7 +187,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     }
 
     public Quaterniond normalize(Quaterniond dest) {
-        double invNorm = Math.invsqrt(lengthSquared());
+        double invNorm = 1.0 / Norms.norm4(x, y, z, w);
         dest.x = x * invNorm;
         dest.y = y * invNorm;
         dest.z = z * invNorm;
@@ -310,7 +310,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
         double z = this.z;
         double w = this.w;
         if (w > 1.0) {
-            double invNorm = Math.invsqrt(lengthSquared());
+            double invNorm = 1.0 / Norms.norm4(x, y, z, w);
             x *= invNorm;
             y *= invNorm;
             z *= invNorm;
@@ -339,7 +339,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
         double z = this.z;
         double w = this.w;
         if (w > 1.0) {
-            double invNorm = Math.invsqrt(lengthSquared());
+            double invNorm = 1.0 / Norms.norm4(x, y, z, w);
             x *= invNorm;
             y *= invNorm;
             z *= invNorm;
@@ -748,7 +748,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     public Quaterniond fromAxisAngleRad(double axisX, double axisY, double axisZ, double angle) {
         double hangle = angle / 2.0;
         double sinAngle = Math.sin(hangle);
-        double invVLength = 1.0 / Math.sqrt(axisX * axisX + axisY * axisY + axisZ * axisZ);
+        double invVLength = 1.0 / Norms.norm3(axisX, axisY, axisZ);
         double invVLengthTimesSinAngle = invVLength * sinAngle;
         x = axisX * invVLengthTimesSinAngle;
         y = axisY * invVLengthTimesSinAngle;
@@ -933,17 +933,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     }
 
     public Vector3d transformPositiveX(Vector3d dest) {
-        double ww = w * w;
-        double xx = x * x;
-        double yy = y * y;
-        double zz = z * z;
-        double zw = z * w;
-        double xy = x * y;
-        double xz = x * z;
-        double yw = y * w;
-        dest.x = ww + xx - zz - yy;
-        dest.y = xy + zw + zw + xy;
-        dest.z = xz - yw + xz - yw;
+        double k = 1.0 / Norms.norm4(x, y, z, w);
+        double qx = x * k, qy = y * k, qz = z * k, qw = w * k;
+        dest.x = (1 - 2 * (qy * qy + qz * qz));
+        dest.y = (2 * (qx * qy + qw * qz));
+        dest.z = (2 * (qx * qz - qw * qy));
         return dest;
     }
 
@@ -989,17 +983,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     }
 
     public Vector3d transformPositiveY(Vector3d dest) {
-        double ww = w * w;
-        double xx = x * x;
-        double yy = y * y;
-        double zz = z * z;
-        double zw = z * w;
-        double xy = x * y;
-        double yz = y * z;
-        double xw = x * w;
-        dest.x = -zw + xy - zw + xy;
-        dest.y = yy - zz + ww - xx;
-        dest.z = yz + yz + xw + xw;
+        double k = 1.0 / Norms.norm4(x, y, z, w);
+        double qx = x * k, qy = y * k, qz = z * k, qw = w * k;
+        dest.x = (2 * (qx * qy - qw * qz));
+        dest.y = (1 - 2 * (qx * qx + qz * qz));
+        dest.z = (2 * (qy * qz + qw * qx));
         return dest;
     }
 
@@ -1045,17 +1033,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     }
 
     public Vector3d transformPositiveZ(Vector3d dest) {
-        double ww = w * w;
-        double xx = x * x;
-        double yy = y * y;
-        double zz = z * z;
-        double xz = x * z;
-        double yw = y * w;
-        double yz = y * z;
-        double xw = x * w;
-        dest.x = yw + xz + xz + yw;
-        dest.y = yz + yz - xw - xw;
-        dest.z = zz - yy - xx + ww;
+        double k = 1.0 / Norms.norm4(x, y, z, w);
+        double qx = x * k, qy = y * k, qz = z * k, qw = w * k;
+        dest.x = (2 * (qx * qz + qw * qy));
+        dest.y = (2 * (qy * qz - qw * qx));
+        dest.z = (1 - 2 * (qx * qx + qy * qy));
         return dest;
     }
 
@@ -2256,8 +2238,8 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
         double s;
         double dqX, dqY, dqZ, dqW;
         if (thetaMagSq * thetaMagSq / 24.0 < 1E-8) {
-            dqW = 1.0 - thetaMagSq * 0.5;
-            s = 1.0 - thetaMagSq / 6.0;
+            dqW = 1.0 - thetaMagSq * 0.5 * (1.0 - thetaMagSq / 12.0 * (1.0 - thetaMagSq / 30.0));
+            s = 1.0 - thetaMagSq / 6.0 * (1.0 - thetaMagSq / 20.0 * (1.0 - thetaMagSq / 42.0));
         } else {
             double thetaMag = Math.sqrt(thetaMagSq);
             double sin = Math.sin(thetaMag);
@@ -2521,6 +2503,15 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // up x dir cancels as up approaches dir: remove the residual component along dir, then renormalize
+        double leftDot = leftX * dirnX + leftY * dirnY + leftZ * dirnZ;
+        leftX -= leftDot * dirnX;
+        leftY -= leftDot * dirnY;
+        leftZ -= leftDot * dirnZ;
+        double invLeftLength2 = 1.0 / Norms.norm3(leftX, leftY, leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         double upnX = dirnY * leftZ - dirnZ * leftY;
         double upnY = dirnZ * leftX - dirnX * leftZ;
@@ -2870,7 +2861,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     public Quaterniond rotationAxis(double angle, double axisX, double axisY, double axisZ) {
         double hangle = angle / 2.0;
         double sinAngle = Math.sin(hangle);
-        double invVLength = Math.invsqrt(axisX * axisX + axisY * axisY + axisZ * axisZ);
+        double invVLength = 1.0 / Norms.norm3(axisX, axisY, axisZ);
         return set(axisX * invVLength * sinAngle,
                    axisY * invVLength * sinAngle,
                    axisZ * invVLength * sinAngle,
@@ -3361,7 +3352,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     }
 
     public Vector3d positiveX(Vector3d dir) {
-        double invNorm = 1.0 / lengthSquared();
+        double invNorm = 1.0 / Norms.norm4(x, y, z, w);
         double nx = -x * invNorm;
         double ny = -y * invNorm;
         double nz = -z * invNorm;
@@ -3384,7 +3375,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     }
 
     public Vector3d positiveY(Vector3d dir) {
-        double invNorm = 1.0 / lengthSquared();
+        double invNorm = 1.0 / Norms.norm4(x, y, z, w);
         double nx = -x * invNorm;
         double ny = -y * invNorm;
         double nz = -z * invNorm;
@@ -3409,7 +3400,7 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     }
 
     public Vector3d positiveZ(Vector3d dir) {
-        double invNorm = 1.0 / lengthSquared();
+        double invNorm = 1.0 / Norms.norm4(x, y, z, w);
         double nx = -x * invNorm;
         double ny = -y * invNorm;
         double nz = -z * invNorm;

@@ -1827,6 +1827,13 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
         return rotateAxisInternal(angle, aX, aY, aZ, dest);
     }
     private Vector3f rotateAxisInternal(float angle, float aX, float aY, float aZ, Vector3f dest) {
+        double an2 = (double) aX * aX + (double) aY * aY + (double) aZ * aZ;
+        if (java.lang.Math.abs(an2 - 1.0) > 1e-6) { // the rotation is about the axis direction, of any length
+            double inv = 1.0 / Norms.norm3(aX, aY, aZ);
+            aX = (float) (aX * inv);
+            aY = (float) (aY * inv);
+            aZ = (float) (aZ * inv);
+        }
         float hangle = angle * 0.5f;
         float sinAngle = Math.sin(hangle);
         float qx = aX * sinAngle, qy = aY * sinAngle, qz = aZ * sinAngle;
@@ -2024,17 +2031,11 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
     }
 
     public float distance(Vector3fc v) {
-        float dx = this.x - v.x();
-        float dy = this.y - v.y();
-        float dz = this.z - v.z();
-        return Math.sqrt(Math.fma(dx, dx, Math.fma(dy, dy, dz * dz)));
+        return (float) Norms.norm3((double) this.x - v.x(), (double) this.y - v.y(), (double) this.z - v.z());
     }
 
     public float distance(float x, float y, float z) {
-        float dx = this.x - x;
-        float dy = this.y - y;
-        float dz = this.z - z;
-        return Math.sqrt(Math.fma(dx, dx, Math.fma(dy, dy, dz * dz)));
+        return (float) Norms.norm3((double) this.x - x, (double) this.y - y, (double) this.z - z);
     }
 
     public float distanceSquared(Vector3fc v) {
@@ -2069,7 +2070,7 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
      * @return the euclidean distance
      */
     public static float distance(float x1, float y1, float z1, float x2, float y2, float z2) {
-        return Math.sqrt(distanceSquared(x1, y1, z1, x2, y2, z2));
+        return (float) Norms.norm3((double) x1 - x2, (double) y1 - y2, (double) z1 - z2);
     }
 
     /**
@@ -2117,10 +2118,13 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
     }
 
     public float angleSigned(float x, float y, float z, float nx, float ny, float nz) {
-        float tx = this.x, ty = this.y, tz = this.z;
-        return Math.atan2(
-                (ty * z - tz * y) * nx + (tz * x - tx * z) * ny + (tx * y - ty * x) * nz,
-                tx * x + ty * y + tz * z);
+        // atan2 is invariant under positive scaling: bring both vectors near unit size with exact power-of-two
+        // factors so the cross and dot products cannot overflow or underflow; the normal is normalized
+        double sa = scaleOf(this.x, this.y, this.z), sb = scaleOf(x, y, z);
+        double ax = this.x * sa, ay = this.y * sa, az = this.z * sa, bx = x * sb, by = y * sb, bz = z * sb;
+        double nl = Norms.norm3(nx, ny, nz);
+        double cx = ay * bz - az * by, cy = az * bx - ax * bz, cz = ax * by - ay * bx;
+        return (float) AccurateMath.atan2((cx * nx + cy * ny + cz * nz) / nl, ax * bx + ay * by + az * bz);
     }
 
     /**
@@ -2374,22 +2378,20 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
     }
 
     public Vector3f smoothStep(Vector3fc v, float t, Vector3f dest) {
-        float x = this.x, y = this.y, z = this.z;
-        float t2 = t * t;
-        float t3 = t2 * t;
-        dest.x = (x + x - v.x() - v.x()) * t3 + (3.0f * v.x() - 3.0f * x) * t2 + x * t + x;
-        dest.y = (y + y - v.y() - v.y()) * t3 + (3.0f * v.y() - 3.0f * y) * t2 + y * t + y;
-        dest.z = (z + z - v.z() - v.z()) * t3 + (3.0f * v.z() - 3.0f * z) * t2 + z * t + z;
+        double tt = t;
+        double s = tt * tt * (3 - 2 * tt);
+        dest.x = (float) java.lang.Math.fma(s, v.x(), java.lang.Math.fma(-s, x, x));
+        dest.y = (float) java.lang.Math.fma(s, v.y(), java.lang.Math.fma(-s, y, y));
+        dest.z = (float) java.lang.Math.fma(s, v.z(), java.lang.Math.fma(-s, z, z));
         return dest;
     }
 
     public Vector3f hermite(Vector3fc t0, Vector3fc v1, Vector3fc t1, float t, Vector3f dest) {
-        float x = this.x, y = this.y, z = this.z;
-        float t2 = t * t;
-        float t3 = t2 * t;
-        dest.x = (x + x - v1.x() - v1.x() + t1.x() + t0.x()) * t3 + (3.0f * v1.x() - 3.0f * x - t0.x() - t0.x() - t1.x()) * t2 + x * t + x;
-        dest.y = (y + y - v1.y() - v1.y() + t1.y() + t0.y()) * t3 + (3.0f * v1.y() - 3.0f * y - t0.y() - t0.y() - t1.y()) * t2 + y * t + y;
-        dest.z = (z + z - v1.z() - v1.z() + t1.z() + t0.z()) * t3 + (3.0f * v1.z() - 3.0f * z - t0.z() - t0.z() - t1.z()) * t2 + z * t + z;
+        double tt = t, t2 = tt * tt, t3 = t2 * tt;
+        double h00 = 2 * t3 - 3 * t2 + 1, h10 = t3 - 2 * t2 + tt, h01 = 3 * t2 - 2 * t3, h11 = t3 - t2;
+        dest.x = (float) (h00 * x + h10 * t0.x() + h01 * v1.x() + h11 * t1.x());
+        dest.y = (float) (h00 * y + h10 * t0.y() + h01 * v1.y() + h11 * t1.y());
+        dest.z = (float) (h00 * z + h10 * t0.z() + h01 * v1.z() + h11 * t1.z());
         return dest;
     }
 
@@ -2411,9 +2413,9 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
     }
 
     public Vector3f lerp(Vector3fc other, float t, Vector3f dest) {
-        dest.x = Math.fma(other.x() - x, t, x);
-        dest.y = Math.fma(other.y() - y, t, y);
-        dest.z = Math.fma(other.z() - z, t, z);
+        dest.x = (float) java.lang.Math.fma((double) t, other.x(), java.lang.Math.fma(-(double) t, x, x));
+        dest.y = (float) java.lang.Math.fma((double) t, other.y(), java.lang.Math.fma(-(double) t, y, y));
+        dest.z = (float) java.lang.Math.fma((double) t, other.z(), java.lang.Math.fma(-(double) t, z, z));
         return dest;
     }
 
@@ -2476,23 +2478,17 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
     }
 
     public Vector3f orthogonalize(Vector3fc v, Vector3f dest) {
-        /*
-         * http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
-         */
-        float rx, ry, rz;
-        if (Math.abs(v.x()) > Math.abs(v.z())) {
-            rx = -v.y();
-            ry = v.x();
-            rz = 0.0f;
-        } else {
-            rx = 0.0f;
-            ry = -v.z();
-            rz = v.y();
-        }
-        float invLen = Math.invsqrt(rx * rx + ry * ry + rz * rz);
-        dest.x = rx * invLen;
-        dest.y = ry * invLen;
-        dest.z = rz * invLen;
+        double vx = v.x(), vy = v.y(), vz = v.z();
+        double vl = Norms.norm3(vx, vy, vz);
+        vx /= vl;
+        vy /= vl;
+        vz /= vl;
+        double d = x * vx + y * vy + z * vz;
+        double rx = java.lang.Math.fma(-d, vx, x), ry = java.lang.Math.fma(-d, vy, y), rz = java.lang.Math.fma(-d, vz, z);
+        double rl = Norms.norm3(rx, ry, rz);
+        dest.x = (float) (rx / rl);
+        dest.y = (float) (ry / rl);
+        dest.z = (float) (rz / rl);
         return dest;
     }
 
@@ -2510,7 +2506,14 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
     }
 
     public Vector3f orthogonalizeUnit(Vector3fc v, Vector3f dest) {
-        return orthogonalize(v, dest);
+        double vx = v.x(), vy = v.y(), vz = v.z();
+        double d = x * vx + y * vy + z * vz;
+        double rx = java.lang.Math.fma(-d, vx, x), ry = java.lang.Math.fma(-d, vy, y), rz = java.lang.Math.fma(-d, vz, z);
+        double rl = Norms.norm3(rx, ry, rz);
+        dest.x = (float) (rx / rl);
+        dest.y = (float) (ry / rl);
+        dest.z = (float) (rz / rl);
+        return dest;
     }
 
     /**
@@ -2575,9 +2578,9 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
     }
 
     public Vector3f round(Vector3f dest) {
-        dest.x = Math.round(x);
-        dest.y = Math.round(y);
-        dest.z = Math.round(z);
+        dest.x = roundHalfUp(x);
+        dest.y = roundHalfUp(y);
+        dest.z = roundHalfUp(z);
         return dest;
     }
 
@@ -2587,6 +2590,19 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
 
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
+    }
+
+
+    /** Math.round semantics (half up) without the integer conversion: NaN, infinities and |v| >= 0x1p23f stay as they are. */
+    private static float roundHalfUp(float v) {
+        return java.lang.Math.abs(v) < 0x1p23f ? (float) java.lang.Math.round(v) : v;
+    }
+
+
+    /** A power of two bringing the largest component of (x, y, z) into [1, 2); 1 for the zero vector. */
+    private static double scaleOf(double x, double y, double z) {
+        double m = java.lang.Math.max(java.lang.Math.abs(x), java.lang.Math.max(java.lang.Math.abs(y), java.lang.Math.abs(z)));
+        return m > 0 && m < Double.POSITIVE_INFINITY ? java.lang.Math.scalb(1.0, -java.lang.Math.getExponent(m)) : 1.0;
     }
 
 }

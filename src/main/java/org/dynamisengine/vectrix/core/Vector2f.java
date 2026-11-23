@@ -674,9 +674,7 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
     }
 
     public float distance(Vector2fc v) {
-        float dx = this.x - v.x();
-        float dy = this.y - v.y();
-        return Math.sqrt(dx * dx + dy * dy);
+        return (float) Norms.norm2((double) this.x - v.x(), (double) this.y - v.y());
     }
 
     public float distanceSquared(Vector2fc v) {
@@ -686,9 +684,7 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
     }
 
     public float distance(float x, float y) {
-        float dx = this.x - x;
-        float dy = this.y - y;
-        return Math.sqrt(dx * dx + dy * dy);
+        return (float) Norms.norm2((double) this.x - x, (double) this.y - y);
     }
 
     public float distanceSquared(float x, float y) {
@@ -711,9 +707,7 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
      * @return the euclidean distance
      */
     public static float distance(float x1, float y1, float x2, float y2) {
-        float dx = x1 - x2;
-        float dy = y1 - y2;
-        return Math.sqrt(dx * dx + dy * dy);
+        return (float) Norms.norm2((double) x1 - x2, (double) y1 - y2);
     }
 
     /**
@@ -1071,8 +1065,8 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
     }
 
     public Vector2f lerp(Vector2fc other, float t, Vector2f dest) {
-        dest.x = x + (other.x() - x) * t;
-        dest.y = y + (other.y() - y) * t;
+        dest.x = (float) java.lang.Math.fma((double) t, other.x(), java.lang.Math.fma(-(double) t, x, x));
+        dest.y = (float) java.lang.Math.fma((double) t, other.y(), java.lang.Math.fma(-(double) t, y, y));
         return dest;
     }
 
@@ -1274,8 +1268,8 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
     }
 
     public Vector2f round(Vector2f dest) {
-        dest.x = Math.round(x);
-        dest.y = Math.round(y);
+        dest.x = roundHalfUp(x);
+        dest.y = roundHalfUp(y);
         return dest;
     }
 
@@ -1300,6 +1294,12 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
 
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
+    }
+
+
+    /** Math.round semantics (half up) without the integer conversion: NaN, infinities and |v| >= 0x1p23f stay as they are. */
+    private static float roundHalfUp(float v) {
+        return java.lang.Math.abs(v) < 0x1p23f ? (float) java.lang.Math.round(v) : v;
     }
 
 }
