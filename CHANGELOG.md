@@ -6,6 +6,29 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-11-23
+New in this release:
+- **Every catalogued issue fixed.** The 2.6.0 documentation pass read every public method. 3.0 fixes everything it
+  found, each fix with a test, and `docs/maintainers/known-issues.md` now lists only deliberate limitations. The
+  most consequential fixes:
+  - spherical-Gaussian irradiance was wrong below sharpness 1;
+  - a zero quaternion compressed to a half turn;
+  - several bounding volumes could cut into their shapes;
+  - robust predicates threw on NaN;
+  - the unscented Kalman filter could lose positive definiteness;
+  - methods across `dsp`, `nn`, `soa`, `gpu`, `sh` and `curve` failed partway on bad arguments.
+- **Consistent API.**
+  - Sphere and circle methods take the plain radius.
+  - Clamp arguments are ordered like `core.Math.clamp`.
+  - Read-only parameters use the `...c` interfaces.
+  - Every array API checks its arguments up front.
+  - Skinning applies joint scale.
+  - Kalman filters can gate a measurement without updating.
+- **The deprecations of 2.6.0 are removed**, along with `StdLayout` and other duplicates.
+
+Upgrading from 2.x: read [`docs/migrating-to-3.0.md`](docs/migrating-to-3.0.md). Some changes alter results without
+changing signatures.
+
 Major release: the deprecations of 2.6.0 are removed, and the issues catalogued in 2.6.0 are fixed, including those
 that needed an API change. Upgrading: read [`docs/migrating-to-3.0.md`](docs/migrating-to-3.0.md) first. It lists
 the changes that keep their signatures but change their results (the sphere and circle radius convention,

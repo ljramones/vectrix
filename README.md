@@ -26,7 +26,7 @@ explains what changed.
 <dependency>
     <groupId>org.dynamisengine</groupId>
     <artifactId>vectrix</artifactId>
-    <version>2.6.0</version>
+    <version>3.0.0</version>
 </dependency>
 ```
 
