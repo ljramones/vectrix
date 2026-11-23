@@ -225,6 +225,11 @@ public class AxisAngle4f implements Externalizable, Cloneable {
      * <p>
      * Reference: <a href="http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/">http://www.euclideanspace.com</a>
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param m
      *            the Matrix3fc to set this AngleAxis4f from
      * @return this
@@ -239,6 +244,11 @@ public class AxisAngle4f implements Externalizable, Cloneable {
      * <p>
      * Reference: <a href="http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/">http://www.euclideanspace.com</a>
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param m
      *            the Matrix3d to set this AngleAxis4f from
      * @return this
@@ -253,6 +263,11 @@ public class AxisAngle4f implements Externalizable, Cloneable {
      * <p>
      * Reference: <a href="http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/">http://www.euclideanspace.com</a>
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param m
      *            the Matrix4fc to set this AngleAxis4f from
      * @return this
@@ -267,6 +282,11 @@ public class AxisAngle4f implements Externalizable, Cloneable {
      * <p>
      * Reference: <a href="http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/">http://www.euclideanspace.com</a>
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param m
      *            the Matrix4x3fc to set this AngleAxis4f from
      * @return this
@@ -281,6 +301,11 @@ public class AxisAngle4f implements Externalizable, Cloneable {
      * <p>
      * Reference: <a href="http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/">http://www.euclideanspace.com</a>
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param m
      *            the Matrix4dc to set this AngleAxis4f from
      * @return this

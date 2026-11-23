@@ -838,6 +838,9 @@ public interface Matrix4fc {
     /**
      * Get the scaling factors of <code>this</code> matrix for the three base axes.
      * 
+     * <p>
+     * These are the column lengths, always positive: a mirror (negative determinant) is not represented. Use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d} for a decomposition that keeps the reflection.
      * @param dest
      *          will hold the scaling factors for <code>x</code>, <code>y</code> and <code>z</code>
      * @return dest
@@ -931,6 +934,11 @@ public interface Matrix4fc {
      * This method assumes that the first three column vectors of the upper left 3x3 submatrix are not normalized and
      * thus allows to ignore any additional scaling factor that is applied to the matrix.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @see Quaternionf#setFromUnnormalized(Matrix4fc)
      * 
      * @param dest
@@ -945,6 +953,11 @@ public interface Matrix4fc {
      * <p>
      * This method assumes that the first three column vectors of the upper left 3x3 submatrix are normalized.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @see Quaternionf#setFromNormalized(Matrix4fc)
      * 
      * @param dest
@@ -960,6 +973,11 @@ public interface Matrix4fc {
      * This method assumes that the first three column vectors of the upper left 3x3 submatrix are not normalized and
      * thus allows to ignore any additional scaling factor that is applied to the matrix.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @see Quaterniond#setFromUnnormalized(Matrix4fc)
      * 
      * @param dest
@@ -974,6 +992,11 @@ public interface Matrix4fc {
      * <p>
      * This method assumes that the first three column vectors of the upper left 3x3 submatrix are normalized.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @see Quaterniond#setFromNormalized(Matrix4fc)
      * 
      * @param dest

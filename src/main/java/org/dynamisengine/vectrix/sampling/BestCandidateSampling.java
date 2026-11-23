@@ -372,6 +372,9 @@ public class BestCandidateSampling {
          * @return this
          */
         public Sphere numCandidates(int numCandidates) {
+            if (numCandidates < 1) { // 0 recursed until StackOverflowError (Disk) or produced NaN samples (Sphere)
+                throw new IllegalArgumentException("numCandidates must be at least 1: " + numCandidates);
+            }
             this.numCandidates = numCandidates;
             return this;
         }
@@ -577,6 +580,9 @@ public class BestCandidateSampling {
          * @return this
          */
         public Disk numCandidates(int numCandidates) {
+            if (numCandidates < 1) { // 0 recursed until StackOverflowError (Disk) or produced NaN samples (Sphere)
+                throw new IllegalArgumentException("numCandidates must be at least 1: " + numCandidates);
+            }
             this.numCandidates = numCandidates;
             return this;
         }
@@ -619,8 +625,8 @@ public class BestCandidateSampling {
             final int pos = xys.position();
             return generate(new Callback2d() {
                 public void onNewSample(float x, float y) {
-                    xys.put(pos + 3 * i.value + 0, x);
-                    xys.put(pos + 3 * i.value + 1, y);
+                    xys.put(pos + 2 * i.value + 0, x); // 2D samples: stride 2 (it was 3)
+                    xys.put(pos + 2 * i.value + 1, y);
                     i.value++;
                 }
             });
@@ -707,6 +713,9 @@ public class BestCandidateSampling {
          * @return this
          */
         public Quad numCandidates(int numCandidates) {
+            if (numCandidates < 1) { // 0 recursed until StackOverflowError (Disk) or produced NaN samples (Sphere)
+                throw new IllegalArgumentException("numCandidates must be at least 1: " + numCandidates);
+            }
             this.numCandidates = numCandidates;
             return this;
         }
@@ -749,8 +758,8 @@ public class BestCandidateSampling {
             final int pos = xys.position();
             return generate(new Callback2d() {
                 public void onNewSample(float x, float y) {
-                    xys.put(pos + 3 * i.value + 0, x);
-                    xys.put(pos + 3 * i.value + 1, y);
+                    xys.put(pos + 2 * i.value + 0, x); // 2D samples: stride 2 (it was 3)
+                    xys.put(pos + 2 * i.value + 1, y);
                     i.value++;
                 }
             });
@@ -947,6 +956,9 @@ public class BestCandidateSampling {
          * @return this
          */
         public Cube numCandidates(int numCandidates) {
+            if (numCandidates < 1) { // 0 recursed until StackOverflowError (Disk) or produced NaN samples (Sphere)
+                throw new IllegalArgumentException("numCandidates must be at least 1: " + numCandidates);
+            }
             this.numCandidates = numCandidates;
             return this;
         }

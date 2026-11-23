@@ -2341,9 +2341,9 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
     }
 
     public Vector3d min(Vector3dc v, Vector3d dest) {
-        dest.x = x < v.x() ? x : v.x();
-        dest.y = y < v.y() ? y : v.y();
-        dest.z = z < v.z() ? z : v.z();
+        dest.x = java.lang.Math.min(x, v.x());
+        dest.y = java.lang.Math.min(y, v.y());
+        dest.z = java.lang.Math.min(z, v.z());
         return dest;
     }
 
@@ -2359,9 +2359,9 @@ public class Vector3d implements Externalizable, Cloneable, Vector3dc {
     }
 
     public Vector3d max(Vector3dc v, Vector3d dest) {
-        dest.x = x > v.x() ? x : v.x();
-        dest.y = y > v.y() ? y : v.y();
-        dest.z = z > v.z() ? z : v.z();
+        dest.x = java.lang.Math.max(x, v.x());
+        dest.y = java.lang.Math.max(y, v.y());
+        dest.z = java.lang.Math.max(z, v.z());
         return dest;
     }
 

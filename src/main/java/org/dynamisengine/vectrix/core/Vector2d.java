@@ -1248,8 +1248,8 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
     }
 
     public Vector2d min(Vector2dc v, Vector2d dest) {
-        dest.x = x < v.x() ? x : v.x();
-        dest.y = y < v.y() ? y : v.y();
+        dest.x = java.lang.Math.min(x, v.x());
+        dest.y = java.lang.Math.min(y, v.y());
         return dest;
     }
 
@@ -1265,8 +1265,8 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
     }
 
     public Vector2d max(Vector2dc v, Vector2d dest) {
-        dest.x = x > v.x() ? x : v.x();
-        dest.y = y > v.y() ? y : v.y();
+        dest.x = java.lang.Math.max(x, v.x());
+        dest.y = java.lang.Math.max(y, v.y());
         return dest;
     }
 

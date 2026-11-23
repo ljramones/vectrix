@@ -2140,9 +2140,9 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
 
     public Vector3f min(Vector3fc v, Vector3f dest) {
         float x = this.x, y = this.y, z = this.z;
-        dest.x = x < v.x() ? x : v.x();
-        dest.y = y < v.y() ? y : v.y();
-        dest.z = z < v.z() ? z : v.z();
+        dest.x = java.lang.Math.min(x, v.x());
+        dest.y = java.lang.Math.min(y, v.y());
+        dest.z = java.lang.Math.min(z, v.z());
         return dest;
     }
 
@@ -2159,9 +2159,9 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
 
     public Vector3f max(Vector3fc v, Vector3f dest) {
         float x = this.x, y = this.y, z = this.z;
-        dest.x = x > v.x() ? x : v.x();
-        dest.y = y > v.y() ? y : v.y();
-        dest.z = z > v.z() ? z : v.z();
+        dest.x = java.lang.Math.max(x, v.x());
+        dest.y = java.lang.Math.max(y, v.y());
+        dest.z = java.lang.Math.max(z, v.z());
         return dest;
     }
 

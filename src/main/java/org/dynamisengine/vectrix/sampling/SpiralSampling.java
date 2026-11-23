@@ -61,7 +61,7 @@ public class SpiralSampling {
      */
     public void createEquiAngle(float radius, int numRotations, int numSamples, Callback2d callback) {
         float invNumSamples = 1.0f / numSamples;
-        float iNSMinusOne = 1.0f / (numSamples - 1);
+        float iNSMinusOne = numSamples > 1 ? 1.0f / (numSamples - 1) : 0.0f; // one sample: the center
         for (int sample = 0; sample < numSamples; sample++) {
             float angle = 2.0f * (float) Math.PI * (sample * numRotations) * invNumSamples;
             float r = radius * sample * iNSMinusOne;
@@ -94,7 +94,7 @@ public class SpiralSampling {
         float spacing = radius / numRotations;
         float spacingTimesJitter = spacing * jitter;
         float invNumSamples = 1.0f / numSamples;
-        float iNSMinusOne = 1.0f / (numSamples - 1);
+        float iNSMinusOne = numSamples > 1 ? 1.0f / (numSamples - 1) : 0.0f; // one sample: the center
         for (int sample = 0; sample < numSamples; sample++) {
             float angle = 2.0f * (float) Math.PI * (sample * numRotations) * invNumSamples;
             float r = radius * sample * iNSMinusOne + (rnd.nextFloat() * 2.0f - 1.0f) * spacingTimesJitter;

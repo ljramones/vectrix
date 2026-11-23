@@ -1187,8 +1187,8 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
     }
 
     public Vector2f min(Vector2fc v, Vector2f dest) {
-        dest.x = x < v.x() ? x : v.x();
-        dest.y = y < v.y() ? y : v.y();
+        dest.x = java.lang.Math.min(x, v.x());
+        dest.y = java.lang.Math.min(y, v.y());
         return dest;
     }
 
@@ -1204,8 +1204,8 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
     }
 
     public Vector2f max(Vector2fc v, Vector2f dest) {
-        dest.x = x > v.x() ? x : v.x();
-        dest.y = y > v.y() ? y : v.y();
+        dest.x = java.lang.Math.max(x, v.x());
+        dest.y = java.lang.Math.max(y, v.y());
         return dest;
     }
 

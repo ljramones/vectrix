@@ -118,8 +118,23 @@ Each fix has a regression test in `MatrixAudit2Test`, `VectorQuatAudit2Test` or 
   - The approximations are now used only within their accurate range, and everything else takes the accurate path.
     The error bounds are documented in `docs/determinism.md`: polynomial sin 1e-10, cos 2e-10; lookup 4e-5 below
     256 rad; atan2 2.1e-4 rad.
+- **Edge cases:**
+  - `Math.min`/`max` and vector `min`/`max` gave results that depended on the argument order for NaN and −0. They now
+    follow `java.lang.Math`: NaN propagates, and −0 < +0.
+  - `SpiralSampling` with a single sample returned NaN; the sample now sits at the centre.
+  - `Convolution.gaussianKernel` with σ = 0 returned NaN everywhere; it now gives the unit impulse.
+  - `BestCandidateSampling` with zero candidates recursed until `StackOverflowError` (Disk) or produced NaN samples
+    (Sphere). It now rejects counts below 1.
+  - `BestCandidateSampling.Disk/Quad.generate(FloatBuffer)` wrote 2D samples at stride 3. That overran correctly
+    sized buffers and left gaps.
 - **Documentation:**
   - `obliqueZ` documented `y' = y + a·z`; the code correctly uses `b`.
+  - Rotation extraction from matrices (`getUnnormalizedRotation`, `getNormalizedRotation`, quaternion
+    `setFromUnnormalized`/`setFromNormalized`, `AxisAngle.set(Matrix…)`) is documented as requiring a rotation. A
+    mirror or a shear gives a meaningless non-unit result; `linalg.Polar3d` splits a general matrix into rotation and
+    stretch.
+  - `getScale` is documented as returning unsigned column lengths.
+  - The triangle interpolators are documented as returning NaN for degenerate triangles.
 
 ### Fixed
 - `Matrix4f/d.perspectiveFrustumSlice` scaled `m00` and `m11` by `near / oldNear`, which changed the field of view:

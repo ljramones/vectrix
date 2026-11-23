@@ -35,6 +35,8 @@ public class Interpolationd {
      * <p>
      * Reference: <a href="https://en.wikipedia.org/wiki/Barycentric_coordinate_system">https://en.wikipedia.org/</a>
      * 
+     * <p>
+     * The triangle must have a non-zero area: for a degenerate (collinear) triangle the result is NaN.
      * @param v0X
      *            the x coordinate of the first triangle vertex
      * @param v0Y
@@ -81,6 +83,8 @@ public class Interpolationd {
      * <p>
      * Reference: <a href="https://en.wikipedia.org/wiki/Barycentric_coordinate_system">https://en.wikipedia.org/</a>
      * 
+     * <p>
+     * The triangle must have a non-zero area: for a degenerate (collinear) triangle the result is NaN.
      * @param v0X
      *            the x coordinate of the first triangle vertex
      * @param v0Y
@@ -140,6 +144,8 @@ public class Interpolationd {
      * This method computes the constant rate of change for <i>f</i> given the three values of <i>f</i>
      * at the specified three inputs <code>(v0X, v0Y)</code>, <code>(v1X, v1Y)</code> and <code>(v2X, v2Y)</code>.
      * 
+     * <p>
+     * The triangle must have a non-zero area: for a degenerate (collinear) triangle the result is NaN.
      * @param v0X
      *            the x coordinate of the first triangle vertex
      * @param v0Y
@@ -186,6 +192,8 @@ public class Interpolationd {
      * This method computes the constant rate of change for <i>f</i> given the three values of <i>f</i>
      * at the specified three inputs <code>(v0X, v0Y)</code>, <code>(v1X, v1Y)</code> and <code>(v2X, v2Y)</code>.
      * 
+     * <p>
+     * The triangle must have a non-zero area: for a degenerate (collinear) triangle the result is NaN.
      * @param v0X
      *            the x coordinate of the first triangle vertex
      * @param v0Y
@@ -231,6 +239,8 @@ public class Interpolationd {
      * <p>
      * Reference: <a href="https://en.wikipedia.org/wiki/Barycentric_coordinate_system">https://en.wikipedia.org/</a>
      * 
+     * <p>
+     * The triangle must have a non-zero area: for a degenerate (collinear) triangle the result is NaN.
      * @param v0X
      *            the x coordinate of the first triangle vertex
      * @param v0Y
@@ -292,6 +302,8 @@ public class Interpolationd {
      * arbitrary (scalar or vector) values associated with the respective vertices of the triangle. The computed value <code>v'</code>
      * is the interpolated value at the given position <code>(x, y)</code>.
      * 
+     * <p>
+     * The triangle must have a non-zero area: for a degenerate (collinear) triangle the result is NaN.
      * @param v0X
      *            the x coordinate of the first triangle vertex
      * @param v0Y

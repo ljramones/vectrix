@@ -575,6 +575,9 @@ public interface Matrix2fc {
     /**
      * Get the scaling factors of <code>this</code> matrix for the three base axes.
      *
+     * <p>
+     * These are the column lengths, always positive: a mirror (negative determinant) is not represented. Use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d} for a decomposition that keeps the reflection.
      * @param dest
      *          will hold the scaling factors for <code>x</code> and <code>y</code>
      * @return dest

@@ -556,6 +556,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * <p>
      * This method assumes that the first three columns of the upper left 3x3 submatrix are no unit vectors.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param mat
      *          the matrix whose rotational component is used to set this quaternion
      * @return this
@@ -570,6 +575,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * <p>
      * This method assumes that the first three columns of the upper left 3x3 submatrix are no unit vectors.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param mat
      *          the matrix whose rotational component is used to set this quaternion
      * @return this
@@ -584,6 +594,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * <p>
      * This method assumes that the first three columns of the upper left 3x3 submatrix are no unit vectors.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param mat
      *          the matrix whose rotational component is used to set this quaternion
      * @return this
@@ -598,6 +613,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * <p>
      * This method assumes that the first three columns of the upper left 3x3 submatrix are unit vectors.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param mat
      *          the matrix whose rotational component is used to set this quaternion
      * @return this
@@ -612,6 +632,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * <p>
      * This method assumes that the first three columns of the upper left 3x3 submatrix are unit vectors.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param mat
      *          the matrix whose rotational component is used to set this quaternion
      * @return this
@@ -626,6 +651,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * <p>
      * This method assumes that the first three columns of the upper left 3x3 submatrix are unit vectors.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param mat
      *          the matrix whose rotational component is used to set this quaternion
      * @return this
@@ -640,6 +670,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * <p>
      * This method assumes that the first three columns of the upper left 3x3 submatrix are no unit vectors.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param mat
      *          the matrix whose rotational component is used to set this quaternion
      * @return this
@@ -654,6 +689,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * <p>
      * This method assumes that the first three columns of the upper left 3x3 submatrix are unit vectors.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param mat
      *          the matrix whose rotational component is used to set this quaternion
      * @return this
@@ -668,6 +708,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * <p>
      * This method assumes that the first three columns of the upper left 3x3 submatrix are no unit vectors.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param mat
      *          the matrix whose rotational component is used to set this quaternion
      * @return this
@@ -682,6 +727,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * <p>
      * This method assumes that the first three columns of the upper left 3x3 submatrix are unit vectors.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param mat
      *          the matrix whose rotational component is used to set this quaternion
      * @return this
@@ -696,6 +746,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
      * <p>
      * This method assumes that the first three columns of the upper left 3x3 submatrix are no unit vectors.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param mat
      *          the matrix whose rotational component is used to set this quaternion
      * @return this
@@ -708,6 +763,11 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
     /**
      * Set this quaternion to be a representation of the rotational component of the given matrix.
      * 
+     * <p>
+     * The matrix must be a rotation, optionally with a positive scale per column. A mirror (negative determinant)
+     * or a shear has no rotation part: the result is then neither a unit quaternion nor meaningful, and nothing
+     * signals it. To split a general matrix into a rotation and a stretch, use
+     * {@link org.dynamisengine.vectrix.linalg.Polar3d}.
      * @param mat
      *          the matrix whose rotational component is used to set this quaternion
      * @return this

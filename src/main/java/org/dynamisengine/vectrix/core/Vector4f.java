@@ -1850,10 +1850,10 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
 
     public Vector4f min(Vector4fc v, Vector4f dest) {
         float x = this.x, y = this.y, z = this.z, w = this.w;
-        dest.x = x < v.x() ? x : v.x();
-        dest.y = y < v.y() ? y : v.y();
-        dest.z = z < v.z() ? z : v.z();
-        dest.w = w < v.w() ? w : v.w();
+        dest.x = java.lang.Math.min(x, v.x());
+        dest.y = java.lang.Math.min(y, v.y());
+        dest.z = java.lang.Math.min(z, v.z());
+        dest.w = java.lang.Math.min(w, v.w());
         return dest;
     }
 
@@ -1870,10 +1870,10 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
 
     public Vector4f max(Vector4fc v, Vector4f dest) {
         float x = this.x, y = this.y, z = this.z, w = this.w;
-        dest.x = x > v.x() ? x : v.x();
-        dest.y = y > v.y() ? y : v.y();
-        dest.z = z > v.z() ? z : v.z();
-        dest.w = w > v.w() ? w : v.w();
+        dest.x = java.lang.Math.max(x, v.x());
+        dest.y = java.lang.Math.max(y, v.y());
+        dest.z = java.lang.Math.max(z, v.z());
+        dest.w = java.lang.Math.max(w, v.w());
         return dest;
     }
 

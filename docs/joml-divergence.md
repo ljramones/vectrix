@@ -71,6 +71,29 @@ The full list is in `CHANGELOG.md` (2.4.0, "Fixed"), and every fix has a regress
 | `perspectiveFrustumSlice` | Scaled `m00`/`m11` by `near / oldNear` | Slicing a 1.1 rad projection to [1, 10] narrowed the field of view about tenfold | Only the depth terms change |
 | `PolygonsIntersection` | Bounds skipped each polygon's first vertex | Points inside the polygon rejected, depending on vertex order | Bounds over all vertices |
 
+### Second audit (Vectrix 2.5.0)
+
+A second round covered the inherited code the first one had not reached:
+- matrix property flags and projection builders;
+- the remaining vector and quaternion functions;
+- the frustum and ray-box classes;
+- the 2D intersection functions;
+- `core.Math`, including fast-math mode;
+- the samplers.
+
+It reproduced 49 further defects. The full list is in `CHANGELOG.md` (2.5.0, "Fixed"). The significant ones:
+
+| Area | Inherited behaviour | Measured effect | Vectrix |
+|---|---|---|---|
+| Matrix property flags | Stale flags after `translationRotate`, `shadow`, `mul` with 16 scalars, `lerp`, `transpose3x3`, chained `perspective`, non-unit quaternions, and the `Matrix4d.m13` setter | Later `invert()`/`mul()` took fast paths that gave wrong results, off by up to 19 | Correct flags; every fix is checked against the generic path |
+| `setFromIntrinsic`, `frustumLH` (off-centre), left-handed `zNear = ∞`, `rotationTowardsXY` | Wrong signs, or copied right-handed terms | The principal point mirrored, depth reversed, off-centre frustums shifted, +X sent to `(dirY, dirX)` | Derived from their definitions |
+| Projection queries | Hard-wired to OpenGL's [-1, 1] | Wrong near distance, corners, culling and unprojection for `zZeroToOne` and reverse-Z | `DepthRange` forms |
+| `perspectiveFrustumSlice` | Scaled `m00`/`m11` | A tenfold narrower field of view | Only the depth terms change |
+| `smoothStep`, `hermite`, `orthogonalize` | Wrong formulas; `orthogonalize` ignored `this` | Wrong curves and an arbitrary perpendicular | The documented formulas |
+| `findClosestPointOnTriangle` | Cancelling dot-product determinants | Up to 1.2 units off on slivers; sphere–triangle missed | Exact inside test, then clamped edges |
+| `RayAabIntersection` | A backwards sign test, overflowing slopes | Tiny directions misclassified | Slab fallback |
+| Fast-math `sin`/`cos`/`atan2` | Unbounded use of the approximations | Values outside [-1, 1], flipped signs, NaN | Accurate path outside the documented range |
+
 Earlier releases fixed further inherited defects. For example, `findClosestPointsLineSegmentTriangle` missed
 segments that pierce the triangle; that was fixed in 2.2.0.
 

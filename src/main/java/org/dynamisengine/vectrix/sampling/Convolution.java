@@ -61,6 +61,13 @@ public class Convolution {
         if (dest.remaining() < rows * cols) {
             throw new IllegalArgumentException("dest must have at least " + (rows * cols) + " remaining values");
         }
+        if (!(sigma > 0)) { // a zero-width (or invalid) Gaussian is the unit impulse; it gave NaN everywhere
+            for (int j = 0; j < rows * cols; j++) {
+                dest.put(dest.position() + j, 0.0f);
+            }
+            dest.put(dest.position() + (rows * cols) / 2, 1.0f);
+            return;
+        }
         float sum = 0.0f;
         int pos = dest.position();
         float a = (float) (1.0 / (2.0 * sigma * sigma));
@@ -102,6 +109,13 @@ public class Convolution {
         }
         if (dest.length < rows * cols) {
             throw new IllegalArgumentException("dest must have a size of at least " + (rows * cols));
+        }
+        if (!(sigma > 0)) { // a zero-width (or invalid) Gaussian is the unit impulse; it gave NaN everywhere
+            for (int j = 0; j < rows * cols; j++) {
+                dest[j] = 0.0f;
+            }
+            dest[(rows * cols) / 2] = 1.0f;
+            return;
         }
         float sum = 0.0f;
         float a = (float) (1.0 / (2.0 * sigma * sigma));
