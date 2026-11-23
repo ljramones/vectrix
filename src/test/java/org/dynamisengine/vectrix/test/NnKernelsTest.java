@@ -179,6 +179,19 @@ class NnKernelsTest {
         checkGrad(x, dy, dx, gelu, "gelu");
         Activations.siluBackward(x, 0, dy, 0, dx, 0, n);
         checkGrad(x, dy, dx, silu, "silu");
+        DoubleUnaryOperator geluTanh = v -> 0.5 * v * (1 + StrictMath.tanh(java.lang.Math.sqrt(2 / java.lang.Math.PI)
+            * (v + 0.044715 * v * v * v)));
+        Activations.geluTanhBackward(x, 0, dy, 0, dx, 0, n);
+        checkGrad(x, dy, dx, geluTanh, "geluTanh");
+        Activations.softplusBackward(x, 0, dy, 0, dx, 0, n);
+        checkGrad(x, dy, dx, v -> StrictMath.log1p(StrictMath.exp(v)), "softplus");
+        float[] fy = new float[n];
+        Activations.sigmoid(x, 0, fy, 0, n);
+        Activations.sigmoidBackward(fy, 0, dy, 0, dx, 0, n);
+        checkGrad(x, dy, dx, v -> 1 / (1 + StrictMath.exp(-v)), "sigmoid");
+        Activations.tanh(x, 0, fy, 0, n);
+        Activations.tanhBackward(fy, 0, dy, 0, dx, 0, n);
+        checkGrad(x, dy, dx, StrictMath::tanh, "tanh");
         Activations.reluBackward(x, 0, dy, 0, dx, 0, n);
         for (int i = 0; i < n; i++) {
             assertEquals(x[i] > 0 ? dy[i] : 0f, dx[i], 0f);

@@ -34,8 +34,8 @@ import org.dynamisengine.vectrix.simd.SimdSupport;
 /**
  * Element-wise activation functions over float arrays, forward and backward.
  * <p>
- * Forward kernels write {@code y[i] = f(x[i])}; backward kernels write {@code dx[i] = dy[i]·f'(x[i])} from the
- * forward input. Outputs may alias their inputs at the same offset. The transcendental parts are {@link NnMath}'s,
+ * Forward kernels write {@code y[i] = f(x[i])}; backward kernels write {@code dx[i] = dy[i]·f'(x[i])}, from the
+ * forward input, except sigmoid and tanh, whose derivatives are cheaper and more accurate from the forward output. Outputs may alias their inputs at the same offset. The transcendental parts are {@link NnMath}'s,
  * so results are the same bits everywhere; ReLU, sigmoid and SiLU also have Vector API paths that perform the same
  * operations. Nothing allocates.
  *
@@ -172,6 +172,59 @@ public final class Activations {
         for (int i = 0; i < n; i++) {
             float v = x[xOff + i];
             y[yOff + i] = Math.max(v, 0f) + NnMath.log1p(NnMath.exp(-Math.abs(v)));
+        }
+    }
+
+    /** Sigmoid backward from its <i>output</i> {@code y = sigmoid(x)}: {@code dy·y·(1 - y)}. */
+    public static void sigmoidBackward(float[] y, int yOff, float[] dy, int dyOff, float[] dx, int dxOff, int n) {
+        check(y, yOff, n, "y");
+        check(dy, dyOff, n, "dy");
+        check(dx, dxOff, n, "dx");
+        for (int i = 0; i < n; i++) {
+            float v = y[yOff + i];
+            dx[dxOff + i] = dy[dyOff + i] * (v * (1f - v));
+        }
+    }
+
+    /**
+     * Tanh backward from its <i>output</i> {@code y = tanh(x)}: {@code dy·(1 - y)(1 + y)}, which unlike
+     * {@code 1 - y²} keeps its relative accuracy as {@code |y|} approaches 1.
+     */
+    public static void tanhBackward(float[] y, int yOff, float[] dy, int dyOff, float[] dx, int dxOff, int n) {
+        check(y, yOff, n, "y");
+        check(dy, dyOff, n, "dy");
+        check(dx, dxOff, n, "dx");
+        for (int i = 0; i < n; i++) {
+            float v = y[yOff + i];
+            dx[dxOff + i] = dy[dyOff + i] * ((1f - v) * (1f + v));
+        }
+    }
+
+    /**
+     * Backward of the tanh-approximated GELU, from its input:
+     * {@code dy·((1 + t)/2 + x·(1 - t)(1 + t)/2·√(2/π)·(1 + 3·0.044715·x²))}, {@code t = tanh(u)}.
+     */
+    public static void geluTanhBackward(float[] x, int xOff, float[] dy, int dyOff, float[] dx, int dxOff, int n) {
+        check(x, xOff, n, "x");
+        check(dy, dyOff, n, "dy");
+        check(dx, dxOff, n, "dx");
+        for (int i = 0; i < n; i++) {
+            float v = x[xOff + i];
+            float v2 = v * v;
+            float t = NnMath.tanh(GELU_TANH_K * Math.fma(GELU_TANH_C * v, v2, v));
+            float du = GELU_TANH_K * Math.fma(3f * GELU_TANH_C, v2, 1f);
+            float d = Math.fma(0.5f * v * ((1f - t) * (1f + t)), du, 0.5f * (1f + t));
+            dx[dxOff + i] = dy[dyOff + i] * d;
+        }
+    }
+
+    /** Softplus backward from its input: {@code dy·sigmoid(x)}. */
+    public static void softplusBackward(float[] x, int xOff, float[] dy, int dyOff, float[] dx, int dxOff, int n) {
+        check(x, xOff, n, "x");
+        check(dy, dyOff, n, "dy");
+        check(dx, dxOff, n, "dx");
+        for (int i = 0; i < n; i++) {
+            dx[dxOff + i] = dy[dyOff + i] * NnMath.sigmoid(x[xOff + i]);
         }
     }
 
