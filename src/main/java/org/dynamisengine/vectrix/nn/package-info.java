@@ -24,7 +24,7 @@
 /**
  * Neural-network kernels: activations, softmax and normalization, forward and backward, over float arrays.
  * <p>
- * The transcendental functions are vectrix's own ({@link org.dynamisengine.vectrix.nn.NnMath}): series with exact
+ * The transcendental functions are vectrix's own ({@link org.dynamisengine.vectrix.core.ReproducibleMath}): series with exact
  * rational coefficients, evaluated with fused multiply-adds identically by the scalar and Vector API paths, so every
  * kernel gives the same bits on every platform and jar. Reductions use the order of
  * {@link org.dynamisengine.vectrix.blas.Blasf}. Kernels work on caller-chosen rows, keep no state and do not allocate.

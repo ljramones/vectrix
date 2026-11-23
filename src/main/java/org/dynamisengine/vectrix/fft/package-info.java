@@ -29,11 +29,11 @@
  * <li>{@link org.dynamisengine.vectrix.fft.ComplexFft2d} / {@link org.dynamisengine.vectrix.fft.RealFft2d}: 2D
  * transforms.</li>
  * <li>{@link org.dynamisengine.vectrix.fft.BlockConvolverd}: streaming FIR filtering, direct or overlap-add.</li>
- * <li>{@link org.dynamisengine.vectrix.fft.FFT1d} and {@link org.dynamisengine.vectrix.fft.Convolutiond}: the
- * original in-place radix-2 API, kept for compatibility.</li>
  * </ul>
  * Each has a float twin ({@code ...f}). Plans are immutable and shareable between threads; calls take caller-owned
  * scratch, never allocate, and are deterministic. Twiddle factors are computed with exact argument reduction, so
- * the error grows only with {@code log n}. See {@code docs/signal-and-ml-roadmap.md}.
+ * the error grows only with {@code log n}. The Vector API paths of the {@code -simd} jar give the same bits as the
+ * scalar ones. The original radix-2 classes {@code FFT1d}, {@code FFT1f}, {@code Convolutiond} and
+ * {@code Convolutionf} are deprecated. See {@code docs/guides/signal-processing.md}.
  */
 package org.dynamisengine.vectrix.fft;

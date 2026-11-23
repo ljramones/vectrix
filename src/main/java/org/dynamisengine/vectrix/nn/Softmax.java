@@ -37,7 +37,7 @@ import org.dynamisengine.vectrix.simd.SimdSupport;
  * Softmax, log-softmax and log-sum-exp over one row of floats, forward and backward.
  * <p>
  * The maximum is subtracted before exponentiating, so no input overflows. Sums use {@link Blasf}'s documented
- * order and exponentials {@link NnMath#exp} (vectorized with the same operations), so results are the same bits on
+ * order and exponentials {@link org.dynamisengine.vectrix.core.ReproducibleMath#exp(float)} (vectorized with the same operations), so results are the same bits on
  * every platform and jar. Outputs may alias inputs at the same offset; nothing allocates. Apply a kernel per row to
  * process a matrix: rows are independent, so threads may share the work freely.
  *
@@ -179,7 +179,7 @@ public final class Softmax {
         static final FloatVector E3V = FloatVector.broadcast(S, NnConstants.E3);
         static final FloatVector E2V = FloatVector.broadcast(S, NnConstants.E2);
 
-        /** {@link Softmax#expShifted} on whole vectors, with {@link NnMath#exp} expanded inline; returns the index reached. */
+        /** {@link Softmax#expShifted} on whole vectors, with {@link org.dynamisengine.vectrix.core.ReproducibleMath#exp(float)} expanded inline; returns the index reached. */
         static int expShifted(float[] x, int xOff, float[] y, int yOff, int n, float m) {
             int i = 0;
             float floor = m - 1e38f; // e^(x - m) is 0 below it; clamping keeps x - m finite for TwoSum

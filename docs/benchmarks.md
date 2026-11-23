@@ -261,7 +261,7 @@ Current benchmark suites (2026-03-06):
 - composed integration and subsystem paths
 - renderingmath coverage (`Interpolation*`, `BentNormalCone*`, LUT builders)
 - geometry intersection helpers (`Intersection*`, `RayAabIntersection`, `PolygonsIntersection`, `FrustumRayBuilder`)
-- direct SIMD package behavior (`Vector4fa`, `SimdSupport`)
+- SIMD backend detection (`SimdSupport`)
 
 ### Partially Covered
 - core (curated batch utility coverage exists; deeper integrator/controller families still selective)

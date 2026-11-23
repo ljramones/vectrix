@@ -25,7 +25,7 @@ false.
 | `-Djoml.fastmath=true` | false | `Math.sin`/`cos`/`atan2` use polynomial or lookup-table approximations. The lookup table is built with the platform's `sin`. Ignored when `vectrix.strictMath` is set. |
 | `-Djoml.sinLookup`, `-Djoml.sinLookup.bits` | false, 14 | Which `fastmath` approximation is used, and the table size. Error bounds against the exact value: the polynomial `sin` within 1e-10 and `cos` within 2e-10 for \|x\| < 1e6; the lookup `sin`/`cos` within 4e-5 for \|x\| < 256 (default table); `atan2` within 2.1e-4 rad. Larger arguments, zeros, infinities and NaN use the accurate path (since 2.5.0). |
 | `-Djoml.useMathFma` | true | Whether `Math.fma(a, b, c)` is fused (`java.lang.Math.fma`) or `a * b + c`. Both are exactly specified, so each setting is reproducible, but the two settings differ in the last bit. Every type, including `Affine4f`, follows this flag. |
-| `vectrix.math.mode` / `CoreConfig.setMathMode` | FAST | `STRICT` forces scalar kernels and accurate fixed-order reductions; see `MathMode` and `docs/conventions.md`. This is the process-wide default; `CoreConfig.runWithMathMode` / `callWithMathMode` override it for one task on one thread (see below). |
+| `vectrix.math.mode` / `CoreConfig.setMathMode` | FAST | `STRICT` validates inputs and forces scalar kernels; see `MathMode` and [conventions.md](conventions.md). This is the process-wide default; `CoreConfig.runWithMathMode` / `callWithMathMode` override it for one task on one thread (see below). |
 | `-Dvectrix.simd.enabled` | true | Whether batch kernels may take their Vector API path. Vector API kernels perform the scalar operations in the same order, so FAST compose is bitwise identical either way. |
 | `-Dvectrix.skinning.simd` | false | Opt-in SIMD skinning dispatch. Skinning has no SIMD kernel (the gather kernel was slower on arm64), so it has no effect. |
 | `-Dvectrix.culling.simd` | true | Whether `CullingKernels.frustumCullAabbBatch` may take its Vector API kernel. It classifies every box exactly like scalar, NaN and infinite bounds included, so results do not depend on this setting. |
@@ -53,17 +53,19 @@ transcendental call in the library goes through it or through `core.Math`, and a
 ```
 
 Record `CoreConfig.determinismFingerprint()` alongside the replay. `StrictMath` gives up the CPU intrinsics,
-which is why it is opt-in.
+which is why it is opt-in. Where speed matters, `ReproducibleMath` is reproducible without that cost.
 
 ## Per-task math mode
 
 `CoreConfig.setMathMode` changes the mode for the whole process. To run one simulation step in STRICT mode while
 other threads (rendering, tools) keep FAST, scope it to the task:
 
-```java
+```text
 CoreConfig.runWithMathMode(MathMode.STRICT, () -> simulation.step());
 State s = CoreConfig.callWithMathMode(MathMode.STRICT, () -> simulation.stepAndSnapshot());
 ```
+
+([conventions.md](conventions.md#fast-and-strict) has a complete, tested example.)
 
 The override is a `ScopedValue` binding: it applies to the calling thread and to subtasks forked with
 `StructuredTaskScope`, not to other threads or to executors the task submits to. Overrides nest and end when the
@@ -91,12 +93,17 @@ re-record the file:
 mvn test -Dtest=CrossPlatformDeterminismTest -Dvectrix.determinism.write=$PWD/src/test/resources/determinism/golden.txt
 ```
 
-## Neural-network kernels
+## Reproducible math and kernels
 
-`nn.NnMath` does not use `java.lang.Math` or `StrictMath` transcendentals at all. Its float functions (exp, log,
-tanh, erf, the normal CDF and density) are built from series with exact rational coefficients, exact argument
-reductions and fused multiply-adds, and its Vector API forms perform the same operations. They are therefore
-reproducible everywhere, independently of `-Dvectrix.strictMath`, and the golden hashes them on every CI platform.
-The `blas` reductions and matrix products have one documented order (see `Blasf`). Together these make the
-`blas` and `nn` kernels bit-identical across x86_64 and arm64, both jars and any batch size.
+`ReproducibleMath` does not use `java.lang.Math` or `StrictMath` transcendentals at all. Its float and double
+functions (exp, log, sin, cos, pow, tanh, erf, the normal CDF and density) are built from series with exact
+rational coefficients, exact argument reductions and fused multiply-adds. The Vector API kernels of `nn` perform the
+same operations. The functions are therefore reproducible everywhere, independently of `-Dvectrix.strictMath`, and
+the golden hashes them on every CI platform.
 
+The `blas` reductions and matrix products have one documented order (see `Blasf`). Together these make `blas` and
+`nn` bit-identical across x86-64 and arm64, both jars and any batch size, in any configuration.
+
+The FFTs and `dsp` kernels also sum in a fixed order, so their results do not depend on the jar or on how a stream
+is chunked. Their twiddle factors, windows and filter designs go through `AccurateMath`, so they are identical
+across platforms when `vectrix.strictMath` is set.

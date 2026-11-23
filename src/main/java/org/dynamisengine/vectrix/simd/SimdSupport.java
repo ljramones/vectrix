@@ -30,8 +30,8 @@ import java.lang.reflect.Method;
  * The SIMD switch and the Vector API probe.
  * <p>
  * Vectrix ships two jars: the plain jar, all scalar, and the {@code -simd} classifier jar, whose kernels (FFT, BLAS,
- * GEMM, neural-network kernels, culling, transforms, skinning) also have Vector API paths. The SIMD paths need
- * {@code --add-modules jdk.incubator.vector} and run only while {@link #isEnabled()}: the switch starts from the
+ * GEMM, neural-network kernels, frustum culling, transform composition) also have Vector API paths. The SIMD paths
+ * need {@code --add-modules jdk.incubator.vector} and run only while {@link #isEnabled()}: the switch starts from the
  * system property {@code vectrix.simd.enabled} (default {@code true}) and can be changed at any time with
  * {@link #setEnabled(boolean)}. Every SIMD path gives the same bits as its scalar path, so the switch changes speed,
  * never results. {@link #backend()} reports which path is in use.
@@ -53,17 +53,39 @@ public final class SimdSupport {
 
     private static final Capability CAPABILITY = detect();
 
+    /** Whether this jar contains the Vector API paths (the {@code -simd} classifier). */
+    private static final boolean SIMD_BUILD;
+
+    static {
+        //#ifdef __HAS_VECTOR_API__
+        SIMD_BUILD = true;
+        //#else
+        SIMD_BUILD = false;
+        //#endif
+    }
+
     private static volatile boolean enabled = parseEnabled(System.getProperty(PROP_ENABLED));
 
     private SimdSupport() {
     }
 
-    /** @return the backend kernels use now: {@link Backend#VECTOR_API} when available and enabled */
+    /**
+     * @return the backend kernels use now: {@link Backend#VECTOR_API} in the {@code -simd} jar when the Vector API
+     *         module is present and SIMD is enabled, otherwise {@link Backend#SCALAR}
+     */
     public static Backend backend() {
-        if (!enabled) {
+        if (!enabled || !SIMD_BUILD) {
             return Backend.SCALAR;
         }
         return CAPABILITY.vectorApiAvailable ? Backend.VECTOR_API : Backend.SCALAR;
+    }
+
+    /**
+     * @return whether this jar contains Vector API paths: true for the {@code -simd} classifier jar
+     * @since 2.6.0
+     */
+    public static boolean isSimdBuild() {
+        return SIMD_BUILD;
     }
 
     /**

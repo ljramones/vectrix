@@ -48,7 +48,7 @@ determinism tests could not see them. The table lists the significant ones, with
 The full list is in `CHANGELOG.md` (2.4.0, "Fixed"), and every fix has a regression test in `PrecisionAuditTest` or
 `GeometryAuditTest`.
 
-| Area | Inherited behaviour | Measured effect | Vectrix |
+| Area | Inherited behavior | Measured effect | Vectrix |
 |---|---|---|---|
 | `Math.cosFromSin`, used by every rotation builder | `cos = ±sqrt(1 − sin²)` everywhere | All digits lost near ±90° (1e-8 absolute in double, 2.4e-4 in float); wrong sign beyond ~1.35e10 rad | `cos` evaluated directly where the identity cancels |
 | `AxisAngle.set(Quaternion/Matrix)` | `acos` plus epsilon snapping | Rotations below ~1e-4 rad reported as none; rotations near 180° reported as exactly 180° | `atan2` forms; near 180° the axis comes from the symmetric part |
@@ -64,7 +64,7 @@ The full list is in `CHANGELOG.md` (2.4.0, "Fixed"), and every fix has a regress
 | `Intersection*.testObOb` | Rotation matrix built transposed | About 3 % wrong answers on random rotated box pairs | `R[i][j] = Aᵢ · Bⱼ`; matches a separating-axis reference |
 | Ray–sphere, ray–circle | `d² = \|L\|² − tca²` | Thousands of wrong hits or misses per 10k rays at distant spheres; tangent rays missed | Perpendicular distance computed directly, stable roots |
 | Ray–triangle | Möller–Trumbore with an absolute epsilon | About 20 % of rays aimed at an edge shared by two triangles missed both; small triangles missed head-on | Woop et al.'s watertight algorithm |
-| Plane and circle helpers | Sign and factor errors | Wrong circle centre (plane–sphere, line–circle); wrong closest point on a plane; swept spheres missing planes; circle–circle intersections reported absent | Fixed against their documented contracts |
+| Plane and circle helpers | Sign and factor errors | Wrong circle center (plane–sphere, line–circle); wrong closest point on a plane; swept spheres missing planes; circle–circle intersections reported absent | Fixed against their documented contracts |
 | `intersectSweptSphereTriangle` | Front-face-only sweep with an epsilon for parallel motion | Face hits at negative times when moving away; the exit time from behind; no hit while sliding parallel into an edge; exit time for a sphere starting on a vertex | Two-sided first contact; contact at t = 0 reports the closest point; stable quadratics, matching a bisection reference to 1e-9 |
 | Point-in-triangle tests (2D and 3D) | Sign tests that are inconsistent on the boundary | Two edges of three counted as inside in 3D; edges inside for one winding only in 2D | Closed triangles; exact orientation predicates in 2D |
 | Projection queries (`perspectiveNear`, `frustumCorner`/`Plane`/`Aabb`, `project`/`unproject`, `orthoCrop`, …) | Hard-wired to OpenGL's [-1, 1] depth | For a `zZeroToOne` projection: near distance 0.050 instead of 0.1, near corners misplaced, culling keeps points down to half the near distance | `DepthRange` forms (2.5.0) for [-1, 1], [0, 1] and reverse-Z |
@@ -83,10 +83,10 @@ A second round covered the inherited code the first one had not reached:
 
 It reproduced 49 further defects. The full list is in `CHANGELOG.md` (2.5.0, "Fixed"). The significant ones:
 
-| Area | Inherited behaviour | Measured effect | Vectrix |
+| Area | Inherited behavior | Measured effect | Vectrix |
 |---|---|---|---|
 | Matrix property flags | Stale flags after `translationRotate`, `shadow`, `mul` with 16 scalars, `lerp`, `transpose3x3`, chained `perspective`, non-unit quaternions, and the `Matrix4d.m13` setter | Later `invert()`/`mul()` took fast paths that gave wrong results, off by up to 19 | Correct flags; every fix is checked against the generic path |
-| `setFromIntrinsic`, `frustumLH` (off-centre), left-handed `zNear = ∞`, `rotationTowardsXY` | Wrong signs, or copied right-handed terms | The principal point mirrored, depth reversed, off-centre frustums shifted, +X sent to `(dirY, dirX)` | Derived from their definitions |
+| `setFromIntrinsic`, `frustumLH` (off-center), left-handed `zNear = ∞`, `rotationTowardsXY` | Wrong signs, or copied right-handed terms | The principal point mirrored, depth reversed, off-center frustums shifted, +X sent to `(dirY, dirX)` | Derived from their definitions |
 | Projection queries | Hard-wired to OpenGL's [-1, 1] | Wrong near distance, corners, culling and unprojection for `zZeroToOne` and reverse-Z | `DepthRange` forms |
 | `perspectiveFrustumSlice` | Scaled `m00`/`m11` | A tenfold narrower field of view | Only the depth terms change |
 | `smoothStep`, `hermite`, `orthogonalize` | Wrong formulas; `orthogonalize` ignored `this` | Wrong curves and an arbitrary perpendicular | The documented formulas |
@@ -115,7 +115,7 @@ Most code ports unchanged. Differences in results:
 - **`intersectSweptSphereTriangle`** works from both sides, ignores `epsilon`, and reports time 0 for a sphere that
   starts in contact.
 - **Triangle boundaries are inside** for `testPointInTriangle` and `testPointTriangle`, for either winding.
-- **`testSphereSphere` asks whether the surfaces meet.** That is the existing behaviour, now documented: a sphere
+- **`testSphereSphere` asks whether the surfaces meet.** That is the existing behavior, now documented: a sphere
   strictly inside another reports false.
 - **Default memory backend:** FFM, not `sun.misc.Unsafe`. Options select the old backends (`docs/determinism.md`,
   `CLAUDE.md`).

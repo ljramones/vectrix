@@ -31,7 +31,7 @@ import org.dynamisengine.vectrix.core.ReproducibleMath;
  * Pairs are {@code (x[2i], x[2i + 1])} in the {@link Layout#INTERLEAVED} layout (the original paper, GPT-J) and
  * {@code (x[i], x[i + dim/2])} in the {@link Layout#HALF} layout (GPT-NeoX, LLaMA in Hugging Face form). Angles grow to
  * millions of radians at long contexts, where float sine and cosine are useless; here the angle is formed in double and
- * its sine and cosine come from {@link NnMath}'s reproducible double routine (exact argument reduction), and the
+ * its sine and cosine come from {@link org.dynamisengine.vectrix.core.ReproducibleMath}'s reproducible double routine (exact argument reduction), and the
  * rotation is computed in double and rounded once. Results are the same bits everywhere. A plan is immutable and
  * shareable; nothing allocates.
  *

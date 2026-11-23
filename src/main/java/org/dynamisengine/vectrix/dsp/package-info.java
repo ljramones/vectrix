@@ -22,11 +22,13 @@
  * THE SOFTWARE.
  */
 /**
- * Signal-processing kernels built on {@link org.dynamisengine.vectrix.fft}: window functions, FIR design, biquad
- * IIR filters, and spectral analysis.
+ * Signal processing built on {@link org.dynamisengine.vectrix.fft}: window functions, FIR and IIR filter design,
+ * spectral analysis, short-time and discrete cosine transforms, resampling, wavelets, Wiener and adaptive filtering,
+ * and state estimation. Classes without a precision suffix work in double; some have float overloads.
  * <p>
  * Frequencies are in cycles per sample ({@code f / sampleRate}, between 0 and 0.5). Everything is deterministic and
  * allocation-free on the processing paths, and filter state is held by the caller, so one design can drive any
- * number of channels and threads. See {@code docs/signal-and-ml-roadmap.md}.
+ * number of channels and threads. The Kalman, extended and unscented Kalman and particle filters estimate state from
+ * noisy measurements. See {@code docs/guides/signal-processing.md} and {@code docs/guides/state-estimation.md}.
  */
 package org.dynamisengine.vectrix.dsp;

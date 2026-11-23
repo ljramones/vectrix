@@ -4,7 +4,7 @@
 `vectrix` is a rendering-first math library forked from JOML and now organized by capability:
 - `src/main/java/org/dynamisengine/vectrix/core`: scalar-safe vector/matrix/quaternion primitives.
 - `src/main/java/org/dynamisengine/vectrix/affine`, `.../soa`, `.../simd`: transform kernels, SoA containers, Vector API paths.
-- `src/main/java/org/dynamisengine/vectrix/geometry`, `.../gpu`, `.../experimental`: culling/intersections, packing/compression/layouts, opt-in fast modes.
+- `src/main/java/org/dynamisengine/vectrix/geometry`, `.../gpu`, `.../simd`: culling/intersections, packing/compression/layouts, the SIMD switch.
 - `src/test/java/org/dynamisengine/vectrix/test`: unit and parity tests.
 - `src/bench/java/org/dynamisengine/vectrix/bench` and `src/jmh/java`: JMH benchmarks.
 

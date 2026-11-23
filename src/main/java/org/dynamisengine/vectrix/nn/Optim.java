@@ -28,7 +28,7 @@ import org.dynamisengine.vectrix.core.ReproducibleMath;
  * Parameter updates: AdamW and SGD with momentum, element-wise over a parameter range, and gradient-norm clipping.
  * <p>
  * Each element is updated independently with a fixed sequence of float operations, so an update is reproducible and
- * may be split across threads by element ranges. Bias corrections are computed in double with {@link NnMath}'s
+ * may be split across threads by element ranges. Bias corrections are computed in double with {@link org.dynamisengine.vectrix.core.ReproducibleMath}'s
  * reproducible functions. Nothing allocates.
  *
  * @since 2.5.0

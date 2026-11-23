@@ -1,26 +1,41 @@
-# API Policy
+# API policy
 
-## Stability Levels
+## What is public API
 
-- Public API: classes and methods not marked with `@Internal` are intended for external use.
-- Internal API: any symbol marked with `@org.dynamisengine.vectrix.core.Internal` is implementation detail and may change or be removed between releases.
+All 30 exported packages are public API. They are listed in [package-map.md](package-map.md). A class or member
+is supported unless it is marked with one of these:
 
-## Compatibility Guarantees
+- **`@Internal`**: an implementation detail. Today that means `core.Options` and `core.Runtime`. It may change or
+  disappear in any release. Configure the library through the documented system properties
+  ([conventions.md](conventions.md#configuration-properties)), not through these classes.
+- **`@Deprecated(forRemoval = true)`**: still works, but will be removed in the next major version. Its Javadoc
+  names the replacement.
 
-- Public API aims for source compatibility across minor releases.
-- Behavioral or signature changes in public API require release notes and migration guidance.
-- Internal API has no compatibility guarantee.
+Only the exported packages are visible to modular applications. A class-path application can see everything, but
+the same rules apply to it.
 
-## Package Guidance
+## Versioning
 
-- Primary stable packages:
-  - `org.dynamisengine.vectrix.core`, `org.dynamisengine.vectrix.affine`, `org.dynamisengine.vectrix.geometry`, `org.dynamisengine.vectrix.gpu`, `org.dynamisengine.vectrix.soa`
-  - `org.dynamisengine.vectrix.curve`, `org.dynamisengine.vectrix.sh`, `org.dynamisengine.vectrix.fft`, `org.dynamisengine.vectrix.dsp`, `org.dynamisengine.vectrix.blas`, `org.dynamisengine.vectrix.nn`, `org.dynamisengine.vectrix.optics`
-  - `org.dynamisengine.vectrix.renderingmath`, `org.dynamisengine.vectrix.sampling`, `org.dynamisengine.vectrix.color`, `org.dynamisengine.vectrix.easing`, `org.dynamisengine.vectrix.sdf`, `org.dynamisengine.vectrix.hash`, `org.dynamisengine.vectrix.ltc`
-- Experimental/perf-control surfaces (`org.dynamisengine.vectrix.experimental`, backend probing in `org.dynamisengine.vectrix.simd`) are opt-in and may evolve more aggressively unless explicitly documented as stable.
+Vectrix follows semantic versioning.
 
-## Performance Contract
+- **Minor releases (2.x)** add API and deprecate old API. They never remove or change public signatures, so code
+  that compiles against 2.x compiles against any later 2.y. Results can change only to fix a defect, and the
+  CHANGELOG says so.
+- **Major releases** remove what the previous major line deprecated. Every removal was announced at least one
+  minor release earlier.
+- **Deprecated APIs** forward to their replacements, so the results are the same while both exist.
 
-- Any change to hot-path public APIs must include benchmark evidence.
-- CI smoke benchmark gate protects against major regressions.
-- Nightly long-run benchmarks are used for drift detection and baseline refresh decisions.
+## Bit-exact results
+
+Some results are guaranteed bit for bit:
+- results under the deterministic configuration in [determinism.md](determinism.md);
+- the `blas` and `nn` kernels and `ReproducibleMath`, in any configuration.
+
+Releases keep these bits unless the CHANGELOG lists an intended change. Inside the project,
+`CrossPlatformDeterminismTest` compares every public method's results with a recorded golden file on x86-64 and
+arm64.
+
+## Performance
+
+A change to a hot-path API needs benchmark evidence. CI runs a smoke benchmark to catch large regressions. See
+[performance.md](performance.md) and [maintainers/benchmarking-guide.md](maintainers/benchmarking-guide.md).

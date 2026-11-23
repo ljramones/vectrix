@@ -33,10 +33,12 @@ Types come in float (`f`), double (`d`), int (`i`), and long (`L`) variants. All
 
 ### Source Layout
 
-- `src/main/java/org/dynamisengine/vectrix/` — about 236 Java files in 19 top-level packages: `core` (JOML-derived vectors, matrices, quaternions), `affine`, `soa`, `simd`, `curve`, `geometry`, `gpu`, `sampling`, `sh`, `fft`, `optics`, `ltc`, `renderingmath`, `color`, `easing`, `sdf`, `hash`, `physics`, `experimental`
+- `src/main/java/org/dynamisengine/vectrix/` — 30 exported top-level packages, layered as a DAG (`docs/package-map.md`, enforced by `PackageDependencyTest`; `core` depends on nothing)
 - `src/test/java/org/dynamisengine/vectrix/test/` — JUnit 5 tests
 - `src/bench/java/org/dynamisengine/vectrix/bench/` — JMH benchmarks (`-Pbench`); `src/jmh/java/org/dynamisengine/vectrix/jmh/` — legacy JOML JMH benchmarks (experimental profile)
 - `buildhelper/` — ASM-based post-compile tool `ModuleInfoGenerator` (generates `module-info.class`)
+- `examples/` — a separate Maven project (`vectrix-examples`, not deployed) of tested example programs; build with `mvn install -DskipTests && mvn -f examples/pom.xml verify`. Its version must equal the library's (`ExamplesVersionTest`)
+- `docs/` — user docs (`getting-started.md`, `conventions.md`, `guides/`); `docs/maintainers/` for releases and benchmarks
 
 ### Key Internal Classes
 
@@ -63,6 +65,8 @@ The `Vector2L`/`Vector3L`/`Vector4L` classes (with corresponding `*Lc` read-only
   them with `src/test/resources/determinism/golden.txt`; CI runs it on x86_64 and arm64 in both profiles. An
   intended change to results means re-recording the golden (command in `docs/determinism.md`); an unintended one
   is a determinism bug. New methods are reported, not failed.
+- Docs: Java code in `README.md`, `docs/` and `examples/README.md` must be a `<!-- snippet: Example#region -->` quote of a tagged region of an example (`DocSnippetsTest` in examples; `-Dsnippets.write=true` refreshes them), and every API named in backticks must exist and not be deprecated (`DocReferencesTest`).
+- `NoConsoleOutputTest`: no `System.out`/`System.err`/`printStackTrace` in main sources; diagnostics go through `System.Logger`.
 - `ByteOrderTest` and `AddressApiTest` check that every buffer and raw-address writer produces the same bytes on
   every backend and byte order.
 - `AliasingTest` runs every `R op(..., R dest)` method with `dest` aliased to `this` and each argument, and checks the

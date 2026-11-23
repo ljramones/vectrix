@@ -37,7 +37,7 @@ import org.dynamisengine.vectrix.simd.SimdSupport;
  * Element-wise activation functions over float arrays, forward and backward.
  * <p>
  * Forward kernels write {@code y[i] = f(x[i])}; backward kernels write {@code dx[i] = dy[i]·f'(x[i])}, from the
- * forward input, except sigmoid and tanh, whose derivatives are cheaper and more accurate from the forward output. Outputs may alias their inputs at the same offset. The transcendental parts are {@link NnMath}'s,
+ * forward input, except sigmoid and tanh, whose derivatives are cheaper and more accurate from the forward output. Outputs may alias their inputs at the same offset. The transcendental parts are {@link org.dynamisengine.vectrix.core.ReproducibleMath}'s,
  * so results are the same bits everywhere; ReLU, sigmoid and SiLU also have Vector API paths that perform the same
  * operations. Nothing allocates.
  *
@@ -137,7 +137,7 @@ public final class Activations {
     }
 
     /**
-     * GELU, exact form: {@code x·Φ(x)} with {@link NnMath#normalCdf}, which keeps its relative accuracy for negative
+     * GELU, exact form: {@code x·Φ(x)} with {@link org.dynamisengine.vectrix.core.ReproducibleMath#normalCdf}, which keeps its relative accuracy for negative
      * {@code x}, where {@code (1 + erf(x/√2))/2} would cancel.
      */
     public static void gelu(float[] x, int xOff, float[] y, int yOff, int n) {
@@ -273,7 +273,7 @@ public final class Activations {
         static final FloatVector E3V = FloatVector.broadcast(S, NnConstants.E3);
         static final FloatVector E2V = FloatVector.broadcast(S, NnConstants.E2);
 
-        /** Sigmoid ({@code silu} false) or SiLU on whole vectors, with {@link NnMath#exp} expanded inline. */
+        /** Sigmoid ({@code silu} false) or SiLU on whole vectors, with {@link org.dynamisengine.vectrix.core.ReproducibleMath#exp(float)} expanded inline. */
         static int logistic(float[] x, int xOff, float[] y, int yOff, int n, boolean silu) {
             int i = 0;
             for (int b = n - n % LANES; i < b; i += LANES) {
@@ -298,7 +298,7 @@ public final class Activations {
             }
             return i;
         }
-        /** {@link NnMath#tanh} on whole vectors, with expm1 and exp expanded inline; returns the index reached. */
+        /** {@link org.dynamisengine.vectrix.core.ReproducibleMath#tanh} on whole vectors, with expm1 and exp expanded inline; returns the index reached. */
         static int tanh(float[] x, int xOff, float[] y, int yOff, int n) {
             int i = 0;
             for (int b = n - n % LANES; i < b; i += LANES) {

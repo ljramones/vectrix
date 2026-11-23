@@ -1,6 +1,6 @@
 name: Benchmark Snapshot
 
-# Runs scripts/bench-snapshot.sh (the groups behind BENCHMARKS.md) on a GitHub-hosted runner and uploads the results
+# Runs scripts/bench-snapshot.sh (the groups behind docs/benchmarks.md) on a GitHub-hosted runner and uploads the results
 # with the CPU description. Shared runners are noisier than dedicated hardware: compare ratios, not absolute times.
 on:
   workflow_dispatch:

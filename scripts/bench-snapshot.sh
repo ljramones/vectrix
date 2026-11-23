@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs the benchmark groups behind the published snapshot in BENCHMARKS.md ("quick" profile: one fork, 3 x 1 s warmup,
+# Runs the benchmark groups behind the published snapshot in docs/benchmarks.md ("quick" profile: one fork, 3 x 1 s warmup,
 # 5 x 1 s measurement). Usage: scripts/bench-snapshot.sh <output-dir>   (after: mvn clean package -Pbench -DskipTests)
 set -euo pipefail
 OUT=${1:?usage: bench-snapshot.sh <output-dir>}

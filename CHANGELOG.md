@@ -21,11 +21,27 @@ Structure and documentation release. Nothing is removed. Every moved or replaced
 - Every inherited `joml.*` system property can also be given as `vectrix.*`. The `vectrix.` name wins when both are
   set.
 - Explicit, documented constructors on `FrustumPlanes` and the `ShCoeffs*` classes.
+- `examples/`: nine runnable example programs, in a separate project that is not published. Each is tested
+  against an independent computation, and CI builds and runs them against every commit.
+- New documentation:
+  - a short README, `docs/getting-started.md` and an expanded `docs/conventions.md`;
+  - `docs/package-map.md`;
+  - eleven task guides in `docs/guides/`;
+  - `docs/performance.md`, which merges six earlier pages.
+- Every Java block in the docs is quoted from a tested example (`DocSnippetsTest`). Every API the docs name must
+  exist and not be deprecated, and every relative link must resolve (`DocReferencesTest`).
+- `SimdSupport.isSimdBuild()` reports whether the running jar is the `-simd` classifier.
 - Tests that keep the structure from regressing:
   - `PackageDependencyTest`: the top-level packages form a DAG, with `core` and `hash` at the bottom.
   - `PackageExportsTest`: module-info, the OSGi `Export-Package` and the source packages agree.
 
 ### Fixed
+- `SimdSupport.backend()` reported `VECTOR_API` for the plain jar when `jdk.incubator.vector` was present, though
+  that jar has no Vector API code.
+- The `MathMode` Javadoc promised accurate double-double reductions in STRICT mode. No code implements them since
+  the internal `Reduction` class was removed, so the promise is gone too.
+- The library's one console message (a JVMCI diagnostic in the experimental build) now goes through
+  `System.Logger`. `NoConsoleOutputTest` keeps console output out of the library.
 - The OSGi `Export-Package` header omitted eight packages: `camera`, `brdf`, `spherical`, `atmosphere`,
   `animation`, `ik`, `linalg` and `world`. It is now generated from module-info.
 - `core` no longer depends on `camera`, and `affine` and `soa` no longer depend on each other, except through the
@@ -45,6 +61,9 @@ Structure and documentation release. Nothing is removed. Every moved or replaced
 - The backend-specific entry points `CullingKernels.frustumCullAabbBatchScalar`/`Simd` and
   `SkinningKernels.skinLbs4Vector`/`Scalar`/`SoAScalar`/`SoASimd`. The plain entry points pick the backend.
 - `ShCoeffs*.BANDS`, which counts coefficients, not bands. Use `COEFFS`.
+- `CullingKernels.frustumCullAabbBatch(Matrix4fc, ...)`. It allocates a `FrustumPlanes` per call and assumes
+  OpenGL depth, so for [0, 1] and reverse-Z projections it culls nothing near the camera. Extract the planes once
+  with `FrustumPlanes.set(m, normalize, depthRange)`.
 - The public constructors of static utility classes, such as `Intersectionf`, `GeometryUtils` and `core.Math`.
   They become private in 3.0.
 
@@ -52,6 +71,9 @@ Structure and documentation release. Nothing is removed. Every moved or replaced
 - The unexported `experimental` package (`KernelConfig`, and the unused `Reduction`). `KernelConfig`'s SIMD switch
   is now `SimdSupport`, and its math mode is `CoreConfig`.
 - Historical process notes, the `docs/archive` folder and superseded plans.
+- `API.md`, `docs/vectrix-capabilities.md`, `docs/technology-explainer.md` and `docs/signal-and-ml-roadmap.md`. The
+  guides replace them, and their examples, some of which no longer compiled, are now tested. `BENCHMARKS.md` moved
+  to `docs/benchmarks.md`, and the maintainer pages moved to `docs/maintainers/`.
 - `core.Options` and `core.Runtime` are now marked `@Internal`. Configuration is by system property.
 
 ## [2.5.0] - 2026-11-23

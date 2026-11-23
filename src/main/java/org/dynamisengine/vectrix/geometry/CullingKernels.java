@@ -24,6 +24,7 @@
 package org.dynamisengine.vectrix.geometry;
 
 import org.dynamisengine.vectrix.core.CoreConfig;
+import org.dynamisengine.vectrix.core.DepthRange;
 import org.dynamisengine.vectrix.core.Matrix4fc;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.simd.SimdSupport;
@@ -36,13 +37,17 @@ import jdk.incubator.vector.VectorSpecies;
 //#endif
 
 /**
- * Scalar batch culling kernels.
+ * Batch frustum culling of axis-aligned boxes stored as structure of arrays ({@link AABBSoA}).
+ * <p>
+ * Extract the planes once per view with {@link FrustumPlanes#set(Matrix4fc, boolean, DepthRange)}, naming the depth
+ * range the projection was built for, then classify any number of boxes with
+ * {@link #frustumCullAabbBatch(FrustumPlanes, AABBSoA, int[], int)}. The batch call does not allocate.
  */
 public final class CullingKernels {
     /**
      * {@code -Dvectrix.culling.simd=false} keeps {@link #frustumCullAabbBatch} on the scalar kernel. The SIMD kernel is
      * the default since it classifies every box exactly like the scalar one, NaN and infinite bounds included
-     * ({@code SimdPathTest}); it is 2.7&times; faster on AVX-512 x86 and about 15 % faster on arm64 (BENCHMARKS.md).
+     * ({@code SimdPathTest}); it is 2.7&times; faster on AVX-512 x86 and about 15 % faster on arm64 (docs/benchmarks.md).
      */
     private static final String PROP_CULLING_SIMD = "vectrix.culling.simd";
     private static final int SIMD_BATCH_THRESHOLD = 64;
@@ -177,8 +182,14 @@ public final class CullingKernels {
     }
 
     /**
-     * Convenience overload that extracts frustum planes from {@code viewProj} first.
+     * Extracts the planes of {@code viewProj} for an OpenGL depth range ([-1, 1]), then classifies.
+     *
+     * @deprecated allocates a {@link FrustumPlanes} per call and assumes OpenGL depth, which culls nothing near the
+     *             camera for a [0, 1] or reverse-Z projection; extract the planes once with
+     *             {@link FrustumPlanes#set(Matrix4fc, boolean, DepthRange)} and call
+     *             {@link #frustumCullAabbBatch(FrustumPlanes, AABBSoA, int[], int)}
      */
+    @Deprecated(since = "2.6.0", forRemoval = true)
     public static void frustumCullAabbBatch(Matrix4fc viewProj, AABBSoA bounds, int[] outResult, int count) {
         frustumCullAabbBatch(new FrustumPlanes().set(viewProj, false), bounds, outResult, count);
     }

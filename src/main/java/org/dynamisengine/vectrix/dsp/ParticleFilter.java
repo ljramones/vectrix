@@ -34,7 +34,7 @@ import org.dynamisengine.vectrix.core.ReproducibleMath;
  * reproducible and parallel-safe); add each particle's measurement log-likelihood to its log-weight;
  * {@link #normalizeLogWeights}; and when {@link #effectiveSampleSize} falls below about half the particles,
  * {@link #systematicResample} with one uniform number and {@link #gather}. Exponentials and logarithms use
- * {@link NnMath}'s reproducible functions; nothing allocates.
+ * {@link org.dynamisengine.vectrix.core.ReproducibleMath}'s reproducible functions; nothing allocates.
  *
  * @since 2.5.0
  */
