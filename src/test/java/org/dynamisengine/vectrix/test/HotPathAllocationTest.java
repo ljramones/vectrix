@@ -360,6 +360,16 @@ class HotPathAllocationTest {
         float[] rout = new float[rs.maxOutput(441)];
         double[] rst = new double[rs.stateSize()];
         assertNoAllocation("Resampler.process", () -> rs.process(sigf, 0, 441, rout, 0, rst, 0));
+        // BLAS-1
+        float[] bx = new float[5000];
+        float[] by = new float[5000];
+        java.lang.foreign.MemorySegment bseg = java.lang.foreign.Arena.ofAuto().allocate(4L * 5000);
+        assertNoAllocation("Blasf.dot", () -> org.dynamisengine.vectrix.blas.Blasf.dot(bx, 0, by, 0, 5000));
+        assertNoAllocation("Blasf.dot segment", () -> org.dynamisengine.vectrix.blas.Blasf.dot(bseg, 0, bseg, 0, 5000));
+        assertNoAllocation("Blasf.nrm2", () -> org.dynamisengine.vectrix.blas.Blasf.nrm2(bx, 0, 5000));
+        assertNoAllocation("Blasf.axpy", () -> org.dynamisengine.vectrix.blas.Blasf.axpy(0.5f, bx, 0, by, 0, 5000));
+        double[] bd = new double[5000];
+        assertNoAllocation("Blasd.sum", () -> org.dynamisengine.vectrix.blas.Blasd.sum(bd, 0, 5000));
         double[] legacy = new double[2 * 4096];
         org.dynamisengine.vectrix.fft.FFT1d.forward(legacy); // builds the shared table once
         assertNoAllocation("FFT1d.forward", () -> org.dynamisengine.vectrix.fft.FFT1d.forward(legacy));

@@ -15,7 +15,7 @@
 
 - Primary stable packages:
   - `org.dynamisengine.vectrix.core`, `org.dynamisengine.vectrix.affine`, `org.dynamisengine.vectrix.geometry`, `org.dynamisengine.vectrix.gpu`, `org.dynamisengine.vectrix.soa`
-  - `org.dynamisengine.vectrix.curve`, `org.dynamisengine.vectrix.sh`, `org.dynamisengine.vectrix.fft`, `org.dynamisengine.vectrix.dsp`, `org.dynamisengine.vectrix.optics`
+  - `org.dynamisengine.vectrix.curve`, `org.dynamisengine.vectrix.sh`, `org.dynamisengine.vectrix.fft`, `org.dynamisengine.vectrix.dsp`, `org.dynamisengine.vectrix.blas`, `org.dynamisengine.vectrix.optics`
   - `org.dynamisengine.vectrix.renderingmath`, `org.dynamisengine.vectrix.sampling`, `org.dynamisengine.vectrix.color`, `org.dynamisengine.vectrix.easing`, `org.dynamisengine.vectrix.sdf`, `org.dynamisengine.vectrix.hash`, `org.dynamisengine.vectrix.ltc`
 - Experimental/perf-control surfaces (`org.dynamisengine.vectrix.experimental`, backend probing in `org.dynamisengine.vectrix.simd`) are opt-in and may evolve more aggressively unless explicitly documented as stable.
 
