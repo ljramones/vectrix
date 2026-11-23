@@ -6,6 +6,54 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+Structure and documentation release. Nothing is removed. Every moved or replaced API keeps a deprecated
+(`forRemoval`) forwarder until 3.0.
+
+### Added
+- `simd.SimdSupport` is supported API. `isEnabled()`/`setEnabled(boolean)` switch the SIMD paths at run time
+  (initially from `vectrix.simd.enabled`), and `backend()` reports the path in use.
+- `core.ReproducibleMath` (formerly `nn.NnMath`): float and double transcendentals that give the same bits
+  everywhere, now usable by the whole library. Its double functions are overloads (`exp(double)`, not `expD`).
+- `core.DepthRange`, `core.Complexd`/`Complexf`, `hash.Philox`, `soa.TransformKernels` and `nn.Activations.dropout`
+  are the new homes of types and methods that sat in the wrong package. Every method taking the old types has an
+  overload taking the new ones.
+- `ShCoeffs*.COEFFS`, the number of coefficients per channel.
+- Every inherited `joml.*` system property can also be given as `vectrix.*`. The `vectrix.` name wins when both are
+  set.
+- Explicit, documented constructors on `FrustumPlanes` and the `ShCoeffs*` classes.
+- Tests that keep the structure from regressing:
+  - `PackageDependencyTest`: the top-level packages form a DAG, with `core` and `hash` at the bottom.
+  - `PackageExportsTest`: module-info, the OSGi `Export-Package` and the source packages agree.
+
+### Fixed
+- The OSGi `Export-Package` header omitted eight packages: `camera`, `brdf`, `spherical`, `atmosphere`,
+  `animation`, `ik`, `linalg` and `world`. It is now generated from module-info.
+- `core` no longer depends on `camera`, and `affine` and `soa` no longer depend on each other, except through the
+  deprecated forwarders.
+
+### Deprecated (for removal in 3.0)
+- Moved types:
+  - `camera.DepthRange` (use `core.DepthRange`);
+  - `nn.NnMath` (use `core.ReproducibleMath`);
+  - `nn.Philox` (use `hash.Philox` and `Activations.dropout`);
+  - `fft.Complexd`/`Complexf` (use `core.Complexd`/`Complexf`);
+  - `affine.TransformKernels` (use `soa.TransformKernels`).
+- Superseded APIs:
+  - `fft.FFT1f`/`FFT1d` and `fft.Convolutionf`/`Convolutiond` (use the planned transforms and `BlockConvolver*`);
+  - `QuaternionfInterpolator`/`QuaterniondInterpolator` (use `QuaternionCurves*.weightedMean`);
+  - `simd.Vector4fa` (it exists only in the `-simd` jar).
+- The backend-specific entry points `CullingKernels.frustumCullAabbBatchScalar`/`Simd` and
+  `SkinningKernels.skinLbs4Vector`/`Scalar`/`SoAScalar`/`SoASimd`. The plain entry points pick the backend.
+- `ShCoeffs*.BANDS`, which counts coefficients, not bands. Use `COEFFS`.
+- The public constructors of static utility classes, such as `Intersectionf`, `GeometryUtils` and `core.Math`.
+  They become private in 3.0.
+
+### Removed
+- The unexported `experimental` package (`KernelConfig`, and the unused `Reduction`). `KernelConfig`'s SIMD switch
+  is now `SimdSupport`, and its math mode is `CoreConfig`.
+- Historical process notes, the `docs/archive` folder and superseded plans.
+- `core.Options` and `core.Runtime` are now marked `@Internal`. Configuration is by system property.
+
 ## [2.5.0] - 2026-11-23
 New in this release:
 - **Signal processing:**

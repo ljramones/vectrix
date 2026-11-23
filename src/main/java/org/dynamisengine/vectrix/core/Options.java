@@ -29,60 +29,65 @@ import java.util.Arrays;
 import java.util.Locale;
 
 /**
- * Utility class for reading system properties.
- * 
+ * The system properties that configure Vectrix, read once at class initialization.
+ * <p>
+ * Each inherited JOML property can be given under either name: {@code -Dvectrix.fastmath=true} or
+ * {@code -Djoml.fastmath=true}. The {@code vectrix.} name wins when both are set. The properties are documented in
+ * {@code docs/conventions.md}; this class is internal and its fields may change in any release.
+ *
  * @author Kai Burjack
  */
+@Internal("Configuration is by system property; the fields are not API.")
 public final class Options {
 
     /**
      * Whether certain debugging checks should be made, such as that only direct NIO Buffers are used when Unsafe is active,
      * and a proxy should be created on calls to readOnlyView().
      */
-    public static final boolean DEBUG = hasOption(System.getProperty("joml.debug", "false"));
+    public static final boolean DEBUG = hasOption(property("debug", "false"));
 
 //#ifdef __HAS_FFM__
     /**
      * Whether <i>not</i> to use the Foreign Function &amp; Memory API when copying memory with MemUtil.
      */
-    public static final boolean NO_FFM = hasOption(System.getProperty("joml.noffm", "false"));
+    public static final boolean NO_FFM = hasOption(property("noffm", "false"));
     /**
      * Whether to <i>force</i> the use of the Foreign Function &amp; Memory API when copying memory with MemUtil.
      */
-    public static final boolean FORCE_FFM = hasOption(System.getProperty("joml.forceFfm", "false"));
+    public static final boolean FORCE_FFM = hasOption(property("forceFfm", "false"));
 //#endif
 
 //#ifdef __HAS_UNSAFE__
     /**
      * Whether <i>not</i> to use sun.misc.Unsafe when copying memory with MemUtil.
      */
-    public static final boolean NO_UNSAFE = hasOption(System.getProperty("joml.nounsafe", "false"));
+    public static final boolean NO_UNSAFE = hasOption(property("nounsafe", "false"));
     /**
      * Whether to <i>force</i> the use of sun.misc.Unsafe when copying memory with MemUtil.
      */
-    public static final boolean FORCE_UNSAFE = hasOption(System.getProperty("joml.forceUnsafe", "false"));
+    public static final boolean FORCE_UNSAFE = hasOption(property("forceUnsafe", "false"));
 //#endif
 
     /**
      * Whether fast approximations of some java.lang.Math operations should be used.
      */
-    public static final boolean FASTMATH = hasOption(System.getProperty("joml.fastmath", "false"));
+    public static final boolean FASTMATH = hasOption(property("fastmath", "false"));
 
     /**
      * When {@link #FASTMATH} is <code>true</code>, whether to use a lookup table for sin/cos.
      */
-    public static final boolean SIN_LOOKUP = hasOption(System.getProperty("joml.sinLookup", "false"));
+    public static final boolean SIN_LOOKUP = hasOption(property("sinLookup", "false"));
 
     /**
      * When {@link #SIN_LOOKUP} is <code>true</code>, this determines the table size.
      */
-    public static final int SIN_LOOKUP_BITS = Integer.parseInt(System.getProperty("joml.sinLookup.bits", "14"));
+    public static final int SIN_LOOKUP_BITS = Integer.parseInt(property("sinLookup.bits", "14"));
 
     /**
      * Whether to use a {@link NumberFormat} producing scientific notation output when formatting matrix,
      * vector and quaternion components to strings.
      */
-    public static final boolean useNumberFormat = hasOption(System.getProperty("joml.format", "true"));
+    public static final boolean useNumberFormat = hasOption(property("format", "true"));
 
     /**
      * Whether to try using java.lang.Math.fma() in most matrix/vector/quaternion operations if it is available.
@@ -90,7 +95,7 @@ public final class Options {
      * automatically. Disable with {@code -Djoml.useMathFma=false} if the target CPU does not have a hardware FMA
      * instruction, where the emulation via {@code java.util.BigDecimal} would be slower.
      */
-    public static final boolean USE_MATH_FMA = hasOption(System.getProperty("joml.useMathFma", "true"));
+    public static final boolean USE_MATH_FMA = hasOption(property("useMathFma", "true"));
 
     /**
      * Whether transcendental functions use {@link StrictMath} for bitwise-reproducible results across platforms
@@ -102,7 +107,7 @@ public final class Options {
      * When {@link #useNumberFormat} is <code>true</code> then this determines the number of decimal digits
      * produced in the formatted numbers.
      */
-    public static final int numberFormatDecimals = Integer.parseInt(System.getProperty("joml.format.decimals", "3"));
+    public static final int numberFormatDecimals = Integer.parseInt(property("format.decimals", "3"));
 
     /**
      * The {@link NumberFormat} used to format all numbers throughout all JOML classes.
@@ -110,6 +115,12 @@ public final class Options {
     public static final NumberFormat NUMBER_FORMAT = decimalFormat();
 
     private Options() {
+    }
+
+    /** {@code vectrix.<name>}, else {@code joml.<name>}, else {@code defaultValue}. */
+    private static String property(String name, String defaultValue) {
+        String v = System.getProperty("vectrix." + name);
+        return v != null ? v : System.getProperty("joml." + name, defaultValue);
     }
 
     private static NumberFormat decimalFormat() {

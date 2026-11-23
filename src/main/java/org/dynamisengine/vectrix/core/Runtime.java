@@ -30,6 +30,7 @@ import java.text.NumberFormat;
  * 
  * @author Kai Burjack
  */
+@Internal("Implementation helpers; may change in any release.")
 public final class Runtime {
 
     /**
