@@ -8218,6 +8218,7 @@ dsp.BiquadDesign.lowShelf(double[],int,double,double,double) 3f971e328f8ebf27
 dsp.BiquadDesign.lowpass(double[],int,double,double) 3f971e328f8ebf27
 dsp.BiquadDesign.notch(double[],int,double,double) 3f971e328f8ebf27
 dsp.BiquadDesign.peaking(double[],int,double,double,double) 3f971e328f8ebf27
+dsp.Correlation.plan(int,int) bc5e12ea49bca076
 dsp.FirDesign.kaiserBeta(double) 9d908ecfb6b256de
 dsp.FirDesign.magnitude(double[],int,int,double) 3f971e328f8ebf27
 dsp.FirDesign.kaiserTaps(double,double) 4a7bf19744f5685c
@@ -8226,6 +8227,11 @@ dsp.FirDesign.bandstop(double[],int,int,double,double,double[],int) 3f971e328f8e
 dsp.FirDesign.highpass(double[],int,int,double,double[],int) 3f971e328f8ebf27
 dsp.FirDesign.lowpass(double[],int,int,double,double[],int) 3f971e328f8ebf27
 dsp.FirDesign.response(double[],int,int,double,double[]) afc154a7149564a6
+dsp.Goertzel.power(double[],int,int,double) 1dbc6ca5cc9ace14
+dsp.Goertzel.dft(double[],int,int,double,double[]) 3f971e328f8ebf27
+dsp.Goertzel.dft(float[],int,int,double,double[]) 6ac4c25b131b7a71
+dsp.Stftd.plan(int,int,double[],int,double[],int) f4ca60a0e56aff63
+dsp.Stftf.plan(int,int,float[],int,float[],int) 1fd12712e4348d7a
 dsp.Windows.coherentGain(double[],int,int) a6fadb0b6493caa8
 dsp.Windows.equivalentNoiseBandwidth(double[],int,int) 810bdd20b2728bee
 dsp.Windows.blackman(double[],int,int,boolean) 5cdd0c2f75475463

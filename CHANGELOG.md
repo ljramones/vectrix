@@ -43,6 +43,14 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     - cascade processing in transposed direct form II, in double, with caller-held state;
     - a float-sample overload;
     - frequency response.
+  - `Stftd`/`Stftf`: STFT analysis and weighted overlap-add synthesis, with caller-held state. Synthesis
+    divides by the windows' actual overlap sum, so reconstruction is exact (error below 1e-14) for any windows and
+    hop, not only COLA-compliant ones.
+  - `Spectra`: periodogram and Welch power spectral density, density-scaled and checked against Parseval's
+    identity; the analytic signal (Hilbert transform).
+  - `Correlation`: full cross-correlation plans. They sum directly or use FFTs, whichever is cheaper.
+  - `Goertzel`: one DFT value at any frequency. Near DC and Nyquist it uses Reinsch's stabilized recurrences,
+    about 10^5 times more accurate there than the classic form.
 - `AccurateMath.cosTurns/sinTurns(e, d)`: cos and sin of `2π·e/d`, with the angle reduced exactly in integers. The
   symmetries are exact (odd multiples of π/4 give the correctly rounded √½ for both). The FFT twiddles now use
   them.
