@@ -317,15 +317,21 @@ public class DualQuatTransformf {
      * first, made exactly unit with {@link #normalize()}'s rule. Weights need not sum to 1. Does not allocate.
      *
      * @param transforms the transforms; the first {@code count} are used, and {@code transforms[0]} sets the sign
-     *        convention, so the array must not be empty
+     *        convention
      * @param weights the weight of each transform
-     * @param count the number of transforms to blend
+     * @param count the number of transforms to blend, at least 1
      * @param dest receives the blend; may be one of {@code transforms}
      * @return {@code dest}
+     * @throws IllegalArgumentException if {@code count < 1}, {@code transforms} or {@code weights} has fewer than
+     *         {@code count} elements, or the weighted rotations sum to zero (for example when every weight is 0), so
+     *         the blend has no rotation; {@code dest} is unchanged in that case
      * @since 2.3.0
      */
     public static DualQuatTransformf blend(DualQuatTransformf[] transforms, float[] weights, int count,
             DualQuatTransformf dest) {
+        if (count < 1 || count > transforms.length || count > weights.length) {
+            throw new IllegalArgumentException("count");
+        }
         double ax = transforms[0].real.x, ay = transforms[0].real.y, az = transforms[0].real.z;
         double aw = transforms[0].real.w;
         double rx = 0, ry = 0, rz = 0, rw = 0, dx = 0, dy = 0, dz = 0, dw = 0;
@@ -344,6 +350,9 @@ public class DualQuatTransformf {
             dz += w * q.dual.z;
             dw += w * q.dual.w;
         }
+        if (rx == 0.0 && ry == 0.0 && rz == 0.0 && rw == 0.0) {
+            throw new IllegalArgumentException("the weighted rotations sum to zero");
+        }
         return normalizeInto(rx, ry, rz, rw, dx, dy, dz, dw, dest);
     }
 
@@ -351,20 +360,26 @@ public class DualQuatTransformf {
      * Scale-aware blending: the rigid parts by {@link #blend}, and per-transform scales {@code scales} (xyz per
      * transform) linearly into {@code scaleDest}. Apply as {@code dest.transformPosition(scaleDest ∘ p)}: scale is
      * blended before the rigid motion, the two-phase scheme that keeps dual quaternion skinning free of
-     * candy-wrapper artifacts while supporting (non-uniform) joint scale. The scale is divided by the sum of the
-     * weights, so that sum must not be zero.
+     * candy-wrapper artifacts while supporting (non-uniform) joint scale. The scale is the weighted mean, divided by
+     * the sum of the weights.
      *
      * @param transforms the rigid transforms; the first {@code count} are used
      * @param scales the scale of each transform, three consecutive values (x, y, z) per transform from index 0
-     * @param weights the weight of each transform
-     * @param count the number of transforms to blend
+     * @param weights the weight of each transform; their sum must not be zero
+     * @param count the number of transforms to blend, at least 1
      * @param dest receives the blended rigid part; may be one of {@code transforms}
      * @param scaleDest receives the weighted mean scale
      * @return {@code dest}
+     * @throws IllegalArgumentException if {@code count < 1}, an array is too short for {@code count} transforms,
+     *         the weights sum to zero, or {@link #blend} rejects the rotations; {@code dest} and {@code scaleDest}
+     *         are unchanged in that case
      * @since 2.3.0
      */
     public static DualQuatTransformf blendScaled(DualQuatTransformf[] transforms, float[] scales, float[] weights,
             int count, DualQuatTransformf dest, Vector3f scaleDest) {
+        if (count < 1 || count > transforms.length || count > weights.length || 3L * count > scales.length) {
+            throw new IllegalArgumentException("count");
+        }
         double sx = 0, sy = 0, sz = 0, wsum = 0;
         for (int i = 0; i < count; i++) {
             double w = weights[i];
@@ -373,7 +388,11 @@ public class DualQuatTransformf {
             sz += w * scales[3 * i + 2];
             wsum += w;
         }
+        if (wsum == 0.0) {
+            throw new IllegalArgumentException("the weights sum to zero");
+        }
+        blend(transforms, weights, count, dest);
         scaleDest.set((float) (sx / wsum), (float) (sy / wsum), (float) (sz / wsum));
-        return blend(transforms, weights, count, dest);
+        return dest;
     }
 }

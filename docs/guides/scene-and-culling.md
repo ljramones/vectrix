@@ -24,7 +24,7 @@ The complete, tested program is [`SceneCulling`](../../examples/src/main/java/or
 A `Transformf` holds a translation, a rotation quaternion and a per-axis scale.
 - `Transformf.compose(parent, local, dest)` gives the world transform of a child.
 - `Transformf.interpolate` blends two transforms.
-- `Transformf.invertRigidFast` inverts a transform that has no scale.
+- `Transformf.invertRigidFast` inverts a transform that has no scale, and throws if it has one.
 - `Transformf.toAffineMat4Fast` converts one to a `Matrix4x3f`, for bounds and for upload.
 
 For many objects, keep the transforms in a `TransformSoA`, with separate arrays for each component.

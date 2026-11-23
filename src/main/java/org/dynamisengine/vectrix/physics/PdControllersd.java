@@ -61,8 +61,12 @@ public final class PdControllersd {
      * @param maxTorque the largest allowed length, at least 0
      * @param dest receives the limited torque
      * @return {@code dest}
+     * @throws IllegalArgumentException if {@code maxTorque} is negative or NaN; {@code dest} is unchanged then
      */
     public static Vector3d clampTorque(Vector3dc torque, double maxTorque, Vector3d dest) {
+        if (!(maxTorque >= 0)) {
+            throw new IllegalArgumentException("maxTorque must be at least 0: " + maxTorque);
+        }
         double length = torque.length();
         if (length > maxTorque && length > 0.0) {
             double scale = maxTorque / length;

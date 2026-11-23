@@ -32,8 +32,9 @@
  * {@code QuaternionSpring} use a per-thread scratch array that is allocated on the first call in each thread.
  * Determinism: transcendentals go through {@link org.dynamisengine.vectrix.core.AccurateMath}, so results match
  * across platforms under {@code -Dvectrix.strictMath}. Errors: the array methods take a count but no offsets, start
- * at index 0 and rely on Java's array bounds checks; the hierarchy methods throw {@link IllegalArgumentException}
- * when a parent does not precede its child; other values are not validated. Precision and naming: classes ending in
+ * at index 0 and rely on Java's array bounds checks; the hierarchy methods ({@code localToModel},
+ * {@code modelToLocal}) instead check their array sizes and every parent index up front and throw
+ * {@link IllegalArgumentException} before writing anything; other values are not validated. Precision and naming: classes ending in
  * {@code f} store {@code float} and compute in {@code double}, rounding once per output; classes ending in {@code d}
  * are their {@code double} twins and use the same formulas.
  */

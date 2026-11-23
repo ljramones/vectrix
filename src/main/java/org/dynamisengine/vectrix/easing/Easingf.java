@@ -25,7 +25,7 @@ package org.dynamisengine.vectrix.easing;
 
 /**
  * Easing functions in float precision: each maps a normalized time {@code t} to a progress value, with
- * {@code f(0) = 0} and {@code f(1) = 1}, except {@code spring}, which only settles toward 1.
+ * {@code f(0) = 0} and {@code f(1) = 1}.
  * <p>
  * {@code t} is not clamped: values outside {@code [0, 1]} extrapolate the formula, so clamp {@code t} yourself if
  * the input can leave that range. The transcendental parts use {@code AccurateMath}, so they follow
@@ -125,16 +125,26 @@ public final class Easingf {
     }
 
     /**
-     * Damped spring settling at 1: {@code 1 - e^(-damping·t)·cos(frequency·t)}. It overshoots 1 when the oscillation is
-     * underdamped; it reaches exactly 1 only as {@code t} grows.
+     * Damped spring that ends exactly at 1: {@code 1 - (e^(-damping·t)·cos(frequency·t) - t·r)}, where
+     * {@code r = e^(-damping)·cos(frequency)} is what the plain spring {@code 1 - e^(-damping·t)·cos(frequency·t)}
+     * still lacks at {@code t = 1}. The linear term {@code t·r} spreads that remainder over the curve, so the result
+     * is 0 at {@code t = 0} and exactly 1 at {@code t = 1}, and differs from the plain spring by at most {@code |r|}
+     * on {@code [0, 1]}: the oscillation, its overshoot and its decay are unchanged, and with typical damping (5 or
+     * more) the difference is below 0.007. Beyond {@code t = 1} the linear term keeps growing, so clamp {@code t}
+     * rather than extrapolate.
      *
      * @param t the time, usually in {@code [0, 1]}; not clamped
      * @param damping the decay rate of the envelope per unit of {@code t}; larger settles faster
      * @param frequency the angular frequency in radians per unit of {@code t}
-     * @return the eased value; 0 at {@code t = 0}
+     * @return the eased value; 0 at {@code t = 0} and 1 at {@code t = 1}
      */
     public static float spring(float t, float damping, float frequency) {
+        return 1.0f - (oscillation(t, damping, frequency) - t * oscillation(1.0f, damping, frequency));
+    }
+
+    /** {@code e^(-damping·t)·cos(frequency·t)}, rounded the same way for every {@code t}. */
+    private static float oscillation(float t, float damping, float frequency) {
         float envelope = (float) org.dynamisengine.vectrix.core.AccurateMath.exp(-damping * t);
-        return 1.0f - envelope * (float) org.dynamisengine.vectrix.core.AccurateMath.cos(frequency * t);
+        return envelope * (float) org.dynamisengine.vectrix.core.AccurateMath.cos(frequency * t);
     }
 }

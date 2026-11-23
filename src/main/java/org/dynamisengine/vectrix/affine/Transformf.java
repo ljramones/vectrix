@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.affine;
 
+import org.dynamisengine.vectrix.core.CoreConfig;
 import org.dynamisengine.vectrix.core.Matrix4x3f;
 import org.dynamisengine.vectrix.core.Quaternionf;
 import org.dynamisengine.vectrix.core.Quaternionfc;
@@ -163,17 +164,29 @@ public class Transformf {
     }
 
     /**
-     * Computes the inverse of the rigid part: the conjugate rotation, the translation
-     * {@code -(rotation^-1 * translation)} and scale {@code (1, 1, 1)}. The scale of this transform is ignored, so
-     * the result is the inverse only when the scale is {@code (1, 1, 1)} and the rotation is a unit quaternion.
+     * Inverts a rigid transform (rotation and translation, no scale): the result has the conjugate rotation, the
+     * translation {@code -(rotation^-1 * translation)} and scale {@code (1, 1, 1)}. It is the exact inverse when the
+     * rotation is a unit quaternion.
+     * <p>
+     * A transform with scale is not rigid and is rejected rather than inverted wrongly: each scale component must be
+     * within {@code 1e-5} ({@link CoreConfig#STRICT_UNIT_TOLERANCE_F}) of 1, in every math mode. To invert a
+     * scaled transform, convert it with {@code toAffine4fFast} and invert the matrix.
      *
      * @param dest receives the inverse; may be {@code this}
      * @return {@code dest}
+     * @throws IllegalArgumentException if a scale component is not 1 within the tolerance, or is NaN; {@code dest}
+     *         is unchanged in that case
      */
     public Transformf invertRigidFast(Transformf dest) {
+        if (!(java.lang.Math.abs(scale.x - 1.0f) <= CoreConfig.STRICT_UNIT_TOLERANCE_F)
+                || !(java.lang.Math.abs(scale.y - 1.0f) <= CoreConfig.STRICT_UNIT_TOLERANCE_F)
+                || !(java.lang.Math.abs(scale.z - 1.0f) <= CoreConfig.STRICT_UNIT_TOLERANCE_F)) {
+            throw new IllegalArgumentException("not rigid: scale " + scale.x + ", " + scale.y + ", " + scale.z);
+        }
+        float tx = translation.x, ty = translation.y, tz = translation.z;
         dest.scale.set(1.0f, 1.0f, 1.0f);
         rotation.conjugate(dest.rotation);
-        dest.rotation.transform(-translation.x, -translation.y, -translation.z, dest.translation);
+        dest.rotation.transform(-tx, -ty, -tz, dest.translation);
         return dest;
     }
 

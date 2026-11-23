@@ -70,7 +70,7 @@ public final class IntegratorRK4d {
         }
         checkBounds(state.length, stateOffset, stateSize, "state");
         checkBounds(dest.length, destOffset, stateSize, "dest");
-        checkBounds(scratch.length, scratchOffset, stateSize * 5, "scratch");
+        checkBounds(scratch.length, scratchOffset, 5L * stateSize, "scratch");
 
         int k1 = scratchOffset;
         int k2 = k1 + stateSize;
@@ -106,8 +106,8 @@ public final class IntegratorRK4d {
         }
     }
 
-    private static void checkBounds(int length, int offset, int size, String name) {
-        if (offset < 0 || size < 0 || offset + size > length) {
+    private static void checkBounds(int length, int offset, long size, String name) {
+        if (offset < 0 || size < 0 || (long) offset + size > length) {
             throw new IllegalArgumentException(name);
         }
     }

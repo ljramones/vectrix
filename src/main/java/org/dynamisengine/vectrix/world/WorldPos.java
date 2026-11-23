@@ -128,12 +128,10 @@ public final class WorldPos {
      * @param y the y coordinate in metres
      * @param z the z coordinate in metres
      * @return this
-     * @throws ArithmeticException if a coordinate is not finite (see {@link #normalize()})
+     * @throws ArithmeticException if a coordinate is not finite (see {@link #normalize()}); this is then unchanged
      */
     public WorldPos set(double x, double y, double z) {
-        cell.set(0, 0, 0);
-        offset.set(x, y, z);
-        return normalize();
+        return rebase(0L, 0L, 0L, x, y, z);
     }
 
     /**
@@ -144,51 +142,57 @@ public final class WorldPos {
      * @param oy the y offset from the cell's center, in metres
      * @param oz the z offset from the cell's center, in metres
      * @return this
-     * @throws ArithmeticException if the offset cannot be rebased (see {@link #normalize()})
+     * @throws ArithmeticException if the offset cannot be rebased (see {@link #normalize()}); this is then unchanged
      */
     public WorldPos set(Vector3Lc cell, double ox, double oy, double oz) {
-        this.cell.set(cell);
-        offset.set(ox, oy, oz);
-        return normalize();
+        return rebase(cell.x(), cell.y(), cell.z(), ox, oy, oz);
     }
 
-    private long split(double o, int axis) {
-        // c = rint(o / 2^k) and rest = o - c 2^k, both exact: |rest| <= min(|o|, size/2) and rest is a multiple of
-        // ulp(o) (or exactly 0 once ulp(o) exceeds the cell size), so it is representable
+    /** Whole cells in {@code o}: {@code rint(o / 2^cellBits)}, checked to fit a {@code long} with room to spare. */
+    private long cellsIn(double o) {
         double c = java.lang.Math.rint(java.lang.Math.scalb(o, -cellBits));
         if (!(java.lang.Math.abs(c) < 0x1.0p62)) {
             throw new ArithmeticException("offset too large to rebase: " + o);
         }
-        double rest = o - java.lang.Math.scalb(c, cellBits);
-        switch (axis) {
-            case 0:
-                offset.x = rest;
-                break;
-            case 1:
-                offset.y = rest;
-                break;
-            default:
-                offset.z = rest;
-                break;
-        }
         return (long) c;
     }
 
+    /** The offset left after moving {@code c} whole cells out of {@code o}. */
+    private double rest(double o, long c) {
+        // c = rint(o / 2^k) and rest = o - c 2^k, both exact: |rest| <= min(|o|, size/2) and rest is a multiple of
+        // ulp(o) (or exactly 0 once ulp(o) exceeds the cell size), so it is representable
+        return o - java.lang.Math.scalb((double) c, cellBits);
+    }
+
     /**
-     * Moves whole cells from the offset into the cell index, exactly; the offset ends in {@code [−size/2, size/2]}.
-     * <p>
-     * If it throws, the axes processed before the failing one may already have their offset reduced without the cell
-     * index being updated, so the position is no longer valid.
+     * Sets this to cell {@code (cx, cy, cz)} plus offset {@code (ox, oy, oz)}, canonicalized. Every axis is computed
+     * before anything is written, so a throw leaves this unchanged.
+     */
+    private WorldPos rebase(long cx, long cy, long cz, double ox, double oy, double oz) {
+        long dx = cellsIn(ox);
+        long dy = cellsIn(oy);
+        long dz = cellsIn(oz);
+        long nx = java.lang.Math.addExact(cx, dx);
+        long ny = java.lang.Math.addExact(cy, dy);
+        long nz = java.lang.Math.addExact(cz, dz);
+        double rx = rest(ox, dx);
+        double ry = rest(oy, dy);
+        double rz = rest(oz, dz);
+        cell.set(nx, ny, nz);
+        offset.set(rx, ry, rz);
+        return this;
+    }
+
+    /**
+     * Moves whole cells from the offset into the cell index, exactly; the offset ends in {@code [-size/2, size/2]}.
+     * All three axes are computed before anything is written, so if it throws, this is unchanged.
      *
      * @return this
      * @throws ArithmeticException if an offset is not finite or is {@code 2^62} cells or more, or a cell index
      *     overflows
      */
     public WorldPos normalize() {
-        long cx = split(offset.x, 0), cy = split(offset.y, 1), cz = split(offset.z, 2);
-        cell.set(java.lang.Math.addExact(cell.x, cx), java.lang.Math.addExact(cell.y, cy),
-                java.lang.Math.addExact(cell.z, cz));
-        return this;
+        return rebase(cell.x, cell.y, cell.z, offset.x, offset.y, offset.z);
     }
 
     /**
@@ -198,11 +202,10 @@ public final class WorldPos {
      * @param dy the y displacement in metres
      * @param dz the z displacement in metres
      * @return this
-     * @throws ArithmeticException if the result cannot be rebased (see {@link #normalize()})
+     * @throws ArithmeticException if the result cannot be rebased (see {@link #normalize()}); this is then unchanged
      */
     public WorldPos add(double dx, double dy, double dz) {
-        offset.add(dx, dy, dz);
-        return normalize();
+        return rebase(cell.x, cell.y, cell.z, offset.x + dx, offset.y + dy, offset.z + dz);
     }
 
     /**

@@ -13,7 +13,7 @@ The tested program is [`CameraDepth`](../../examples/src/main/java/org/dynamisen
 | Perspective projection for any depth convention | `Projectionsf.perspective` | Finite or infinite far plane |
 | Reverse-Z with an infinite far plane | `Projectionsf.reverseZInfinite` | The best depth precision |
 | View matrix | `Matrix4f.lookAt`, `Matrix4f.lookAlong` | Right-handed, camera looks along −Z |
-| Depth buffer value ↔ view distance | `Projectionsf.ndcDepth`, `Projectionsf.linearDepth` | Exact inverses |
+| Depth buffer value ↔ view distance | `Projectionsf.ndcDepth`, `Projectionsf.linearDepth` | Exact inverses; for an oblique projection pass `ndcDepth` the view-space point |
 | Read the planes back from a matrix | `Projectionsf.nearPlane`, `Projectionsf.farPlane` | |
 | OpenGL-style matrix on Vulkan | `Projectionsf.vulkanClipCorrection`, `Projectionsf.flipY` | |
 | TAA jitter | `Projectionsf.haltonJitter`, `Projectionsf.applyJitter` | Works for any projection |

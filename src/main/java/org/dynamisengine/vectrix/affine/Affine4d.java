@@ -336,12 +336,11 @@ public class Affine4d {
 
     /**
      * Writes this into a 4x4 matrix with last row {@code (0, 0, 0, 1)}.
-     * Despite its name, this method fills a {@link Matrix4d}.
      *
      * @param dest receives the matrix
      * @return {@code dest}
      */
-    public Matrix4d toMatrix4f(Matrix4d dest) {
+    public Matrix4d toMatrix4d(Matrix4d dest) {
         return dest.set(
                 m00, m01, m02, 0.0,
                 m10, m11, m12, 0.0,
@@ -351,28 +350,133 @@ public class Affine4d {
 
     /**
      * Decomposes this transform into translation, rotation and scale, the inverse of
-     * {@link #translationRotateScale(Vector3dc, Quaterniondc, Vector3dc)}. Each scale factor is the
-     * length of a column, so it is never negative, and the rotation is read from the columns divided by those
-     * lengths. The result reproduces this matrix only if it has no shear and a positive determinant; a reflection
-     * or shear gives a rotation that is not a unit quaternion. A zero-length column gives scale 0 and a zero column
-     * in the rotation matrix the quaternion is read from.
+     * {@link #translationRotateScale(Vector3dc, Quaterniondc, Vector3dc)}. The rotation is always a unit quaternion
+     * (to rounding), and the result is defined for every finite matrix:
+     * <ul>
+     *   <li>Each scale factor is the length of its column. For a reflection (negative determinant) the x scale is
+     *       negative, so the rotation stays proper and the TRS still reproduces the matrix.</li>
+     *   <li>The rotation is the orthonormal frame built from the columns by Gram-Schmidt in x, y, z order: it keeps
+     *       the direction of the x column and the plane of the x and y columns. Without shear (orthogonal columns)
+     *       the TRS reproduces this matrix; with shear it cannot, since a TRS holds no shear, and the result keeps
+     *       the column lengths and the x column's direction.</li>
+     *   <li>A zero-length column gives scale 0; the rotation axes are then taken from the remaining columns, and
+     *       from fixed perpendicular directions when those are zero too (the zero matrix gives the identity
+     *       rotation).</li>
+     * </ul>
      *
      * @param dest receives the translation, rotation and scale
      * @return {@code dest}
      */
     public Transformd getTransform(Transformd dest) {
-        double sx = java.lang.Math.sqrt(m00 * m00 + m01 * m01 + m02 * m02);
-        double sy = java.lang.Math.sqrt(m10 * m10 + m11 * m11 + m12 * m12);
-        double sz = java.lang.Math.sqrt(m20 * m20 + m21 * m21 + m22 * m22);
+        double c0x = m00, c0y = m01, c0z = m02;
+        double c1x = m10, c1y = m11, c1z = m12;
+        double c2x = m20, c2y = m21, c2z = m22;
+        double sx = java.lang.Math.sqrt(c0x * c0x + c0y * c0y + c0z * c0z);
+        double sy = java.lang.Math.sqrt(c1x * c1x + c1y * c1y + c1z * c1z);
+        double sz = java.lang.Math.sqrt(c2x * c2x + c2y * c2y + c2z * c2z);
+        double det = c0x * (c1y * c2z - c1z * c2y) - c1x * (c0y * c2z - c0z * c2y) + c2x * (c0y * c1z - c0z * c1y);
+        if (det < 0.0) {
+            sx = -sx;
+        }
+
+        // r0: the x column's direction (flipped for a reflection), else the normal of the other two columns.
+        double r0x, r0y, r0z;
+        if (sx != 0.0) {
+            double inv = 1.0 / sx;
+            r0x = c0x * inv;
+            r0y = c0y * inv;
+            r0z = c0z * inv;
+        } else {
+            r0x = c1y * c2z - c1z * c2y;
+            r0y = c1z * c2x - c1x * c2z;
+            r0z = c1x * c2y - c1y * c2x;
+            double len = java.lang.Math.sqrt(r0x * r0x + r0y * r0y + r0z * r0z);
+            if (len > 0.0) {
+                r0x /= len;
+                r0y /= len;
+                r0z /= len;
+            } else {
+                // At most one independent direction remains: make r0 perpendicular to it.
+                double dx = sy > 0.0 ? c1x : c2x;
+                double dy = sy > 0.0 ? c1y : c2y;
+                double dz = sy > 0.0 ? c1z : c2z;
+                if (dx == 0.0 && dy == 0.0 && dz == 0.0) {
+                    r0x = 1.0;
+                    r0y = 0.0;
+                    r0z = 0.0;
+                } else {
+                    double ax = java.lang.Math.abs(dx), ay = java.lang.Math.abs(dy), az = java.lang.Math.abs(dz);
+                    if (ax <= ay && ax <= az) {
+                        r0x = 0.0;
+                        r0y = dz;
+                        r0z = -dy;
+                    } else if (ay <= az) {
+                        r0x = -dz;
+                        r0y = 0.0;
+                        r0z = dx;
+                    } else {
+                        r0x = dy;
+                        r0y = -dx;
+                        r0z = 0.0;
+                    }
+                    len = java.lang.Math.sqrt(r0x * r0x + r0y * r0y + r0z * r0z);
+                    r0x /= len;
+                    r0y /= len;
+                    r0z /= len;
+                }
+            }
+        }
+
+        // r1: the y column without its r0 part, else derived from the z column, else any perpendicular.
+        double d1 = c1x * r0x + c1y * r0y + c1z * r0z;
+        double r1x = c1x - d1 * r0x, r1y = c1y - d1 * r0y, r1z = c1z - d1 * r0z;
+        double len1 = java.lang.Math.sqrt(r1x * r1x + r1y * r1y + r1z * r1z);
+        if (len1 > 0.0) {
+            r1x /= len1;
+            r1y /= len1;
+            r1z /= len1;
+        } else {
+            double d2 = c2x * r0x + c2y * r0y + c2z * r0z;
+            double ux = c2x - d2 * r0x, uy = c2y - d2 * r0y, uz = c2z - d2 * r0z;
+            double len2 = java.lang.Math.sqrt(ux * ux + uy * uy + uz * uz);
+            if (len2 > 0.0) {
+                // r1 = r2 x r0, with r2 the normalized remainder of the z column.
+                ux /= len2;
+                uy /= len2;
+                uz /= len2;
+                r1x = uy * r0z - uz * r0y;
+                r1y = uz * r0x - ux * r0z;
+                r1z = ux * r0y - uy * r0x;
+            } else {
+                // the unit axis least aligned with r0, made perpendicular to it (r0 = x gives r1 = y)
+                double ax = java.lang.Math.abs(r0x), ay = java.lang.Math.abs(r0y), az = java.lang.Math.abs(r0z);
+                double ex = 0.0, ey = 0.0, ez = 0.0;
+                if (ax <= ay && ax <= az) {
+                    ex = 1.0;
+                } else if (ay <= az) {
+                    ey = 1.0;
+                } else {
+                    ez = 1.0;
+                }
+                double k = ex * r0x + ey * r0y + ez * r0z;
+                r1x = ex - k * r0x;
+                r1y = ey - k * r0y;
+                r1z = ez - k * r0z;
+                double len = java.lang.Math.sqrt(r1x * r1x + r1y * r1y + r1z * r1z);
+                r1x /= len;
+                r1y /= len;
+                r1z /= len;
+            }
+        }
+
         dest.translation.set(m30, m31, m32);
         dest.scale.set(sx, sy, sz);
-
-        double invSx = sx > 0.0 ? 1.0 / sx : 0.0;
-        double invSy = sy > 0.0 ? 1.0 / sy : 0.0;
-        double invSz = sz > 0.0 ? 1.0 / sz : 0.0;
-        double r00 = m00 * invSx, r01 = m01 * invSx, r02 = m02 * invSx;
-        double r10 = m10 * invSy, r11 = m11 * invSy, r12 = m12 * invSy;
-        double r20 = m20 * invSz, r21 = m21 * invSz, r22 = m22 * invSz;
+        // The rotation matrix has columns r0, r1 and r2 = r0 x r1; rCR is column C, row R.
+        double r00 = r0x, r01 = r0y, r02 = r0z;
+        double r10 = r1x, r11 = r1y, r12 = r1z;
+        double r20 = r0y * r1z - r0z * r1y;
+        double r21 = r0z * r1x - r0x * r1z;
+        double r22 = r0x * r1y - r0y * r1x;
 
         double t;
         double tr = r00 + r11 + r22;

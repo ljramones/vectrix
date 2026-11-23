@@ -86,20 +86,20 @@ public final class Ranged {
      * @return {@code value} clamped to {@code [0, 1]}
      */
     public static double saturate(double value) {
-        return clamp(value, 0.0, 1.0);
+        return clamp(0.0, 1.0, value);
     }
 
     /**
-     * Clamps a value to {@code [min, max]}. Note the argument order: value first, like
-     * {@code java.lang.Math.clamp} and unlike {@link Math#clamp(double, double, double)}.
+     * Clamps a value to {@code [min, max]}. The argument order is {@code (min, max, value)}, the same as
+     * {@link Math#clamp(double, double, double)}.
      *
-     * @param value the value to clamp
      * @param min the lower bound
      * @param max the upper bound, at least {@code min}
+     * @param value the value to clamp
      * @return {@code value} clamped to {@code [min, max]}
      * @throws IllegalArgumentException if {@code min > max}
      */
-    public static double clamp(double value, double min, double max) {
+    public static double clamp(double min, double max, double value) {
         if (min > max) {
             throw new IllegalArgumentException("min > max");
         }

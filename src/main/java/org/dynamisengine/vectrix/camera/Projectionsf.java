@@ -138,9 +138,11 @@ public final class Projectionsf {
     }
 
     /**
-     * Returns the NDC depth of the view-space point {@code (0, 0, −viewDistance)}. The result ignores the x and y
-     * columns of {@code proj}, so it is the depth of every point at that distance only for projections whose depth
-     * does not depend on x and y (all except {@link #obliqueNearPlane oblique} ones).
+     * Returns the NDC depth of the view-space point {@code (0, 0, −viewDistance)}, the point at that distance on the
+     * view axis. For projections whose depth does not depend on x and y (every symmetric or off-center projection
+     * built by this class or {@code Matrix4f}, but not an {@link #obliqueNearPlane oblique} one) it is the depth of
+     * every point at that distance. For an oblique projection use
+     * {@link #ndcDepth(Matrix4fc, float, float, float)} with the point itself.
      *
      * @param proj the projection matrix
      * @param viewDistance the distance in front of the camera, along {@code −z}
@@ -152,8 +154,27 @@ public final class Projectionsf {
     }
 
     /**
+     * Returns the NDC depth of the view-space point {@code (x, y, z)}: {@code clip.z / clip.w} of
+     * {@code proj · (x, y, z, 1)}, using every column of {@code proj}. Exact for any projection, oblique ones
+     * included. Points in front of the camera have {@code z < 0}.
+     *
+     * @param proj the projection matrix
+     * @param x the view-space x
+     * @param y the view-space y
+     * @param z the view-space z, negative in front of the camera
+     * @return the NDC depth, in the convention {@code proj} was built for
+     * @since 3.0.0
+     */
+    public static float ndcDepth(Matrix4fc proj, float x, float y, float z) {
+        double px = x, py = y, pz = z;
+        double clipZ = proj.m02() * px + proj.m12() * py + proj.m22() * pz + proj.m32();
+        double clipW = proj.m03() * px + proj.m13() * py + proj.m23() * pz + proj.m33();
+        return (float) (clipZ / clipW);
+    }
+
+    /**
      * Returns the view distance of an NDC depth for a perspective projection with planes {@code near} and
-     * {@code far}: the inverse of {@link #ndcDepth}. Use it to linearize a depth-buffer value.
+     * {@code far}: the inverse of {@link #ndcDepth(Matrix4fc, float)}. Use it to linearize a depth-buffer value.
      *
      * @param ndcDepth the NDC depth, in the convention {@code range}
      * @param near the near-plane distance, greater than 0
@@ -220,19 +241,25 @@ public final class Projectionsf {
 
     /**
      * TAA jitter for frame {@code frameIndex}: the Halton (2, 3) point with index {@code frameIndex mod sampleCount
-     * + 1} ({@code sampleCount ≤ 0}: no wrap), as a sub-pixel offset in [−0.5, 0.5) pixels, returned in NDC units
-     * ({@code 2 · offset / size}) for {@link #applyJitter}.
+     * + 1} ({@code sampleCount ≤ 0}: no wrap, index {@code frameIndex + 1}), as a sub-pixel offset in [−0.5, 0.5)
+     * pixels, returned in NDC units ({@code 2 · offset / size}) for {@link #applyJitter}.
      *
-     * @param frameIndex the frame number, at least 0
+     * @param frameIndex the frame number: any value when {@code sampleCount > 0} (taken modulo
+     *        {@code sampleCount}, so a negative frame counts back from the end of the cycle), otherwise in
+     *        {@code [0, Integer.MAX_VALUE - 1]}
      * @param sampleCount the length of the jitter cycle, or a value {@code ≤ 0} for no cycle
      * @param width the render-target width in pixels
      * @param height the render-target height in pixels
      * @param dest receives the offset in NDC units
      * @return {@code dest}
-     * @throws IllegalArgumentException if {@code sampleCount ≤ 0} and {@code frameIndex + 1} is negative (including
-     *         overflow at {@link Integer#MAX_VALUE})
+     * @throws IllegalArgumentException if {@code sampleCount ≤ 0} and {@code frameIndex} is negative or
+     *         {@link Integer#MAX_VALUE} (whose index {@code frameIndex + 1} would overflow); {@code dest} is unchanged
+     *         in that case
      */
     public static Vector2f haltonJitter(int frameIndex, int sampleCount, float width, float height, Vector2f dest) {
+        if (sampleCount <= 0 && (frameIndex < 0 || frameIndex == Integer.MAX_VALUE)) {
+            throw new IllegalArgumentException("frameIndex " + frameIndex + " without a cycle");
+        }
         int i = (sampleCount > 0 ? java.lang.Math.floorMod(frameIndex, sampleCount) : frameIndex) + 1;
         double px = HaltonSequence.haltonDouble(i, 2) - 0.5, py = HaltonSequence.haltonDouble(i, 3) - 0.5;
         return dest.set((float) (2.0 * px / width), (float) (2.0 * py / height));

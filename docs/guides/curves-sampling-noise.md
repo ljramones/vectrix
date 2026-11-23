@@ -122,7 +122,7 @@ Things to watch:
 ## Easing
 
 An easing function reshapes a normalized time `t` in `[0, 1]` so motion starts or ends gently. Each function maps 0
-to 0 and 1 to 1, except `Easingf.spring` (below). Blend with the result: `a + (b − a) · ease(t)`.
+to 0 and 1 to 1. Blend with the result: `a + (b − a) · ease(t)`.
 
 | Method | Shape |
 |---|---|
@@ -131,14 +131,15 @@ to 0 and 1 to 1, except `Easingf.spring` (below). Blend with the result: `a + (b
 | `Easingf.easeInQuad`, `Easingf.easeOutQuad`, `Easingf.easeInOutQuad` | Quadratic: slow start, slow end, or both |
 | `Easingf.easeInCubic`, `Easingf.easeOutCubic`, `Easingf.easeInOutCubic` | Cubic: the same, more pronounced |
 | `Easingf.bounceOut` | Bounces to rest at 1 |
-| `Easingf.spring` | `1 − e^(−damping·t) · cos(frequency·t)`: overshoots and settles toward 1 |
+| `Easingf.spring` | A damped oscillation, `1 − e^(−damping·t) · cos(frequency·t)` corrected to end at 1: overshoots and settles |
 
 The functions do not clamp. Inputs outside `[0, 1]` extrapolate the polynomial, so clamp first with
 `Rangef.saturate`. To turn a time range into `t`, use `Rangef.inverseLerp(start, end, time)` (it throws when
 `start == end`). `Rangef.remap` and `Rangef.remapClamped` map from one range to another in one call.
 
-`Easingf.spring` takes `frequency` in radians per unit of `t` and `damping` per unit of `t`. It does not reach exactly
-1 at `t = 1`; with higher damping it gets closer. For a physically based spring that runs on real time steps, use
+`Easingf.spring` takes `frequency` in radians per unit of `t` and `damping` per unit of `t`. It reaches exactly 1 at
+`t = 1`: a linear term spreads the plain spring's remainder at `t = 1` over the curve, which changes it by less than
+0.007 for damping of 5 or more. For a physically based spring that runs on real time steps, use
 `SpringDamperf.dampedStep` (see [geometry-and-physics.md](geometry-and-physics.md)).
 
 ## Interpolating across a triangle

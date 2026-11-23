@@ -26,11 +26,13 @@ package org.dynamisengine.vectrix.physics;
 import org.dynamisengine.vectrix.core.Math;
 import org.dynamisengine.vectrix.core.Matrix3d;
 import org.dynamisengine.vectrix.core.Vector3d;
+import org.dynamisengine.vectrix.core.Vector3dc;
 
 /**
  * Position-based dynamics (PBD) constraint projections (double precision). Each method computes the position
  * corrections that move particles toward satisfying one constraint; the caller's solver applies them and iterates. An
- * inverse mass of 0 pins a particle. Degenerate configurations give zero corrections. No method allocates.
+ * inverse mass of 0 pins a particle. Degenerate configurations give zero corrections; the degeneracy tests are
+ * relative to the configuration's own size, so they behave the same at any scale. No method allocates.
  *
  * @since 1.10.12
  */
@@ -44,8 +46,9 @@ public final class PbdConstraintsd {
     /**
      * Returns the correction for particle A only, from the distance constraint
      * {@code C = |posA − posB| − restLength}: {@code dA = −k wA C / (wA + wB) · (posA − posB) / |posA − posB|}.
-     * For B's correction, call again with A and B (and their inverse masses) swapped. The correction is zero when the
-     * particles are closer than {@code 1e-6} or both are pinned. {@code dest} may be either position.
+     * For B's correction, call again with A and B (and their inverse masses) swapped. The correction is zero when both
+     * particles are pinned, when they coincide, or when they are closer than {@code 1e-6 · |restLength|} (the
+     * direction between them is then rounding noise). {@code dest} may be either position.
      *
      * @param posA the position of particle A
      * @param invMassA the inverse mass {@code wA} of A (0 = pinned)
@@ -57,16 +60,16 @@ public final class PbdConstraintsd {
      * @return {@code dest}
      */
     public static Vector3d distanceConstraint(
-            Vector3d posA, double invMassA,
-            Vector3d posB, double invMassB,
+            Vector3dc posA, double invMassA,
+            Vector3dc posB, double invMassB,
             double restLength, double stiffness,
             Vector3d dest) {
-        double dx = posA.x - posB.x;
-        double dy = posA.y - posB.y;
-        double dz = posA.z - posB.z;
+        double dx = posA.x() - posB.x();
+        double dy = posA.y() - posB.y();
+        double dz = posA.z() - posB.z();
         double len = Math.sqrt(dx * dx + dy * dy + dz * dz);
         double w = invMassA + invMassB;
-        if (len < EPS || w <= 0.0) {
+        if (!(w > 0.0) || len == 0.0 || len <= EPS * java.lang.Math.abs(restLength)) {
             return dest.set(0.0, 0.0, 0.0);
         }
         double c = len - restLength;
@@ -76,7 +79,7 @@ public final class PbdConstraintsd {
 
     /**
      * Equal-mass form of
-     * {@link #bendConstraint(Vector3d, double, Vector3d, double, Vector3d, double, double, double, Vector3d, Vector3d,
+     * {@link #bendConstraint(Vector3dc, double, Vector3dc, double, Vector3dc, double, double, double, Vector3d, Vector3d,
      * Vector3d) bendConstraint} (all inverse masses 1).
      *
      * @param p0 the first end point
@@ -89,7 +92,7 @@ public final class PbdConstraintsd {
      * @param d2 receives the correction for {@code p2}
      */
     public static void bendConstraint(
-            Vector3d p0, Vector3d p1, Vector3d p2,
+            Vector3dc p0, Vector3dc p1, Vector3dc p2,
             double restAngle, double stiffness,
             Vector3d d0, Vector3d d1, Vector3d d2) {
         bendConstraint(p0, 1.0, p1, 1.0, p2, 1.0, restAngle, stiffness, d0, d1, d2);
@@ -100,9 +103,10 @@ public final class PbdConstraintsd {
      * {@code p1->p2}: {@code C = angle - restAngle}. Writes the position-based-dynamics corrections
      * {@code d_i = -k C w_i grad_i(C) / sum_j w_j |grad_j(C)|^2}, which move the angle toward its rest value.
      * <p>
-     * All corrections are zero when an edge is degenerate or the edges are (anti)parallel, because the
-     * gradient direction is undefined there. Inputs are read before any output is written, so outputs may
-     * alias inputs.
+     * All corrections are zero when an edge is degenerate (zero, or shorter than {@code 1e-6} times the other edge) or
+     * the edges are (anti)parallel (the sine of the angle between them below {@code 1e-6}), because the gradient
+     * direction is undefined there, and when every particle is pinned. The tests are relative, so they hold at any
+     * scale. Inputs are read before any output is written, so outputs may alias inputs.
      *
      * @param p0 the first end point
      * @param invMass0 inverse mass of {@code p0} (0 = pinned)
@@ -117,14 +121,15 @@ public final class PbdConstraintsd {
      * @param d2 receives the correction for {@code p2}
      */
     public static void bendConstraint(
-            Vector3d p0, double invMass0, Vector3d p1, double invMass1, Vector3d p2, double invMass2,
+            Vector3dc p0, double invMass0, Vector3dc p1, double invMass1, Vector3dc p2, double invMass2,
             double restAngle, double stiffness,
             Vector3d d0, Vector3d d1, Vector3d d2) {
-        double v0x = p0.x - p1.x, v0y = p0.y - p1.y, v0z = p0.z - p1.z;
-        double v1x = p2.x - p1.x, v1y = p2.y - p1.y, v1z = p2.z - p1.z;
+        double v0x = p0.x() - p1.x(), v0y = p0.y() - p1.y(), v0z = p0.z() - p1.z();
+        double v1x = p2.x() - p1.x(), v1y = p2.y() - p1.y(), v1z = p2.z() - p1.z();
         double l0 = Math.sqrt(v0x * v0x + v0y * v0y + v0z * v0z);
         double l1 = Math.sqrt(v1x * v1x + v1y * v1y + v1z * v1z);
-        if (l0 < EPS || l1 < EPS) {
+        double lmax = java.lang.Math.max(l0, l1);
+        if (!(l0 > EPS * lmax) || !(l1 > EPS * lmax)) {
             zero(d0, d1, d2);
             return;
         }
@@ -154,7 +159,9 @@ public final class PbdConstraintsd {
         double denom = invMass0 * (g0x * g0x + g0y * g0y + g0z * g0z)
                 + invMass1 * (g1x * g1x + g1y * g1y + g1z * g1z)
                 + invMass2 * (g2x * g2x + g2y * g2y + g2z * g2z);
-        if (denom < EPS) {
+        // every gradient has length at least about 1 / max(l0, l1): compare with that scale, not with a constant
+        double gradScale = (invMass0 + invMass1 + invMass2) * (1.0 / (l0 * l0) + 1.0 / (l1 * l1));
+        if (!(denom > EPS * gradScale)) {
             zero(d0, d1, d2);
             return;
         }
@@ -166,7 +173,7 @@ public final class PbdConstraintsd {
 
     /**
      * Equal-mass form of
-     * {@link #volumeConstraint(Vector3d, double, Vector3d, double, Vector3d, double, Vector3d, double, double, double,
+     * {@link #volumeConstraint(Vector3dc, double, Vector3dc, double, Vector3dc, double, Vector3dc, double, double, double,
      * Vector3d, Vector3d, Vector3d, Vector3d) volumeConstraint} (all inverse masses 1).
      *
      * @param p0 the first vertex of the tetrahedron
@@ -182,7 +189,7 @@ public final class PbdConstraintsd {
      * @return the current signed volume
      */
     public static double volumeConstraint(
-            Vector3d p0, Vector3d p1, Vector3d p2, Vector3d p3,
+            Vector3dc p0, Vector3dc p1, Vector3dc p2, Vector3dc p3,
             double restVolume, double stiffness,
             Vector3d d0, Vector3d d1, Vector3d d2, Vector3d d3) {
         return volumeConstraint(p0, 1.0, p1, 1.0, p2, 1.0, p3, 1.0, restVolume, stiffness, d0, d1, d2, d3);
@@ -194,7 +201,8 @@ public final class PbdConstraintsd {
      * {@code d_i = -k C w_i grad_i(V) / sum_j w_j |grad_j(V)|^2}. The corrections are mass-weighted, so they
      * conserve linear momentum. Inputs are read before any output is written, so outputs may alias inputs. A flat
      * tetrahedron is pushed back toward its rest volume; the corrections are zero only when the volume gradient
-     * vanishes (all four points on one line) or every vertex is pinned.
+     * vanishes (all four points on one line, to {@code 1e-6} relative to the tetrahedron's size) or every vertex is
+     * pinned. The test is relative, so it holds at any scale.
      *
      * @param p0 the first vertex of the tetrahedron
      * @param invMass0 inverse mass of {@code p0} (0 = pinned)
@@ -213,13 +221,13 @@ public final class PbdConstraintsd {
      * @return the current signed volume
      */
     public static double volumeConstraint(
-            Vector3d p0, double invMass0, Vector3d p1, double invMass1,
-            Vector3d p2, double invMass2, Vector3d p3, double invMass3,
+            Vector3dc p0, double invMass0, Vector3dc p1, double invMass1,
+            Vector3dc p2, double invMass2, Vector3dc p3, double invMass3,
             double restVolume, double stiffness,
             Vector3d d0, Vector3d d1, Vector3d d2, Vector3d d3) {
-        double x10 = p1.x - p0.x, y10 = p1.y - p0.y, z10 = p1.z - p0.z;
-        double x20 = p2.x - p0.x, y20 = p2.y - p0.y, z20 = p2.z - p0.z;
-        double x30 = p3.x - p0.x, y30 = p3.y - p0.y, z30 = p3.z - p0.z;
+        double x10 = p1.x() - p0.x(), y10 = p1.y() - p0.y(), z10 = p1.z() - p0.z();
+        double x20 = p2.x() - p0.x(), y20 = p2.y() - p0.y(), z20 = p2.z() - p0.z();
+        double x30 = p3.x() - p0.x(), y30 = p3.y() - p0.y(), z30 = p3.z() - p0.z();
         final double sixth = 1.0 / 6.0;
         // grad_p1 = (p2-p0) x (p3-p0) / 6, grad_p2 = (p3-p0) x (p1-p0) / 6, grad_p3 = (p1-p0) x (p2-p0) / 6
         double g1x = (y20 * z30 - z20 * y30) * sixth, g1y = (z20 * x30 - x20 * z30) * sixth, g1z = (x20 * y30 - y20 * x30) * sixth;
@@ -232,7 +240,12 @@ public final class PbdConstraintsd {
                 + invMass1 * (g1x * g1x + g1y * g1y + g1z * g1z)
                 + invMass2 * (g2x * g2x + g2y * g2y + g2z * g2z)
                 + invMass3 * (g3x * g3x + g3y * g3y + g3z * g3z);
-        if (denom < EPS * EPS) {
+        // a gradient is an edge cross product / 6, so compare with (squared edge length / 6)^2, not with a constant
+        double edges = (double) x10 * x10 + (double) y10 * y10 + (double) z10 * z10 + (double) x20 * x20
+                + (double) y20 * y20 + (double) z20 * z20 + (double) x30 * x30 + (double) y30 * y30
+                + (double) z30 * z30;
+        double gradScale = ((double) invMass0 + invMass1 + invMass2 + invMass3) * (edges * edges / 36.0);
+        if (!(denom > (double) EPS * EPS * gradScale)) {
             zero(d0, d1, d2);
             d3.set(0.0, 0.0, 0.0);
             return volume;
@@ -253,7 +266,9 @@ public final class PbdConstraintsd {
      * {@code R (x0_i - c0) + c}, where {@code c} and {@code c0} are the mass-weighted centroids of the current and rest
      * positions. This method does not allocate.
      * <p>
-     * If the total mass is at most {@code 1e-6}, the rotation is the identity and each goal is the current position.
+     * If the total mass is not positive, the rotation is the identity and each goal is the current position. The
+     * other degeneracy tests (a rank-deficient {@code A_pq}) are relative to the size of {@code A_pq}, so they hold at
+     * any scale.
      * {@code goalPositions} may be {@code currentPositions}; its elements must not be null.
      *
      * @param currentPositions the current positions {@code x_i}
@@ -264,8 +279,8 @@ public final class PbdConstraintsd {
      * @throws IllegalArgumentException if the four arrays differ in length
      */
     public static void shapeMatchingGoal(
-            Vector3d[] currentPositions,
-            Vector3d[] restPositions,
+            Vector3dc[] currentPositions,
+            Vector3dc[] restPositions,
             double[] masses,
             Matrix3d rotationOut,
             Vector3d[] goalPositions) {
@@ -279,14 +294,14 @@ public final class PbdConstraintsd {
         for (int i = 0; i < n; i++) {
             double m = masses[i];
             massSum += m;
-            ccx += m * currentPositions[i].x;
-            ccy += m * currentPositions[i].y;
-            ccz += m * currentPositions[i].z;
-            rcx += m * restPositions[i].x;
-            rcy += m * restPositions[i].y;
-            rcz += m * restPositions[i].z;
+            ccx += m * currentPositions[i].x();
+            ccy += m * currentPositions[i].y();
+            ccz += m * currentPositions[i].z();
+            rcx += m * restPositions[i].x();
+            rcy += m * restPositions[i].y();
+            rcz += m * restPositions[i].z();
         }
-        if (massSum <= EPS) {
+        if (!(massSum > 0.0)) {
             rotationOut.identity();
             for (int i = 0; i < n; i++) {
                 goalPositions[i].set(currentPositions[i]);
@@ -301,24 +316,28 @@ public final class PbdConstraintsd {
         double a00 = 0, a01 = 0, a02 = 0, a10 = 0, a11 = 0, a12 = 0, a20 = 0, a21 = 0, a22 = 0;
         for (int i = 0; i < n; i++) {
             double m = masses[i];
-            double qx = restPositions[i].x - rcx, qy = restPositions[i].y - rcy, qz = restPositions[i].z - rcz;
-            double px = currentPositions[i].x - ccx, py = currentPositions[i].y - ccy, pz = currentPositions[i].z - ccz;
+            double qx = restPositions[i].x() - rcx, qy = restPositions[i].y() - rcy, qz = restPositions[i].z() - rcz;
+            double px = currentPositions[i].x() - ccx, py = currentPositions[i].y() - ccy, pz = currentPositions[i].z() - ccz;
             a00 += m * px * qx; a01 += m * px * qy; a02 += m * px * qz;
             a10 += m * py * qx; a11 += m * py * qy; a12 += m * py * qz;
             a20 += m * pz * qx; a21 += m * pz * qy; a22 += m * pz * qz;
         }
 
+        // Thresholds below are relative to the size of A_pq, which scales with mass times length squared.
+        double aNorm = java.lang.Math.sqrt(a00 * a00 + a01 * a01 + a02 * a02 + a10 * a10 + a11 * a11 + a12 * a12
+                + a20 * a20 + a21 * a21 + a22 * a22);
+        double tiny = 1e-12 * aNorm;
         // Initial estimate: Gram-Schmidt on the first two columns of A_pq (identity if degenerate).
         double qw = 1, qx = 0, qy = 0, qz = 0;
         double c0x = a00, c0y = a10, c0z = a20;
         double c1x = a01, c1y = a11, c1z = a21;
         double c0l = java.lang.Math.sqrt(c0x * c0x + c0y * c0y + c0z * c0z);
-        if (c0l > 1e-12) {
+        if (c0l > tiny) {
             c0x /= c0l; c0y /= c0l; c0z /= c0l;
             double d = c0x * c1x + c0y * c1y + c0z * c1z;
             c1x -= d * c0x; c1y -= d * c0y; c1z -= d * c0z;
             double c1l = java.lang.Math.sqrt(c1x * c1x + c1y * c1y + c1z * c1z);
-            if (c1l > 1e-12) {
+            if (c1l > tiny) {
                 c1x /= c1l; c1y /= c1l; c1z /= c1l;
                 double c2x = c0y * c1z - c0z * c1y, c2y = c0z * c1x - c0x * c1z, c2z = c0x * c1y - c0y * c1x;
                 // rotation matrix (columns c0, c1, c2) -> quaternion (Shepperd)
@@ -355,7 +374,7 @@ public final class PbdConstraintsd {
             double oz = (r00 * a10 - r10 * a00) + (r01 * a11 - r11 * a01) + (r02 * a12 - r12 * a02);
             double dot = r00 * a00 + r10 * a10 + r20 * a20 + r01 * a01 + r11 * a11 + r21 * a21
                     + r02 * a02 + r12 * a12 + r22 * a22;
-            double scale = 1.0 / (java.lang.Math.abs(dot) + 1.0e-9);
+            double scale = 1.0 / (java.lang.Math.abs(dot) + 1.0e-9 * aNorm + Double.MIN_NORMAL);
             ox *= scale; oy *= scale; oz *= scale;
             double w = java.lang.Math.sqrt(ox * ox + oy * oy + oz * oz);
             if (w < 1.0e-9) {
@@ -376,8 +395,8 @@ public final class PbdConstraintsd {
                 r02, r12, r22);
 
         for (int i = 0; i < n; i++) {
-            Vector3d q = restPositions[i];
-            double vx = q.x - rcx, vy = q.y - rcy, vz = q.z - rcz;
+            Vector3dc q = restPositions[i];
+            double vx = q.x() - rcx, vy = q.y() - rcy, vz = q.z() - rcz;
             goalPositions[i].set(
                     rotationOut.m00 * vx + rotationOut.m10 * vy + rotationOut.m20 * vz + ccx,
                     rotationOut.m01 * vx + rotationOut.m11 * vy + rotationOut.m21 * vz + ccy,
