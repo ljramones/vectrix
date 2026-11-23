@@ -26,15 +26,40 @@ package org.dynamisengine.vectrix.ltc;
 import org.dynamisengine.vectrix.renderingmath.Interpolationf;
 
 /**
- * LTC table sampling helpers.
-  * @since 1.0.0
-  */
+ * Bilinear sampling of fitted LTC tables (single precision). Vectrix does not ship a fitted table; load one (for
+ * example the published fit of Heitz et al. 2016) and sample it here.
+ * <p>
+ * <b>Table layout.</b> A table is a flat array of {@code width × height} texels of {@code k} consecutive values
+ * ({@code k = 9} for {@link #sampleMat3}, {@code 4} for {@link #sampleVec4}), row by row: texel {@code (x, y)} starts
+ * at index {@code k · (y · width + x)}. {@code x} runs along roughness and {@code y} along {@code ndotv}. The values
+ * of a texel are interpolated one by one and returned in the order they are stored, so their meaning (for example
+ * the row-major matrix that {@link LtcEvalf#transformDirection} expects) is whatever the table holds.
+ * <p>
+ * <b>Corner-aligned sampling.</b> The inputs are clamped to {@code [0, 1]} and mapped to {@code value · (n − 1)}
+ * texels, so 0 lands exactly on the first texel and 1 exactly on the last ({@code n} is {@code width} or
+ * {@code height}). This differs from GPU texture sampling, where texel {@code i} is centred at
+ * {@code (i + 0.5) / n}; to read the same table on the GPU with the same result, use the texture coordinate
+ * {@code value · (n − 1) / n + 0.5 / n}. If your table is parameterized by something other than {@code nDotV}
+ * (for example {@code sqrt(1 − nDotV)}), pass that value as {@code ndotv}.
+ *
+ * @since 1.0.0
+ */
 public final class LtcTablef {
     private LtcTablef() {
     }
 
     /**
-     * Bilinear sample of a 3x3 matrix table stored as texels of 9 floats.
+     * Samples a table of 3×3 matrices (9 values per texel) bilinearly at {@code (roughness, ndotv)}, with the layout
+     * and corner-aligned mapping described in the class documentation. Does not allocate.
+     *
+     * @param table the table, at least {@code width · height · 9} values, starting at index 0
+     * @param width the number of texels along roughness, at least 2
+     * @param height the number of texels along {@code ndotv}, at least 2
+     * @param roughness the first coordinate, clamped to {@code [0, 1]}
+     * @param ndotv the second coordinate, clamped to {@code [0, 1]}
+     * @param dest9 receives the 9 interpolated values at indices 0..8
+     * @throws IllegalArgumentException if an array is null or too short, {@code width} or {@code height} is less
+     *         than 2, or {@code roughness} or {@code ndotv} is NaN
      */
     public static void sampleMat3(float[] table, int width, int height, float roughness, float ndotv, float[] dest9) {
         if (table == null || dest9 == null || dest9.length < 9 || width <= 1 || height <= 1 || table.length < width * height * 9) {
@@ -62,7 +87,18 @@ public final class LtcTablef {
     }
 
     /**
-     * Bilinear sample of a vec4 table stored as texels of 4 floats.
+     * Samples a table of 4-value texels (for example the magnitude and Fresnel terms) bilinearly at
+     * {@code (roughness, ndotv)}, with the layout and corner-aligned mapping described in the class documentation.
+     * Does not allocate.
+     *
+     * @param table the table, at least {@code width · height · 4} values, starting at index 0
+     * @param width the number of texels along roughness, at least 2
+     * @param height the number of texels along {@code ndotv}, at least 2
+     * @param roughness the first coordinate, clamped to {@code [0, 1]}
+     * @param ndotv the second coordinate, clamped to {@code [0, 1]}
+     * @param dest4 receives the 4 interpolated values at indices 0..3
+     * @throws IllegalArgumentException if an array is null or too short, {@code width} or {@code height} is less
+     *         than 2, or {@code roughness} or {@code ndotv} is NaN
      */
     public static void sampleVec4(float[] table, int width, int height, float roughness, float ndotv, float[] dest4) {
         if (table == null || dest4 == null || dest4.length < 4 || width <= 1 || height <= 1 || table.length < width * height * 4) {

@@ -25,10 +25,15 @@
 package org.dynamisengine.vectrix.curve;
 
 /**
+ * Default settings of the curve utilities.
+ *
  * @since 1.0.0
  */
-
 public final class CurveConstants {
+    /**
+     * A suggested sample count for the arc-length tables of {@link CurveReparameterizer3f} and
+     * {@link CurveReparameterizer3d}: 64 samples, so a table holds 65 entries.
+     */
     public static final int DEFAULT_ARCLEN_SAMPLES = 64;
 
     private CurveConstants() {

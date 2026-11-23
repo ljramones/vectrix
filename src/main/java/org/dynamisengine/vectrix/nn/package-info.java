@@ -22,11 +22,23 @@
  * THE SOFTWARE.
  */
 /**
- * Neural-network kernels: activations, softmax and normalization, forward and backward, over float arrays.
+ * Neural-network kernels over float arrays, forward and backward: activations, softmax, layer and RMS
+ * normalization, attention, rotary position embeddings, 2D convolution and pooling, cross-entropy loss, optimizer
+ * steps, token sampling and low-precision formats (bfloat16, FP8, int8 blocks).
  * <p>
- * The transcendental functions are vectrix's own ({@link org.dynamisengine.vectrix.core.ReproducibleMath}): series with exact
- * rational coefficients, evaluated with fused multiply-adds identically by the scalar and Vector API paths, so every
- * kernel gives the same bits on every platform and jar. Reductions use the order of
- * {@link org.dynamisengine.vectrix.blas.Blasf}. Kernels work on caller-chosen rows, keep no state and do not allocate.
+ * The transcendental functions are vectrix's own ({@link org.dynamisengine.vectrix.core.ReproducibleMath}): series
+ * with exact rational coefficients, evaluated with fused multiply-adds identically by the scalar and Vector API
+ * paths, so every kernel gives the same bits on every platform and jar. Reductions use the order of
+ * {@link org.dynamisengine.vectrix.blas.Blasf}. Kernels work on caller-chosen rows, keep no state and do not
+ * allocate. Matrices are row-major with explicit strides; images are channel-major ({@code C×H×W}).
+ * <p>
+ * <b>Contract.</b> Threading: the kernels are static and stateless, and {@code Rope}, {@code Conv2d} and
+ * {@code Pool2d} objects are immutable, so all are safe to call from any thread; scratch arrays belong to one call
+ * at a time. Allocation: no kernel allocates; {@code Rope.plan} allocates its frequency table. Determinism: results
+ * are the same bits on every platform, with or without SIMD, under any {@code MathMode} and with or without
+ * {@code -Dvectrix.strictMath}, and do not depend on how rows, heads or batches are split across threads.
+ * Errors: invalid sizes and offsets throw {@code IllegalArgumentException}, in most kernels before any element is
+ * written; the exceptions are named in the method comments. Precision and naming: all data is float (FP8, bfloat16
+ * and int8 are stored as codes); some intermediate values are computed in double and rounded once.
  */
 package org.dynamisengine.vectrix.nn;

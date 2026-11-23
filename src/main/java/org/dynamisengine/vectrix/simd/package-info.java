@@ -22,6 +22,14 @@
  * THE SOFTWARE.
  */
 /**
- * SIMD backend detection and vectorized helper types for accelerated kernels with scalar fallbacks.
+ * The SIMD switch and Vector API detection ({@link org.dynamisengine.vectrix.simd.SimdSupport}) for the kernels
+ * that have Vector API paths and scalar fallbacks.
+ * <p>
+ * <b>Contract.</b> Threading: {@code SimdSupport} is safe from any thread; {@code setEnabled} writes a volatile flag
+ * that every thread sees on its next kernel call. Allocation: {@code SimdSupport} allocates nothing after class
+ * initialization. Determinism: the
+ * switch never changes results, only speed, because every SIMD path gives the same bits as its scalar path.
+ * Errors: none; a missing Vector API module is reported as {@code SCALAR}, not thrown. Precision and naming:
+ * {@code Vector4fa}, present only in the {@code -simd} jar, is float and deprecated.
  */
 package org.dynamisengine.vectrix.simd;

@@ -24,9 +24,9 @@
 package org.dynamisengine.vectrix.dsp;
 
 /**
- * A plan for the modified discrete cosine transform of {@code 2n} float samples into {@code n} coefficients; the
- * single-precision twin of {@link Mdctd}
- * ({@code n} even), {@code X[k] = Σ x[j]·cos(π/n·(j + 1/2 + n/2)(k + 1/2))}, and its inverse.
+ * A plan for the modified discrete cosine transform of {@code 2n} float samples into {@code n} coefficients
+ * ({@code n} even), {@code X[k] = Σ x[j]·cos(π/n·(j + 1/2 + n/2)(k + 1/2))}, and its inverse; the single-precision
+ * twin of {@link Mdctd}.
  * <p>
  * {@link #inverse} includes the factor {@code 2/n}, so the usual time-domain aliasing cancellation holds exactly:
  * frames of {@code 2n} samples advancing by {@code n}, each multiplied by a Princen–Bradley window (for example
@@ -53,6 +53,7 @@ public final class Mdctf {
      *
      * @param n the number of coefficients, even and at least 2
      * @return the plan
+     * @throws IllegalArgumentException if {@code n} is odd or less than 2
      */
     public static Mdctf plan(int n) {
         if (n < 2 || (n & 1) != 0) {
@@ -61,12 +62,20 @@ public final class Mdctf {
         return new Mdctf(n);
     }
 
-    /** @return the number of coefficients; frames have {@code 2n} samples */
+    /**
+     * Returns the number of coefficients {@code n}; frames have {@code 2n} samples.
+     *
+     * @return the number of coefficients
+     */
     public int size() {
         return n;
     }
 
-    /** @return the floats of scratch a call needs */
+    /**
+     * Returns the scratch size of {@link #forward} and {@link #inverse}.
+     *
+     * @return the number of floats
+     */
     public int scratchSize() {
         return scratchSize;
     }
@@ -74,7 +83,14 @@ public final class Mdctf {
     /**
      * Transforms {@code 2n} samples into {@code n} coefficients.
      *
-     * @param out receives {@code n} coefficients; must not overlap {@code in}
+     * @param in the {@code 2n} samples, already windowed
+     * @param inOff the offset of the first sample
+     * @param out receives {@code n} coefficients; must not overlap {@code in} or {@code scratch}
+     * @param outOff the offset of the first coefficient
+     * @param scratch working memory of {@link #scratchSize()} floats
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
      */
     public void forward(float[] in, int inOff, float[] out, int outOff, float[] scratch, int scratchOff) {
         range(in, inOff, 2 * n, "in");
@@ -97,7 +113,15 @@ public final class Mdctf {
      * Inverse-transforms {@code n} coefficients into {@code 2n} samples, scaled by {@code 2/n} for exact
      * overlap-add reconstruction.
      *
-     * @param out receives {@code 2n} samples; must not overlap {@code in}
+     * @param in the {@code n} coefficients
+     * @param inOff the offset of the first coefficient
+     * @param out receives {@code 2n} samples, to be windowed and overlap-added; must not overlap {@code in} or
+     *        {@code scratch}
+     * @param outOff the offset of the first sample
+     * @param scratch working memory of {@link #scratchSize()} floats
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
      */
     public void inverse(float[] in, int inOff, float[] out, int outOff, float[] scratch, int scratchOff) {
         range(in, inOff, n, "in");

@@ -42,9 +42,16 @@ public final class CameraRelative {
     }
 
     /**
-     * Converts {@code count} double-precision transforms in the 3×4 row-major layout ({@code in}, 12 doubles each:
-     * rows {@code [r00 r01 r02 tx, r10 r11 r12 ty, r20 r21 r22 tz]}) to camera-relative floats in {@code out}: the
-     * linear part is rounded to float, the translation is {@code t − camera} in double, then rounded.
+     * Converts {@code count} double-precision transforms in the 3×4 row-major layout ({@code in}, 12 doubles each: rows
+     * {@code [r00 r01 r02 tx, r10 r11 r12 ty, r20 r21 r22 tz]}) to camera-relative floats in {@code out}: the linear
+     * part is rounded to float, the translation is {@code t − camera} in double, then rounded. Transforms {@code [0,
+     * count)} are converted from index 0; the arrays are not checked up front.
+     *
+     * @param in the world transforms, {@code 12·count} doubles
+     * @param count the number of transforms
+     * @param camera the camera position in world coordinates, in metres
+     * @param out receives {@code 12·count} floats in the same layout
+     * @return {@code out}
      */
     public static float[] toCameraRelative(double[] in, int count, Vector3dc camera, float[] out) {
         double cx = camera.x(), cy = camera.y(), cz = camera.z();
@@ -65,9 +72,20 @@ public final class CameraRelative {
 
     /**
      * Converts {@code count} transforms whose positions are world cells and offsets ({@code cells}, 3 longs each;
-     * {@code offsets}, 3 doubles each, in {@code camera}'s cell size) and whose linear parts are 3×3 row-major
-     * floats ({@code linear}, 9 each) to camera-relative floats in {@code out}. The translation is the exact
-     * {@link WorldPos#sub} difference, rounded once: within a float ulp at any distance from the origin.
+     * {@code offsets}, 3 doubles each, in {@code camera}'s cell size) and whose linear parts are 3×3 row-major floats
+     * ({@code linear}, 9 each) to camera-relative floats in {@code out}. The translation is the exact
+     * {@link WorldPos#sub(WorldPos, org.dynamisengine.vectrix.core.Vector3d)} difference, rounded once: within a float
+     * ulp at any distance from the origin. The offsets need not be canonical. Transforms {@code [0, count)} are
+     * converted from index 0; the arrays are not checked up front.
+     *
+     * @param cells the cell index of each transform, {@code 3·count} longs ({@code x, y, z})
+     * @param offsets the offset from each cell's center, {@code 3·count} doubles, in metres
+     * @param linear the linear part of each transform, {@code 9·count} floats, row-major
+     * @param count the number of transforms
+     * @param camera the camera position; its cell size applies to {@code cells}
+     * @param out receives {@code 12·count} floats in the packed 3×4 layout
+     * @return {@code out}
+     * @throws ArithmeticException if a cell difference overflows {@code long}
      */
     public static float[] toCameraRelative(long[] cells, double[] offsets, float[] linear, int count, WorldPos camera,
             float[] out) {
@@ -100,8 +118,17 @@ public final class CameraRelative {
     }
 
     /**
-     * The camera-relative model matrix of one object: rotation, then non-uniform scale, at world position
+     * Returns the camera-relative model matrix of one object: non-uniform scale, then rotation, at world position
      * {@code position}, relative to {@code camera} ({@code dest = T(position − camera) R S}).
+     *
+     * @param position the object's world position
+     * @param rotation the object's rotation, a unit quaternion
+     * @param scale the object's scale
+     * @param camera the camera position, with the same cell size as {@code position}
+     * @param dest receives the matrix
+     * @return {@code dest}
+     * @throws IllegalArgumentException if the cell sizes differ
+     * @throws ArithmeticException if the cell difference overflows {@code long}
      */
     public static Matrix4x3f modelMatrix(WorldPos position, Quaternionfc rotation, Vector3fc scale, WorldPos camera,
             Matrix4x3f dest) {

@@ -27,7 +27,7 @@ import org.dynamisengine.vectrix.core.Vector3f;
 import org.dynamisengine.vectrix.core.Vector3fc;
 
 /**
- * Proportional-derivative controller helpers for angular control.
+ * Proportional-derivative (PD) controller kernels for angular control (single precision).
  *
  * @since 1.10.12
  */
@@ -35,6 +35,17 @@ public final class PdControllersf {
     private PdControllersf() {
     }
 
+    /**
+     * Returns the PD torque {@code kp · angularError − kd · angularVelocity}, per component. {@code dest} may be
+     * either input.
+     *
+     * @param angularError the angular error to drive to zero
+     * @param kp the proportional gain
+     * @param angularVelocity the current angular velocity, in radians per unit time
+     * @param kd the derivative gain
+     * @param dest receives the torque
+     * @return {@code dest}
+     */
     public static Vector3f torque(Vector3fc angularError, float kp, Vector3fc angularVelocity, float kd, Vector3f dest) {
         return dest.set(
                 angularError.x() * kp - angularVelocity.x() * kd,
@@ -42,6 +53,15 @@ public final class PdControllersf {
                 angularError.z() * kp - angularVelocity.z() * kd);
     }
 
+    /**
+     * Limits the length of {@code torque} to {@code maxTorque}. A longer torque is scaled to that length, keeping its
+     * direction; any other is copied unchanged. {@code dest} may be {@code torque}.
+     *
+     * @param torque the torque to limit
+     * @param maxTorque the largest allowed length, at least 0
+     * @param dest receives the limited torque
+     * @return {@code dest}
+     */
     public static Vector3f clampTorque(Vector3fc torque, float maxTorque, Vector3f dest) {
         float length = torque.length();
         if (length > maxTorque && length > 0.0f) {

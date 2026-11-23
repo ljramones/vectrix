@@ -29,12 +29,26 @@ import org.dynamisengine.vectrix.core.Vector3fc;
 import org.dynamisengine.vectrix.curve.CubicCurveMath;
 
 /**
+ * A uniform cubic B-spline over 3D points: segment {@code i} is shaped by control points {@code i .. i + 3},
+ * so {@code n} points give {@code n - 3} segments. The curve is C² continuous and does not, in general, pass through
+ * the control points.
+ * <p>
+ * The parameter {@code t} runs over {@code [0, 1]} on the segment and is not clamped: values outside extrapolate the
+ * cubic. The constructor copies the control points, so an instance is immutable and safe to share between threads.
+ * Every {@code dest} may be one of the input points. Nothing allocates after construction. {@link UniformBSpline3d} is
+ * the double twin.
+ *
  * @since 1.0.0
  */
-
 public final class UniformBSpline3f {
     private final Vector3fc[] controlPoints;
 
+    /**
+     * Creates a spline from {@code controlPoints}, copying them.
+     *
+     * @param controlPoints the control points, at least 4
+     * @throws IllegalArgumentException if there are fewer than 4 control points
+     */
     public UniformBSpline3f(Vector3fc[] controlPoints) {
         if (controlPoints.length < 4) throw new IllegalArgumentException("controlPoints");
         // Defensive copy: later changes to the caller's array or vectors do not alter the curve.
@@ -45,8 +59,22 @@ public final class UniformBSpline3f {
         this.controlPoints = copy;
     }
 
+    /**
+     * Returns the number of segments.
+     *
+     * @return the number of control points minus 3
+     */
     public int segmentCount() { return controlPoints.length - 3; }
 
+    /**
+     * Evaluates the segment {@code segmentIndex} at {@code t}.
+     *
+     * @param segmentIndex the segment, in {@code [0, segmentCount())}
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @param dest receives the result
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code segmentIndex} is out of range
+     */
     public Vector3f evaluate(int segmentIndex, float t, Vector3f dest) {
         int i = checkedSegment(segmentIndex);
         return dest.set(CubicCurveMath.bspline(controlPoints[i].x(), controlPoints[i+1].x(), controlPoints[i+2].x(), controlPoints[i+3].x(), t),
@@ -54,6 +82,15 @@ public final class UniformBSpline3f {
                 CubicCurveMath.bspline(controlPoints[i].z(), controlPoints[i+1].z(), controlPoints[i+2].z(), controlPoints[i+3].z(), t));
     }
 
+    /**
+     * Computes the first derivative with respect to {@code t} (the tangent, not normalized).
+     *
+     * @param segmentIndex the segment, in {@code [0, segmentCount())}
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @param dest receives the result
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code segmentIndex} is out of range
+     */
     public Vector3f derivative(int segmentIndex, float t, Vector3f dest) {
         int i = checkedSegment(segmentIndex);
         return dest.set(CubicCurveMath.bsplineDerivative(controlPoints[i].x(), controlPoints[i+1].x(), controlPoints[i+2].x(), controlPoints[i+3].x(), t),
@@ -61,6 +98,15 @@ public final class UniformBSpline3f {
                 CubicCurveMath.bsplineDerivative(controlPoints[i].z(), controlPoints[i+1].z(), controlPoints[i+2].z(), controlPoints[i+3].z(), t));
     }
 
+    /**
+     * Computes the second derivative with respect to {@code t}.
+     *
+     * @param segmentIndex the segment, in {@code [0, segmentCount())}
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @param dest receives the result
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code segmentIndex} is out of range
+     */
     public Vector3f secondDerivative(int segmentIndex, float t, Vector3f dest) {
         int i = checkedSegment(segmentIndex);
         return dest.set(CubicCurveMath.bsplineSecondDerivative(controlPoints[i].x(), controlPoints[i+1].x(), controlPoints[i+2].x(), controlPoints[i+3].x(), t),
@@ -68,6 +114,22 @@ public final class UniformBSpline3f {
                 CubicCurveMath.bsplineSecondDerivative(controlPoints[i].z(), controlPoints[i+1].z(), controlPoints[i+2].z(), controlPoints[i+3].z(), t));
     }
 
+    /**
+     * Evaluates the segment {@code segmentIndex} at {@code length} parameters, writing one point, one array per
+     * coordinate. The arrays are not checked up front; an output array may be {@code tValues} at the same offset.
+     *
+     * @param segmentIndex the segment, in {@code [0, segmentCount())}
+     * @param tValues the curve parameters
+     * @param tOffset the offset of the first parameter in {@code tValues}
+     * @param length the number of parameters to evaluate
+     * @param outX receives the x coordinates
+     * @param outXOffset the offset of the first coordinate in {@code outX}
+     * @param outY receives the y coordinates
+     * @param outYOffset the offset of the first coordinate in {@code outY}
+     * @param outZ receives the z coordinates
+     * @param outZOffset the offset of the first coordinate in {@code outZ}
+     * @throws IllegalArgumentException if {@code segmentIndex} is out of range
+     */
     public void evaluateBatch(int segmentIndex, float[] tValues, int tOffset, int length, float[] outX, int outXOffset, float[] outY, int outYOffset, float[] outZ, int outZOffset) {
         int s = checkedSegment(segmentIndex);
         float c0x = controlPoints[s].x(), c1x = controlPoints[s + 1].x(), c2x = controlPoints[s + 2].x(), c3x = controlPoints[s + 3].x();

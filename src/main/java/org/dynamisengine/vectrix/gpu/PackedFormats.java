@@ -70,25 +70,53 @@ public final class PackedFormats {
     /**
      * {@code A2B10G10R10_UNORM_PACK32}: red in bits 0-9, green 10-19, blue 20-29, alpha 30-31. Encoding follows
      * {@link PackedNorm}: round to nearest, ties toward +∞, NaN as 0.
+     *
+     * @param r red, clamped to {@code [0, 1]}
+     * @param g green, clamped to {@code [0, 1]}
+     * @param b blue, clamped to {@code [0, 1]}
+     * @param a alpha, clamped to {@code [0, 1]}
+     * @return the packed word
      */
     public static int packUnorm1010102(float r, float g, float b, float a) {
         return (int) Math.round(clamp01(r) * 1023) | (int) Math.round(clamp01(g) * 1023) << 10
                 | (int) Math.round(clamp01(b) * 1023) << 20 | (int) Math.round(clamp01(a) * 3) << 30;
     }
 
-    /** Decodes {@link #packUnorm1010102} exactly ({@code c / (2^b − 1)}). */
+    /**
+     * Decodes {@link #packUnorm1010102} exactly ({@code c / (2^b − 1)}).
+     *
+     * @param packed the packed word
+     * @param dest receives red, green, blue and alpha in {@code x, y, z, w}
+     * @return {@code dest}
+     */
     public static Vector4f unpackUnorm1010102(int packed, Vector4f dest) {
         return dest.set((packed & 0x3FF) / 1023f, (packed >>> 10 & 0x3FF) / 1023f, (packed >>> 20 & 0x3FF) / 1023f,
                 (packed >>> 30) / 3f);
     }
 
-    /** {@code A2B10G10R10_SNORM_PACK32}: two's-complement fields in the same positions as the unorm form. */
+    /**
+     * {@code A2B10G10R10_SNORM_PACK32}: two's-complement fields in the same positions as the unorm form. Red, green
+     * and blue are scaled by 511; the 2-bit alpha is rounded to -1, 0 or 1. Rounding is to nearest, ties toward
+     * +∞, and NaN encodes as 0.
+     *
+     * @param r red, clamped to {@code [-1, 1]}
+     * @param g green, clamped to {@code [-1, 1]}
+     * @param b blue, clamped to {@code [-1, 1]}
+     * @param a alpha, clamped to {@code [-1, 1]}
+     * @return the packed word
+     */
     public static int packSnorm1010102(float r, float g, float b, float a) {
         return ((int) Math.round(clamp11(r) * 511) & 0x3FF) | ((int) Math.round(clamp11(g) * 511) & 0x3FF) << 10
                 | ((int) Math.round(clamp11(b) * 511) & 0x3FF) << 20 | ((int) Math.round(clamp11(a)) & 0x3) << 30;
     }
 
-    /** Decodes {@link #packSnorm1010102}: {@code max(c / (2^(b−1) − 1), −1)}. */
+    /**
+     * Decodes {@link #packSnorm1010102}: {@code max(c / (2^(b−1) − 1), −1)}.
+     *
+     * @param packed the packed word
+     * @param dest receives red, green, blue and alpha in {@code x, y, z, w}, each in {@code [-1, 1]}
+     * @return {@code dest}
+     */
     public static Vector4f unpackSnorm1010102(int packed, Vector4f dest) {
         int r = packed << 22 >> 22, g = packed << 12 >> 22, b = packed << 2 >> 22, a = packed >> 30;
         return dest.set(Math.max(r / 511f, -1f), Math.max(g / 511f, -1f), Math.max(b / 511f, -1f), Math.max(a, -1));
@@ -99,7 +127,13 @@ public final class PackedFormats {
     /**
      * {@code E5B9G9R9_UFLOAT_PACK32}: three 9-bit mantissas sharing a 5-bit exponent. This is the exact algorithm
      * of the Vulkan specification ("Shared exponent"), the same as {@code EXT_texture_shared_exponent}. Components
-     * are clamped to {@code [0, 65408]}, with NaN as 0, and rounded to nearest, ties up.
+     * are clamped to {@code [0, 65408]}, with NaN as 0, and rounded to nearest, ties up. Red is in bits 0-8, green
+     * 9-17, blue 18-26 and the exponent 27-31.
+     *
+     * @param r red
+     * @param g green
+     * @param b blue
+     * @return the packed word
      */
     public static int packRgb9e5(float r, float g, float b) {
         final double max = 65408.0; // (2^9 - 1) / 2^9 * 2^(31 - 15)
@@ -114,7 +148,13 @@ public final class PackedFormats {
         return rs | gs << 9 | bs << 18 | exp << 27;
     }
 
-    /** Decodes {@link #packRgb9e5} exactly: {@code mantissa × 2^(exponent − 24)}. */
+    /**
+     * Decodes {@link #packRgb9e5} exactly: {@code mantissa × 2^(exponent − 24)}.
+     *
+     * @param packed the packed word
+     * @param dest receives red, green and blue
+     * @return {@code dest}
+     */
     public static Vector3f unpackRgb9e5(int packed, Vector3f dest) {
         double scale = Math.scalb(1.0, (packed >>> 27) - 15 - 9);
         return dest.set((float) ((packed & 0x1FF) * scale), (float) ((packed >>> 9 & 0x1FF) * scale),
@@ -128,12 +168,23 @@ public final class PackedFormats {
      * blue as an unsigned 10-bit float (5-bit mantissa); red is in the low bits. Values are rounded to nearest-even.
      * Negative values and {@code −0} become 0, and NaN stays NaN. Values beyond the largest finite value round to
      * {@code +∞}, as IEEE rounding does (65024 is the largest finite 11-bit value, 64512 the largest 10-bit one).
+     *
+     * @param r red, in bits 0-10
+     * @param g green, in bits 11-21
+     * @param b blue, in bits 22-31
+     * @return the packed word
      */
     public static int packR11G11B10F(float r, float g, float b) {
         return packUfloat(r, 6) | packUfloat(g, 6) << 11 | packUfloat(b, 5) << 22;
     }
 
-    /** Decodes {@link #packR11G11B10F} exactly. */
+    /**
+     * Decodes {@link #packR11G11B10F} exactly; infinity and NaN codes decode to {@code +∞} and NaN.
+     *
+     * @param packed the packed word
+     * @param dest receives red, green and blue
+     * @return {@code dest}
+     */
     public static Vector3f unpackR11G11B10F(int packed, Vector3f dest) {
         return dest.set(unpackUfloat(packed & 0x7FF, 6), unpackUfloat(packed >>> 11 & 0x7FF, 6),
                 unpackUfloat(packed >>> 22 & 0x3FF, 5));
@@ -184,12 +235,20 @@ public final class PackedFormats {
      * piecewise transfer function in double. This is how a GPU writes an {@code _SRGB} format. NaN encodes as 0.
      * A Reinhard-style approximation such as {@code pow(x, 1/2.2)} does not round-trip through an {@code _SRGB}
      * image.
+     *
+     * @param linear the linear value, clamped to {@code [0, 1]}
+     * @return the sRGB code in {@code [0, 255]}
      */
     public static int encodeSrgb8(float linear) {
         return (int) Math.rint(255 * ColorMathd.linearToSrgb(clamp01(linear)));
     }
 
-    /** The linear value of an 8-bit sRGB code, from a table built with the exact transfer function. */
+    /**
+     * The linear value of an 8-bit sRGB code, from a table built with the exact transfer function.
+     *
+     * @param code the sRGB code; only the low 8 bits are read
+     * @return the linear value in {@code [0, 1]}
+     */
     public static float decodeSrgb8(int code) {
         return SRGB8_DECODE[code & 0xFF];
     }
@@ -202,10 +261,18 @@ public final class PackedFormats {
      * <p>
      * The tangent is first made orthogonal to the normal (Gram-Schmidt). {@code |w|} is kept at least
      * {@code 1 / (2^(bits−1) − 1)}, so that the sign survives quantization to {@code bits}-bit snorm. Writes to
-     * {@code dest}, computed in double.
+     * {@code dest}, computed in double. It allocates two temporary objects (asset-packing use).
+     * <p>
+     * Neither vector needs to be unit length. A zero normal, or a tangent parallel to the normal, gives NaN.
      *
+     * @param normal the frame's normal
+     * @param tangent the frame's tangent
      * @param bitangentSign
-     *            the glTF {@code tangent.w}: the bitangent is {@code bitangentSign · cross(normal, tangent)}
+     *            the glTF {@code tangent.w}: the bitangent is {@code bitangentSign · cross(normal, tangent)}; a
+     *            negative value negates the result, anything else (including 0) keeps {@code w} positive
+     * @param bits the snorm bit count the result will be quantized to, from 2 to 31
+     * @param dest receives the QTangent
+     * @return {@code dest}
      */
     public static Quaternionf qTangent(Vector3fc normal, Vector3fc tangent, float bitangentSign, int bits, Quaternionf dest) {
         double nx = normal.x(), ny = normal.y(), nz = normal.z();
@@ -248,7 +315,15 @@ public final class PackedFormats {
         return dest.set((float) x, (float) y, (float) z, (float) w);
     }
 
-    /** {@link #qTangent} packed as four snorm16 values (x in the low 16 bits), the layout of {@code R16G16B16A16_SNORM}. */
+    /**
+     * {@link #qTangent} with 16 bits, packed as four snorm16 values (x in the low 16 bits, then y, z, w), the layout
+     * of {@code R16G16B16A16_SNORM}. Allocates (asset-packing use).
+     *
+     * @param normal the frame's normal
+     * @param tangent the frame's tangent
+     * @param bitangentSign the glTF {@code tangent.w}; see {@link #qTangent}
+     * @return the packed QTangent
+     */
     public static long packQTangent(Vector3fc normal, Vector3fc tangent, float bitangentSign) {
         Quaternionf q = qTangent(normal, tangent, bitangentSign, 16, new Quaternionf());
         return (PackedNorm.packSnorm16(q.x) & 0xFFFFL) | (PackedNorm.packSnorm16(q.y) & 0xFFFFL) << 16
@@ -256,7 +331,12 @@ public final class PackedFormats {
     }
 
     /**
-     * Decodes {@link #packQTangent} into a unit {@code normal} and {@code tangent}.
+     * Decodes {@link #packQTangent} into a unit {@code normal} and {@code tangent}. The decoded quaternion is
+     * renormalized first. Does not allocate.
+     *
+     * @param packed the packed QTangent
+     * @param normal receives the normal; must not be the same object as {@code tangent}
+     * @param tangent receives the tangent, orthogonal to {@code normal}
      *
      * @return the bitangent sign ({@code 1} or {@code −1}): the bitangent is {@code sign · cross(normal, tangent)}
      */

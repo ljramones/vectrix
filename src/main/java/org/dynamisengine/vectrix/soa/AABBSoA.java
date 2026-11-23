@@ -24,16 +24,42 @@
 package org.dynamisengine.vectrix.soa;
 
 /**
- * Structure-of-arrays storage for axis-aligned bounds.
+ * Structure-of-arrays storage for axis-aligned bounds: element {@code i} is the box from
+ * {@code (minX[i], minY[i], minZ[i])} to {@code (maxX[i], maxY[i], maxZ[i])}.
+ * <p>
+ * The arrays are public and have a fixed length. Not thread-safe: synchronize writers yourself.
  */
 public class AABBSoA {
+    /**
+     * The minimum x coordinate of each box.
+     */
     public final float[] minX;
+    /**
+     * The minimum y coordinate of each box.
+     */
     public final float[] minY;
+    /**
+     * The minimum z coordinate of each box.
+     */
     public final float[] minZ;
+    /**
+     * The maximum x coordinate of each box.
+     */
     public final float[] maxX;
+    /**
+     * The maximum y coordinate of each box.
+     */
     public final float[] maxY;
+    /**
+     * The maximum z coordinate of each box.
+     */
     public final float[] maxZ;
 
+    /**
+     * Creates storage for {@code size} boxes, all with every coordinate 0.
+     *
+     * @param size the number of boxes
+     */
     public AABBSoA(int size) {
         minX = new float[size];
         minY = new float[size];
@@ -43,10 +69,26 @@ public class AABBSoA {
         maxZ = new float[size];
     }
 
+    /**
+     * Returns the number of boxes.
+     *
+     * @return the length of the arrays
+     */
     public int size() {
         return minX.length;
     }
 
+    /**
+     * Sets box {@code i}. The bounds are stored as given, without checking that min is at most max.
+     *
+     * @param i the box index
+     * @param minX the minimum x
+     * @param minY the minimum y
+     * @param minZ the minimum z
+     * @param maxX the maximum x
+     * @param maxY the maximum y
+     * @param maxZ the maximum z
+     */
     public void set(int i, float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
         this.minX[i] = minX;
         this.minY[i] = minY;

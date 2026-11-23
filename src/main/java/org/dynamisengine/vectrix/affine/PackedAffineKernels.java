@@ -30,11 +30,35 @@ import org.dynamisengine.vectrix.core.Vector3fc;
 /**
  * Batch kernels for packed affine transforms in the row-major layout of {@link PackedAffineArray}. The
  * TRS conversions produce {@code T * R * S}, the same matrix as JOML's {@code translationRotateScale}.
+ * <p>
+ * <b>{@code order}.</b> The AABB kernels use {@code order} only to choose which entries to process: for each
+ * {@code i} in {@code [0, count)} they process entry {@code k = order[i]}, reading transform {@code k} and input box
+ * {@code k} and writing output box {@code k}. Inputs and outputs are indexed by entry, not by position in
+ * {@code order}, so the output arrays are scattered, not packed. The upload kernels instead gather: they read
+ * transform {@code order[i]} and write it to slot {@code i} of the output. Both use the first {@code count} elements
+ * of {@code order}; neither checks that the indices are in range or distinct.
+ * <p>
+ * All kernels start at index 0 of every array, take no offsets and do not check sizes: a short array throws
+ * {@link ArrayIndexOutOfBoundsException} after the earlier entries have been written. They keep no state, do not
+ * allocate (the chunked variants create one lambda per call) and are safe to call from several threads on disjoint
+ * outputs.
  */
 public final class PackedAffineKernels {
     private PackedAffineKernels() {
     }
 
+    /**
+     * Writes {@code count} rotation-plus-translation transforms: entry {@code i} of {@code out} becomes
+     * {@code T(tx[i], ty[i], tz[i]) * R(rotation[i])}. The quaternions are not normalized; a non-unit quaternion gives
+     * a matrix that also scales.
+     *
+     * @param rotation the rotations, unit quaternions
+     * @param tx the translations x
+     * @param ty the translations y
+     * @param tz the translations z
+     * @param out receives the transforms at entries {@code 0} to {@code count - 1}
+     * @param count the number of transforms
+     */
     public static void quatTranslationToPackedAffineBatch(
             Quaternionf[] rotation,
             float[] tx,
@@ -48,6 +72,14 @@ public final class PackedAffineKernels {
         }
     }
 
+    /**
+     * Writes {@code count} TRS transforms: entry {@code i} of {@code out} becomes {@code T * R * S} of
+     * {@code transforms[i]}. The rotations are not normalized.
+     *
+     * @param transforms the transforms
+     * @param out receives the matrices at entries {@code 0} to {@code count - 1}
+     * @param count the number of transforms
+     */
     public static void trsToPackedAffineBatch(Transformf[] transforms, PackedAffineArray out, int count) {
         float[] dst = out.raw();
         for (int i = 0; i < count; i++) {
@@ -59,6 +91,15 @@ public final class PackedAffineKernels {
         }
     }
 
+    /**
+     * Writes the upper 3x4 part of {@code count} matrices: entry {@code i} of {@code out} gets
+     * {@code rRC = matrices[i].mCR()}. The last row of each matrix is ignored.
+     *
+     * @param matrices the column-major matrices
+     * @param out receives the transforms at entries {@code 0} to
+     *        {@code count - 1}
+     * @param count the number of matrices
+     */
     public static void matrix4fToPackedAffineBatch(Matrix4f[] matrices, PackedAffineArray out, int count) {
         float[] dst = out.raw();
         for (int i = 0; i < count; i++) {
@@ -79,6 +120,31 @@ public final class PackedAffineKernels {
         }
     }
 
+    /**
+     * Transforms axis-aligned boxes by their packed affine transforms and writes the axis-aligned boxes that enclose
+     * the results: the center is transformed and the half extents go through the absolute values of the 3x3 part,
+     * which gives the tightest axis-aligned box around the transformed box.
+     * <p>
+     * For each {@code i} in {@code [0, count)}, with {@code k = order[i]}: reads transform {@code k} and the box
+     * {@code minX[k]..maxZ[k]}, and writes {@code outMinX[k]..outMaxZ[k]}. Entries not listed in {@code order} are
+     * left unchanged. The output arrays may be the input arrays: each entry is read before it is written.
+     *
+     * @param transforms the transforms, indexed by entry
+     * @param order the entries to process; the first {@code count} elements are used
+     * @param minX the input box minimum x, indexed by entry
+     * @param minY the input box minimum y
+     * @param minZ the input box minimum z
+     * @param maxX the input box maximum x
+     * @param maxY the input box maximum y
+     * @param maxZ the input box maximum z
+     * @param outMinX receives the output box minimum x at index {@code order[i]}
+     * @param outMinY receives the output box minimum y
+     * @param outMinZ receives the output box minimum z
+     * @param outMaxX receives the output box maximum x
+     * @param outMaxY receives the output box maximum y
+     * @param outMaxZ receives the output box maximum z
+     * @param count the number of elements of {@code order} to process
+     */
     public static void transformAabbPackedAffineBatch(
             PackedAffineArray transforms,
             int[] order,
@@ -99,6 +165,27 @@ public final class PackedAffineKernels {
                 outMinX, outMinY, outMinZ, outMaxX, outMaxY, outMaxZ, 0, count);
     }
 
+    /**
+     * Same as {@link #transformAabbPackedAffineBatch}, processed as consecutive chunks of {@code order} on the calling
+     * thread; the results are identical. See {@link BatchChunks#forEachChunk}.
+     *
+     * @param transforms the transforms, indexed by entry
+     * @param order the entries to process; the first {@code count} elements are used
+     * @param minX the input box minimum x, indexed by entry
+     * @param minY the input box minimum y
+     * @param minZ the input box minimum z
+     * @param maxX the input box maximum x
+     * @param maxY the input box maximum y
+     * @param maxZ the input box maximum z
+     * @param outMinX receives the output box minimum x at index {@code order[i]}
+     * @param outMinY receives the output box minimum y
+     * @param outMinZ receives the output box minimum z
+     * @param outMaxX receives the output box maximum x
+     * @param outMaxY receives the output box maximum y
+     * @param outMaxZ receives the output box maximum z
+     * @param count the number of elements of {@code order} to process
+     * @param chunkSize the number of elements per chunk; 0 or less means one chunk
+     */
     public static void transformAabbPackedAffineChunked(
             PackedAffineArray transforms,
             int[] order,
@@ -121,6 +208,18 @@ public final class PackedAffineKernels {
                         outMinX, outMinY, outMinZ, outMaxX, outMaxY, outMaxZ, start, end));
     }
 
+    /**
+     * Gathers transforms into a contiguous upload array in the order given: for each {@code i} in
+     * {@code [0, count)}, the 12 floats of transform {@code order[i]} are copied to
+     * {@code outUpload[12 * i]} to {@code outUpload[12 * i + 11]}. The output is packed by position in
+     * {@code order}, unlike {@link #transformAabbPackedAffineBatch}, which writes by entry. If {@code outUpload} is
+     * {@code transforms.raw()}, a transform can be overwritten before it is read.
+     *
+     * @param transforms the transforms, indexed by entry
+     * @param order the entries to copy, in output order; the first {@code count} elements are used
+     * @param outUpload receives {@code 12 * count} floats starting at index 0
+     * @param count the number of transforms to copy
+     */
     public static void uploadPackedAffine(
             PackedAffineArray transforms,
             int[] order,
@@ -129,6 +228,16 @@ public final class PackedAffineKernels {
         uploadPackedAffineRange(transforms, order, outUpload, 0, count);
     }
 
+    /**
+     * Same as {@link #uploadPackedAffine}, processed as consecutive chunks of {@code order} on the calling thread;
+     * the results are identical. See {@link BatchChunks#forEachChunk}.
+     *
+     * @param transforms the transforms, indexed by entry
+     * @param order the entries to copy, in output order; the first {@code count} elements are used
+     * @param outUpload receives {@code 12 * count} floats starting at index 0
+     * @param count the number of transforms to copy
+     * @param chunkSize the number of elements per chunk; 0 or less means one chunk
+     */
     public static void uploadPackedAffineChunked(
             PackedAffineArray transforms,
             int[] order,

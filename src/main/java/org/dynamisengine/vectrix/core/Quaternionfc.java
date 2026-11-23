@@ -35,21 +35,29 @@ import java.util.*;
 public interface Quaternionfc {
 
     /**
+     * Returns the x component: the first component of the vector part.
+     *
      * @return the first component of the vector part
      */
     float x();
 
     /**
+     * Returns the y component: the second component of the vector part.
+     *
      * @return the second component of the vector part
      */
     float y();
 
     /**
+     * Returns the z component: the third component of the vector part.
+     *
      * @return the third component of the vector part
      */
     float z();
 
     /**
+     * Returns the w component: the real (scalar) part.
+     *
      * @return the real/scalar part of the quaternion
      */
     float w();
@@ -2280,6 +2288,8 @@ public interface Quaternionfc {
     boolean equals(Quaternionfc q, float delta);
 
     /**
+     * Returns whether this quaternion's components have the same bits as the given values, so NaN equals NaN and
+     * -0 differs from +0.
      *
      * @param x
      *      the x component to compare to

@@ -257,8 +257,8 @@ final class LinalgKernels {
     /**
      * Signed 3×3 SVD (McAdams et al. 2011): {@code a = u diag(s) vᵀ} with {@code u} and {@code v} proper rotations and
      * {@code s[0] >= s[1] >= |s[2]|}; {@code s[2]} is negative exactly when {@code det(a) < 0}. {@code v} comes from
-     * the eigenvectors of {@code aᵀa}, and {@code u} from a QR decomposition of {@code a v}, which keeps the accuracy of
-     * the small singular values.
+     * the eigenvectors of {@code aᵀa}, and {@code u} from a QR decomposition of {@code a v}, which keeps the accuracy
+     * of the small singular values.
      */
     static void svd3(double[] a, double[] u, double[] s, double[] v) {
         Workspace ws = ws();

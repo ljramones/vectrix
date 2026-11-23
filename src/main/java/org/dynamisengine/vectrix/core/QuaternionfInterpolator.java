@@ -290,6 +290,12 @@ public class QuaternionfInterpolator {
         }
     }
 
+    /**
+     * Creates an interpolator with its own working storage.
+     */
+    public QuaternionfInterpolator() {
+    }
+
     private final SvdDecomposition3f svdDecomposition3f = new SvdDecomposition3f();
     private final float[] m = new float[9];
     private final Matrix3f u = new Matrix3f();

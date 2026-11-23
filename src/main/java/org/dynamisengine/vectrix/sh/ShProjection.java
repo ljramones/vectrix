@@ -31,17 +31,42 @@ import org.dynamisengine.vectrix.core.Vector3fc;
  * <p>
  * Uses the standard real basis ordering {@code l * (l + 1) + m} defined by {@link ShBasis}. Callers should provide
  * unit directions and solid-angle weights (for example from environment sampling).
+ * <p>
+ * Every method adds one sample's contribution {@code L(dir) · Y_i(dir) · weight} to {@code dest}; it does not clear
+ * {@code dest} first, so call {@code zero()} before the first sample. With weights that sum to {@code 4π} over the
+ * sphere (or a Monte Carlo weight of {@code 1 / (pdf · N)}), the sums are the radiance coefficients. Methods are
+ * stateless, safe to call from any thread on separate {@code dest} objects, and do not allocate.
  */
 public final class ShProjection {
     private ShProjection() {
     }
 
+    /**
+     * Adds one RGB radiance sample to L2 coefficients (9 per channel).
+     *
+     * @param dir the sample direction, unit length; it is not normalized
+     * @param rgb the radiance of the sample, per channel
+     * @param solidAngleWeight the solid angle the sample stands for, in steradians
+     * @param dest the coefficients the sample is added to
+     */
     public static void accumulateSampleL2(Vector3fc dir, Vector3fc rgb, float solidAngleWeight, ShCoeffs9f dest) {
         accumulate9(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, dest.c);
     }
 
     /**
-     * Zero-allocation hot path for projecting one RGB sample into L2 SH coefficients.
+     * Adds one RGB radiance sample to L2 coefficients (9 per channel), using caller scratch for the basis values.
+     * Gives the same result as {@code accumulateSampleL2}.
+     *
+     * @param dirX the x component of the unit sample direction; it is not normalized
+     * @param dirY the y component of the direction
+     * @param dirZ the z component of the direction
+     * @param r the red radiance
+     * @param g the green radiance
+     * @param b the blue radiance
+     * @param solidAngle the solid angle the sample stands for, in steradians
+     * @param scratchBasis caller scratch of length at least 9; receives the basis values
+     * @param dest the coefficients the sample is added to
+     * @throws IllegalArgumentException if {@code scratchBasis.length < 9}
      */
     public static void projectSample(float dirX, float dirY, float dirZ, float r, float g, float b, float solidAngle,
         float[] scratchBasis, ShCoeffs9f dest) {
@@ -61,12 +86,32 @@ public final class ShProjection {
         }
     }
 
+    /**
+     * Adds one RGB radiance sample to L2 coefficients (9 per channel).
+     *
+     * @param dir the sample direction, unit length; it is not normalized
+     * @param rgb the radiance of the sample, per channel
+     * @param solidAngleWeight the solid angle the sample stands for, in steradians
+     * @param dest the coefficients the sample is added to
+     */
     public static void accumulateSampleL2(Vector3dc dir, Vector3dc rgb, double solidAngleWeight, ShCoeffs9d dest) {
         accumulate9(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, dest.c);
     }
 
     /**
-     * Zero-allocation hot path for projecting one RGB sample into L2 SH coefficients.
+     * Adds one RGB radiance sample to L2 coefficients (9 per channel), using caller scratch for the basis values.
+     * Gives the same result as {@code accumulateSampleL2}.
+     *
+     * @param dirX the x component of the unit sample direction; it is not normalized
+     * @param dirY the y component of the direction
+     * @param dirZ the z component of the direction
+     * @param r the red radiance
+     * @param g the green radiance
+     * @param b the blue radiance
+     * @param solidAngle the solid angle the sample stands for, in steradians
+     * @param scratchBasis caller scratch of length at least 9; receives the basis values
+     * @param dest the coefficients the sample is added to
+     * @throws IllegalArgumentException if {@code scratchBasis.length < 9}
      */
     public static void projectSample(double dirX, double dirY, double dirZ, double r, double g, double b, double solidAngle,
         double[] scratchBasis, ShCoeffs9d dest) {
@@ -86,22 +131,32 @@ public final class ShProjection {
         }
     }
 
+    /**
+     * Adds one RGB radiance sample to L3 coefficients (16 per channel).
+     *
+     * @param dir the sample direction, unit length; it is not normalized
+     * @param rgb the radiance of the sample, per channel
+     * @param solidAngleWeight the solid angle the sample stands for, in steradians
+     * @param dest the coefficients the sample is added to
+     */
     public static void accumulateSampleL3(Vector3fc dir, Vector3fc rgb, float solidAngleWeight, ShCoeffs16f dest) {
         accumulate16(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, dest.c);
     }
 
     /**
-     * Zero-allocation hot path for projecting one RGB sample into L3 SH coefficients.
+     * Adds one RGB radiance sample to L3 coefficients (16 per channel), using caller scratch for the basis values.
+     * Gives the same result as {@code accumulateSampleL3}.
      *
-     * @param dirX direction x
-     * @param dirY direction y
-     * @param dirZ direction z
-     * @param r red radiance
-     * @param g green radiance
-     * @param b blue radiance
-     * @param solidAngle sample solid-angle weight
-     * @param scratchBasis caller-provided basis scratch array of length at least 16
-     * @param dest destination coefficients
+     * @param dirX the x component of the unit sample direction; it is not normalized
+     * @param dirY the y component of the direction
+     * @param dirZ the z component of the direction
+     * @param r the red radiance
+     * @param g the green radiance
+     * @param b the blue radiance
+     * @param solidAngle the solid angle the sample stands for, in steradians
+     * @param scratchBasis caller scratch of length at least 16; receives the basis values
+     * @param dest the coefficients the sample is added to
+     * @throws IllegalArgumentException if {@code scratchBasis.length < 16}
      * @since 1.0.0
      */
     public static void projectSampleL3(float dirX, float dirY, float dirZ, float r, float g, float b, float solidAngle,
@@ -122,22 +177,32 @@ public final class ShProjection {
         }
     }
 
+    /**
+     * Adds one RGB radiance sample to L3 coefficients (16 per channel).
+     *
+     * @param dir the sample direction, unit length; it is not normalized
+     * @param rgb the radiance of the sample, per channel
+     * @param solidAngleWeight the solid angle the sample stands for, in steradians
+     * @param dest the coefficients the sample is added to
+     */
     public static void accumulateSampleL3(Vector3dc dir, Vector3dc rgb, double solidAngleWeight, ShCoeffs16d dest) {
         accumulate16(dir.x(), dir.y(), dir.z(), rgb.x(), rgb.y(), rgb.z(), solidAngleWeight, dest.c);
     }
 
     /**
-     * Zero-allocation hot path for projecting one RGB sample into L3 SH coefficients.
+     * Adds one RGB radiance sample to L3 coefficients (16 per channel), using caller scratch for the basis values.
+     * Gives the same result as {@code accumulateSampleL3}.
      *
-     * @param dirX direction x
-     * @param dirY direction y
-     * @param dirZ direction z
-     * @param r red radiance
-     * @param g green radiance
-     * @param b blue radiance
-     * @param solidAngle sample solid-angle weight
-     * @param scratchBasis caller-provided basis scratch array of length at least 16
-     * @param dest destination coefficients
+     * @param dirX the x component of the unit sample direction; it is not normalized
+     * @param dirY the y component of the direction
+     * @param dirZ the z component of the direction
+     * @param r the red radiance
+     * @param g the green radiance
+     * @param b the blue radiance
+     * @param solidAngle the solid angle the sample stands for, in steradians
+     * @param scratchBasis caller scratch of length at least 16; receives the basis values
+     * @param dest the coefficients the sample is added to
+     * @throws IllegalArgumentException if {@code scratchBasis.length < 16}
      * @since 1.0.0
      */
     public static void projectSampleL3(double dirX, double dirY, double dirZ, double r, double g, double b, double solidAngle,

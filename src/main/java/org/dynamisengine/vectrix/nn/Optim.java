@@ -28,8 +28,8 @@ import org.dynamisengine.vectrix.core.ReproducibleMath;
  * Parameter updates: AdamW and SGD with momentum, element-wise over a parameter range, and gradient-norm clipping.
  * <p>
  * Each element is updated independently with a fixed sequence of float operations, so an update is reproducible and
- * may be split across threads by element ranges. Bias corrections are computed in double with {@link org.dynamisengine.vectrix.core.ReproducibleMath}'s
- * reproducible functions. Nothing allocates.
+ * may be split across threads by element ranges. Bias corrections are computed in double with
+ * {@link org.dynamisengine.vectrix.core.ReproducibleMath}'s reproducible functions. Nothing allocates.
  *
  * @since 2.5.0
  */
@@ -43,7 +43,24 @@ public final class Optim {
      * {@code m = β1·m + (1 - β1)·g}, {@code v = β2·v + (1 - β2)·g²},
      * {@code p = p·(1 - lr·wd) - lr·(m/(1 - β1^t)) / (sqrt(v/(1 - β2^t)) + eps)}.
      *
+     *
+     * @param p the parameters, updated in place
+     * @param pOff the offset in {@code p}
+     * @param g the gradients
+     * @param gOff the offset in {@code g}
+     * @param m the first-moment estimates, updated in place (start at 0)
+     * @param mOff the offset in {@code m}
+     * @param v the second-moment estimates, updated in place (start at 0)
+     * @param vOff the offset in {@code v}
+     * @param n the number of parameters
+     * @param lr the learning rate
+     * @param beta1 the first-moment decay {@code β1}, typically 0.9
+     * @param beta2 the second-moment decay {@code β2}, typically 0.999
+     * @param eps the term added to the denominator, typically 1e-8
+     * @param weightDecay the decoupled weight decay {@code wd}, applied as {@code p·(1 - lr·wd)}
      * @param step the 1-based step number {@code t}
+     * @throws IllegalArgumentException if {@code step < 1}, {@code n < 0} or an array is too short for its offset;
+     *         nothing is written then
      */
     public static void adamW(float[] p, int pOff, float[] g, int gOff, float[] m, int mOff, float[] v, int vOff, int n,
             float lr, float beta1, float beta2, float eps, float weightDecay, long step) {
@@ -73,6 +90,20 @@ public final class Optim {
     /**
      * One SGD step with momentum and (coupled) weight decay:
      * {@code d = g + wd·p}, {@code b = μ·b + d}, {@code p -= lr·(nesterov ? d + μ·b : b)}.
+     *
+     * @param p the parameters, updated in place
+     * @param pOff the offset in {@code p}
+     * @param g the gradients
+     * @param gOff the offset in {@code g}
+     * @param buf the momentum buffer {@code b}, updated in place (start at 0)
+     * @param bOff the offset in {@code buf}
+     * @param n the number of parameters
+     * @param lr the learning rate
+     * @param momentum the momentum {@code μ}; 0 gives plain SGD
+     * @param weightDecay the coupled weight decay {@code wd}, added to the gradient
+     * @param nesterov whether to use Nesterov momentum
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset; nothing is written
+     *         then
      */
     public static void sgd(float[] p, int pOff, float[] g, int gOff, float[] buf, int bOff, int n, float lr,
             float momentum, float weightDecay, boolean nesterov) {
@@ -92,6 +123,10 @@ public final class Optim {
      * The factor that clips gradients to a maximum global norm: {@code min(1, maxNorm / norm)}, where
      * {@code norm} is the square root of the sum of every tensor's {@code Blasf.dot(g, g)} (sum them in a fixed
      * order for reproducibility). Multiply each gradient by it with {@code Blasf.scal}.
+     *
+     * @param norm the global gradient norm
+     * @param maxNorm the largest norm allowed
+     * @return {@code maxNorm / norm} if {@code norm > maxNorm}, otherwise 1 (also when {@code norm} is NaN)
      */
     public static float clipFactor(double norm, double maxNorm) {
         if (!(norm > maxNorm)) {

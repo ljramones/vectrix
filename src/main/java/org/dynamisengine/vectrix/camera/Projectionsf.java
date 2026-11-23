@@ -55,8 +55,17 @@ public final class Projectionsf {
     }
 
     /**
-     * Symmetric right-handed perspective projection. {@code fovy} is the vertical field of view in radians,
-     * {@code aspect} is width / height, {@code 0 < near < far}, and {@code far} may be {@code +∞}.
+     * Builds a symmetric right-handed perspective projection for {@code range} into {@code dest}. The camera looks
+     * down {@code −z}; the projection maps view distance {@code near} to {@code range.nearNdc()} and {@code far} to
+     * {@code range.farNdc()}. Inputs are not validated.
+     *
+     * @param fovy the vertical field of view in radians, in (0, π)
+     * @param aspect the viewport width divided by its height
+     * @param near the near-plane distance, greater than 0
+     * @param far the far-plane distance, greater than {@code near}, or {@code +∞} for an exact infinite projection
+     * @param range the NDC depth convention to build for
+     * @param dest receives the projection
+     * @return {@code dest}
      */
     public static Matrix4f perspective(float fovy, float aspect, float near, float far, DepthRange range,
             Matrix4f dest) {
@@ -81,12 +90,27 @@ public final class Projectionsf {
         return set(dest, 1.0 / (h * aspect), 0, 0, 0, 0, 1.0 / h, 0, 0, 0, 0, m22, -1, 0, 0, m32, 0);
     }
 
-    /** Reverse-Z perspective ({@link DepthRange#REVERSED_ZERO_TO_ONE}) with an exact infinite far plane. */
+    /**
+     * Builds a reverse-Z perspective projection ({@link DepthRange#REVERSED_ZERO_TO_ONE}) with an exact infinite far
+     * plane: view distance {@code d} maps to NDC depth {@code near / d}.
+     *
+     * @param fovy the vertical field of view in radians, in (0, π)
+     * @param aspect the viewport width divided by its height
+     * @param near the near-plane distance, greater than 0
+     * @param dest receives the projection
+     * @return {@code dest}
+     */
     public static Matrix4f reverseZInfinite(float fovy, float aspect, float near, Matrix4f dest) {
         return perspective(fovy, aspect, near, Float.POSITIVE_INFINITY, DepthRange.REVERSED_ZERO_TO_ONE, dest);
     }
 
-    /** Near-plane distance of a perspective matrix built for {@code range}. */
+    /**
+     * Returns the near-plane distance of a perspective projection, read from its {@code m22} and {@code m32}.
+     *
+     * @param proj a perspective projection built for {@code range}, finite or infinite
+     * @param range the depth convention {@code proj} was built for
+     * @return the near-plane distance
+     */
     public static float nearPlane(Matrix4fc proj, DepthRange range) {
         double m22 = proj.m22(), m32 = proj.m32();
         switch (range) {
@@ -99,7 +123,13 @@ public final class Projectionsf {
         }
     }
 
-    /** Far-plane distance of a perspective matrix built for {@code range} ({@code +∞} for an infinite one). */
+    /**
+     * Returns the far-plane distance of a perspective projection, read from its {@code m22} and {@code m32}.
+     *
+     * @param proj a perspective projection built for {@code range}
+     * @param range the depth convention {@code proj} was built for
+     * @return the far-plane distance, or {@code +∞} for an infinite projection
+     */
     public static float farPlane(Matrix4fc proj, DepthRange range) {
         double m22 = proj.m22(), m32 = proj.m32();
         double den = range == DepthRange.REVERSED_ZERO_TO_ONE ? m22 : m22 + 1.0;
@@ -107,15 +137,29 @@ public final class Projectionsf {
         return den == 0.0 ? Float.POSITIVE_INFINITY : (float) (m32 / den);
     }
 
-    /** NDC depth of the view-space point at distance {@code viewDistance} in front of the camera ({@code z = −d}). */
+    /**
+     * Returns the NDC depth of the view-space point {@code (0, 0, −viewDistance)}. The result ignores the x and y
+     * columns of {@code proj}, so it is the depth of every point at that distance only for projections whose depth
+     * does not depend on x and y (all except {@link #obliqueNearPlane oblique} ones).
+     *
+     * @param proj the projection matrix
+     * @param viewDistance the distance in front of the camera, along {@code −z}
+     * @return the NDC depth, in the convention {@code proj} was built for
+     */
     public static float ndcDepth(Matrix4fc proj, float viewDistance) {
         double z = -(double) viewDistance;
         return (float) ((proj.m22() * z + proj.m32()) / (proj.m23() * z + proj.m33()));
     }
 
     /**
-     * View distance of an NDC depth for a perspective projection with planes {@code near}, {@code far} ({@code far}
-     * may be {@code +∞}) and range {@code range}: the inverse of {@link #ndcDepth}.
+     * Returns the view distance of an NDC depth for a perspective projection with planes {@code near} and
+     * {@code far}: the inverse of {@link #ndcDepth}. Use it to linearize a depth-buffer value.
+     *
+     * @param ndcDepth the NDC depth, in the convention {@code range}
+     * @param near the near-plane distance, greater than 0
+     * @param far the far-plane distance, or {@code +∞} for an infinite projection
+     * @param range the depth convention of {@code ndcDepth}
+     * @return the distance in front of the camera, along {@code −z}
      */
     public static float linearDepth(float ndcDepth, float near, float far, DepthRange range) {
         double z = ndcDepth, n = near, f = far;
@@ -132,7 +176,11 @@ public final class Projectionsf {
 
     /**
      * The clip-space correction from an OpenGL-convention projection ([−1, 1] depth, y up) to Vulkan's ([0, 1]
-     * depth, y down): {@code dest = C}, to be applied as {@code C · P}.
+     * depth, y down): {@code dest = C}, to be applied as {@code C · P}. {@code C} negates y and maps depth
+     * {@code z} to {@code (z + w) / 2}.
+     *
+     * @param dest receives the correction matrix
+     * @return {@code dest}
      */
     public static Matrix4f vulkanClipCorrection(Matrix4f dest) {
         return dest.set(1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0.5f, 0, 0, 0, 0.5f, 1);
@@ -141,6 +189,10 @@ public final class Projectionsf {
     /**
      * Negates clip-space y (the whole second row), for APIs whose framebuffer y points down. Unlike negating
      * {@code m11} alone, this is also correct for off-center, jittered and oblique projections.
+     *
+     * @param proj the projection matrix
+     * @param dest receives the flipped matrix; may be {@code proj}
+     * @return {@code dest}
      */
     public static Matrix4f flipY(Matrix4fc proj, Matrix4f dest) {
         return dest.set(proj.m00(), -proj.m01(), proj.m02(), proj.m03(), proj.m10(), -proj.m11(), proj.m12(),
@@ -150,7 +202,13 @@ public final class Projectionsf {
 
     /**
      * Shifts the projected image by exactly {@code (ndcX, ndcY)} in NDC ({@code clip.xy += offset · clip.w}), for
-     * any projection; {@code dest} may be {@code proj}. A shift of {@code s} pixels is {@code 2 s / width} in NDC.
+     * any projection. A shift of {@code s} pixels is {@code 2 s / width} in NDC.
+     *
+     * @param proj the projection matrix
+     * @param ndcX the horizontal shift in NDC units
+     * @param ndcY the vertical shift in NDC units
+     * @param dest receives the jittered matrix; may be {@code proj}
+     * @return {@code dest}
      */
     public static Matrix4f applyJitter(Matrix4fc proj, float ndcX, float ndcY, Matrix4f dest) {
         double x = ndcX, y = ndcY;
@@ -164,6 +222,15 @@ public final class Projectionsf {
      * TAA jitter for frame {@code frameIndex}: the Halton (2, 3) point with index {@code frameIndex mod sampleCount
      * + 1} ({@code sampleCount ≤ 0}: no wrap), as a sub-pixel offset in [−0.5, 0.5) pixels, returned in NDC units
      * ({@code 2 · offset / size}) for {@link #applyJitter}.
+     *
+     * @param frameIndex the frame number, at least 0
+     * @param sampleCount the length of the jitter cycle, or a value {@code ≤ 0} for no cycle
+     * @param width the render-target width in pixels
+     * @param height the render-target height in pixels
+     * @param dest receives the offset in NDC units
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code sampleCount ≤ 0} and {@code frameIndex + 1} is negative (including
+     *         overflow at {@link Integer#MAX_VALUE})
      */
     public static Vector2f haltonJitter(int frameIndex, int sampleCount, float width, float height, Vector2f dest) {
         int i = (sampleCount > 0 ? java.lang.Math.floorMod(frameIndex, sampleCount) : frameIndex) + 1;
@@ -177,7 +244,15 @@ public final class Projectionsf {
      * Oblique near-plane clipping (Lengyel 2005): replaces the near plane of perspective {@code proj} with the
      * view-space plane {@code (a, b, c, d)} (points with {@code a x + b y + c z + d ≥ 0} are kept; the camera must be
      * on the clipped side, {@code d < 0}), keeping the frustum's far corner opposite the plane. Used for mirror and
-     * portal rendering. The other planes are unchanged; the far plane tilts. {@code dest} may be {@code proj}.
+     * portal rendering. The other planes are unchanged; the far plane tilts. The plane must be expressed in the view
+     * space of {@code proj}. Inverts {@code proj} into a per-thread scratch matrix, which is allocated on the first
+     * call in each thread.
+     *
+     * @param proj a perspective projection built for {@code range}
+     * @param plane the clip plane {@code (a, b, c, d)} in view space, with {@code d < 0}
+     * @param range the depth convention {@code proj} was built for
+     * @param dest receives the oblique projection; may be {@code proj}
+     * @return {@code dest}
      */
     public static Matrix4f obliqueNearPlane(Matrix4fc proj, Vector4fc plane, DepthRange range, Matrix4f dest) {
         Matrix4f inv = proj.invert(INVERSE.get());
@@ -218,6 +293,15 @@ public final class Projectionsf {
     }
 
     /**
+     * Forwards to the {@link org.dynamisengine.vectrix.core.DepthRange} overload.
+     *
+     * @param fovy the vertical field of view in radians
+     * @param aspect the viewport width divided by its height
+     * @param near the near-plane distance
+     * @param far the far-plane distance, or {@code +∞}
+     * @param range the depth convention
+     * @param dest receives the projection
+     * @return {@code dest}
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -227,6 +311,11 @@ public final class Projectionsf {
     }
 
     /**
+     * Forwards to the {@link org.dynamisengine.vectrix.core.DepthRange} overload.
+     *
+     * @param proj a perspective projection built for {@code range}
+     * @param range the depth convention
+     * @return the near-plane distance
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -235,6 +324,11 @@ public final class Projectionsf {
     }
 
     /**
+     * Forwards to the {@link org.dynamisengine.vectrix.core.DepthRange} overload.
+     *
+     * @param proj a perspective projection built for {@code range}
+     * @param range the depth convention
+     * @return the far-plane distance, or {@code +∞}
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -243,6 +337,13 @@ public final class Projectionsf {
     }
 
     /**
+     * Forwards to the {@link org.dynamisengine.vectrix.core.DepthRange} overload.
+     *
+     * @param ndcDepth the NDC depth
+     * @param near the near-plane distance
+     * @param far the far-plane distance, or {@code +∞}
+     * @param range the depth convention
+     * @return the distance in front of the camera
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -251,6 +352,13 @@ public final class Projectionsf {
     }
 
     /**
+     * Forwards to the {@link org.dynamisengine.vectrix.core.DepthRange} overload.
+     *
+     * @param proj a perspective projection built for {@code range}
+     * @param plane the clip plane in view space
+     * @param range the depth convention
+     * @param dest receives the oblique projection; may be {@code proj}
+     * @return {@code dest}
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)

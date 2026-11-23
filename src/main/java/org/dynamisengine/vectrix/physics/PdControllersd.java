@@ -27,7 +27,7 @@ import org.dynamisengine.vectrix.core.Vector3d;
 import org.dynamisengine.vectrix.core.Vector3dc;
 
 /**
- * Proportional-derivative controller helpers for angular control.
+ * Proportional-derivative (PD) controller kernels for angular control (double precision).
  *
  * @since 1.10.12
  */
@@ -35,6 +35,17 @@ public final class PdControllersd {
     private PdControllersd() {
     }
 
+    /**
+     * Returns the PD torque {@code kp · angularError − kd · angularVelocity}, per component. {@code dest} may be
+     * either input.
+     *
+     * @param angularError the angular error to drive to zero
+     * @param kp the proportional gain
+     * @param angularVelocity the current angular velocity, in radians per unit time
+     * @param kd the derivative gain
+     * @param dest receives the torque
+     * @return {@code dest}
+     */
     public static Vector3d torque(Vector3dc angularError, double kp, Vector3dc angularVelocity, double kd, Vector3d dest) {
         return dest.set(
                 angularError.x() * kp - angularVelocity.x() * kd,
@@ -42,6 +53,15 @@ public final class PdControllersd {
                 angularError.z() * kp - angularVelocity.z() * kd);
     }
 
+    /**
+     * Limits the length of {@code torque} to {@code maxTorque}. A longer torque is scaled to that length, keeping its
+     * direction; any other is copied unchanged. {@code dest} may be {@code torque}.
+     *
+     * @param torque the torque to limit
+     * @param maxTorque the largest allowed length, at least 0
+     * @param dest receives the limited torque
+     * @return {@code dest}
+     */
     public static Vector3d clampTorque(Vector3dc torque, double maxTorque, Vector3d dest) {
         double length = torque.length();
         if (length > maxTorque && length > 0.0) {

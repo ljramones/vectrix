@@ -44,7 +44,16 @@ public final class ClusterGridf {
     private ClusterGridf() {
     }
 
-    /** View distance where slice {@code k} begins ({@code k = slices} gives {@code far}, exactly). */
+    /**
+     * Returns the view distance where slice {@code k} begins: {@code near · (far / near)^(k / slices)}. Indices at or
+     * below 0 give {@code near} and indices at or above {@code slices} give {@code far}, both exactly.
+     *
+     * @param k the slice index; {@code slices} gives the far end of the last slice
+     * @param slices the number of depth slices, at least 1
+     * @param near the view distance where the grid begins, greater than 0
+     * @param far the view distance where the grid ends, greater than {@code near}
+     * @return the view distance of the slice's near boundary
+     */
     public static float sliceDepth(int k, int slices, float near, float far) {
         if (k <= 0) {
             return near;
@@ -55,7 +64,16 @@ public final class ClusterGridf {
         return (float) (near * AccurateMath.pow((double) far / near, (double) k / slices));
     }
 
-    /** Slice of view distance {@code d}, clamped to {@code [0, slices − 1]}; consistent with {@link #sliceDepth}. */
+    /**
+     * Returns the slice that contains view distance {@code d}, consistent with {@link #sliceDepth}. Distances at or
+     * below {@code near}, and NaN, give 0; distances at or beyond {@code far} give {@code slices − 1}.
+     *
+     * @param d the view distance, along {@code −z}
+     * @param slices the number of depth slices, at least 1
+     * @param near the view distance where the grid begins, greater than 0
+     * @param far the view distance where the grid ends, greater than {@code near}
+     * @return the slice index, in {@code [0, slices − 1]}
+     */
     public static int sliceIndex(float d, int slices, float near, float far) {
         if (!(d > near)) {
             return 0;
@@ -73,14 +91,35 @@ public final class ClusterGridf {
         return k;
     }
 
-    /** Linear cluster index of tile {@code (x, y)} and slice {@code k}: {@code (k · tilesY + y) · tilesX + x}. */
+    /**
+     * Returns the linear cluster index of tile {@code (x, y)} in slice {@code k}:
+     * {@code (k · tilesY + y) · tilesX + x}. The arguments are not range-checked.
+     *
+     * @param x the tile column, in {@code [0, tilesX)}
+     * @param y the tile row, in {@code [0, tilesY)}, counted from NDC {@code y = −1}
+     * @param k the depth slice
+     * @param tilesX the number of tile columns
+     * @param tilesY the number of tile rows
+     * @return the linear cluster index
+     */
     public static int clusterIndex(int x, int y, int k, int tilesX, int tilesY) {
         return (k * tilesY + y) * tilesX + x;
     }
 
     /**
      * Cluster index of a view-space point, or −1 outside the grid's depth range or screen, for a symmetric
-     * perspective with half-angle tangents {@code tanHalfX}, {@code tanHalfY}.
+     * perspective with half-angle tangents {@code tanHalfX}, {@code tanHalfY}. The grid covers view distances
+     * {@code [near, far)} and NDC {@code [−1, 1)} on both axes.
+     *
+     * @param viewPos the point in view space
+     * @param tanHalfX the tangent of half the horizontal field of view
+     * @param tanHalfY the tangent of half the vertical field of view
+     * @param tilesX the number of tile columns
+     * @param tilesY the number of tile rows
+     * @param slices the number of depth slices
+     * @param near the view distance where the grid begins, greater than 0
+     * @param far the view distance where the grid ends, greater than {@code near}
+     * @return the linear cluster index (see {@link #clusterIndex}), or −1 if the point is outside the grid
      */
     public static int clusterOf(Vector3fc viewPos, float tanHalfX, float tanHalfY, int tilesX, int tilesY,
             int slices, float near, float far) {
@@ -100,6 +139,19 @@ public final class ClusterGridf {
     /**
      * View-space AABB of cluster {@code (x, y, k)} (the AABB of the froxel's eight corners) for a symmetric
      * perspective with half-angle tangents {@code tanHalfX}, {@code tanHalfY}.
+     *
+     * @param x the tile column, in {@code [0, tilesX)}
+     * @param y the tile row, in {@code [0, tilesY)}, counted from NDC {@code y = −1}
+     * @param k the depth slice, in {@code [0, slices)}
+     * @param tilesX the number of tile columns
+     * @param tilesY the number of tile rows
+     * @param slices the number of depth slices
+     * @param near the view distance where the grid begins, greater than 0
+     * @param far the view distance where the grid ends, greater than {@code near}
+     * @param tanHalfX the tangent of half the horizontal field of view
+     * @param tanHalfY the tangent of half the vertical field of view
+     * @param min receives the minimum corner of the box
+     * @param max receives the maximum corner of the box
      */
     public static void clusterAabb(int x, int y, int k, int tilesX, int tilesY, int slices, float near, float far,
             float tanHalfX, float tanHalfY, Vector3f min, Vector3f max) {
@@ -113,7 +165,16 @@ public final class ClusterGridf {
                 (float) -d0);
     }
 
-    /** Whether a sphere light (view space) touches the AABB: exact closest-point distance test. */
+    /**
+     * Tests whether a sphere touches an axis-aligned box, using the exact closest-point distance. Touching counts as
+     * intersecting.
+     *
+     * @param center the sphere center (in the box's space, normally view space)
+     * @param radius the sphere radius, at least 0
+     * @param min the minimum corner of the box
+     * @param max the maximum corner of the box
+     * @return {@code true} if the sphere and the box intersect
+     */
     public static boolean sphereIntersectsAabb(Vector3fc center, float radius, Vector3fc min, Vector3fc max) {
         double dx = java.lang.Math.max(java.lang.Math.max(min.x() - center.x(), center.x() - max.x()), 0.0f);
         double dy = java.lang.Math.max(java.lang.Math.max(min.y() - center.y(), center.y() - max.y()), 0.0f);
@@ -126,6 +187,15 @@ public final class ClusterGridf {
      * only if the sphere lies entirely outside the cone of unit axis {@code dir}, half-angle with cosine and sine
      * {@code cosHalfAngle}, {@code sinHalfAngle}, apex {@code apex} and range {@code range}. The angular test is
      * exact; the range test uses the plane at {@code range}, so it can report spheres just beyond the spherical cap.
+     *
+     * @param apex the cone apex (the light position)
+     * @param dir the cone axis, unit length
+     * @param cosHalfAngle the cosine of the cone's half-angle
+     * @param sinHalfAngle the sine of the cone's half-angle
+     * @param range the light range along the axis
+     * @param center the center of the bounding sphere
+     * @param radius the radius of the bounding sphere
+     * @return {@code false} if the sphere is certainly outside the cone, {@code true} otherwise
      */
     public static boolean coneIntersectsSphere(Vector3fc apex, Vector3fc dir, float cosHalfAngle, float sinHalfAngle,
             float range, Vector3fc center, float radius) {

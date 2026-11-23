@@ -575,7 +575,8 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
      * starting at the given address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      * 
@@ -1429,6 +1430,19 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
     public Vector3f mulPositionGeneric(Matrix4x3dc mat) {
         return mulPositionGeneric(mat, this);
     }
+    /**
+     * Multiply the given 4x3 matrix <code>mat</code> with <code>this</code>, treating <code>this</code> as a position
+     * (<code>w = 1.0</code>), and store the result in <code>dest</code>.
+     * <p>
+     * This method makes no assumptions about the properties of the matrix <code>mat</code>. <code>dest</code> may be
+     * <code>this</code>.
+     *
+     * @param mat
+     *          the matrix to multiply this vector by
+     * @param dest
+     *          will hold the result
+     * @return dest
+     */
     public Vector3f mulPositionGeneric(Matrix4x3fc mat, Vector3f dest) {
         float x = this.x, y = this.y, z = this.z;
         dest.x = Math.fma(mat.m00(), x, Math.fma(mat.m10(), y, Math.fma(mat.m20(), z, mat.m30())));
@@ -1436,6 +1450,20 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
         dest.z = Math.fma(mat.m02(), x, Math.fma(mat.m12(), y, Math.fma(mat.m22(), z, mat.m32())));
         return dest;
     }
+    /**
+     * Multiply the given 4x3 matrix <code>mat</code> with <code>this</code>, treating <code>this</code> as a position
+     * (<code>w = 1.0</code>), and store the result in <code>dest</code>. The product is computed in double and rounded
+     * to float once per component.
+     * <p>
+     * This method makes no assumptions about the properties of the matrix <code>mat</code>. <code>dest</code> may be
+     * <code>this</code>.
+     *
+     * @param mat
+     *          the matrix to multiply this vector by
+     * @param dest
+     *          will hold the result
+     * @return dest
+     */
     public Vector3f mulPositionGeneric(Matrix4x3dc mat, Vector3f dest) {
         float x = this.x, y = this.y, z = this.z;
         dest.x = (float) Math.fma(mat.m00(), x, Math.fma(mat.m10(), y, Math.fma(mat.m20(), z, mat.m30())));
@@ -1465,6 +1493,20 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
             return dest.set(this);
         return mulTransposePositionGeneric(mat, dest);
     }
+    /**
+     * Multiply the transpose of the given 4x4 matrix <code>mat</code> with <code>this</code>, treating
+     * <code>this</code> as a position (<code>w = 1.0</code>), and store the x, y and z of the result in
+     * <code>dest</code>.
+     * <p>
+     * This method makes no assumptions about the properties of the matrix <code>mat</code>. <code>dest</code> may be
+     * <code>this</code>.
+     *
+     * @param mat
+     *          the matrix whose transpose to multiply this vector by
+     * @param dest
+     *          will hold the result
+     * @return dest
+     */
     public Vector3f mulTransposePositionGeneric(Matrix4fc mat, Vector3f dest) {
         float x = this.x, y = this.y, z = this.z;
         dest.x = Math.fma(mat.m00(), x, Math.fma(mat.m01(), y, Math.fma(mat.m02(), z, mat.m03())));
@@ -1510,6 +1552,20 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
     public Vector3f mulTransposePositionGeneric(Matrix4dc mat) {
         return mulTransposePositionGeneric(mat, this);
     }
+    /**
+     * Multiply the transpose of the given 4x4 matrix <code>mat</code> with <code>this</code>, treating
+     * <code>this</code> as a position (<code>w = 1.0</code>), and store the x, y and z of the result in
+     * <code>dest</code>. The product is computed in double and rounded to float once per component.
+     * <p>
+     * This method makes no assumptions about the properties of the matrix <code>mat</code>. <code>dest</code> may be
+     * <code>this</code>.
+     *
+     * @param mat
+     *          the matrix whose transpose to multiply this vector by
+     * @param dest
+     *          will hold the result
+     * @return dest
+     */
     public Vector3f mulTransposePositionGeneric(Matrix4dc mat, Vector3f dest) {
         float x = this.x, y = this.y, z = this.z;
         dest.x = (float) Math.fma(mat.m00(), x, Math.fma(mat.m01(), y, Math.fma(mat.m02(), z, mat.m03())));

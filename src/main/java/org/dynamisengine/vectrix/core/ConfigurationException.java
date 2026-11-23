@@ -24,12 +24,19 @@
 package org.dynamisengine.vectrix.core;
 
 /**
- * Exception thrown when using an invalid JOML runtime configuration.
+ * Exception thrown when using an invalid Vectrix runtime configuration.
  * 
  * @author Kai Burjack
  */
 public class ConfigurationException extends RuntimeException {
     private static final long serialVersionUID = -7832356906364070687L;
+
+    /**
+     * Creates the exception.
+     *
+     * @param message the description of the invalid configuration
+     * @param cause the underlying error, or null
+     */
     public ConfigurationException(String message, Throwable cause) {
         super(message, cause);
     }

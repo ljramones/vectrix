@@ -26,14 +26,18 @@ package org.dynamisengine.vectrix.color;
 /**
  * RGB to reflectance-spectrum upsampling (Jakob and Hanika, "A Low-Dimensional Function Space for Efficient Spectral
  * Upsampling", 2019): the smooth, bounded spectrum {@code s(λ) = S(c₀λ² + c₁λ + c₂)} with
- * {@code S(x) = ½ + x / (2√(1 + x²))}, whose colour under illuminant D65 (CIE 1931 observer, official 1 nm tables)
+ * {@code S(x) = ½ + x / (2√(1 + x²))}, whose color under illuminant D65 (CIE 1931 observer, official 1 nm tables)
  * equals a given linear RGB.
  * <p>
  * {@link #fit} solves the three equations exactly (to about 1e-12) by damped Newton iteration with an analytic
  * Jacobian, continued from grey, instead of looking the coefficients up in the paper's precomputed 3D tables; it costs
- * a few tens of microseconds per colour, so precompute once per material or build a table with it. Coefficients are
+ * a few tens of microseconds per color, so precompute once per material or build a table with it. Coefficients are
  * for {@code λ} in nanometres, as in the reference {@code rgb2spec} implementation. The RGB mapping is calibrated so
- * the constant spectrum 1 is exactly {@code (1, 1, 1)}. Supported gamuts are those with a D65 white point.
+ * the constant spectrum 1 is exactly {@code (1, 1, 1)}. Supported gamuts are those with a D65 white point; the
+ * ACES gamuts throw {@link IllegalArgumentException}.
+ * <p>
+ * The per-gamut weight tables are built on first use, under a lock. All methods are safe to call from any thread;
+ * {@link #fit} allocates small working arrays, the other methods allocate nothing once the tables exist.
  *
  * @since 2.3.0
  */
@@ -88,23 +92,42 @@ public final class SpectralUpsampling {
             -(a * f - c * d) / det, ci / det, -(a * h - b * g) / det, (a * e - b * d) / det};
     }
 
-    /** The sigmoid {@code S(x) = ½ + x / (2√(1 + x²))}. */
+    /**
+     * Returns the sigmoid {@code S(x) = ½ + x / (2√(1 + x²))}, which maps the real line onto (0, 1).
+     *
+     * @param x the argument
+     * @return {@code S(x)}
+     */
     public static double sigmoid(double x) {
         return 0.5 + x / (2.0 * java.lang.Math.sqrt(1.0 + x * x));
     }
 
-    /** The spectrum of coefficients {@code (c0, c1, c2)} (nanometre domain) at wavelength {@code nm}. */
+    /**
+     * Evaluates the spectrum of fitted coefficients at a wavelength: {@code S((c₀ λ + c₁) λ + c₂)}.
+     *
+     * @param coeffs the coefficients {@code (c₀, c₁, c₂)} in the nanometre domain, as written by {@link #fit}
+     * @param nm the wavelength λ in nanometres
+     * @return the reflectance, in (0, 1)
+     */
     public static double evaluate(double[] coeffs, double nm) {
         return sigmoid((coeffs[0] * nm + coeffs[1]) * nm + coeffs[2]);
     }
 
-    /** Single-precision {@link #evaluate(double[], double)} for renderers. */
+    /**
+     * Single-precision {@link #evaluate(double[], double)} for renderers; the polynomial is evaluated in double.
+     *
+     * @param coeffs the coefficients {@code (c₀, c₁, c₂)} in the nanometre domain
+     * @param nm the wavelength λ in nanometres
+     * @return the reflectance, in [0, 1]
+     */
     public static float evaluate(float[] coeffs, float nm) {
         double x = ((double) coeffs[0] * nm + coeffs[1]) * nm + coeffs[2];
         return (float) sigmoid(x);
     }
 
-    /** RGB of normalized-domain coefficients ({@code t = (λ − 360) / 470}) into {@code rgb}; Jacobian into {@code j}. */
+    /**
+     * RGB of normalized-domain coefficients ({@code t = (λ − 360) / 470}) into {@code rgb}; Jacobian into {@code j}.
+     */
     private static void rgbOf(double[] w, double a, double b, double c, double[] rgb, double[] j) {
         double r0 = 0, r1 = 0, r2 = 0;
         double[] jj = j;
@@ -140,10 +163,20 @@ public final class SpectralUpsampling {
     }
 
     /**
-     * Fits coefficients (nanometre domain, into {@code coeffsOut}) whose spectrum has linear RGB {@code (r, g, b)}
-     * in {@code gamut} under D65. Returns {@code true} when the residual is below 1e-12; otherwise the colour is
-     * outside what bounded reflectances can produce (for example components at or beyond 0 or 1) and the best
-     * coefficients found are returned.
+     * Fits the coefficients of a smooth spectrum whose linear RGB in {@code gamut} under D65 is {@code (r, g, b)}.
+     * <p>
+     * Runs a damped Newton iteration from grey, and if that fails, again with continuation along the line from grey to
+     * the target. Allocates small working arrays; the first call for a gamut also builds its weight table.
+     *
+     * @param r the linear red channel
+     * @param g the linear green channel
+     * @param b the linear blue channel
+     * @param gamut the RGB gamut; must have a D65 white point
+     * @param coeffsOut receives {@code (c₀, c₁, c₂)} in the nanometre domain at indices 0 to 2
+     * @return {@code true} when the RGB residual is below 1e-12; {@code false} when the color is outside what a
+     *         reflectance strictly between 0 and 1 can produce (for example a channel at or beyond 0 or 1), in which
+     *         case {@code coeffsOut} holds the best coefficients found
+     * @throws IllegalArgumentException if {@code gamut} has the ACES white point
      */
     public static boolean fit(double r, double g, double b, ColorGamut gamut, double[] coeffsOut) {
         double[] w = weights(gamut);
@@ -205,7 +238,16 @@ public final class SpectralUpsampling {
         return residual < 1e-12;
     }
 
-    /** Linear RGB in {@code gamut} of the spectrum with nanometre-domain {@code coeffs}, under D65 (1 nm summation). */
+    /**
+     * Returns the linear RGB in {@code gamut} of the spectrum with nanometre-domain {@code coeffs}, under D65 (1 nm
+     * summation over 360 to 830 nm). Use it to check a {@link #fit}.
+     *
+     * @param coeffs the coefficients {@code (c₀, c₁, c₂)} in the nanometre domain
+     * @param gamut the RGB gamut; must have a D65 white point
+     * @param rgbOut receives (r, g, b) at indices 0 to 2
+     * @return {@code rgbOut}
+     * @throws IllegalArgumentException if {@code gamut} has the ACES white point
+     */
     public static double[] rgbOf(double[] coeffs, ColorGamut gamut, double[] rgbOut) {
         double[] w = weights(gamut);
         double r0 = 0, r1 = 0, r2 = 0;

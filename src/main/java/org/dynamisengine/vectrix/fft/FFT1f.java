@@ -37,8 +37,8 @@ package org.dynamisengine.vectrix.fft;
  * the size.
  *
  * @since 1.0.0
- *
- * @deprecated use the planned transforms {@link ComplexFftf} and {@link RealFftf}: any size, faster, and allocation-free with caller scratch
+ * @deprecated use the planned transforms {@link ComplexFftf} and {@link RealFftf}: any size, faster, and
+ *             allocation-free with caller scratch
  */
 @Deprecated(since = "2.6.0", forRemoval = true)
 public final class FFT1f {
@@ -58,14 +58,32 @@ public final class FFT1f {
     private FFT1f() {
     }
 
+    /**
+     * Transforms {@code data} in place, unscaled.
+     *
+     * @param data the interleaved complex values; its length is twice a power of two
+     * @throws IllegalArgumentException if {@code data} is null or its length is not twice a power of two
+     */
     public static void forward(float[] data) {
         transform(data, false);
     }
 
+    /**
+     * Inverse-transforms {@code data} in place, dividing by the number of complex values.
+     *
+     * @param data the interleaved complex values; its length is twice a power of two
+     * @throws IllegalArgumentException if {@code data} is null or its length is not twice a power of two
+     */
     public static void inverse(float[] data) {
         transform(data, true);
     }
 
+    /**
+     * Tests whether a complex count is a size this class can transform.
+     *
+     * @param complexCount the number of complex values
+     * @return whether {@code complexCount} is a positive power of two
+     */
     public static boolean isPowerOfTwoSize(int complexCount) {
         return complexCount > 0 && (complexCount & (complexCount - 1)) == 0;
     }

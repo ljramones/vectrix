@@ -30,33 +30,58 @@ import org.dynamisengine.vectrix.core.Vector3d;
 import org.dynamisengine.vectrix.core.Vector3dc;
 
 /**
- * Dual quaternion rigid transform {@code real + ε dual} (single-precision storage; products, screw interpolation and
- * blending are evaluated in double precision). A unit dual quaternion has {@code |real| = 1} and
- * {@code real · dual = 0}; it rotates by {@code real} and then translates by {@code 2 dual real*}.
+ * Dual quaternion rigid transform {@code real + ε dual}, stored and evaluated in double precision. A unit dual
+ * quaternion has {@code |real| = 1} and {@code real · dual = 0}; it rotates by {@code real} and then translates by
+ * {@code 2 dual real*}.
+ * <p>
+ * Instances are mutable and not thread-safe. Methods with a {@code dest} parameter allow {@code dest} to be
+ * {@code this} or an argument. The single-precision twin is {@link DualQuatTransformf}.
  *
  * @since 2.3.0
  */
 public class DualQuatTransformd {
+    /** The real part: the rotation. Starts as the identity {@code (0, 0, 0, 1)}. */
     public final Quaterniond real = new Quaterniond();
+    /** The dual part {@code t real / 2}, where {@code t} is the translation as a pure quaternion. Starts as zero. */
     public final Quaterniond dual = new Quaterniond(0, 0, 0, 0);
 
+    /** Creates the identity transform. */
     public DualQuatTransformd() {
     }
 
+    /**
+     * Copies {@code other} into this, without normalizing.
+     *
+     * @param other the transform to copy
+     * @return this
+     */
     public DualQuatTransformd set(DualQuatTransformd other) {
         real.set(other.real);
         dual.set(other.dual);
         return this;
     }
 
-    /** Sets the identity transform. @since 2.3.0 */
+    /**
+     * Sets the identity transform.
+     *
+     * @return this
+     * @since 2.3.0
+     */
     public DualQuatTransformd setIdentity() {
         real.set(0.0, 0.0, 0.0, 1.0);
         dual.set(0.0, 0.0, 0.0, 0.0);
         return this;
     }
 
-    /** Sets rotation (normalized) then translation. @since 2.3.0 */
+    /**
+     * Sets the transform that rotates by {@code rotation} and then translates by {@code translation}. The rotation is
+     * normalized first, so it need not be unit length, but it must not be zero.
+     *
+     * @param rotation the rotation
+     * @param translation the translation, applied after the rotation
+     * @return this
+     * @since 2.3.0
+     */
     public DualQuatTransformd set(Quaterniondc rotation, Vector3dc translation) {
         return setRotationTranslation(rotation.x(), rotation.y(), rotation.z(), rotation.w(), translation.x(),
                 translation.y(), translation.z());
@@ -73,7 +98,13 @@ public class DualQuatTransformd {
                 0.5 * (tx * ry - ty * rx + tz * rw), -0.5 * (tx * rx + ty * ry + tz * rz));
     }
 
-    /** Sets this to the rigid transform (the rotation is normalized first). */
+    /**
+     * Sets this to the rigid transform: rotation {@code rigid.rotation}, then translation {@code rigid.translation}.
+     * The rotation is normalized first, so it need not be unit length, but it must not be zero.
+     *
+     * @param rigid the transform to convert
+     * @return this
+     */
     public DualQuatTransformd setFromRigid(RigidTransformd rigid) {
         return setRotationTranslation(rigid.rotation.x, rigid.rotation.y, rigid.rotation.z, rigid.rotation.w,
                 rigid.translation.x, rigid.translation.y, rigid.translation.z);
@@ -88,7 +119,10 @@ public class DualQuatTransformd {
 
     /**
      * Makes this an exact unit dual quaternion: divides by {@code |real|} and removes the dual part's component along
-     * {@code real} (since 2.3.0; it previously only divided by an approximate norm).
+     * {@code real} (since 2.3.0; it previously only divided by an approximate norm). A zero {@code real} part gives
+     * NaN.
+     *
+     * @return this
      */
     public DualQuatTransformd normalize() {
         return normalizeInto(real.x, real.y, real.z, real.w, dual.x, dual.y, dual.z, dual.w, this);
@@ -110,6 +144,16 @@ public class DualQuatTransformd {
         return dest;
     }
 
+    /**
+     * Transforms the point {@code (x, y, z)}: rotates it by {@code real}, then adds the translation
+     * {@code 2 dual real*}. Assumes a unit dual quaternion; call {@link #normalize()} first if unsure.
+     *
+     * @param x the point x
+     * @param y the point y
+     * @param z the point z
+     * @param dest receives the transformed point
+     * @return {@code dest}
+     */
     public Vector3d transformPosition(double x, double y, double z, Vector3d dest) {
         real.transform(x, y, z, dest);
         double rx = real.x, ry = real.y, rz = real.z, rw = real.w;
@@ -120,17 +164,38 @@ public class DualQuatTransformd {
         return dest.add(tx, ty, tz);
     }
 
-    /** Rotates a direction (no translation). @since 2.3.0 */
+    /**
+     * Rotates the direction {@code (x, y, z)} by {@code real}, without translation.
+     *
+     * @param x the direction x
+     * @param y the direction y
+     * @param z the direction z
+     * @param dest receives the rotated direction
+     * @return {@code dest}
+     * @since 2.3.0
+     */
     public Vector3d transformDirection(double x, double y, double z, Vector3d dest) {
         return real.transform(x, y, z, dest);
     }
 
-    /** The rotation part. @since 2.3.0 */
+    /**
+     * Copies the rotation part {@code real} into {@code dest}.
+     *
+     * @param dest receives the rotation
+     * @return {@code dest}
+     * @since 2.3.0
+     */
     public Quaterniond getRotation(Quaterniond dest) {
         return dest.set(real);
     }
 
-    /** The translation {@code 2 dual real*}. @since 2.3.0 */
+    /**
+     * Computes the translation {@code 2 dual real*}. Exact for a unit dual quaternion.
+     *
+     * @param dest receives the translation
+     * @return {@code dest}
+     * @since 2.3.0
+     */
     public Vector3d getTranslation(Vector3d dest) {
         double rx = real.x, ry = real.y, rz = real.z, rw = real.w;
         double dx = dual.x, dy = dual.y, dz = dual.z, dw = dual.w;
@@ -139,7 +204,15 @@ public class DualQuatTransformd {
                 (2.0 * (-dw * rz - dx * ry + dy * rx + dz * rw)));
     }
 
-    /** {@code dest = this · right} (apply {@code right} first); {@code dest} may alias either. @since 2.3.0 */
+    /**
+     * Computes {@code dest = this · right}: applied to a point, {@code right} acts first. The result is not
+     * renormalized.
+     *
+     * @param right the right operand
+     * @param dest receives the product; may be {@code this} or {@code right}
+     * @return {@code dest}
+     * @since 2.3.0
+     */
     public DualQuatTransformd mul(DualQuatTransformd right, DualQuatTransformd dest) {
         double ax = real.x, ay = real.y, az = real.z, aw = real.w;
         double bx = dual.x, by = dual.y, bz = dual.z, bw = dual.w;
@@ -154,7 +227,14 @@ public class DualQuatTransformd {
                 aw * ew - ax * ex - ay * ey - az * ez + bw * cw - bx * cx - by * cy - bz * cz);
     }
 
-    /** Inverse of a unit dual quaternion (its quaternion conjugate); {@code dest} may alias this. @since 2.3.0 */
+    /**
+     * Computes the inverse of a unit dual quaternion, which is its quaternion conjugate (both parts conjugated). For
+     * a dual quaternion that is not unit, the result is not the inverse.
+     *
+     * @param dest receives the inverse; may be {@code this}
+     * @return {@code dest}
+     * @since 2.3.0
+     */
     public DualQuatTransformd invert(DualQuatTransformd dest) {
         return dest.store(-real.x, -real.y, -real.z, real.w, -dual.x, -dual.y, -dual.z, dual.w);
     }
@@ -163,7 +243,14 @@ public class DualQuatTransformd {
      * Screw linear interpolation (Kavan et al. 2006): the constant-velocity screw motion from this ({@code t = 0})
      * to {@code other} ({@code t = 1}) along the shorter rotation. Computed in closed form with
      * {@code sin(tφ)/sin φ} and a series for the one term that cancels at small angles, so it is exact for pure
-     * translations, identity and tiny rotations as well. {@code dest} may alias either input. @since 2.3.0
+     * translations, identity and tiny rotations as well. Both inputs should be unit; the result is normalized with
+     * {@link #normalize()}'s rule.
+     *
+     * @param other the end transform, reached at {@code t = 1}
+     * @param t the interpolation parameter; 0 gives this, 1 gives {@code other}, other values extrapolate
+     * @param dest receives the interpolated transform; may be {@code this} or {@code other}
+     * @return {@code dest}
+     * @since 2.3.0
      */
     public DualQuatTransformd sclerp(DualQuatTransformd other, double t, DualQuatTransformd dest) {
         double ax = real.x, ay = real.y, az = real.z, aw = real.w;
@@ -228,7 +315,15 @@ public class DualQuatTransformd {
 
     /**
      * Dual quaternion linear blending (Kavan et al. 2008): the weighted sum with every term's sign aligned to the
-     * first, made exactly unit. Weights need not sum to 1. @since 2.3.0
+     * first, made exactly unit with {@link #normalize()}'s rule. Weights need not sum to 1. Does not allocate.
+     *
+     * @param transforms the transforms; the first {@code count} are used, and {@code transforms[0]} sets the sign
+     *        convention, so the array must not be empty
+     * @param weights the weight of each transform
+     * @param count the number of transforms to blend
+     * @param dest receives the blend; may be one of {@code transforms}
+     * @return {@code dest}
+     * @since 2.3.0
      */
     public static DualQuatTransformd blend(DualQuatTransformd[] transforms, double[] weights, int count,
             DualQuatTransformd dest) {
@@ -257,7 +352,17 @@ public class DualQuatTransformd {
      * Scale-aware blending: the rigid parts by {@link #blend}, and per-transform scales {@code scales} (xyz per
      * transform) linearly into {@code scaleDest}. Apply as {@code dest.transformPosition(scaleDest ∘ p)}: scale is
      * blended before the rigid motion, the two-phase scheme that keeps dual quaternion skinning free of
-     * candy-wrapper artifacts while supporting (non-uniform) joint scale. @since 2.3.0
+     * candy-wrapper artifacts while supporting (non-uniform) joint scale. The scale is divided by the sum of the
+     * weights, so that sum must not be zero.
+     *
+     * @param transforms the rigid transforms; the first {@code count} are used
+     * @param scales the scale of each transform, three consecutive values (x, y, z) per transform from index 0
+     * @param weights the weight of each transform
+     * @param count the number of transforms to blend
+     * @param dest receives the blended rigid part; may be one of {@code transforms}
+     * @param scaleDest receives the weighted mean scale
+     * @return {@code dest}
+     * @since 2.3.0
      */
     public static DualQuatTransformd blendScaled(DualQuatTransformd[] transforms, double[] scales, double[] weights,
             int count, DualQuatTransformd dest, Vector3d scaleDest) {

@@ -104,6 +104,7 @@ the golden hashes them on every CI platform.
 The `blas` reductions and matrix products have one documented order (see `Blasf`). Together these make `blas` and
 `nn` bit-identical across x86-64 and arm64, both jars and any batch size, in any configuration.
 
-The FFTs and `dsp` kernels also sum in a fixed order, so their results do not depend on the jar or on how a stream
-is chunked. Their twiddle factors, windows and filter designs go through `AccurateMath`, so they are identical
+The FFTs and `dsp` kernels also sum in a fixed order, so their results do not depend on the jar. `Biquad` and
+`Resampler` give the same bits however a stream is chunked; `BlockConvolverd` does not, because the tail carried
+between blocks is added separately. Their twiddle factors, windows and filter designs go through `AccurateMath`, so they are identical
 across platforms when `vectrix.strictMath` is set.

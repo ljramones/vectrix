@@ -27,6 +27,9 @@ package org.dynamisengine.vectrix.sampling;
  * Walker-Vose alias table: draws an index {@code i} with probability {@code weights[i] / sum(weights)} in constant
  * time, for importance sampling discrete distributions such as environment-map pixels (weighted by luminance and
  * solid angle). Build is {@code O(n)} and reuses the table's arrays; sampling is allocation-free.
+ * <p>
+ * Threading: {@link #build} changes the table; once built, {@link #sample} and {@link #pdf} only read it and may be
+ * called from any number of threads.
  *
  * @since 2.1.0
  */
@@ -39,7 +42,13 @@ public final class AliasTable {
     private final double[] scaled;
     private final int size;
 
-    /** A table for {@code size} outcomes; call {@link #build} before sampling. */
+    /**
+     * Creates a table for {@code size} outcomes and allocates its arrays. Call {@link #build} before sampling; until
+     * then every outcome has probability 0 and {@link #sample} returns 0.
+     *
+     * @param size the number of outcomes, positive
+     * @throws IllegalArgumentException if {@code size} is not positive
+     */
     public AliasTable(int size) {
         if (size <= 0) {
             throw new IllegalArgumentException("size must be positive");
@@ -53,16 +62,23 @@ public final class AliasTable {
         scaled = new double[size];
     }
 
-    /** Number of outcomes. */
+    /**
+     * Returns the number of outcomes.
+     *
+     * @return the number of outcomes given to the constructor
+     */
     public int size() {
         return size;
     }
 
     /**
-     * Builds the table from {@code weights} (length at least {@link #size()}, non-negative, finite, not all zero).
+     * Builds the table from the first {@link #size()} entries of {@code weights}, replacing any earlier build. The
+     * weights need not be normalized. Does not allocate.
      *
+     * @param weights the non-negative, finite weights, not all zero; length at least {@link #size()}
      * @return {@code this}
-     * @throws IllegalArgumentException if a weight is negative or not finite, or all weights are zero
+     * @throws IllegalArgumentException if {@code weights} is null or shorter than {@link #size()}, a weight is negative
+     *         or not finite, or all weights are zero
      */
     public AliasTable build(float[] weights) {
         if (weights == null || weights.length < size) {
@@ -116,7 +132,13 @@ public final class AliasTable {
         return this;
     }
 
-    /** Draws an index from one uniform number {@code u} in {@code [0, 1)} (it picks the column and the coin flip). */
+    /**
+     * Draws an index from one uniform number {@code u}: {@code u * size} picks the column and its fraction is the coin
+     * flip between the column and its alias.
+     *
+     * @param u the uniform variate, in {@code [0, 1)}; a value below 0 can throw {@link ArrayIndexOutOfBoundsException}
+     * @return the drawn index, in {@code [0, size)}
+     */
     public int sample(float u) {
         float x = u * size;
         int i = java.lang.Math.min((int) x, size - 1);
@@ -124,7 +146,12 @@ public final class AliasTable {
         return coin < probability[i] ? i : alias[i];
     }
 
-    /** Probability of outcome {@code i}: {@code weights[i] / sum(weights)}. */
+    /**
+     * Returns the probability of outcome {@code i}, {@code weights[i] / sum(weights)}, from the last build.
+     *
+     * @param i the outcome, in {@code [0, size)}
+     * @return the probability, in {@code [0, 1]}
+     */
     public float pdf(int i) {
         return pdf[i];
     }

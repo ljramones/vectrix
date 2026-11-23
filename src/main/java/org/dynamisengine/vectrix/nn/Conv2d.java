@@ -90,13 +90,34 @@ public final class Conv2d {
      * @param dilation the dilation in both directions, at least 1
      * @param groups the number of groups, at least 1
      * @return the shape
+     * @throws IllegalArgumentException if a size is out of range, a channel count is not divisible by
+     *         {@code groups}, or the dilated kernel does not fit the padded input
      */
     public static Conv2d of(int cin, int cout, int h, int w, int kh, int kw, int stride, int pad, int dilation,
             int groups) {
         return of(cin, cout, h, w, kh, kw, stride, stride, pad, pad, dilation, dilation, groups);
     }
 
-    /** Describes a convolution with separate vertical and horizontal stride, padding and dilation. */
+    /**
+     * Describes a convolution with separate vertical and horizontal stride, padding and dilation.
+     *
+     * @param cin input channels, divisible by {@code groups}
+     * @param cout output channels, divisible by {@code groups}
+     * @param h input height
+     * @param w input width
+     * @param kh kernel height
+     * @param kw kernel width
+     * @param strideH the vertical stride, at least 1
+     * @param strideW the horizontal stride, at least 1
+     * @param padH the zero padding above and below, at least 0
+     * @param padW the zero padding left and right, at least 0
+     * @param dilH the vertical dilation, at least 1
+     * @param dilW the horizontal dilation, at least 1
+     * @param groups the number of groups, at least 1
+     * @return the shape
+     * @throws IllegalArgumentException if a size is out of range, a channel count is not divisible by {@code groups},
+     *         or the dilated kernel does not fit the padded input
+     */
     public static Conv2d of(int cin, int cout, int h, int w, int kh, int kw, int strideH, int strideW, int padH,
             int padW, int dilH, int dilW, int groups) {
         if (cin < 1 || cout < 1 || h < 1 || w < 1 || kh < 1 || kw < 1 || strideH < 1 || strideW < 1 || padH < 0
@@ -110,22 +131,39 @@ public final class Conv2d {
         return c;
     }
 
-    /** @return the output height */
+    /**
+     * Returns the output height, {@code (h + 2·padH - dilH·(kh - 1) - 1) / strideH + 1}.
+     *
+     * @return the output height, at least 1
+     */
     public int outHeight() {
         return hout;
     }
 
-    /** @return the output width */
+    /**
+     * Returns the output width, {@code (w + 2·padW - dilW·(kw - 1) - 1) / strideW + 1}.
+     *
+     * @return the output width, at least 1
+     */
     public int outWidth() {
         return wout;
     }
 
-    /** @return the number of weights: {@code cout·(cin/groups)·kh·kw} */
+    /**
+     * Returns the number of weights.
+     *
+     * @return {@code cout·(cin/groups)·kh·kw}
+     */
     public int weightCount() {
         return cout * (cin / groups) * kh * kw;
     }
 
-    /** @return the floats of scratch every call needs: the columns of one group plus the GEMM's packing */
+    /**
+     * Returns the number of floats of scratch that {@link #forward} and {@link #backward} need: the columns of one
+     * group plus the GEMM's packing.
+     *
+     * @return the scratch size in floats
+     */
     public int scratchSize() {
         int k = (cin / groups) * kh * kw;
         int hw = hout * wout;
@@ -137,12 +175,21 @@ public final class Conv2d {
     }
 
     /**
-     * {@code out = conv(in, weights) + bias}.
+     * Forward pass: {@code out = conv(in, weights) + bias}.
      *
-     * @param in {@code cin·h·w} floats
+     * @param in the input image, {@code cin·h·w} floats, channel-major
+     * @param inOff the offset in {@code in}
      * @param weights {@link #weightCount()} floats
+     * @param wOff the offset in {@code weights}
      * @param bias {@code cout} floats, or {@code null}
-     * @param out {@code cout·outHeight·outWidth} floats; must not overlap the inputs
+     * @param bOff the offset in {@code bias}
+     * @param out receives {@code cout·outHeight·outWidth} floats, channel-major; must not overlap the inputs or
+     *        {@code scratch}
+     * @param outOff the offset in {@code out}
+     * @param scratch {@link #scratchSize()} floats of working memory
+     * @param scratchOff the offset in {@code scratch}
+     * @throws IllegalArgumentException if {@code in}, {@code out}, {@code weights} or {@code scratch} is too short for
+     *         its offset; {@code bias} is not checked up front
      */
     public void forward(float[] in, int inOff, float[] weights, int wOff, float[] bias, int bOff, float[] out,
             int outOff, float[] scratch, int scratchOff) {
@@ -170,6 +217,24 @@ public final class Conv2d {
     /**
      * Backward pass: <i>accumulates</i> {@code dWeights += dOut·colsᵀ} and {@code dBias += Σ dOut} (either may be
      * {@code null}), and writes {@code dIn} (or skips it when {@code null}).
+     *
+     * @param in the forward input, {@code cin·h·w} floats
+     * @param inOff the offset in {@code in}
+     * @param weights the forward weights, {@link #weightCount()} floats
+     * @param wOff the offset in {@code weights}
+     * @param dOut the gradient of the output, {@code cout·outHeight·outWidth} floats
+     * @param dOutOff the offset in {@code dOut}
+     * @param dIn receives the gradient of the input, {@code cin·h·w} floats, or {@code null}; must not overlap the
+     *        other arrays
+     * @param dInOff the offset in {@code dIn}
+     * @param dWeights accumulates the weight gradient, {@link #weightCount()} floats, or {@code null}
+     * @param dwOff the offset in {@code dWeights}
+     * @param dBias accumulates the bias gradient, {@code cout} floats, or {@code null}
+     * @param dbOff the offset in {@code dBias}
+     * @param scratch {@link #scratchSize()} floats of working memory
+     * @param scratchOff the offset in {@code scratch}
+     * @throws IllegalArgumentException if {@code in}, {@code dOut}, {@code weights} or {@code scratch} is too short for
+     *         its offset; the gradient arrays are not checked up front
      */
     public void backward(float[] in, int inOff, float[] weights, int wOff, float[] dOut, int dOutOff, float[] dIn,
             int dInOff, float[] dWeights, int dwOff, float[] dBias, int dbOff, float[] scratch, int scratchOff) {

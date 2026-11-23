@@ -22,7 +22,16 @@
  * THE SOFTWARE.
  */
 /**
- * Curve evaluation and reparameterization utilities for animation, camera paths, and simulation tracks.
- * Includes cubic families, derivatives, and arc-length mapping helpers.
+ * Curve evaluation and reparameterization utilities for animation, camera paths, and simulation tracks: the scalar
+ * cubic kernels ({@link org.dynamisengine.vectrix.curve.CubicCurveMath}) behind the curve classes in the
+ * {@code scalar}, {@code vec2}, {@code vec3} and {@code vec4} subpackages, and arc-length tables for constant-speed
+ * motion along 3D segments ({@link org.dynamisengine.vectrix.curve.CurveReparameterizer3f}).
+ * <p>
+ * <b>Contract.</b> Threading: the classes are static and stateless, safe from any thread. Allocation: the kernels
+ * and table lookups do not allocate; each arc-length table build allocates two temporary vectors. Determinism: plain
+ * float or double arithmetic and {@code sqrt}, no transcendental functions, so results are the same bits on every
+ * platform. Errors: {@code t} is not clamped; table builders and lookups throw {@code IllegalArgumentException}
+ * for a sample count below 1 or a table that is too short. Precision and naming: {@code CubicCurveMath} has float
+ * and double overloads; the {@code ...3f}/{@code ...3d} reparameterizers work on float and double 3D curves.
  */
 package org.dynamisengine.vectrix.curve;

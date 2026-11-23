@@ -28,18 +28,38 @@ package org.dynamisengine.vectrix.optics;
   * @since 1.0.0
   */
 public final class SpectralSamplingd {
+    /** Lower end of the sampled visible range, in nanometers. */
     public static final double MIN_NM = 380.0;
+    /** Upper end of the sampled visible range, in nanometers. */
     public static final double MAX_NM = 780.0;
+    /** Width of the sampled range, {@code MAX_NM − MIN_NM}, in nanometers. */
     public static final double RANGE_NM = MAX_NM - MIN_NM;
 
     private SpectralSamplingd() {
     }
 
+    /**
+     * Maps a uniform random number to a wavelength uniformly distributed over {@code [MIN_NM, MAX_NM]}.
+     *
+     * @param u01 the random number, clamped to {@code [0, 1]}
+     * @return the wavelength in nanometers
+     */
     public static double sampleUniform(double u01) {
         double u = clamp01(u01);
         return MIN_NM + u * RANGE_NM;
     }
 
+    /**
+     * Returns a wavelength in stratum {@code stratum} of {@code strataCount} equal-width strata of
+     * {@code [MIN_NM, MAX_NM]}, placed at offset {@code jitter01} within the stratum. Over all strata the samples
+     * have the uniform density {@link #pdfUniform()}.
+     *
+     * @param stratum the stratum index, in {@code [0, strataCount)}
+     * @param strataCount the number of strata, at least 1
+     * @param jitter01 the position within the stratum, clamped to {@code [0, 1]}
+     * @return the wavelength in nanometers
+     * @throws IllegalArgumentException if {@code strataCount} is less than 1 or {@code stratum} is out of range
+     */
     public static double sampleStratified(int stratum, int strataCount, double jitter01) {
         if (strataCount <= 0 || stratum < 0 || stratum >= strataCount) {
             throw new IllegalArgumentException("strata");
@@ -48,6 +68,11 @@ public final class SpectralSamplingd {
         return sampleUniform(u);
     }
 
+    /**
+     * Returns the probability density of {@link #sampleUniform}, {@code 1 / RANGE_NM}.
+     *
+     * @return the density per nanometer
+     */
     public static double pdfUniform() {
         return 1.0 / RANGE_NM;
     }

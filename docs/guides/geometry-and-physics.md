@@ -307,7 +307,9 @@ Inverse mass 0 pins a particle. `stiffness` is in `[0, 1]`, where 1 solves the l
 | `PbdConstraintsf.shapeMatchingGoal` | Shape matching (Müller et al. 2005) | The best-fit rotation and a goal position per particle |
 
 The bend and volume constraints read all inputs before writing any output, so outputs may alias inputs. Degenerate
-configurations (zero-length edges, parallel edges, a flat tetrahedron) give zero corrections.
+configurations give zero corrections: zero-length or parallel edges for bending, and for volume a tetrahedron whose
+gradients all vanish (collinear points, or every particle pinned). A flat tetrahedron is pushed back toward its rest
+volume. The degeneracy thresholds are absolute, so keep coordinates within a few orders of magnitude of 1.
 `PbdConstraintsf.shapeMatchingGoal` does not allocate; it extracts the rotation iteratively, starting from a
 Gram-Schmidt estimate so that large rotations converge too.
 

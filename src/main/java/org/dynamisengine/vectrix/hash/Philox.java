@@ -29,10 +29,10 @@ import org.dynamisengine.vectrix.core.ReproducibleMath;
  * Philox4x32-10, the counter-based random number generator of Salmon et al. (Random123): the {@code n}-th random
  * number of a stream is a pure function of {@code (seed, n)}.
  * <p>
- * There is no generator state, so any element can be drawn in any order by any thread with the same result: a
- * Monte Carlo sample, a dropout mask or a weight initialization is reproducible however the work is split, and a backward pass can
- * regenerate its forward mask instead of storing it. Index {@code n} uses word {@code n mod 4} of the block for
- * counter {@code n / 4}; the 64-bit seed is the key. Outputs match the Random123 known-answer vectors. Nothing
+ * There is no generator state, so any element can be drawn in any order by any thread with the same result: a Monte
+ * Carlo sample, a dropout mask or a weight initialization is reproducible however the work is split, and a backward
+ * pass can regenerate its forward mask instead of storing it. Index {@code n} uses word {@code n mod 4} of the block
+ * for counter {@code n / 4}; the 64-bit seed is the key. Outputs match the Random123 known-answer vectors. Nothing
  * allocates.
  *
  * @since 2.6.0 (2.5.0 as {@code nn.Philox})
@@ -48,9 +48,17 @@ public final class Philox {
     }
 
     /**
-     * The block for a 128-bit counter {@code (c0, c1, c2, c3)} and key {@code (k0, k1)}, as four 32-bit words.
+     * The block for a 128-bit counter {@code (c0, c1, c2, c3)} and key {@code (k0, k1)}, as four 32-bit words. The
+     * array is not checked up front; a too-short {@code out} throws {@link ArrayIndexOutOfBoundsException}.
      *
+     * @param c0 counter word 0 (least significant)
+     * @param c1 counter word 1
+     * @param c2 counter word 2
+     * @param c3 counter word 3 (most significant)
+     * @param k0 key word 0 (the low 32 bits of a seed)
+     * @param k1 key word 1 (the high 32 bits of a seed)
      * @param out receives four words at {@code out[off .. off + 4)}
+     * @param off the index in {@code out} of the first word
      */
     public static void block(int c0, int c1, int c2, int c3, int k0, int k1, int[] out, int off) {
         for (int r = 0; r < 10; r++) {
@@ -71,7 +79,14 @@ public final class Philox {
         out[off + 3] = c3;
     }
 
-    /** The 32-bit word number {@code index} of the stream {@code seed}. */
+    /**
+     * The 32-bit word number {@code index} of the stream {@code seed}: word {@code index mod 4} of the block for
+     * counter {@code (index / 4, 0)} (as an unsigned 64-bit counter in {@code c0, c1}) and key {@code seed}.
+     *
+     * @param seed the stream's seed
+     * @param index the position in the stream, read as an unsigned 64-bit value
+     * @return the random word, any 32-bit value
+     */
     public static int word(long seed, long index) {
         long counter = index >>> 2;
         int c0 = (int) counter;
@@ -100,12 +115,29 @@ public final class Philox {
         return w == 0 ? r0 : w == 1 ? r1 : w == 2 ? r2 : r3;
     }
 
-    /** A uniform float in [0, 1) with 24 random bits: number {@code index} of stream {@code seed}. */
+    /**
+     * A uniform float in [0, 1) with 24 random bits (the top 24 bits of {@link #word}): number {@code index} of
+     * stream {@code seed}.
+     *
+     * @param seed the stream's seed
+     * @param index the position in the stream
+     * @return a value in {@code [0, 1)}, a multiple of {@code 2^-24}
+     */
     public static float uniform(long seed, long index) {
         return (word(seed, index) >>> 8) * 0x1p-24f;
     }
 
-    /** {@code dest[off + i] = uniform(seed, start + i)}. */
+    /**
+     * Fills {@code dest[off + i] = uniform(seed, start + i)} for {@code i} in {@code [0, n)}.
+     *
+     * @param seed the stream's seed
+     * @param start the stream position of the first value
+     * @param dest receives the values
+     * @param off the index in {@code dest} of the first value
+     * @param n the number of values, at least 0
+     * @throws IllegalArgumentException if {@code dest} is null, {@code n} or {@code off} is negative, or
+     *         {@code dest} has fewer than {@code off + n} elements; nothing is written then
+     */
     public static void fillUniform(long seed, long start, float[] dest, int off, int n) {
         check(dest, off, n);
         for (int i = 0; i < n; i++) {
@@ -116,7 +148,18 @@ public final class Philox {
     /**
      * Normally distributed floats by the Box–Muller transform: element {@code i} uses the uniforms
      * {@code 2·⌊(start + i)/2⌋} and the next one, taking the cosine for even and the sine for odd stream positions,
-     * all computed in double with {@link ReproducibleMath} and rounded once.
+     * all computed in double with {@link ReproducibleMath} and rounded once. The result does not depend on how a
+     * stream is split into calls. The first uniform of each pair is taken in {@code (0, 1]}, so every value is finite.
+     *
+     * @param seed the stream's seed
+     * @param start the stream position of the first value
+     * @param mean the mean of the distribution
+     * @param std the standard deviation of the distribution
+     * @param dest receives the values
+     * @param off the index in {@code dest} of the first value
+     * @param n the number of values, at least 0
+     * @throws IllegalArgumentException if {@code dest} is null, {@code n} or {@code off} is negative, or
+     *         {@code dest} has fewer than {@code off + n} elements; nothing is written then
      */
     public static void fillNormal(long seed, long start, float mean, float std, float[] dest, int off, int n) {
         check(dest, off, n);

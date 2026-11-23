@@ -37,8 +37,10 @@ import org.dynamisengine.vectrix.fft.RealFftd;
  * <li>{@link #deconvolve} and {@link #deconvolve2d}: Wiener deconvolution, {@code X = conj(H)·Y/(|H|² + NSR)},
  * undoing a known blur in signals and images.</li>
  * <li>{@link #adaptive2d}: the locally adaptive image filter (as MATLAB's {@code wiener2}).</li>
+ * <li>{@link #apply}: multiplies a half spectrum by per-bin gains, such as those of {@link #gain}.</li>
  * </ul>
- * Results are deterministic; the processing methods take caller scratch and do not allocate.
+ * Results are deterministic; the processing methods take caller scratch and do not allocate. Arrays without an
+ * offset parameter are used from index 0.
  *
  * @since 2.5.0
  */
@@ -53,8 +55,11 @@ public final class Wiener {
      *
      * @param rxx the observation's autocorrelation at lags {@code 0..n-1}
      * @param rdx the cross-correlation {@code E[d[t]·x[t - i]]} at lags {@code 0..n-1}
-     * @param w receives {@code n} taps
+     * @param n the number of taps, at least 1
+     * @param w receives {@code n} taps; may be {@code rdx}
      * @param scratch {@code 2n} doubles
+     * @throws IllegalArgumentException if {@code n < 1}, an array is too short, or a leading submatrix of the
+     *         autocorrelation matrix is singular (see {@link Toeplitz#solve})
      */
     public static void fir(double[] rxx, double[] rdx, int n, double[] w, double[] scratch) {
         Toeplitz.solve(rxx, rdx, n, w, scratch);
@@ -64,9 +69,13 @@ public final class Wiener {
      * The Wiener gain {@code S/(S + N)} per bin, clamped to {@code [floor, 1]} (a floor above 0 limits the
      * "musical noise" of spectral subtraction); bins with {@code S + N = 0} get the floor.
      *
+     * Negative power estimates count as 0.
+     *
      * @param signalPower {@code n} signal power estimates
      * @param noisePower {@code n} noise power estimates
-     * @param gain receives {@code n} gains
+     * @param n the number of bins
+     * @param floor the smallest gain, normally in [0, 1)
+     * @param gain receives {@code n} gains; may be either input
      */
     public static void gain(double[] signalPower, double[] noisePower, int n, double floor, double[] gain) {
         for (int i = 0; i < n; i++) {
@@ -83,7 +92,8 @@ public final class Wiener {
      *
      * @param pxx {@code bins} auto-spectrum values
      * @param pxy {@code bins} complex cross-spectrum values, interleaved
-     * @param h receives {@code bins} complex responses, interleaved
+     * @param bins the number of frequency bins
+     * @param h receives {@code bins} complex responses, interleaved; may be {@code pxy}
      */
     public static void noncausal(double[] pxx, double[] pxy, int bins, double[] h) {
         for (int k = 0; k < bins; k++) {
@@ -97,8 +107,9 @@ public final class Wiener {
      * The FIR taps of a frequency response on {@code plan}'s bins: its inverse transform, rotated by {@code n/2} so the
      * non-causal part comes first (a delay of {@code n/2} samples). Window the taps to shorten them.
      *
+     * @param plan the real FFT plan; its size is the number of taps {@code n}
      * @param h the {@code n/2 + 1} complex responses, interleaved
-     * @param taps receives {@code n} taps
+     * @param taps receives {@code n} taps; must not be {@code scratch}
      * @param scratch {@code plan.spectrumLength() + plan.scratchSize()} doubles
      */
     public static void impulseResponse(RealFftd plan, double[] h, double[] taps, double[] scratch) {
@@ -111,7 +122,12 @@ public final class Wiener {
         }
     }
 
-    /** @return the scratch doubles {@link #deconvolve} needs with this plan */
+    /**
+     * Returns the scratch size of {@link #deconvolve} for this plan.
+     *
+     * @param plan the real FFT plan of the signal length
+     * @return the number of scratch doubles
+     */
     public static int deconvolveScratchSize(RealFftd plan) {
         return 2 * plan.spectrumLength() + plan.scratchSize();
     }
@@ -121,17 +137,41 @@ public final class Wiener {
      * {@code X = conj(H)·Y / (|H|² + nsr)}, where {@code nsr} is the noise-to-signal power ratio (0 is plain inverse
      * filtering, unstable where {@code H} is small; larger values trade sharpness for noise).
      *
+     * @param plan the real FFT plan; its size is the signal length {@code n}
      * @param y the {@code n} observed samples
+     * @param yOff the offset of the first observed sample
      * @param kernel the blur, {@code kLen <= n} taps (tap 0 is the unshifted one)
+     * @param kOff the offset of the first tap
+     * @param kLen the number of taps, in {@code [1, n]}
      * @param nsr the noise-to-signal ratio, {@code >= 0}, the same for every bin; see the overload for one per bin
-     * @param out receives the {@code n} restored samples
+     * @param out receives the {@code n} restored samples; may be {@code y}
+     * @param outOff the offset of the first restored sample
+     * @param scratch {@link #deconvolveScratchSize(RealFftd)} doubles of working memory
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if {@code kLen} is outside {@code [1, n]} or {@code scratch} is too short
      */
     public static void deconvolve(RealFftd plan, double[] y, int yOff, double[] kernel, int kOff, int kLen, double nsr,
             double[] out, int outOff, double[] scratch, int scratchOff) {
         deconvolve(plan, y, yOff, kernel, kOff, kLen, null, nsr, out, outOff, scratch, scratchOff);
     }
 
-    /** Wiener deconvolution with a noise-to-signal ratio per bin ({@code n/2 + 1} values). */
+    /**
+     * Wiener deconvolution with a noise-to-signal ratio per bin; otherwise as
+     * {@link #deconvolve(RealFftd, double[], int, double[], int, int, double, double[], int, double[], int)}.
+     *
+     * @param plan the real FFT plan; its size is the signal length {@code n}
+     * @param y the {@code n} observed samples
+     * @param yOff the offset of the first observed sample
+     * @param kernel the blur, {@code kLen <= n} taps (tap 0 is the unshifted one)
+     * @param kOff the offset of the first tap
+     * @param kLen the number of taps, in {@code [1, n]}
+     * @param nsrPerBin {@code n/2 + 1} noise-to-signal ratios, {@code >= 0}, from DC to Nyquist, from index 0
+     * @param out receives the {@code n} restored samples; may be {@code y}
+     * @param outOff the offset of the first restored sample
+     * @param scratch {@link #deconvolveScratchSize(RealFftd)} doubles of working memory
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if {@code kLen} is outside {@code [1, n]} or {@code scratch} is too short
+     */
     public static void deconvolve(RealFftd plan, double[] y, int yOff, double[] kernel, int kOff, int kLen,
             double[] nsrPerBin, double[] out, int outOff, double[] scratch, int scratchOff) {
         deconvolve(plan, y, yOff, kernel, kOff, kLen, nsrPerBin, 0.0, out, outOff, scratch, scratchOff);
@@ -174,7 +214,12 @@ public final class Wiener {
         }
     }
 
-    /** @return the scratch doubles {@link #deconvolve2d} needs with this plan */
+    /**
+     * Returns the scratch size of {@link #deconvolve2d} for this plan.
+     *
+     * @param plan the 2D real FFT plan of the image size
+     * @return the number of scratch doubles
+     */
     public static int deconvolve2dScratchSize(RealFft2d plan) {
         return 2 * plan.spectrumLength() + plan.scratchSize();
     }
@@ -182,6 +227,21 @@ public final class Wiener {
     /**
      * Wiener deconvolution of an image ({@code rows × cols}, row-major) blurred by circular 2D convolution with a known
      * kernel ({@code kRows × kCols}, its tap {@code (0, 0)} unshifted): {@code X = conj(H)·Y / (|H|² + nsr)}.
+     *
+     * @param plan the 2D real FFT plan; its size is the image size {@code rows × cols}
+     * @param y the {@code rows·cols} observed pixels, row-major without padding
+     * @param yOff the offset of the first pixel
+     * @param kernel the blur, {@code kRows·kCols} taps, row-major without padding
+     * @param kOff the offset of the first tap
+     * @param kRows the kernel height, in {@code [1, rows]}
+     * @param kCols the kernel width, in {@code [1, cols]}
+     * @param nsr the noise-to-signal ratio, {@code >= 0}, the same for every bin
+     * @param out receives the {@code rows·cols} restored pixels, row-major; may be {@code y}
+     * @param outOff the offset of the first restored pixel
+     * @param scratch {@link #deconvolve2dScratchSize(RealFft2d)} doubles of working memory
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if the kernel is empty or larger than the image, or {@code scratch} is too
+     *         short
      */
     public static void deconvolve2d(RealFft2d plan, double[] y, int yOff, double[] kernel, int kOff, int kRows,
             int kCols, double nsr, double[] out, int outOff, double[] scratch, int scratchOff) {
@@ -215,9 +275,16 @@ public final class Wiener {
      * {@code (2·half + 1)²} window around each pixel (cut at the borders),
      * {@code out = μ + max(σ² - ν², 0) / max(σ², ν²)·(x - μ)}, smoothing flat regions and keeping edges.
      *
+     * @param img the {@code rows·cols} pixels, row-major without padding, from index 0
+     * @param rows the image height, at least 1
+     * @param cols the image width, at least 1
+     * @param half the window radius in pixels, {@code >= 0}
      * @param noiseVariance {@code ν²}; 0 or less estimates it as the mean of the local variances
+     * @param out receives the {@code rows·cols} filtered pixels; may be {@code img}
      * @param scratch {@code 2·(rows + 1)·(cols + 1)} doubles (two summed-area tables)
      * @return the noise variance used
+     * @throws IllegalArgumentException if a size is out of range or an array is too short (checked before anything
+     *         is written)
      */
     public static double adaptive2d(double[] img, int rows, int cols, int half, double noiseVariance, double[] out,
             double[] scratch) {
@@ -283,8 +350,11 @@ public final class Wiener {
     }
 
     /**
-     * Multiplies a half spectrum (interleaved complex, as {@link RealFftd} produces) by real per-bin gains.
+     * Multiplies a half spectrum (interleaved complex, as {@link RealFftd} produces) by real per-bin gains, in place.
      *
+     * @param spectrum the interleaved complex bins, modified in place
+     * @param off the offset of the first bin
+     * @param gain {@code bins} gains, from index 0
      * @param bins the number of complex bins
      */
     public static void apply(double[] spectrum, int off, double[] gain, int bins) {

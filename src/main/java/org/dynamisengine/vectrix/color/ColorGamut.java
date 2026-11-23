@@ -24,7 +24,7 @@
 package org.dynamisengine.vectrix.color;
 
 /**
- * RGB colour spaces with their primaries and white point, for {@link ColorSpacesf} and {@link ColorSpacesd}. All are
+ * RGB color spaces with their primaries and white point, for {@link ColorSpacesf} and {@link ColorSpacesd}. All are
  * linear (scene- or display-referred values without a transfer function).
  *
  * @since 2.1.0

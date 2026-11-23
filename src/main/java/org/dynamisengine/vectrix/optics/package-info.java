@@ -23,5 +23,15 @@
  */
 /**
  * Optics and material math including IOR/Fresnel models, thin-film interference, and spectral sampling.
+ * Refractive indices are relative and dimensionless; wavelengths and film thicknesses are in nanometers.
+ * <p>
+ * <b>Contract.</b> Threading: the classes are stateless static functions, safe to call from any thread.
+ * Allocation: no method allocates, except the deprecated {@code Fresnel*.conductor} overload that takes an
+ * {@code fft} complex number. Determinism: the Fresnel equations use only arithmetic and square roots, and the
+ * thin-film phase uses {@code AccurateMath.cos}, so results match across platforms under
+ * {@code -Dvectrix.strictMath}. Errors: a non-positive refractive index or wavelength, a negative extinction
+ * coefficient or film thickness, and an invalid stratum throw {@code IllegalArgumentException}; cosines and random
+ * numbers are clamped to {@code [0, 1]}, and NaN inputs are not rejected. Precision and naming: {@code ...d}
+ * classes are double, {@code ...f} twins are float with the same methods.
  */
 package org.dynamisengine.vectrix.optics;

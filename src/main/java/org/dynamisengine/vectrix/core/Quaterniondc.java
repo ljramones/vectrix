@@ -32,21 +32,29 @@ import java.util.*;
 public interface Quaterniondc {
 
     /**
+     * Returns the x component: the first component of the vector part.
+     *
      * @return the first component of the vector part
      */
     double x();
 
     /**
+     * Returns the y component: the second component of the vector part.
+     *
      * @return the second component of the vector part
      */
     double y();
 
     /**
+     * Returns the z component: the third component of the vector part.
+     *
      * @return the third component of the vector part
      */
     double z();
 
     /**
+     * Returns the w component: the real (scalar) part.
+     *
      * @return the real/scalar part of the quaternion
      */
     double w();
@@ -2140,6 +2148,8 @@ public interface Quaterniondc {
     boolean equals(Quaterniondc q, double delta);
 
     /**
+     * Returns whether this quaternion's components have the same bits as the given values, so NaN equals NaN and
+     * -0 differs from +0.
      *
      * @param x
      *      the x component to compare to

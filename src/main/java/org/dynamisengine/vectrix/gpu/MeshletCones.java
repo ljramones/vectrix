@@ -48,8 +48,13 @@ public final class MeshletCones {
      * are skipped. A cluster whose normals are not within an open hemisphere, or that has no valid triangle, gets
      * {@code cos α = −1}, which is never culled.
      * <p>
-     * This is a build-time function; it allocates.
+     * This is a build-time function; it allocates. Indices are not validated: an index out of range throws
+     * {@link ArrayIndexOutOfBoundsException}.
      *
+     * @param xyz vertex positions, {@code x, y, z} per vertex; vertex {@code v} starts at {@code 3 * v}
+     * @param indices triangle vertex indices, three per triangle; triangle {@code t} starts at {@code 3 * t}
+     * @param firstTriangle the index of the first triangle of the cluster (in triangles, not in indices)
+     * @param triangleCount the number of triangles in the cluster
      * @param dest
      *            receives the axis in {@code xyz} and {@code cos α} in {@code w}
      * @return {@code cos α}
@@ -102,8 +107,19 @@ public final class MeshletCones {
      * With {@code d = c − camera}, the test is exact: {@code (d·a) cos α − |d × a| sin α > radius}. It never culls
      * a cluster with a visible triangle. Cones of {@code α ≥ 90°} are never back-facing.
      *
+     * @param cx the bounding sphere center, x
+     * @param cy the bounding sphere center, y
+     * @param cz the bounding sphere center, z
+     * @param radius the bounding sphere radius
      * @param ax
      *            the unit cone axis, x (with {@code ay}, {@code az})
+     * @param ay the unit cone axis, y
+     * @param az the unit cone axis, z
+     * @param cosA the cosine of the cone's half angle; a value of 0 or less (or NaN) is never back-facing
+     * @param cameraX the camera position, x
+     * @param cameraY the camera position, y
+     * @param cameraZ the camera position, z
+     * @return {@code true} if the whole cluster faces away from the camera and can be culled
      */
     public static boolean isBackfacing(float cx, float cy, float cz, float radius, float ax, float ay, float az,
             float cosA, float cameraX, float cameraY, float cameraZ) {
@@ -120,7 +136,14 @@ public final class MeshletCones {
     /**
      * Packs a cone into 32 bits: the axis as three snorm8 (x in the low byte), and {@code cos α} as snorm8 in the
      * high byte. The packed cone always contains the original. The stored cosine is that of {@code α + δ}, where
-     * {@code δ} is the angle between the axis and its quantized form, and it is rounded down.
+     * {@code δ} is the angle between the axis and its quantized form, and it is rounded down. A cone with
+     * {@code cos α <= 0} (or NaN) stores {@code cos α = -1}, which is never culled.
+     *
+     * @param ax the unit cone axis, x
+     * @param ay the unit cone axis, y
+     * @param az the unit cone axis, z
+     * @param cosA the cosine of the cone's half angle
+     * @return the packed cone
      */
     public static int quantize(float ax, float ay, float az, float cosA) {
         int qx = PackedNorm.packSnorm8(ax), qy = PackedNorm.packSnorm8(ay), qz = PackedNorm.packSnorm8(az);
@@ -144,7 +167,14 @@ public final class MeshletCones {
         return qx | qy << 8 | qz << 16 | (code & 0xFF) << 24;
     }
 
-    /** Unpacks {@link #quantize}: the unit axis in {@code xyz} and {@code cos α} in {@code w}. */
+    /**
+     * Unpacks {@link #quantize}: the unit axis in {@code xyz} and {@code cos α} in {@code w}. A zero axis code
+     * gives {@code (0, 0, 1, -1)}.
+     *
+     * @param packed the packed cone
+     * @param dest receives the axis and the cosine
+     * @return {@code dest}
+     */
     public static Vector4f dequantize(int packed, Vector4f dest) {
         float x = PackedNorm.unpackSnorm8(packed), y = PackedNorm.unpackSnorm8(packed >>> 8);
         float z = PackedNorm.unpackSnorm8(packed >>> 16);

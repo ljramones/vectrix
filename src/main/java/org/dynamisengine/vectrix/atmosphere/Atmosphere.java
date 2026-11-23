@@ -28,7 +28,8 @@ import org.dynamisengine.vectrix.core.AccurateMath;
 /**
  * Atmosphere math in double precision (precomputation; DynamisSky owns rendering policy). Positions are given as
  * {@code (r, mu)}: distance {@code r} from the planet center and {@code mu}, the cosine between the ray direction and
- * the local zenith.
+ * the local zenith. Distances, radii and altitudes are in metres; RGB results go into the first three elements of the
+ * caller's {@code out} array, which is also returned. Inputs are not validated.
  * <ul>
  * <li>Geometry without cancellation: distances to the top and the ground use the product forms of the quadratic's
  * roots, and altitudes along a ray use {@code h = (r(t)² − R²) / (r(t) + R)}, so a ray grazing the ground at 1 mm
@@ -51,22 +52,50 @@ public final class Atmosphere {
 
     // ---------------------------------------------------------------- densities and coefficients
 
-    /** Rayleigh density at altitude {@code h} (1 at the ground). */
+    /**
+     * Returns the relative Rayleigh density at altitude {@code h}: {@code exp(−h / rayleighScaleHeight)}, 1 at the
+     * ground.
+     *
+     * @param m the atmosphere
+     * @param h the altitude above the ground, in metres
+     * @return the density relative to the ground
+     */
     public static double rayleighDensity(AtmosphereModel m, double h) {
         return AccurateMath.exp(-h / m.rayleighScaleHeight());
     }
 
-    /** Mie density at altitude {@code h}. */
+    /**
+     * Returns the relative Mie density at altitude {@code h}: {@code exp(−h / mieScaleHeight)}, 1 at the ground.
+     *
+     * @param m the atmosphere
+     * @param h the altitude above the ground, in metres
+     * @return the density relative to the ground
+     */
     public static double mieDensity(AtmosphereModel m, double h) {
         return AccurateMath.exp(-h / m.mieScaleHeight());
     }
 
-    /** Ozone density at altitude {@code h} (tent profile, 1 at its center). */
+    /**
+     * Returns the relative ozone density at altitude {@code h}: the tent profile
+     * {@code max(0, 1 − |h − ozoneCenterAltitude| / ozoneHalfWidth)}, 1 at its center.
+     *
+     * @param m the atmosphere
+     * @param h the altitude above the ground, in metres
+     * @return the density relative to the peak, in [0, 1]
+     */
     public static double ozoneDensity(AtmosphereModel m, double h) {
         return java.lang.Math.max(0.0, 1.0 - java.lang.Math.abs(h - m.ozoneCenterAltitude()) / m.ozoneHalfWidth());
     }
 
-    /** Extinction coefficients (RGB, per metre) at altitude {@code h}. */
+    /**
+     * Computes the extinction coefficients at altitude {@code h}: Rayleigh scattering, Mie extinction and ozone
+     * absorption, each scaled by its density.
+     *
+     * @param m the atmosphere
+     * @param h the altitude above the ground, in metres
+     * @param out receives the RGB coefficients, per metre, in elements 0 to 2
+     * @return {@code out}
+     */
     public static double[] extinction(AtmosphereModel m, double h, double[] out) {
         double dr = rayleighDensity(m, h), dm = mieDensity(m, h), dz = ozoneDensity(m, h);
         for (int c = 0; c < 3; c++) {
@@ -75,7 +104,14 @@ public final class Atmosphere {
         return out;
     }
 
-    /** Scattering coefficients (RGB, per metre, Rayleigh plus Mie) at altitude {@code h}. */
+    /**
+     * Computes the scattering coefficients (Rayleigh plus Mie) at altitude {@code h}.
+     *
+     * @param m the atmosphere
+     * @param h the altitude above the ground, in metres
+     * @param out receives the RGB coefficients, per metre, in elements 0 to 2
+     * @return {@code out}
+     */
     public static double[] scattering(AtmosphereModel m, double h, double[] out) {
         double dr = rayleighDensity(m, h), dm = mieDensity(m, h);
         for (int c = 0; c < 3; c++) {
@@ -92,7 +128,14 @@ public final class Atmosphere {
         return (radius - r) * (radius + r) + rmu * rmu;
     }
 
-    /** Distance from {@code (r, mu)} (with {@code r ≤ topRadius}) to the top of the atmosphere along the ray. */
+    /**
+     * Returns the distance from {@code (r, mu)} to the top of the atmosphere along the ray, ignoring the ground.
+     *
+     * @param m the atmosphere
+     * @param r the distance from the planet center, in metres, at most {@code topRadius}
+     * @param mu the cosine between the ray direction and the local zenith, in [-1, 1]
+     * @return the distance, in metres, at least 0
+     */
     public static double distanceToTop(AtmosphereModel m, double r, double mu) {
         double top = m.topRadius();
         double s = java.lang.Math.sqrt(java.lang.Math.max(discriminant(r, mu, top), 0.0));
@@ -101,12 +144,28 @@ public final class Atmosphere {
         return rmu > 0.0 ? java.lang.Math.max((top - r) * (top + r), 0.0) / (rmu + s) : s - rmu;
     }
 
-    /** Whether the ray from {@code (r, mu)} hits the ground. */
+    /**
+     * Returns whether the ray from {@code (r, mu)} hits the ground: it points downward and passes within
+     * {@code bottomRadius} of the center.
+     *
+     * @param m the atmosphere
+     * @param r the distance from the planet center, in metres
+     * @param mu the cosine between the ray direction and the local zenith, in [-1, 1]
+     * @return true if the ray hits the ground
+     */
     public static boolean intersectsGround(AtmosphereModel m, double r, double mu) {
         return mu < 0.0 && discriminant(r, mu, m.bottomRadius()) >= 0.0;
     }
 
-    /** Distance to the ground along the ray (only meaningful if {@link #intersectsGround}). */
+    /**
+     * Returns the distance from {@code (r, mu)} to the ground along the ray. Only meaningful if
+     * {@link #intersectsGround} is true for the same arguments.
+     *
+     * @param m the atmosphere
+     * @param r the distance from the planet center, in metres, at least {@code bottomRadius}
+     * @param mu the cosine between the ray direction and the local zenith, in [-1, 0)
+     * @return the distance to the nearer ground intersection, in metres
+     */
     public static double distanceToGround(AtmosphereModel m, double r, double mu) {
         double b = m.bottomRadius();
         double s = java.lang.Math.sqrt(java.lang.Math.max(discriminant(r, mu, b), 0.0));
@@ -114,12 +173,29 @@ public final class Atmosphere {
         return java.lang.Math.max((r - b) * (r + b), 0.0) / (s - r * mu);
     }
 
-    /** Distance to the atmosphere's boundary along the ray: the ground if hit, else the top. */
+    /**
+     * Returns the distance from {@code (r, mu)} to the atmosphere's boundary along the ray: the ground if the ray hits
+     * it, else the top.
+     *
+     * @param m the atmosphere
+     * @param r the distance from the planet center, in metres, in [{@code bottomRadius}, {@code topRadius}]
+     * @param mu the cosine between the ray direction and the local zenith, in [-1, 1]
+     * @return the distance, in metres
+     */
     public static double distanceToBoundary(AtmosphereModel m, double r, double mu) {
         return intersectsGround(m, r, mu) ? distanceToGround(m, r, mu) : distanceToTop(m, r, mu);
     }
 
-    /** Altitude above the ground after travelling {@code t} along the ray from {@code (r, mu)}. */
+    /**
+     * Returns the altitude above the ground after travelling {@code t} along the ray from {@code (r, mu)}, computed
+     * as {@code (r(t)² − R²) / (r(t) + R)} so that it stays accurate near the ground.
+     *
+     * @param m the atmosphere
+     * @param r the distance from the planet center at the ray's start, in metres
+     * @param mu the cosine between the ray direction and the local zenith, in [-1, 1]
+     * @param t the distance travelled along the ray, in metres
+     * @return the altitude, in metres; negative below the ground
+     */
     public static double altitudeAt(AtmosphereModel m, double r, double mu, double t) {
         double b = m.bottomRadius();
         double r2MinusB2 = t * (t + 2.0 * r * mu) + (r - b) * (r + b);
@@ -145,8 +221,16 @@ public final class Atmosphere {
     private static final double NOISE_PER_METRE = 4.0 * 0x1.0p-52;
 
     /**
-     * Integrated densities {@code ∫ρ dt} (Rayleigh, Mie, ozone) along the ray from {@code (r, mu)} for a length
-     * {@code length}, accumulated into {@code acc[0..2]}.
+     * Integrates the relative densities {@code ∫ρ dt} (Rayleigh, Mie, ozone) along the ray from {@code (r, mu)} for a
+     * length {@code length} and adds them to {@code acc[0..2]}, by the adaptive Gauss-Kronrod scheme described on the
+     * class. Allocates several small scratch arrays per call and one per quadrature panel.
+     *
+     * @param m the atmosphere
+     * @param r the distance from the planet center at the ray's start, in metres
+     * @param mu the cosine between the ray direction and the local zenith, in [-1, 1]
+     * @param length the length of the ray segment, in metres, at least 0
+     * @param acc the Rayleigh, Mie and ozone integrals (in metres) are added to elements 0, 1 and 2
+     * @return {@code acc}
      */
     public static double[] densityIntegrals(AtmosphereModel m, double r, double mu, double length, double[] acc) {
         // breakpoints where the ray crosses the ozone profile's kinks (bottom, center, top of the tent)
@@ -268,12 +352,31 @@ public final class Atmosphere {
         acc[c] = t;
     }
 
-    /** Optical depth (RGB) from {@code (r, mu)} to the atmosphere's boundary (the ground if the ray hits it). */
+    /**
+     * Computes the optical depth from {@code (r, mu)} to the atmosphere's boundary (the ground if the ray hits it).
+     * Allocates like {@link #densityIntegrals}.
+     *
+     * @param m the atmosphere
+     * @param r the distance from the planet center, in metres, in [{@code bottomRadius}, {@code topRadius}]
+     * @param mu the cosine between the ray direction and the local zenith, in [-1, 1]
+     * @param out receives the dimensionless RGB optical depth in elements 0 to 2
+     * @return {@code out}
+     */
     public static double[] opticalDepth(AtmosphereModel m, double r, double mu, double[] out) {
         return opticalDepth(m, r, mu, distanceToBoundary(m, r, mu), out);
     }
 
-    /** Optical depth (RGB) along the first {@code length} metres of the ray from {@code (r, mu)}. */
+    /**
+     * Computes the optical depth along the first {@code length} metres of the ray from {@code (r, mu)}. Allocates
+     * like {@link #densityIntegrals}, plus a three-element array.
+     *
+     * @param m the atmosphere
+     * @param r the distance from the planet center, in metres
+     * @param mu the cosine between the ray direction and the local zenith, in [-1, 1]
+     * @param length the length of the ray segment, in metres, at least 0
+     * @param out receives the dimensionless RGB optical depth in elements 0 to 2
+     * @return {@code out}
+     */
     public static double[] opticalDepth(AtmosphereModel m, double r, double mu, double length, double[] out) {
         double[] acc = densityIntegrals(m, r, mu, length, new double[3]);
         for (int c = 0; c < 3; c++) {
@@ -282,7 +385,16 @@ public final class Atmosphere {
         return out;
     }
 
-    /** Transmittance (RGB) from {@code (r, mu)} to the top of the atmosphere; 0 if the ray hits the ground. */
+    /**
+     * Computes the transmittance from {@code (r, mu)} to the top of the atmosphere; 0 if the ray hits the ground.
+     * Allocates like {@link #opticalDepth(AtmosphereModel, double, double, double, double[])}.
+     *
+     * @param m the atmosphere
+     * @param r the distance from the planet center, in metres, in [{@code bottomRadius}, {@code topRadius}]
+     * @param mu the cosine between the ray direction and the local zenith, in [-1, 1]
+     * @param out receives the RGB transmittance, in [0, 1], in elements 0 to 2
+     * @return {@code out}
+     */
     public static double[] transmittanceToTop(AtmosphereModel m, double r, double mu, double[] out) {
         if (intersectsGround(m, r, mu)) {
             out[0] = out[1] = out[2] = 0.0;
@@ -307,7 +419,17 @@ public final class Atmosphere {
 
     /**
      * Texture coordinates {@code (u, v)} of the transmittance LUT texel for {@code (r, mu)} (a ray that does not hit
-     * the ground), for a {@code width × height} table, with Bruneton's half-texel-exact mapping.
+     * the ground), for a {@code width × height} table, with Bruneton's half-texel-exact mapping: {@code u} maps the
+     * distance to the top between its minimum and maximum for that {@code r}, and {@code v} maps
+     * {@code √(r² − bottomRadius²)}, each onto [0.5 / size, 1 − 0.5 / size].
+     *
+     * @param m the atmosphere
+     * @param r the distance from the planet center, in metres, in [{@code bottomRadius}, {@code topRadius}]
+     * @param mu the cosine between the ray direction and the local zenith, for a ray that does not hit the ground
+     * @param width the table width in texels, at least 2
+     * @param height the table height in texels, at least 2
+     * @param out receives {@code u} in element 0 and {@code v} in element 1
+     * @return {@code out}
      */
     public static double[] transmittanceLutUv(AtmosphereModel m, double r, double mu, int width, int height,
             double[] out) {
@@ -322,7 +444,18 @@ public final class Atmosphere {
         return out;
     }
 
-    /** Inverse of {@link #transmittanceLutUv}: {@code (r, mu)} for texture coordinates {@code (u, v)}. */
+    /**
+     * Inverts {@link #transmittanceLutUv}: returns {@code (r, mu)} for texture coordinates {@code (u, v)}, with
+     * {@code mu} clamped to [-1, 1].
+     *
+     * @param m the atmosphere
+     * @param u the horizontal texture coordinate, in [0.5 / width, 1 − 0.5 / width]
+     * @param v the vertical texture coordinate, in [0.5 / height, 1 − 0.5 / height]
+     * @param width the table width in texels, at least 2
+     * @param height the table height in texels, at least 2
+     * @param out receives {@code r} (metres) in element 0 and {@code mu} in element 1
+     * @return {@code out}
+     */
     public static double[] transmittanceLutRMu(AtmosphereModel m, double u, double v, int width, int height,
             double[] out) {
         double b = m.bottomRadius(), top = m.topRadius();
@@ -338,7 +471,17 @@ public final class Atmosphere {
         return out;
     }
 
-    /** Builds the transmittance LUT ({@code width × height}, RGB interleaved) at texel centers. */
+    /**
+     * Builds the transmittance LUT: {@code width × height} texels of interleaved RGB floats, texel {@code (x, y)} at
+     * index {@code 3 (y width + x)}, each the {@link #transmittanceToTop} of the {@code (r, mu)} that
+     * {@link #transmittanceLutRMu} gives for its center. Allocates per texel like {@link #transmittanceToTop}.
+     *
+     * @param m the atmosphere
+     * @param width the table width in texels, at least 2
+     * @param height the table height in texels, at least 2
+     * @param outRgb receives the table, starting at index 0; length at least {@code 3 width height}
+     * @return {@code outRgb}
+     */
     public static float[] transmittanceLut(AtmosphereModel m, int width, int height, float[] outRgb) {
         double[] rm = new double[2], t = new double[3];
         for (int y = 0; y < height; y++) {
@@ -406,7 +549,16 @@ public final class Atmosphere {
      * {@code muSun} and unit illuminance (Hillaire 2020, eq. 10): second-order isotropic scattering {@code L₂}
      * including the Lambertian ground bounce, divided by {@code 1 − f_ms}. Integrated over {@code directions}
      * Fibonacci-sphere directions with {@code steps} ray-march steps each; sun transmittance is integrated exactly.
-     * Multiply by the local scattering coefficient and the sun illuminance to get radiance.
+     * Multiply by the local scattering coefficient and the sun illuminance to get radiance. Allocates scratch arrays
+     * per call and per sun-transmittance evaluation.
+     *
+     * @param m the atmosphere
+     * @param r the distance from the planet center, in metres, in [{@code bottomRadius}, {@code topRadius}]
+     * @param muSun the cosine of the sun's zenith angle, in [-1, 1]
+     * @param directions the number of sphere directions, positive
+     * @param steps the number of ray-march steps per direction, positive
+     * @param out receives the RGB transfer in elements 0 to 2
+     * @return {@code out}
      */
     public static double[] multipleScattering(AtmosphereModel m, double r, double muSun, int directions, int steps,
             double[] out) {
@@ -489,7 +641,18 @@ public final class Atmosphere {
      * Builds Hillaire's multiple-scattering LUT ({@code width} over {@code muSun} in [−1, 1], {@code height} over
      * altitude from ground to top; texel centers; RGB interleaved). Sun transmittance comes from an internal
      * 256 × 128 double-precision transmittance table (bilinear) instead of per-sample integration, which keeps a
-     * 32 × 32 table at about a second; {@link #multipleScattering} integrates it exactly.
+     * 32 × 32 table at about a second; {@link #multipleScattering} integrates it exactly. Texel {@code (x, y)} is at
+     * index {@code 3 (y width + x)} and covers {@code muSun = −1 + 2 (x + 0.5) / width} and
+     * {@code r = bottomRadius + (topRadius − bottomRadius) (y + 0.5) / height}. Allocates the internal table (about
+     * 0.8 MB, built with {@link #transmittanceToTop}) on every call, and scratch arrays per texel.
+     *
+     * @param m the atmosphere
+     * @param width the number of texels over {@code muSun}
+     * @param height the number of texels over altitude
+     * @param directions the number of sphere directions per texel, positive
+     * @param steps the number of ray-march steps per direction, positive
+     * @param outRgb receives the table, starting at index 0; length at least {@code 3 width height}
+     * @return {@code outRgb}
      */
     public static float[] multipleScatteringLut(AtmosphereModel m, int width, int height, int directions, int steps,
             float[] outRgb) {

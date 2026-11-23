@@ -28,7 +28,7 @@ package org.dynamisengine.vectrix.dsp;
  * (positions, sensors, pointer and controller input): the alpha-beta filter and the One Euro filter.
  * <p>
  * Trackers keep their state in a small caller-held array, so one filter object is not needed per signal. Everything
- * is deterministic.
+ * is deterministic. Only {@link #savitzkyGolay}, a setup method, allocates.
  *
  * @since 2.5.0
  */
@@ -42,9 +42,13 @@ public final class Smoothers {
      * {@code 2·half + 1} samples around each point, evaluated (or differentiated {@code derivative} times) at the
      * centre. Convolve with the result (for example with {@link org.dynamisengine.vectrix.fft.BlockConvolverd}, the
      * taps reversed) to smooth or differentiate while keeping peak shapes. A derivative is per sample; divide by
-     * {@code dt^derivative}.
+     * {@code dt^derivative}. This is setup code: it allocates its small linear system.
      *
-     * @param coeffs receives {@code 2·half + 1} coefficients, for samples {@code -half..half}
+     * @param half the half-width of the window in samples, {@code >= 0}
+     * @param order the polynomial degree, in {@code [0, 2·half]}
+     * @param derivative the derivative order, in {@code [0, order]}; 0 smooths
+     * @param coeffs receives {@code 2·half + 1} coefficients from index 0, for samples {@code -half..half}
+     * @throws IllegalArgumentException if an order is out of range or {@code coeffs} is too short
      */
     public static void savitzkyGolay(int half, int order, int derivative, double[] coeffs) {
         int len = 2 * half + 1;
@@ -130,8 +134,15 @@ public final class Smoothers {
      * A running median of {@code 2·half + 1} samples, with the edges replicated. Removes impulsive noise (spikes)
      * that linear filters smear.
      *
+     * @param x the samples
+     * @param xOff the offset of the first sample
+     * @param n the number of samples
+     * @param half the half-width of the window, {@code >= 0}
      * @param y receives {@code n} values; must not overlap {@code x}
+     * @param yOff the offset of the first output
      * @param scratch {@code 2·half + 1} floats
+     * @throws IllegalArgumentException if {@code half < 0}, {@code scratch} is too short, or {@code x} or {@code y}
+     *         does not hold {@code n} values from its offset
      */
     public static void median(float[] x, int xOff, int n, int half, float[] y, int yOff, float[] scratch) {
         int len = 2 * half + 1;
@@ -159,6 +170,10 @@ public final class Smoothers {
      * {@code x += α·r}, {@code v += β·r/dt}.
      *
      * @param state {@code [x, v]}, updated
+     * @param z the measured position
+     * @param dt the time step, {@code > 0}
+     * @param alpha the position gain, in (0, 1]
+     * @param beta the velocity gain, {@code > 0}
      * @return the filtered position
      */
     public static double alphaBeta(double[] state, double z, double dt, double alpha, double beta) {

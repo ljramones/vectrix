@@ -69,7 +69,8 @@ public final class RealFftf {
      *
      * @param n the transform size, {@code 1 <= n <= ComplexFftf.MAX_SIZE}
      * @return the plan
-     * @throws IllegalArgumentException if {@code n} is out of range
+     * @throws IllegalArgumentException if {@code n} is out of range, or if it is odd, has a prime factor above 61
+     *         and exceeds {@code 2^27} (see {@link ComplexFftf#MAX_SIZE})
      */
     public static RealFftf plan(int n) {
         if (n < 1 || n > ComplexFftf.MAX_SIZE) {
@@ -78,22 +79,38 @@ public final class RealFftf {
         return new RealFftf(n);
     }
 
-    /** @return the number of real values transformed */
+    /**
+     * Returns the number of real values transformed.
+     *
+     * @return the number of real values transformed
+     */
     public int size() {
         return n;
     }
 
-    /** @return the number of floats in the half spectrum: {@code 2·(n/2 + 1)} */
+    /**
+     * Returns the number of floats in the half spectrum: {@code 2·(n/2 + 1)}.
+     *
+     * @return the number of floats in the half spectrum: {@code 2·(n/2 + 1)}
+     */
     public int spectrumLength() {
         return 2 * (n / 2 + 1);
     }
 
-    /** @return the number of floats the scratch array needs for the array overloads */
+    /**
+     * Returns the number of floats the scratch array needs for the array overloads.
+     *
+     * @return the number of floats the scratch array needs for the array overloads
+     */
     public int scratchSize() {
         return scratchSize;
     }
 
-    /** @return the number of floats the scratch array needs for the {@link MemorySegment} overloads */
+    /**
+     * Returns the number of floats the scratch array needs for the {@link MemorySegment} overloads.
+     *
+     * @return the number of floats the scratch array needs for the {@link MemorySegment} overloads
+     */
     public long segmentScratchSize() {
         return (long) spectrumLength() + scratchSize;
     }
@@ -108,7 +125,8 @@ public final class RealFftf {
      * @param out receives the {@link #spectrumLength()} floats of the half spectrum
      * @param outOff the offset of the first output
      * @param scratch caller-owned working memory of at least {@link #scratchSize()} floats
-     * @param scratchOff the offset into {@code scratch}
+     * @param scratchOff the offset into {@code scratch}; the scratch must not overlap {@code in} or {@code out}
+     * @throws IllegalArgumentException if an array is null or too short from its offset; nothing is written then
      */
     public void forward(float[] in, int inOff, float[] out, int outOff, float[] scratch, int scratchOff) {
         check(in, inOff, n, "in");
@@ -137,7 +155,8 @@ public final class RealFftf {
      * @param out receives the {@code n} real values
      * @param outOff the offset of the first output
      * @param scratch caller-owned working memory of at least {@link #scratchSize()} floats
-     * @param scratchOff the offset into {@code scratch}
+     * @param scratchOff the offset into {@code scratch}; the scratch must not overlap {@code in} or {@code out}
+     * @throws IllegalArgumentException if an array is null or too short from its offset; nothing is written then
      */
     public void inverse(float[] in, int inOff, float[] out, int outOff, float[] scratch, int scratchOff) {
         check(in, inOff, spectrumLength(), "in");
@@ -172,7 +191,9 @@ public final class RealFftf {
      *
      * @param in the real values, at least {@code 4n} bytes
      * @param out receives the half spectrum, at least {@code 4·spectrumLength()} bytes
-     * @param scratch caller-owned working memory of at least {@link #segmentScratchSize()} floats
+     * @param scratch caller-owned working memory of at least {@link #segmentScratchSize()} floats, used from index 0
+     * @throws IllegalArgumentException if a segment is too small or {@code scratch} is null or shorter than
+     *         {@link #segmentScratchSize()}; nothing is written then
      */
     public void forward(MemorySegment in, MemorySegment out, float[] scratch) {
         checkSegments(in, n, out, spectrumLength(), scratch);
@@ -188,7 +209,9 @@ public final class RealFftf {
      *
      * @param in the half spectrum, at least {@code 4·spectrumLength()} bytes
      * @param out receives the real values, at least {@code 4n} bytes
-     * @param scratch caller-owned working memory of at least {@link #segmentScratchSize()} floats
+     * @param scratch caller-owned working memory of at least {@link #segmentScratchSize()} floats, used from index 0
+     * @throws IllegalArgumentException if a segment is too small or {@code scratch} is null or shorter than
+     *         {@link #segmentScratchSize()}; nothing is written then
      */
     public void inverse(MemorySegment in, MemorySegment out, float[] scratch) {
         checkSegments(in, spectrumLength(), out, n, scratch);

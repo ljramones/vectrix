@@ -46,7 +46,16 @@ public final class QuaternionSpringd {
     /**
      * Advances the spring by {@code dt}: writes the new rotation to {@code rotationDest} and angular velocity to
      * {@code velocityDest}. {@code halflife} is the time for the offset to halve (without initial velocity).
-     * Destinations may alias the inputs.
+     * Destinations may alias the inputs. Uses a per-thread scratch array, which is allocated on the first call in each
+     * thread.
+     *
+     * @param rotation the current rotation, unit length
+     * @param angularVelocity the current world-space angular velocity, in radians per second
+     * @param goal the rotation the spring pulls toward, unit length
+     * @param halflife the time for the offset to halve, greater than 0, in the unit of {@code dt}
+     * @param dt the time step, normally in seconds
+     * @param rotationDest receives the new rotation, normalized
+     * @param velocityDest receives the new angular velocity
      */
     public static void step(Quaterniondc rotation, Vector3dc angularVelocity, Quaterniondc goal, double halflife,
             double dt, Quaterniond rotationDest, Vector3d velocityDest) {

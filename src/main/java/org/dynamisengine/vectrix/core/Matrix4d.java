@@ -2753,7 +2753,8 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
      * starting at the given address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      * 
@@ -2772,7 +2773,8 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
      * starting at the given address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      *
@@ -15471,8 +15473,22 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     /**
-     * Like frustumAabb, for the given {@link DepthRange} instead of OpenGL's [-1, 1].
+     * Compute the axis-aligned bounding box of the frustum described by <code>this</code> matrix, with the near and far
+     * planes placed for the given depth convention, and store the minimum corner coordinates in the given
+     * <code>min</code> and the maximum corner coordinates in the given <code>max</code> vector.
+     * <p>
+     * The matrix <code>this</code> is assumed to be the {@link #invert(Matrix4d) inverse} of the original
+     * view-projection matrix for which to compute the axis-aligned bounding box in world-space. The method transforms
+     * the eight corners of the NDC box <code>[-1..1] x [-1..1] x [nearNdc..farNdc]</code> by <code>this</code> matrix,
+     * with perspective division, and takes their minimum and maximum. For an infinite projection the box is not finite.
      *
+     * @param depthRange
+     *          the depth convention of the view-projection matrix whose inverse is <code>this</code>
+     * @param min
+     *          will hold the minimum corner coordinates of the axis-aligned bounding box
+     * @param max
+     *          will hold the maximum corner coordinates of the axis-aligned bounding box
+     * @return this
      * @since 2.5.0
      */
     public Matrix4d frustumAabb(DepthRange depthRange, Vector3d min, Vector3d max) {
@@ -17404,6 +17420,16 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     /**
+     * Same as {@link #frustumAabb(DepthRange, Vector3d, Vector3d)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param depthRange
+     *          the depth convention
+     * @param min
+     *          will hold the minimum corner coordinates of the axis-aligned bounding box
+     * @param max
+     *          will hold the maximum corner coordinates of the axis-aligned bounding box
+     * @return this
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)

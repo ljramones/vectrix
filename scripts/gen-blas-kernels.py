@@ -409,9 +409,13 @@ def simd_class(T, B, V, L, size, z):
 
 
 if __name__ == '__main__':
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from javadoc_overlay import overlay
     target = sys.argv[1]
     HEADER_TEXT = open(sys.argv[2]).read().rstrip('\n') if len(sys.argv) > 2 else ''
     for T in ('float', 'double'):
         src = gen(T)
         name = 'Blasf.java' if T == 'float' else 'Blasd.java'
-        open(os.path.join(target, name), 'w').write(src)
+        path = os.path.join(target, name)
+        text = overlay(src, path)  # read the existing docs before the file is truncated
+        open(path, 'w').write(text)

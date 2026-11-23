@@ -86,14 +86,16 @@ public final class BlockConvolverd {
     }
 
     /**
-     * Creates a plan.
+     * Creates a plan for the given kernel and largest block size, choosing the direct or the FFT path. Allocates
+     * the plan's copy of the kernel and, on the FFT path, its spectrum and FFT tables.
      *
      * @param kernel the filter taps {@code h[0..length)}, copied
      * @param off the offset of the first tap
      * @param length the number of taps, at least 1
      * @param blockSize the largest number of samples per {@link #process} call, at least 1
      * @return the plan
-     * @throws IllegalArgumentException if the sizes are out of range
+     * @throws IllegalArgumentException if {@code kernel} is null or too short, {@code length < 1},
+     *         {@code blockSize < 1}, or {@code blockSize + length} exceeds {@link ComplexFftd#MAX_SIZE}
      */
     public static BlockConvolverd plan(double[] kernel, int off, int length, int blockSize) {
         if (kernel == null || length < 1 || off < 0 || off > kernel.length - length) {
@@ -111,27 +113,47 @@ public final class BlockConvolverd {
         return new BlockConvolverd(kernel, off, length, blockSize, mode);
     }
 
-    /** @return the largest number of samples per {@link #process} call */
+    /**
+     * Returns the largest number of samples per {@link #process} call.
+     *
+     * @return the largest number of samples per {@link #process} call
+     */
     public int blockSize() {
         return block;
     }
 
-    /** @return the number of taps */
+    /**
+     * Returns the number of taps.
+     *
+     * @return the number of taps
+     */
     public int kernelLength() {
         return len;
     }
 
-    /** @return the number of doubles of state carried between blocks: {@code kernelLength - 1} */
+    /**
+     * Returns the number of doubles of state carried between blocks: {@code kernelLength - 1}.
+     *
+     * @return the number of doubles of state carried between blocks: {@code kernelLength - 1}
+     */
     public int stateSize() {
         return len - 1;
     }
 
-    /** @return the number of doubles the scratch array needs */
+    /**
+     * Returns the number of doubles the scratch array needs.
+     *
+     * @return the number of doubles the scratch array needs
+     */
     public int scratchSize() {
         return scratchSize;
     }
 
-    /** @return whether the kernel is convolved with FFTs rather than directly */
+    /**
+     * Returns whether the kernel is convolved with FFTs rather than directly.
+     *
+     * @return whether the kernel is convolved with FFTs rather than directly
+     */
     public boolean usesFft() {
         return fft != null;
     }
@@ -148,6 +170,8 @@ public final class BlockConvolverd {
      * @param stateOff the offset of the state
      * @param scratch caller-owned working memory of at least {@link #scratchSize()} doubles
      * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if {@code count} is out of range or an array is null or too short from its
+     *         offset; nothing is written then
      */
     public void process(double[] in, int inOff, int count, double[] out, int outOff, double[] state, int stateOff,
             double[] scratch, int scratchOff) {
@@ -205,6 +229,7 @@ public final class BlockConvolverd {
      * @param outOff the offset of the first output
      * @param state the state
      * @param stateOff the offset of the state
+     * @throws IllegalArgumentException if an array is null or too short from its offset
      */
     public void flush(double[] out, int outOff, double[] state, int stateOff) {
         check(out, outOff, len - 1, "out");

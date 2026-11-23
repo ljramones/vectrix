@@ -28,6 +28,9 @@ import org.dynamisengine.vectrix.core.Vector3fc;
 
 /**
  * Conversions between linear RGB gamuts (single precision): the matrices of {@link ColorSpacesd}, rounded to float.
+ * <p>
+ * All matrices are computed once, when the class loads, so {@link #convert(Vector3fc, ColorGamut, ColorGamut,
+ * Vector3f)} and {@link #conversionMatrix} are table lookups. The methods are safe to call from any thread.
  *
  * @since 2.1.0
  */
@@ -56,12 +59,29 @@ public final class ColorSpacesf {
     private ColorSpacesf() {
     }
 
-    /** Converts linear RGB between gamuts with Bradford adaptation. {@code dest} may alias {@code rgb}. */
+    /**
+     * Converts linear RGB between gamuts with Bradford adaptation.
+     *
+     * @param rgb the linear color in {@code from}
+     * @param from the source gamut
+     * @param to the target gamut
+     * @param dest receives the linear color in {@code to}; may be {@code rgb}
+     * @return {@code dest}
+     */
     public static Vector3f convert(Vector3fc rgb, ColorGamut from, ColorGamut to, Vector3f dest) {
         return convert(rgb, from, to, ColorSpacesd.Adaptation.BRADFORD, dest);
     }
 
-    /** Converts linear RGB between gamuts. {@code dest} may alias {@code rgb}. */
+    /**
+     * Converts linear RGB between gamuts with the given white-point adaptation.
+     *
+     * @param rgb the linear color in {@code from}
+     * @param from the source gamut
+     * @param to the target gamut
+     * @param adaptation the white-point adaptation to use
+     * @param dest receives the linear color in {@code to}; may be {@code rgb}
+     * @return {@code dest}
+     */
     public static Vector3f convert(Vector3fc rgb, ColorGamut from, ColorGamut to, ColorSpacesd.Adaptation adaptation,
             Vector3f dest) {
         float[] m = CONVERT[from.ordinal() * ColorGamut.values().length + to.ordinal()][adaptation.ordinal()];
@@ -69,7 +89,16 @@ public final class ColorSpacesf {
         return dest.set(m[0] * r + m[1] * g + m[2] * b, m[3] * r + m[4] * g + m[5] * b, m[6] * r + m[7] * g + m[8] * b);
     }
 
-    /** Row-major conversion matrix, rounded to float (see {@link ColorSpacesd#conversionMatrix}). */
+    /**
+     * Writes the row-major 3×3 conversion matrix, rounded to float; see
+     * {@link ColorSpacesd#conversionMatrix(ColorGamut, ColorGamut, ColorSpacesd.Adaptation, double[])}.
+     *
+     * @param from the source gamut
+     * @param to the target gamut
+     * @param adaptation the white-point adaptation to use
+     * @param out9 receives the nine matrix elements at indices 0 to 8
+     * @return {@code out9}
+     */
     public static float[] conversionMatrix(ColorGamut from, ColorGamut to, ColorSpacesd.Adaptation adaptation,
             float[] out9) {
         System.arraycopy(CONVERT[from.ordinal() * ColorGamut.values().length + to.ordinal()][adaptation.ordinal()], 0,

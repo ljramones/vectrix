@@ -27,7 +27,7 @@ import org.dynamisengine.vectrix.core.AccurateMath;
 
 /**
  * Physical camera exposure (single precision), in the conventions of Lagarde and de Rousiers (2014) and Filament:
- * exposure value at ISO 100 (EV100), the saturation-based scale that turns scene luminance into a normalised value,
+ * exposure value at ISO 100 (EV100), the saturation-based scale that turns scene luminance into a normalized value,
  * and photometric/radiometric conversion.
  *
  * @since 2.1.0
@@ -35,35 +35,62 @@ import org.dynamisengine.vectrix.core.AccurateMath;
 public final class Exposuref {
     /** Maximum luminous efficacy, lm/W at 555 nm. */
     public static final float LUMINOUS_EFFICACY = 683.0f;
-    private static final float INV_LN2 = (float) 1.4426950408889634; // 1 / ln 2, a literal: Math.log is not bit-reproducible
+    private static final float INV_LN2 = (float) 1.4426950408889634; // 1 / ln 2; a literal for reproducibility
 
     private Exposuref() {
     }
 
-    /** EV100 from camera settings: {@code log2(N² / t · 100 / S)} for aperture N, shutter time t (s) and ISO S. */
+    /**
+     * Returns the exposure value at ISO 100 for camera settings: {@code log2(N² / t · 100 / S)}.
+     *
+     * @param aperture the f-number N, greater than 0
+     * @param shutterSeconds the shutter time t in seconds, greater than 0
+     * @param iso the sensitivity S, greater than 0
+     * @return the EV100
+     */
     public static float ev100(float aperture, float shutterSeconds, float iso) {
         return (float) AccurateMath.log(aperture * aperture / shutterSeconds * 100.0f / iso) * INV_LN2;
     }
 
-    /** EV100 that exposes average scene luminance {@code nits} (cd/m²) to middle grey: {@code log2(L · 100 / 12.5)}. */
+    /**
+     * Returns the EV100 that exposes an average scene luminance to middle grey: {@code log2(L · 100 / 12.5)}, with
+     * the reflected-light meter constant K = 12.5.
+     *
+     * @param nits the average scene luminance L in cd/m², greater than 0
+     * @return the EV100
+     */
     public static float ev100FromAverageLuminance(float nits) {
         return (float) AccurateMath.log(nits * 100.0f / 12.5f) * INV_LN2;
     }
 
     /**
-     * The multiplier that maps luminance (cd/m²) to a normalised value for tonemapping, saturation-based:
-     * {@code 1 / (1.2 · 2^EV100)}.
+     * Returns the multiplier that maps luminance (cd/m²) to a normalized value for tonemapping, from the
+     * saturation-based sensitivity: {@code 1 / (1.2 · 2^EV100)}.
+     *
+     * @param ev100 the exposure value at ISO 100
+     * @return the exposure multiplier
      */
     public static float exposureFromEv100(float ev100) {
         return 1.0f / (1.2f * (float) AccurateMath.pow(2.0f, ev100));
     }
 
-    /** Luminous quantity (lm, cd, lux, nits) from the radiometric one at 555 nm: {@code 683 ×}. */
+    /**
+     * Converts a radiometric quantity to the photometric one at 555 nm: multiplies by {@link #LUMINOUS_EFFICACY}
+     * (watts to lumens, W/sr to candela, W/m² to lux, W/(sr·m²) to nits).
+     *
+     * @param watts the radiometric quantity
+     * @return the photometric quantity
+     */
     public static float photometricFromRadiometric(float watts) {
         return watts * LUMINOUS_EFFICACY;
     }
 
-    /** Radiometric quantity from the photometric one at 555 nm: {@code ÷ 683}. */
+    /**
+     * Converts a photometric quantity to the radiometric one at 555 nm: divides by {@link #LUMINOUS_EFFICACY}.
+     *
+     * @param lumens the photometric quantity (lumens, candela, lux or nits)
+     * @return the radiometric quantity
+     */
     public static float radiometricFromPhotometric(float lumens) {
         return lumens / LUMINOUS_EFFICACY;
     }

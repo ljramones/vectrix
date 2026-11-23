@@ -27,11 +27,12 @@ import org.dynamisengine.vectrix.core.Vector3f;
 import org.dynamisengine.vectrix.core.Vector3fc;
 
 /**
- * LTC evaluation helpers for area-light form factors.
+ * Form factors of area lights for linearly transformed cosines (LTC, Heitz et al. 2016), single precision.
  * <p>
- * Inputs are expected in the local LTC shading frame (typically normal-aligned space).
- * Polygon and rectangle form-factor routines expect unit direction vectors from shading
- * point to light-shape vertices.
+ * Directions are in the local shading frame, with the surface normal along {@code +z}: typically the vectors from
+ * the shading point to the light's vertices, transformed by the matrix read from an {@link LtcTablef} table with
+ * {@link #transformDirection}. The form-factor routines normalize each vertex direction themselves, so the
+ * transformed vectors need not be unit length. Results are the cosine-weighted form factor, in {@code [0, 1]}.
  */
 public final class LtcEvalf {
     private static final float INV_TWO_PI = (float) (1.0 / (2.0 * java.lang.Math.PI));
@@ -41,7 +42,14 @@ public final class LtcEvalf {
     }
 
     /**
-     * Multiply direction by 3x3 matrix (row-major).
+     * Multiplies a direction by a row-major 3×3 matrix: {@code dest.x = m3[0] x + m3[1] y + m3[2] z}, and so on.
+     * The result is not normalized. {@code dest} may be {@code dir}.
+     *
+     * @param m3 the matrix, row-major, at least 9 elements, starting at index 0
+     * @param dir the direction to transform
+     * @param dest receives the transformed direction
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code m3} is null or shorter than 9
      */
     public static Vector3f transformDirection(float[] m3, Vector3fc dir, Vector3f dest) {
         if (m3 == null || m3.length < 9) {
@@ -57,7 +65,10 @@ public final class LtcEvalf {
     }
 
     /**
-     * Horizon clipping helper for local-space z.
+     * Clamps a local-frame {@code z} (a cosine to the normal) to the upper hemisphere: {@code max(0, z)}.
+     *
+     * @param z the value to clamp
+     * @return {@code z}, or 0 if it is negative
      */
     public static float horizonClip(float z) {
         return java.lang.Math.max(0.0f, z);
@@ -68,7 +79,13 @@ public final class LtcEvalf {
      * Vertices are unit directions from the shading point. The light is one-sided: its front face has
      * counter-clockwise winding about +z, meaning {@code (v_i x v_(i+1)).z > 0} for a small light at the zenith.
      * A back-facing polygon yields 0. No horizon clipping is applied; use {@link #formFactorRectClipped} for
-     * lights that may cross the horizon.
+     * lights that may cross the horizon. Does not allocate.
+     *
+     * @param v0 the direction to the first vertex
+     * @param v1 the direction to the second vertex
+     * @param v2 the direction to the third vertex
+     * @param v3 the direction to the fourth vertex
+     * @return the form factor, clamped to {@code [0, 1]}
      */
     public static float formFactorRect(Vector3fc v0, Vector3fc v1, Vector3fc v2, Vector3fc v3) {
         float z = edgeZ(v0.x(), v0.y(), v0.z(), v1.x(), v1.y(), v1.z())
@@ -79,8 +96,14 @@ public final class LtcEvalf {
     }
 
     /**
-     * Rectangle form factor, clipped to the upper hemisphere.
+     * Returns the form factor of a quadrilateral light clipped to the upper hemisphere ({@code z >= 0}), as
+     * {@link #formFactorPolygonClipped} with four vertices. Allocates a small clipping object per call.
      *
+     * @param v0 the direction to the first vertex
+     * @param v1 the direction to the second vertex
+     * @param v2 the direction to the third vertex
+     * @param v3 the direction to the fourth vertex
+     * @return the clipped form factor, in {@code [0, 1]}; 0 if the light is entirely below the horizon
      * @since 1.0.0
      */
     public static float formFactorRectClipped(Vector3fc v0, Vector3fc v1, Vector3fc v2, Vector3fc v3) {
@@ -93,11 +116,13 @@ public final class LtcEvalf {
      * Polygon form factor, clipped to the upper hemisphere ({@code z >= 0}) before integration. Each edge
      * crossing the horizon is cut where its chord meets the plane {@code z = 0}. That point lies on the edge's
      * great circle, so the clipped spherical polygon is exact. Winding and one-sidedness are as in
-     * {@link #formFactorRect}.
+     * {@link #formFactorRect}. Allocates a small clipping object per call.
      *
-     * @param vertices unit or near-unit direction vectors to polygon vertices
-     * @param count number of vertices to integrate (>=3)
-     * @return clipped form factor in [0,1]
+     * @param vertices direction vectors to the polygon vertices (need not be unit length), in order
+     * @param count number of vertices to integrate, starting at index 0, at least 3
+     * @return clipped form factor in [0,1]; 0 if the light is entirely below the horizon
+     * @throws IllegalArgumentException if {@code vertices} is null, {@code count} is less than 3 or greater than
+     *         {@code vertices.length}
      * @since 1.0.0
      */
     public static float formFactorPolygonClipped(Vector3fc[] vertices, int count) {
@@ -116,6 +141,10 @@ public final class LtcEvalf {
      * {@code discAngularRadius}, centred {@code acos(cosThetaCenter)} from the normal. This is exact for a
      * spherical cap, including caps that cross the horizon (Snyder 1996; Lagarde and de Rousiers 2014). Above
      * the horizon it reduces to {@code cosTheta * sin^2(alpha)}.
+     *
+     * @param cosThetaCenter cosine of the angle between the normal and the cap's centre, clamped to {@code [−1, 1]}
+     * @param discAngularRadius the cap's angular radius in radians, clamped to {@code [0, π/2]}
+     * @return the form factor, in {@code [0, 1]}; 0 for a zero radius or a cap entirely below the horizon
      */
     public static float formFactorDisc(float cosThetaCenter, float discAngularRadius) {
         double alpha = java.lang.Math.min(java.lang.Math.max(0.0, discAngularRadius), java.lang.Math.PI / 2);
@@ -144,6 +173,11 @@ public final class LtcEvalf {
      * Tube/capsule form factor, approximated as {@code cosTheta * omega / pi} with the small-angle solid angle
      * {@code omega ~ (2 * angularRadius) * (2 * angularHalfLength)}. It is accurate only for small tubes that do
      * not cross the horizon.
+     *
+     * @param cosThetaCenter cosine of the angle between the normal and the tube's centre; negative values give 0
+     * @param angularRadius the tube's angular radius in radians; negative values count as 0
+     * @param angularHalfLength half the tube's angular length in radians; negative values count as 0
+     * @return the approximate form factor, clamped to {@code [0, 1]}
      */
     public static float formFactorTube(float cosThetaCenter, float angularRadius, float angularHalfLength) {
         float width = 2.0f * java.lang.Math.max(0.0f, angularRadius);

@@ -106,6 +106,13 @@ public class Random {
     //8020463840 is from "Case File n_221: Kabukicho"
     private static long seedHalf = 8020463840L;
 
+    /**
+     * Returns a new seed from a process-wide multiplicative sequence; each call gives a different value. The sequence
+     * starts from the same constant in every run, so it is not random by itself; {@link #Random()} mixes it with
+     * {@link System#nanoTime()}. Thread-safe.
+     *
+     * @return the next seed in the sequence
+     */
     public static long newSeed() {
         // 3512401965023503517 is from L'Ecuyer, "Tables of Linear Congruential Generators of
         // Different Sizes and Good Lattice Structure", 1999

@@ -32,7 +32,9 @@ import jdk.incubator.vector.VectorSpecies;
 //#endif
 
 /**
- * Batch kernels for transform processing.
+ * Batch kernels for transform processing on {@link TransformSoA} data.
+ * <p>
+ * The kernels are static and stateless, do not allocate, and give the same bits on the scalar and Vector API paths.
  *
  * @since 2.6.0 (earlier in {@code affine})
  */
@@ -43,9 +45,24 @@ public final class TransformKernels {
     }
 
     /**
-     * Compute {@code out[i] = parents[i] * locals[i]} for {@code count} transforms. {@code out} may be
-     * {@code parents} or {@code locals}. In {@link MathMode#STRICT} the rotations are validated first (see
-     * {@link #composeBatchScalarStrict}).
+     * Composes {@code count} transforms: {@code out[i] = parents[i] * locals[i]}, applying {@code locals[i]} first. Per
+     * element, {@code t = tP + qP·(sP ∘ tL)}, {@code q = qP·qL} and {@code s = sP ∘ sL} ({@code ∘} is the
+     * component-wise product), which is exact for uniform parent scale; non-uniform parent scale under a local rotation
+     * would need a shear that TRS cannot hold. The rotations should be unit quaternions; the result is not
+     * renormalized.
+     * <p>
+     * {@code out} may be {@code parents} or {@code locals}. Elements {@code [0, count)} are processed; the arrays are
+     * not checked up front, so a container smaller than {@code count} throws {@code ArrayIndexOutOfBoundsException}.
+     * With the {@code simd} jar, batches of at least 32 use the Vector API, with results identical to the scalar path.
+     * In {@link MathMode#STRICT} every parent and local rotation must be a unit quaternion (see
+     * {@link CoreConfig#withinStrictUnitTolerance(float)}), otherwise nothing is written; the results are then bitwise
+     * identical to FAST.
+     *
+     * @param parents the parent transforms
+     * @param locals the local transforms
+     * @param out receives the composed transforms
+     * @param count the number of transforms; 0 or less does nothing
+     * @throws IllegalArgumentException in STRICT mode, if a rotation is not a unit quaternion
      */
     public static void composeBatch(TransformSoA parents, TransformSoA locals, TransformSoA out, int count) {
         if (count <= 0) {
@@ -141,8 +158,8 @@ public final class TransformKernels {
 
 //#ifdef __HAS_VECTOR_API__
     /**
-     * Vector API compose, in its own class so that only this path loads {@code jdk.incubator.vector} (review
-     * M-15). Every lane performs the scalar path's operations in the same order, so results are bitwise identical.
+     * Vector API compose, in its own class so that only this path loads {@code jdk.incubator.vector}.
+     * Every lane performs the scalar path's operations in the same order, so results are bitwise identical.
      * All inputs of a lane block are loaded before anything is stored, so {@code out} may alias an input.
      */
     private static final class Simd {

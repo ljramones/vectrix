@@ -70,8 +70,10 @@ public final class SimdSupport {
     }
 
     /**
-     * @return the backend kernels use now: {@link Backend#VECTOR_API} in the {@code -simd} jar when the Vector API
-     *         module is present and SIMD is enabled, otherwise {@link Backend#SCALAR}
+     * Returns the backend the kernels use now.
+     *
+     * @return {@link Backend#VECTOR_API} in the {@code -simd} jar when the Vector API module is present and SIMD is
+     *     enabled, otherwise {@link Backend#SCALAR}
      */
     public static Backend backend() {
         if (!enabled || !SIMD_BUILD) {
@@ -81,7 +83,9 @@ public final class SimdSupport {
     }
 
     /**
-     * @return whether this jar contains Vector API paths: true for the {@code -simd} classifier jar
+     * Returns whether this jar contains Vector API paths.
+     *
+     * @return true for the {@code -simd} classifier jar
      * @since 2.6.0
      */
     public static boolean isSimdBuild() {
@@ -89,7 +93,10 @@ public final class SimdSupport {
     }
 
     /**
-     * @return whether SIMD paths may run (they also need the {@code -simd} jar and the Vector API module)
+     * Returns whether SIMD paths may run. They also need the {@code -simd} jar and the Vector API module; see
+     * {@link #backend()}.
+     *
+     * @return the current state of the switch
      * @since 2.6.0
      */
     public static boolean isEnabled() {
@@ -111,12 +118,21 @@ public final class SimdSupport {
         return value == null || value.isEmpty() || Boolean.parseBoolean(value.trim());
     }
 
-    /** @return whether the JDK Vector API module is present (whatever {@link #isEnabled()} says) */
+    /**
+     * Returns whether the JDK Vector API module is present, whatever {@link #isEnabled()} says. Detected once, when the
+     * class loads.
+     *
+     * @return true if {@code jdk.incubator.vector} can be used
+     */
     public static boolean isVectorApiAvailable() {
         return CAPABILITY.vectorApiAvailable;
     }
 
-    /** @return the preferred number of float lanes of the Vector API, or 1 without it */
+    /**
+     * Returns the preferred number of float lanes of the Vector API ({@code FloatVector.SPECIES_PREFERRED}).
+     *
+     * @return the lane count, or 1 without the Vector API
+     */
     public static int preferredFloatLanes() {
         return CAPABILITY.preferredFloatLanes;
     }
@@ -128,7 +144,7 @@ public final class SimdSupport {
             Object speciesPreferred = speciesPreferredField.get(null);
             // Look length() up on the public VectorSpecies interface: the runtime class (FloatVector$FloatSpecies)
             // is not public, so invoking through it threw IllegalAccessException and detection always reported
-            // SCALAR, even with --add-modules jdk.incubator.vector (review M-15).
+            // SCALAR, even with --add-modules jdk.incubator.vector.
             Method lengthMethod = Class.forName("jdk.incubator.vector.VectorSpecies").getMethod("length");
             int lanes = ((Integer) lengthMethod.invoke(speciesPreferred)).intValue();
             if (lanes < 1) {

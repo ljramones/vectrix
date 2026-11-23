@@ -35,11 +35,15 @@ import java.util.*;
 public interface Vector2fc {
 
     /**
+     * Returns the x component.
+     *
      * @return the value of the x component
      */
     float x();
 
     /**
+     * Returns the y component.
+     *
      * @return the value of the y component
      */
     float y();
@@ -111,7 +115,8 @@ public interface Vector2fc {
      * Store this vector at the given off-heap memory address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      * 

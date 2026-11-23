@@ -34,21 +34,29 @@ import java.nio.LongBuffer;
 public interface Vector4Lc {
 
     /**
+     * Returns the x component.
+     *
      * @return the value of the x component
      */
     long x();
 
     /**
+     * Returns the y component.
+     *
      * @return the value of the y component
      */
     long y();
 
     /**
+     * Returns the z component.
+     *
      * @return the value of the z component
      */
     long z();
 
     /**
+     * Returns the w component.
+     *
      * @return the value of the w component
      */
     long w();
@@ -122,7 +130,8 @@ public interface Vector4Lc {
      * Store this vector at the given off-heap memory address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      * 
@@ -524,18 +533,81 @@ public interface Vector4Lc {
      */
     boolean equals(long x, long y, long z, long w);
 
-    /** Component-wise exact addition into {@code dest}; throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    /**
+     * Add the supplied vector to this one component-wise and store the result in {@code dest}, throwing instead of
+     * wrapping on overflow ({@link java.lang.Math#addExact(long, long)}).
+     * {@code dest} may be {@code this} or {@code v}.
+     *
+     * @param v
+     *          the vector to add
+     * @param dest
+     *          will hold the result
+     * @return dest
+     * @throws ArithmeticException if a component overflows; {@code dest} is unchanged in that case
+     * @since 2.3.0
+     */
     Vector4L addExact(Vector4Lc v, Vector4L dest);
 
-    /** Component-wise exact subtraction into {@code dest}; throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    /**
+     * Subtract the supplied vector from this one component-wise and store the result in {@code dest}, throwing
+     * instead of wrapping on overflow ({@link java.lang.Math#subtractExact(long, long)}).
+     * {@code dest} may be {@code this} or {@code v}.
+     *
+     * @param v
+     *          the vector to subtract
+     * @param dest
+     *          will hold the result
+     * @return dest
+     * @throws ArithmeticException if a component overflows; {@code dest} is unchanged in that case
+     * @since 2.3.0
+     */
     Vector4L subExact(Vector4Lc v, Vector4L dest);
 
-    /** Component-wise exact multiplication into {@code dest}; throws {@link ArithmeticException} on overflow. @since 2.3.0 */
+    /**
+     * Multiply the components of this vector by the given scalar and store the result in {@code dest}, throwing
+     * instead of wrapping on overflow ({@link java.lang.Math#multiplyExact(long, long)}).
+     * {@code dest} may be {@code this}.
+     *
+     * @param scalar
+     *          the value to multiply each component by
+     * @param dest
+     *          will hold the result
+     * @return dest
+     * @throws ArithmeticException if a component overflows; {@code dest} is unchanged in that case
+     * @since 2.3.0
+     */
     Vector4L mulExact(long scalar, Vector4L dest);
 
-    /** Component-wise floor division (toward negative infinity) into {@code dest}. @since 2.3.0 */
+    /**
+     * Divide the components of this vector by the given divisor, rounding toward negative infinity
+     * ({@link java.lang.Math#floorDiv(long, long)}), and store the result in {@code dest}. For example
+     * {@code floorDiv(-1, 4) = -1}: the index of the cell of size {@code divisor} that contains the coordinate,
+     * where {@code div} truncates toward zero.
+     * {@code dest} may be {@code this}.
+     *
+     * @param divisor
+     *          the divisor, not zero
+     * @param dest
+     *          will hold the result
+     * @return dest
+     * @throws ArithmeticException if {@code divisor} is zero
+     * @since 2.3.0
+     */
     Vector4L floorDiv(long divisor, Vector4L dest);
 
-    /** Component-wise floor modulus into {@code dest}. @since 2.3.0 */
+    /**
+     * Replace the components of this vector by their floor modulus ({@link java.lang.Math#floorMod(long, long)})
+     * and store the result in {@code dest}: the remainder has the sign of {@code divisor}, so it is in
+     * {@code [0, divisor)} for a positive divisor (the offset within a cell).
+     * {@code dest} may be {@code this}.
+     *
+     * @param divisor
+     *          the divisor, not zero
+     * @param dest
+     *          will hold the result
+     * @return dest
+     * @throws ArithmeticException if {@code divisor} is zero
+     * @since 2.3.0
+     */
     Vector4L floorMod(long divisor, Vector4L dest);
 }

@@ -69,9 +69,17 @@ public final class Gemmd {
     }
 
     /**
-     * The scratch {@link #gemm} needs.
+     * The scratch size {@link #gemm} needs for these arguments: a fixed block for the tile sums, plus a packing
+     * panel of {@code min(64, n)·k} values when {@code B} is not transposed and of {@code min(64, m)·k} values when
+     * {@code A} is transposed.
      *
+     * @param transA whether {@code A} is transposed, as passed to {@link #gemm}
+     * @param transB whether {@code B} is transposed, as passed to {@link #gemm}
+     * @param m the number of rows of {@code C}
+     * @param n the number of columns of {@code C}
+     * @param k the inner dimension
      * @return the number of doubles
+     * @throws IllegalArgumentException if the size does not fit in an {@code int} array
      */
     public static int scratchSize(boolean transA, boolean transB, int m, int n, int k) {
         long s = (long) DEPTH * MR * NR;
@@ -90,9 +98,29 @@ public final class Gemmd {
     /**
      * {@code C = α·op(A)·op(B) + β·C}, where {@code op(A)} is {@code m×k}, {@code op(B)} is {@code k×n} and
      * {@code C} is {@code m×n}, all row-major with leading dimensions (row strides) {@code lda}, {@code ldb},
-     * {@code ldc}. {@code C} must not overlap {@code A} or {@code B}.
+     * {@code ldc}. {@code C} must not overlap {@code A} or {@code B}. When {@code β == 0}, {@code C} is not read.
+     * All arguments are checked before anything is written. Does not allocate.
      *
+     * @param transA whether {@code op(A)} is {@code Aᵀ}; {@code A} is then stored as {@code k×m}
+     * @param transB whether {@code op(B)} is {@code Bᵀ}; {@code B} is then stored as {@code n×k}
+     * @param m the number of rows of {@code C}, {@code >= 0}
+     * @param n the number of columns of {@code C}, {@code >= 0}
+     * @param k the inner dimension, {@code >= 0}; for {@code k == 0} the product is zero
+     * @param alpha the scale of the product
+     * @param a the matrix {@code A}, row-major
+     * @param aOff the index of {@code A[0][0]}
+     * @param lda the row stride of {@code A}, at least its number of columns
+     * @param b the matrix {@code B}, row-major
+     * @param bOff the index of {@code B[0][0]}
+     * @param ldb the row stride of {@code B}, at least its number of columns
+     * @param beta the scale of the previous {@code C}
+     * @param c the matrix {@code C}, row-major; receives the result
+     * @param cOff the index of {@code C[0][0]}
+     * @param ldc the row stride of {@code C}, at least {@code n}
      * @param scratch at least {@link #scratchSize} doubles from {@code scratchOff}, overwritten
+     * @param scratchOff the index of the first scratch element
+     * @throws IllegalArgumentException if a size is negative, a matrix does not fit its array with the given offset
+     *         and stride, or the scratch is too small
      */
     public static void gemm(boolean transA, boolean transB, int m, int n, int k, double alpha, double[] a, int aOff,
             int lda, double[] b, int bOff, int ldb, double beta, double[] c, int cOff, int ldc, double[] scratch,
@@ -169,7 +197,25 @@ public final class Gemmd {
      * transposed). Each element is {@link Blasd#dot} of a row of {@code op(A)} with {@code x}, as in
      * {@link #gemm}. {@code y} must not overlap {@code A} or {@code x}.
      *
+     * When {@code β == 0}, {@code y} is not read. Does not allocate. The transposed form gathers each column of
+     * {@code A} into the scratch first.
+     *
+     * @param transA whether {@code op(A)} is {@code Aᵀ}
+     * @param m the length of {@code y} and the number of rows of {@code op(A)}, {@code >= 0}
+     * @param n the length of {@code x} and the number of columns of {@code op(A)}, {@code >= 0}
+     * @param alpha the scale of the product
+     * @param a the matrix {@code A}, row-major
+     * @param aOff the index of {@code A[0][0]}
+     * @param lda the row stride of {@code A}, at least its number of columns
+     * @param x the input vector, {@code n} elements
+     * @param xOff the index of the first element of {@code x}
+     * @param beta the scale of the previous {@code y}
+     * @param y the output vector, {@code m} elements; receives the result
+     * @param yOff the index of the first element of {@code y}
      * @param scratch at least {@code n} doubles when {@code A} is transposed (unused otherwise; may be null)
+     * @param scratchOff the index of the first scratch element
+     * @throws IllegalArgumentException if a size is negative, a matrix or vector does not fit its array, or the
+     *         scratch is too small when {@code A} is transposed and {@code m > 0}
      */
     public static void gemv(boolean transA, int m, int n, double alpha, double[] a, int aOff, int lda, double[] x, int xOff,
             double beta, double[] y, int yOff, double[] scratch, int scratchOff) {

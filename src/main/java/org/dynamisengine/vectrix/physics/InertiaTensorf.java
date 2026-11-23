@@ -26,7 +26,9 @@ package org.dynamisengine.vectrix.physics;
 import org.dynamisengine.vectrix.core.Vector3f;
 
 /**
- * Helpers to compute diagonal inertia tensor components for common solid primitives.
+ * Principal moments of inertia of solid primitives of uniform density (single precision), about their center of
+ * mass and along the shape's own axes. Each method writes {@code (Ixx, Iyy, Izz)} to a vector, in mass times length
+ * squared. See {@link MassPropertiesf} for full tensors and compound bodies.
  *
  * @since 1.10.12
  */
@@ -34,11 +36,30 @@ public final class InertiaTensorf {
     private InertiaTensorf() {
     }
 
+    /**
+     * Writes the principal moments of a solid sphere: {@code 2/5 m r²} about every axis.
+     *
+     * @param mass the mass {@code m}
+     * @param radius the radius {@code r}
+     * @param dest receives {@code (Ixx, Iyy, Izz)}
+     * @return {@code dest}
+     */
     public static Vector3f sphere(float mass, float radius, Vector3f dest) {
         float inertia = 0.4f * mass * radius * radius;
         return dest.set(inertia, inertia, inertia);
     }
 
+    /**
+     * Writes the principal moments of a solid box: {@code Ixx = m (hy² + hz²) / 3}, {@code Iyy = m (hx² + hz²) / 3}
+     * and {@code Izz = m (hx² + hy²) / 3}.
+     *
+     * @param mass the mass {@code m}
+     * @param hx the half extent along X
+     * @param hy the half extent along Y
+     * @param hz the half extent along Z
+     * @param dest receives {@code (Ixx, Iyy, Izz)}
+     * @return {@code dest}
+     */
     public static Vector3f box(float mass, float hx, float hy, float hz, Vector3f dest) {
         float factor = mass / 3.0f;
         return dest.set(
@@ -48,9 +69,14 @@ public final class InertiaTensorf {
     }
 
     /**
-     * Solid capsule aligned along the +Y/-Y axis.
+     * Writes the principal moments of a solid capsule aligned along the +Y/-Y axis. The mass is split between the
+     * cylinder and the two hemispherical caps in proportion to their volumes.
      *
+     * @param mass the total mass
+     * @param radius the radius of the cylinder and the caps
      * @param height length of the cylindrical section only (excluding the two hemispherical caps)
+     * @param dest receives {@code (Ixx, Iyy, Izz)}, with {@code Ixx = Izz}
+     * @return {@code dest}
      */
     public static Vector3f capsule(float mass, float radius, float height, Vector3f dest) {
         float r2 = radius * radius;
@@ -67,7 +93,14 @@ public final class InertiaTensorf {
     }
 
     /**
-     * Solid cylinder aligned along the +Y/-Y axis.
+     * Writes the principal moments of a solid cylinder aligned along the +Y/-Y axis: {@code Iyy = m r² / 2} and
+     * {@code Ixx = Izz = m (3 r² + h²) / 12}.
+     *
+     * @param mass the mass {@code m}
+     * @param radius the radius {@code r}
+     * @param height the full height {@code h}
+     * @param dest receives {@code (Ixx, Iyy, Izz)}
+     * @return {@code dest}
      */
     public static Vector3f cylinder(float mass, float radius, float height, Vector3f dest) {
         float r2 = radius * radius;
@@ -78,8 +111,15 @@ public final class InertiaTensorf {
     }
 
     /**
-     * Solid cone aligned along the +Y/-Y axis with apex at +Y, about its center of mass, which lies {@code height/4}
-     * above the base.
+     * Writes the principal moments of a solid cone aligned along the +Y/-Y axis with apex at +Y, about its center of
+     * mass, which lies {@code height/4} above the base: {@code Iyy = 3/10 m r²} and
+     * {@code Ixx = Izz = m (3 r² / 20 + 3 h² / 80)}.
+     *
+     * @param mass the mass {@code m}
+     * @param radius the base radius {@code r}
+     * @param height the height {@code h}
+     * @param dest receives {@code (Ixx, Iyy, Izz)}
+     * @return {@code dest}
      */
     public static Vector3f cone(float mass, float radius, float height, Vector3f dest) {
         float r2 = radius * radius;
@@ -94,6 +134,9 @@ public final class InertiaTensorf {
      * {@code moments} and the matching axes into the columns of {@code axes} (a proper rotation), so that
      * {@code inertia = axes · diag(moments) · axesᵀ}. Uses {@link org.dynamisengine.vectrix.linalg.Eigen3f}.
      *
+     * @param inertia the inertia tensor; only its symmetric part is used
+     * @param moments receives the principal moments, in descending order
+     * @param axes receives the principal axes as columns; may be {@code inertia}
      * @return {@code moments}
      */
     public static Vector3f principalAxes(org.dynamisengine.vectrix.core.Matrix3fc inertia, Vector3f moments,

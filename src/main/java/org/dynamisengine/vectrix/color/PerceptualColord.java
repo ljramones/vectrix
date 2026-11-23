@@ -28,7 +28,7 @@ import org.dynamisengine.vectrix.core.Vector3d;
 import org.dynamisengine.vectrix.core.Vector3dc;
 
 /**
- * Perceptual colour spaces and colour differences (double precision): OKLab / OKLCH (Ottosson 2020), CIELAB / LCh
+ * Perceptual color spaces and color differences (double precision): OKLab / OKLCH (Ottosson 2020), CIELAB / LCh
  * (D65, the white of {@link ColorMathd#linearSrgbToXyz}), HSV / HSL, CIEDE2000 and ΔE-OK. Hue angles are in degrees,
  * {@code [0, 360)}. Every {@code dest} may alias the input.
  *
@@ -49,7 +49,14 @@ public final class PerceptualColord {
         return AccurateMath.cbrt(x);
     }
 
-    /** OKLab from linear sRGB. */
+    /**
+     * Converts linear sRGB to OKLab (L, a, b), with Ottosson's linear-sRGB-to-LMS matrix. White (1, 1, 1) gives
+     * L = 1, a = b = 0 up to rounding.
+     *
+     * @param rgb the linear sRGB color
+     * @param dest receives (L, a, b); may be {@code rgb}
+     * @return {@code dest}
+     */
     public static Vector3d oklabFromLinearSrgb(Vector3dc rgb, Vector3d dest) {
         double r = rgb.x(), g = rgb.y(), b = rgb.z();
         double l = cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
@@ -58,7 +65,14 @@ public final class PerceptualColord {
         return lmsToOklab(l, m, s, dest);
     }
 
-    /** Linear sRGB from OKLab. */
+    /**
+     * Converts OKLab to linear sRGB; the inverse of {@link #oklabFromLinearSrgb}. Colors outside the sRGB gamut give
+     * channels outside [0, 1]; nothing is clamped.
+     *
+     * @param lab the OKLab color (L, a, b)
+     * @param dest receives the linear sRGB color; may be {@code lab}
+     * @return {@code dest}
+     */
     public static Vector3d linearSrgbFromOklab(Vector3dc lab, Vector3d dest) {
         double ll = lab.x(), a = lab.y(), bb = lab.z();
         double l = ll + 0.3963377774 * a + 0.2158037573 * bb;
@@ -72,7 +86,13 @@ public final class PerceptualColord {
                 -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s);
     }
 
-    /** OKLab from CIE XYZ (D65), with Ottosson's XYZ-to-LMS matrix. */
+    /**
+     * Converts CIE XYZ (D65, Y = 1 for white) to OKLab, with Ottosson's XYZ-to-LMS matrix.
+     *
+     * @param xyz the XYZ color
+     * @param dest receives (L, a, b); may be {@code xyz}
+     * @return {@code dest}
+     */
     public static Vector3d oklabFromXyz(Vector3dc xyz, Vector3d dest) {
         double x = xyz.x(), y = xyz.y(), z = xyz.z();
         double l = cbrt(0.8189330101 * x + 0.3618667424 * y - 0.1288597137 * z);
@@ -87,26 +107,51 @@ public final class PerceptualColord {
                 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s);
     }
 
-    /** Cylindrical form (L, C, h°) of a Lab-like triple (OKLab → OKLCH, CIELAB → LCh). */
+    /**
+     * Converts a Lab-like triple to its cylindrical form (L, C, h): OKLab to OKLCH, or CIELAB to LCh. The hue h is in
+     * degrees, in [0, 360); a gray (a = b = 0) gets hue 0.
+     *
+     * @param lab the color (L, a, b)
+     * @param dest receives (L, chroma, hue in degrees); may be {@code lab}
+     * @return {@code dest}
+     */
     public static Vector3d labToLch(Vector3dc lab, Vector3d dest) {
         double l = lab.x(), a = lab.y(), b = lab.z();
         double h = AccurateMath.atan2(b, a) * RAD_TO_DEG;
         return dest.set(l, java.lang.Math.sqrt(a * a + b * b), h < 0.0 ? h + 360.0 : h);
     }
 
-    /** Inverse of {@link #labToLch}. */
+    /**
+     * Converts a cylindrical (L, C, h) triple back to Lab; the inverse of {@link #labToLch}.
+     *
+     * @param lch the color (L, chroma, hue in degrees); any hue angle is accepted
+     * @param dest receives (L, a, b); may be {@code lch}
+     * @return {@code dest}
+     */
     public static Vector3d lchToLab(Vector3dc lch, Vector3d dest) {
         double l = lch.x(), c = lch.y(), h = lch.z() * DEG_TO_RAD;
         return dest.set(l, c * AccurateMath.cos(h), c * AccurateMath.sin(h));
     }
 
-    /** CIELAB (L* in [0, 100]) from CIE XYZ, D65 white. */
+    /**
+     * Converts CIE XYZ to CIELAB (L*, a*, b*) with the D65 white (0.95047, 1, 1.08883).
+     *
+     * @param xyz the XYZ color, Y = 1 for white
+     * @param dest receives (L*, a*, b*), L* in [0, 100] for Y in [0, 1]; may be {@code xyz}
+     * @return {@code dest}
+     */
     public static Vector3d cielabFromXyz(Vector3dc xyz, Vector3d dest) {
         double fx = labF(xyz.x() / XN), fy = labF(xyz.y()), fz = labF(xyz.z() / ZN);
         return dest.set(116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz));
     }
 
-    /** CIE XYZ from CIELAB, D65 white. */
+    /**
+     * Converts CIELAB to CIE XYZ with the D65 white; the inverse of {@link #cielabFromXyz}.
+     *
+     * @param lab the CIELAB color (L*, a*, b*)
+     * @param dest receives X, Y and Z, Y = 1 for white; may be {@code lab}
+     * @return {@code dest}
+     */
     public static Vector3d xyzFromCielab(Vector3dc lab, Vector3d dest) {
         double fy = (lab.x() + 16.0) / 116.0;
         double fx = fy + lab.y() / 500.0;
@@ -123,7 +168,13 @@ public final class PerceptualColord {
         return f3 > LAB_E ? f3 : (116.0 * f - 16.0) / LAB_K;
     }
 
-    /** HSV (h°, s, v) from RGB in [0, 1] (usually gamma-encoded). */
+    /**
+     * Converts RGB to HSV. A gray gets hue 0 and black gets saturation 0.
+     *
+     * @param rgb the RGB color, channels in [0, 1], usually gamma-encoded
+     * @param dest receives (hue in degrees in [0, 360), saturation, value); may be {@code rgb}
+     * @return {@code dest}
+     */
     public static Vector3d rgbToHsv(Vector3dc rgb, Vector3d dest) {
         double r = rgb.x(), g = rgb.y(), b = rgb.z();
         double max = java.lang.Math.max(r, java.lang.Math.max(g, b));
@@ -132,7 +183,14 @@ public final class PerceptualColord {
         return dest.set(hue(r, g, b, max, d), max > 0.0 ? d / max : 0.0, max);
     }
 
-    /** RGB from HSV. */
+    /**
+     * Converts HSV to RGB; the inverse of {@link #rgbToHsv}.
+     *
+     * @param hsv the color (hue in degrees, saturation, value); the hue must be in [0, 360], negative hues are not
+     *            wrapped and give wrong results
+     * @param dest receives the RGB color; may be {@code hsv}
+     * @return {@code dest}
+     */
     public static Vector3d hsvToRgb(Vector3dc hsv, Vector3d dest) {
         double h = hsv.x(), s = hsv.y(), v = hsv.z();
         return dest.set(hsvChannel(5.0, h, s, v), hsvChannel(3.0, h, s, v), hsvChannel(1.0, h, s, v));
@@ -143,7 +201,13 @@ public final class PerceptualColord {
         return v - v * s * java.lang.Math.max(0.0, java.lang.Math.min(k, java.lang.Math.min(4.0 - k, 1.0)));
     }
 
-    /** HSL (h°, s, l) from RGB in [0, 1]. */
+    /**
+     * Converts RGB to HSL. A gray gets hue 0 and saturation 0.
+     *
+     * @param rgb the RGB color, channels in [0, 1], usually gamma-encoded
+     * @param dest receives (hue in degrees in [0, 360), saturation, lightness); may be {@code rgb}
+     * @return {@code dest}
+     */
     public static Vector3d rgbToHsl(Vector3dc rgb, Vector3d dest) {
         double r = rgb.x(), g = rgb.y(), b = rgb.z();
         double max = java.lang.Math.max(r, java.lang.Math.max(g, b));
@@ -154,7 +218,14 @@ public final class PerceptualColord {
         return dest.set(hue(r, g, b, max, d), s, l);
     }
 
-    /** RGB from HSL. */
+    /**
+     * Converts HSL to RGB; the inverse of {@link #rgbToHsl}.
+     *
+     * @param hsl the color (hue in degrees, saturation, lightness); the hue must be in [0, 360], negative hues are not
+     *            wrapped and give wrong results
+     * @param dest receives the RGB color; may be {@code hsl}
+     * @return {@code dest}
+     */
     public static Vector3d hslToRgb(Vector3dc hsl, Vector3d dest) {
         double h = hsl.x(), s = hsl.y(), l = hsl.z();
         double a = s * java.lang.Math.min(l, 1.0 - l);
@@ -181,13 +252,26 @@ public final class PerceptualColord {
         return h < 0.0 ? h + 360.0 : h;
     }
 
-    /** Colour difference ΔE-OK: the Euclidean distance between two OKLab colours. */
+    /**
+     * Returns the color difference ΔE-OK: the Euclidean distance between two OKLab colors.
+     *
+     * @param lab1 the first OKLab color
+     * @param lab2 the second OKLab color
+     * @return the distance, at least 0
+     */
     public static double deltaEOk(Vector3dc lab1, Vector3dc lab2) {
         double dl = lab1.x() - lab2.x(), da = lab1.y() - lab2.y(), db = lab1.z() - lab2.z();
         return java.lang.Math.sqrt(dl * dl + da * da + db * db);
     }
 
-    /** CIEDE2000 colour difference between two CIELAB colours ({@code kL = kC = kH = 1}; Sharma et al. 2005). */
+    /**
+     * Returns the CIEDE2000 color difference between two CIELAB colors, with {@code kL = kC = kH = 1}, following
+     * Sharma, Wu and Dalal (2005), including their rules for hue differences and means when a chroma is 0.
+     *
+     * @param lab1 the first CIELAB color
+     * @param lab2 the second CIELAB color
+     * @return ΔE00, at least 0
+     */
     public static double deltaE2000(Vector3dc lab1, Vector3dc lab2) {
         double l1 = lab1.x(), a1 = lab1.y(), b1 = lab1.z();
         double l2 = lab2.x(), a2 = lab2.y(), b2 = lab2.z();

@@ -37,12 +37,25 @@ public final class PhysicalCamerad {
     private PhysicalCamerad() {
     }
 
-    /** Field of view (radians) across a sensor dimension of {@code sensorSize}: {@code 2 atan(s / 2f)}. */
+    /**
+     * Returns the field of view across a sensor dimension: {@code 2 atan(s / 2f)}.
+     *
+     * @param focalLength the focal length {@code f}, greater than 0
+     * @param sensorSize the sensor width, height or diagonal {@code s}, in the unit of {@code focalLength}
+     * @return the field of view in radians
+     */
     public static double fieldOfView(double focalLength, double sensorSize) {
         return (2.0 * AccurateMath.atan(0.5 * sensorSize / focalLength));
     }
 
-    /** Focal length giving field of view {@code fov} (radians) across {@code sensorSize}. */
+    /**
+     * Returns the focal length that gives field of view {@code fov} across {@code sensorSize}: the inverse of
+     * {@link #fieldOfView}.
+     *
+     * @param fov the field of view in radians, in (0, π)
+     * @param sensorSize the sensor width, height or diagonal
+     * @return the focal length, in the unit of {@code sensorSize}
+     */
     public static double focalLength(double fov, double sensorSize) {
         return (0.5 * sensorSize / AccurateMath.tan(0.5 * fov));
     }
@@ -51,6 +64,12 @@ public final class PhysicalCamerad {
      * Diameter, on the sensor, of the circle of confusion of a point at {@code objectDistance} with the lens focused
      * at {@code focusDistance} (both greater than {@code focalLength}):
      * {@code c = (f / N) · |S2 − S1| / S2 · f / (S1 − f)}.
+     *
+     * @param focalLength the focal length {@code f}
+     * @param fNumber the f-stop {@code N}, greater than 0
+     * @param focusDistance the focus distance {@code S1}, greater than {@code focalLength}
+     * @param objectDistance the distance {@code S2} of the point, greater than {@code focalLength}
+     * @return the circle-of-confusion diameter on the sensor, in the unit of the inputs
      */
     public static double circleOfConfusion(double focalLength, double fNumber, double focusDistance,
             double objectDistance) {
@@ -58,24 +77,57 @@ public final class PhysicalCamerad {
         return (f / fNumber * java.lang.Math.abs(s2 - s1) / s2 * f / (s1 - f));
     }
 
-    /** Converts a sensor-space circle-of-confusion diameter to pixels for an image {@code imageSize} pixels across. */
+    /**
+     * Converts a circle-of-confusion diameter on the sensor to pixels: {@code coc / sensorSize · imageSize}.
+     *
+     * @param coc the diameter on the sensor
+     * @param sensorSize the sensor size along the image dimension, in the unit of {@code coc}
+     * @param imageSize the image size in pixels along the same dimension
+     * @return the diameter in pixels
+     */
     public static double cocToPixels(double coc, double sensorSize, double imageSize) {
         return coc / sensorSize * imageSize;
     }
 
-    /** Hyperfocal distance {@code H = f² / (N c) + f} for acceptable circle of confusion {@code coc}. */
+    /**
+     * Returns the hyperfocal distance {@code H = f² / (N c) + f}: focused there, everything from {@code H / 2} to
+     * infinity is acceptably sharp.
+     *
+     * @param focalLength the focal length {@code f}
+     * @param fNumber the f-stop {@code N}, greater than 0
+     * @param coc the largest acceptable circle of confusion {@code c} on the sensor, greater than 0
+     * @return the hyperfocal distance, in the unit of the inputs
+     */
     public static double hyperfocalDistance(double focalLength, double fNumber, double coc) {
         double f = focalLength;
         return (f * f / (fNumber * (double) coc) + f);
     }
 
-    /** Near limit of acceptable sharpness when focused at {@code s}: {@code s (H − f) / (H + s − 2f)}. */
+    /**
+     * Returns the near limit of acceptable sharpness when focused at {@code s}: {@code s (H − f) / (H + s − 2f)},
+     * where {@code H} is the {@link #hyperfocalDistance hyperfocal distance}.
+     *
+     * @param focalLength the focal length {@code f}
+     * @param fNumber the f-stop, greater than 0
+     * @param coc the largest acceptable circle of confusion on the sensor, greater than 0
+     * @param s the focus distance, greater than {@code focalLength}
+     * @return the nearest sharp distance
+     */
     public static double depthOfFieldNear(double focalLength, double fNumber, double coc, double s) {
         double f = focalLength, h = hyperfocalDistanceD(focalLength, fNumber, coc);
         return (s * (h - f) / (h + s - 2.0 * f));
     }
 
-    /** Far limit of acceptable sharpness: {@code s (H − f) / (H − s)}, or {@code +∞} at or beyond {@code H}. */
+    /**
+     * Returns the far limit of acceptable sharpness when focused at {@code s}: {@code s (H − f) / (H − s)}, where
+     * {@code H} is the {@link #hyperfocalDistance hyperfocal distance}.
+     *
+     * @param focalLength the focal length {@code f}
+     * @param fNumber the f-stop, greater than 0
+     * @param coc the largest acceptable circle of confusion on the sensor, greater than 0
+     * @param s the focus distance, greater than {@code focalLength}
+     * @return the farthest sharp distance, or {@code +∞} if {@code s} is at or beyond {@code H}
+     */
     public static double depthOfFieldFar(double focalLength, double fNumber, double coc, double s) {
         double f = focalLength, h = hyperfocalDistanceD(focalLength, fNumber, coc);
         return s >= h ? Double.POSITIVE_INFINITY : (s * (h - f) / (h - s));

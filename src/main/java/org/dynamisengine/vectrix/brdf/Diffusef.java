@@ -36,7 +36,11 @@ public final class Diffusef {
     private Diffusef() {
     }
 
-    /** Lambert: {@code 1/π}. */
+    /**
+     * Returns the Lambert BRDF, the constant {@code 1/π}.
+     *
+     * @return {@code 1/π}
+     */
     public static float lambert() {
         return INV_PI;
     }
@@ -44,6 +48,13 @@ public final class Diffusef {
     /**
      * Burley's diffuse (Disney 2012): {@code (1/π) (1 + (f90 - 1)(1 - nDotL)⁵)(1 + (f90 - 1)(1 - nDotV)⁵)} with
      * {@code f90 = 0.5 + 2 roughness lDotH²}. Not energy conserving; it adds retro-reflection at grazing angles.
+     * The cosines are not clamped; pass values in [0, 1].
+     *
+     * @param nDotV the cosine between the normal and the view direction
+     * @param nDotL the cosine between the normal and the light direction
+     * @param lDotH the cosine between the light and half vectors
+     * @param perceptualRoughness the perceptual roughness, in [0, 1]
+     * @return the BRDF value, per steradian
      */
     public static float burley(float nDotV, float nDotL, float lDotH, float perceptualRoughness) {
         float f90 = 0.5f + 2.0f * perceptualRoughness * lDotH * lDotH;
@@ -57,6 +68,12 @@ public final class Diffusef {
      * {@code (1/π)(A + B max(0, s) / max(nDotL, nDotV))} with {@code s = lDotV - nDotL nDotV},
      * {@code A = 1 - 0.5σ²/(σ² + 0.33)} and {@code B = 0.45σ²/(σ² + 0.09)}. This is the paper's
      * {@code cos(φ) sinα tanβ} term without angles; {@code sigma = 0} gives Lambert.
+     *
+     * @param nDotV the cosine between the normal and the view direction
+     * @param nDotL the cosine between the normal and the light direction
+     * @param lDotV the cosine between the light and view directions
+     * @param sigma the roughness, in radians
+     * @return the BRDF value, per steradian
      */
     public static float orenNayar(float nDotV, float nDotL, float lDotV, float sigma) {
         float s2 = sigma * sigma;

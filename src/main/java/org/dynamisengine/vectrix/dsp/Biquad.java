@@ -59,9 +59,11 @@ public final class Biquad {
      * @param stateOff the offset of the state
      * @param in the input samples
      * @param inOff the offset of the first input
-     * @param out receives the output samples; may be {@code in}
+     * @param out receives the output samples; may be {@code in}. With {@code sections == 0} it is not written.
      * @param outOff the offset of the first output
-     * @param count the number of samples
+     * @param count the number of samples, {@code >= 0}
+     * @throws IllegalArgumentException if {@code sections} or {@code count} is negative, or an array does not hold
+     *         its values from its offset (checked before anything is written)
      */
     public static void process(double[] coeffs, int coeffOff, int sections, double[] state, int stateOff,
             double[] in, int inOff, double[] out, int outOff, int count) {
@@ -93,8 +95,20 @@ public final class Biquad {
     }
 
     /**
-     * Filters float samples, computing in double with double state.
+     * Filters float samples, computing in double with double state; only the output is rounded to float.
      *
+     * @param coeffs the sections, {@link BiquadDesign#STRIDE} doubles each
+     * @param coeffOff the offset of the first section
+     * @param sections the number of sections; with 0, {@code in} is copied to {@code out}
+     * @param state {@code 2·sections} doubles carried between calls
+     * @param stateOff the offset of the state
+     * @param in the input samples
+     * @param inOff the offset of the first input
+     * @param out receives the output samples; may be {@code in}
+     * @param outOff the offset of the first output
+     * @param count the number of samples, {@code >= 0}
+     * @throws IllegalArgumentException if {@code sections} or {@code count} is negative, or an array does not hold
+     *         its values from its offset (checked before anything is written)
      * @see #process(double[], int, int, double[], int, double[], int, double[], int, int)
      */
     public static void process(double[] coeffs, int coeffOff, int sections, double[] state, int stateOff,
@@ -120,7 +134,12 @@ public final class Biquad {
     /**
      * The frequency response of the cascade at {@code f} cycles per sample.
      *
+     * @param coeffs the sections, {@link BiquadDesign#STRIDE} doubles each
+     * @param coeffOff the offset of the first section
+     * @param sections the number of sections; 0 gives a response of 1
+     * @param f the frequency in cycles per sample
      * @param dest receives the real part at {@code dest[0]} and the imaginary part at {@code dest[1]}
+     * @throws IllegalArgumentException if {@code sections} is negative or {@code coeffs} does not hold the sections
      */
     public static void response(double[] coeffs, int coeffOff, int sections, double f, double[] dest) {
         if (coeffs == null || sections < 0 || coeffOff < 0
@@ -151,7 +170,16 @@ public final class Biquad {
         dest[1] = hi;
     }
 
-    /** {@code |H(f)|} of the cascade. */
+    /**
+     * The magnitude response {@code |H(f)|} of the cascade, the product of the sections' magnitudes.
+     *
+     * @param coeffs the sections, {@link BiquadDesign#STRIDE} doubles each
+     * @param coeffOff the offset of the first section
+     * @param sections the number of sections; 0 gives 1
+     * @param f the frequency in cycles per sample
+     * @return the linear gain at {@code f}
+     * @throws IllegalArgumentException if {@code sections} is negative or {@code coeffs} does not hold the sections
+     */
     public static double magnitude(double[] coeffs, int coeffOff, int sections, double f) {
         if (coeffs == null || sections < 0 || coeffOff < 0
                 || coeffOff > coeffs.length - BiquadDesign.STRIDE * sections) {

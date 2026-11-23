@@ -32,21 +32,37 @@ import org.dynamisengine.vectrix.curve.vec3.Hermite3d;
 import org.dynamisengine.vectrix.curve.vec3.UniformBSpline3d;
 
 /**
- * Arc-length table builders and lookup helpers for vec3 curve segments.
+ * Arc-length table builders and lookup helpers for one 3D curve segment, to move along a curve at constant speed.
  * <p>
  * Typical usage:
  * <ol>
- *   <li>Build a normalized cumulative arc-length table with fixed sample count.</li>
- *   <li>Map desired normalized arc length {@code s in [0,1]} to parametric {@code t}.</li>
- *   <li>Evaluate the original curve at mapped {@code t}.</li>
+ *   <li>Build a normalized cumulative arc-length table with a fixed sample count.</li>
+ *   <li>Map the desired normalized arc length {@code s} in {@code [0, 1]} to the curve parameter {@code t}.</li>
+ *   <li>Evaluate the original curve at the mapped {@code t}.</li>
  * </ol>
+ * <p>
+ * A table for {@code samples} samples has {@code samples + 1} entries: entry {@code i} is the length of the polyline
+ * through the curve points at {@code t = k/samples}, {@code k <= i}, divided by the polyline's total length, so it
+ * runs from 0 to 1. The polyline slightly underestimates the true length; more samples reduce the error. Each table
+ * is normalized per segment: the absolute length is not kept. A segment of zero length gets the uniform table
+ * {@code i/samples}. The table builders allocate two temporary vectors per call; the lookups do not allocate. The
+ * functions are static and stateless. {@link CurveReparameterizer3f} is the float twin.
  */
 public final class CurveReparameterizer3d {
     private CurveReparameterizer3d() {}
 
     /**
-     * Build a normalized cumulative arc-length table for one cubic Bezier segment.
+     * Builds a normalized cumulative arc-length table for one cubic Bézier segment.
      *
+     * @param p0 the start point
+     * @param p1 the first control point
+     * @param p2 the second control point
+     * @param p3 the end point
+     * @param samples the number of samples along the segment, at least 1 (see
+     *     {@link CurveConstants#DEFAULT_ARCLEN_SAMPLES})
+     * @param dest receives the table in {@code dest[0 .. samples]}; at least {@code samples + 1} long
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code samples < 1} or {@code dest} is too short
      * @since 1.0.0
      */
     public static double[] buildArcLengthTableForBezier(Vector3dc p0, Vector3dc p1, Vector3dc p2, Vector3dc p3, int samples, double[] dest) {
@@ -69,6 +85,18 @@ public final class CurveReparameterizer3d {
         return dest;
     }
 
+    /**
+     * Builds a normalized cumulative arc-length table for one segment of a uniform B-spline.
+     *
+     * @param curve the spline
+     * @param segmentIndex the segment, in {@code [0, curve.segmentCount())}
+     * @param samples the number of samples along the segment, at least 1 (see
+     *     {@link CurveConstants#DEFAULT_ARCLEN_SAMPLES})
+     * @param dest receives the table in {@code dest[0 .. samples]}; at least {@code samples + 1} long
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code samples < 1} or {@code dest} is too short, or {@code segmentIndex} is
+     *     out of range
+     */
     public static double[] buildArcLengthTable(UniformBSpline3d curve, int segmentIndex, int samples, double[] dest) {
         checkSamples(samples);
         if (dest.length < samples + 1) throw new IllegalArgumentException("dest");
@@ -90,8 +118,17 @@ public final class CurveReparameterizer3d {
     }
 
     /**
-     * Build a normalized cumulative arc-length table for one cubic Hermite segment.
+     * Builds a normalized cumulative arc-length table for one cubic Hermite segment.
      *
+     * @param p0 the start point
+     * @param m0 the tangent at the start
+     * @param p1 the end point
+     * @param m1 the tangent at the end
+     * @param samples the number of samples along the segment, at least 1 (see
+     *     {@link CurveConstants#DEFAULT_ARCLEN_SAMPLES})
+     * @param dest receives the table in {@code dest[0 .. samples]}; at least {@code samples + 1} long
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code samples < 1} or {@code dest} is too short
      * @since 1.0.0
      */
     public static double[] buildArcLengthTableForHermite(Vector3dc p0, Vector3dc m0, Vector3dc p1, Vector3dc m1, int samples, double[] dest) {
@@ -115,8 +152,19 @@ public final class CurveReparameterizer3d {
     }
 
     /**
-     * Build a normalized cumulative arc-length table for one Catmull-Rom segment.
+     * Builds a normalized cumulative arc-length table for one Catmull–Rom (cardinal) segment, from {@code p1} to
+     * {@code p2}.
      *
+     * @param p0 the point before the segment
+     * @param p1 the start point of the segment
+     * @param p2 the end point of the segment
+     * @param p3 the point after the segment
+     * @param tension the cardinal tension: 0 for Catmull–Rom, 1 for zero tangents
+     * @param samples the number of samples along the segment, at least 1 (see
+     *     {@link CurveConstants#DEFAULT_ARCLEN_SAMPLES})
+     * @param dest receives the table in {@code dest[0 .. samples]}; at least {@code samples + 1} long
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code samples < 1} or {@code dest} is too short
      * @since 1.0.0
      */
     public static double[] buildArcLengthTableForCatmullRom(Vector3dc p0, Vector3dc p1, Vector3dc p2, Vector3dc p3, double tension,
@@ -141,22 +189,31 @@ public final class CurveReparameterizer3d {
     }
 
     /**
-     * Map normalized arc length to parametric curve value via table lookup and linear interpolation.
+     * Maps the normalized arc length {@code s01} to the curve parameter {@code t}, using a table built for
+     * {@code arcLengthTable.length - 1} samples. If the table was built for fewer samples than its length allows (a
+     * reused or oversized array), use {@link #mapArcLengthToT(double, double[], int)}.
      *
+     * @param s01 the normalized arc length; values outside {@code [0, 1]} clamp, NaN propagates
+     * @param arcLengthTable a table from one of the {@code buildArcLengthTable...} methods, filled to its last entry
+     * @return the curve parameter, in {@code [0, 1]}
+     * @throws IllegalArgumentException if the table has fewer than 2 entries
      * @since 1.0.0
-     */
-    /**
-     * Map normalised arc length {@code s01} in [0,1] to the curve parameter t, using a table built for
-     * {@code arcLengthTable.length - 1} samples. If the table was built for fewer samples than its length
-     * allows (a reused or oversized array), use {@link #mapArcLengthToT(double, double[], int)}.
      */
     public static double mapArcLengthToT(double s01, double[] arcLengthTable) {
         return mapArcLengthToT(s01, arcLengthTable, arcLengthTable.length - 1);
     }
 
     /**
-     * Map normalised arc length {@code s01} to the curve parameter t, using entries {@code [0..samples]} of a
-     * table built with the same {@code samples}. Values outside [0,1] clamp; NaN propagates.
+     * Maps the normalized arc length {@code s01} to the curve parameter {@code t}, using entries {@code [0 .. samples]}
+     * of a table built with the same {@code samples}: a binary search for the bracketing entries, then linear
+     * interpolation between their parameters. Where the table is flat (a zero-length span), the lower parameter is
+     * returned.
+     *
+     * @param s01 the normalized arc length; values outside {@code [0, 1]} clamp, NaN propagates
+     * @param arcLengthTable the table, non-decreasing in {@code [0 .. samples]}
+     * @param samples the sample count the table was built with
+     * @return the curve parameter, in {@code [0, 1]}
+     * @throws IllegalArgumentException if {@code samples < 1} or the table has fewer than {@code samples + 1} entries
      */
     public static double mapArcLengthToT(double s01, double[] arcLengthTable, int samples) {
         if (samples <= 0 || samples > arcLengthTable.length - 1) {
@@ -181,6 +238,19 @@ public final class CurveReparameterizer3d {
         return ((double) i0 + alpha) / (double) samples;
     }
 
+    /**
+     * Evaluates one segment of a uniform B-spline at the normalized arc length {@code s01}, using
+     * {@link #mapArcLengthToT(double, double[])}. The table must be filled to its last entry, so its length must be the
+     * sample count plus 1.
+     *
+     * @param curve the spline
+     * @param segmentIndex the segment the table was built for
+     * @param s01 the normalized arc length; values outside {@code [0, 1]} clamp
+     * @param arcLengthTable the table of that segment
+     * @param dest receives the point
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code segmentIndex} is out of range or the table has fewer than 2 entries
+     */
     public static Vector3d evaluateByArcLength(UniformBSpline3d curve, int segmentIndex, double s01, double[] arcLengthTable, Vector3d dest) {
         double t = mapArcLengthToT(s01, arcLengthTable);
         return curve.evaluate(segmentIndex, t, dest);

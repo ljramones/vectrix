@@ -36,21 +36,29 @@ import java.util.*;
 public interface Vector4dc {
 
     /**
+     * Returns the x component.
+     *
      * @return the value of the x component
      */
     double x();
 
     /**
+     * Returns the y component.
+     *
      * @return the value of the y component
      */
     double y();
 
     /**
+     * Returns the z component.
+     *
      * @return the value of the z component
      */
     double z();
 
     /**
+     * Returns the w component.
+     *
      * @return the value of the w component
      */
     double w();
@@ -196,7 +204,8 @@ public interface Vector4dc {
      * Store this vector at the given off-heap memory address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      * 

@@ -48,8 +48,20 @@ public final class PoseKernelsf {
     }
 
     /**
-     * Forward kinematics: model-space transforms from local ones. {@code localS} and {@code modelS} may both be null
-     * (no scale). Model arrays may be the local arrays (in place). Throws if a parent does not precede its child.
+     * Forward kinematics: computes model-space transforms from local ones, joint by joint in index order. Model arrays
+     * may be the local arrays (in place). Pass {@code localS} and {@code modelS} both null for no scale; when
+     * {@code localS} is null, {@code modelS} is not written.
+     *
+     * @param parents the parent index of each joint, {@code −1} for a root; every parent must precede its child
+     * @param count the number of joints
+     * @param localT the local translations, 3 floats per joint
+     * @param localR the local rotations, 4 floats ({@code x, y, z, w}) per joint, unit length
+     * @param localS the local scales, 3 floats per joint, or null
+     * @param modelT receives the model translations; may be {@code localT}
+     * @param modelR receives the model rotations; may be {@code localR}
+     * @param modelS receives the model scales; may be {@code localS}; must not be null when {@code localS} is not
+     * @throws IllegalArgumentException if a parent index is not less than its joint's index; joints before it have
+     *         already been written
      */
     public static void localToModel(int[] parents, int count, float[] localT, float[] localR, float[] localS,
             float[] modelT, float[] modelR, float[] modelS) {
@@ -101,8 +113,20 @@ public final class PoseKernelsf {
     }
 
     /**
-     * Inverse kinematics of the hierarchy: local transforms from model ones (children are processed before their
-     * parents, so local arrays may be the model arrays). {@code modelS}/{@code localS} may both be null.
+     * The inverse of {@link #localToModel}: computes local transforms from model-space ones. Children are processed
+     * before their parents, so the local arrays may be the model arrays (in place). Pass {@code modelS} and
+     * {@code localS} both null for no scale; when {@code modelS} is null, {@code localS} is not written.
+     *
+     * @param parents the parent index of each joint, {@code −1} for a root; every parent must precede its child
+     * @param count the number of joints
+     * @param modelT the model translations, 3 floats per joint
+     * @param modelR the model rotations, 4 floats ({@code x, y, z, w}) per joint, unit length
+     * @param modelS the model scales, 3 floats per joint, nonzero, or null
+     * @param localT receives the local translations; may be {@code modelT}
+     * @param localR receives the local rotations; may be {@code modelR}
+     * @param localS receives the local scales; may be {@code modelS}; must not be null when {@code modelS} is not
+     * @throws IllegalArgumentException if a parent index is not less than its joint's index; joints after it have
+     *         already been written
      */
     public static void modelToLocal(int[] parents, int count, float[] modelT, float[] modelR, float[] modelS,
             float[] localT, float[] localR, float[] localS) {
@@ -153,7 +177,14 @@ public final class PoseKernelsf {
         }
     }
 
-    /** {@code out[i] = a[i] · b[i]} for {@code count} quaternions; {@code out} may alias either input. */
+    /**
+     * Multiplies quaternions pairwise: {@code out[i] = a[i] · b[i]} for {@code count} quaternions.
+     *
+     * @param a the left factors, 4 floats per quaternion
+     * @param b the right factors, 4 floats per quaternion
+     * @param out receives the products; may be {@code a} or {@code b}
+     * @param count the number of quaternions
+     */
     public static void mul(float[] a, float[] b, float[] out, int count) {
         for (int i = 0; i < count; i++) {
             int o = 4 * i;
@@ -166,7 +197,12 @@ public final class PoseKernelsf {
         }
     }
 
-    /** Normalizes {@code count} quaternions in place (a zero quaternion becomes the identity). */
+    /**
+     * Normalizes {@code count} quaternions in place. A zero quaternion becomes the identity.
+     *
+     * @param q the quaternions, 4 floats each
+     * @param count the number of quaternions
+     */
     public static void normalize(float[] q, int count) {
         for (int i = 0; i < count; i++) {
             int o = 4 * i;
@@ -229,35 +265,77 @@ public final class PoseKernelsf {
         out[o + 3] = (float) (w / n);
     }
 
-    /** Slerps {@code count} quaternion pairs at {@code t} along the shorter arc; {@code out} may alias. */
+    /**
+     * Slerps {@code count} quaternion pairs at {@code t} along the shorter arc. The results are normalized, and
+     * exact at {@code t = 0} and {@code t = 1}.
+     *
+     * @param a the start rotations, 4 floats per quaternion, unit length
+     * @param b the end rotations, 4 floats per quaternion, unit length
+     * @param t the interpolation parameter, 0 for {@code a} and 1 for {@code b}
+     * @param out receives the interpolated rotations; may be {@code a} or {@code b}
+     * @param count the number of quaternions
+     */
     public static void slerp(float[] a, float[] b, float t, float[] out, int count) {
         for (int i = 0; i < count; i++) {
             slerpOne(a, b, 4 * i, t, out);
         }
     }
 
-    /** Normalized linear interpolation along the shorter arc (cheaper than slerp, non-constant speed). */
+    /**
+     * Normalized linear interpolation of {@code count} quaternion pairs along the shorter arc: cheaper than
+     * {@link #slerp}, with non-constant angular speed.
+     *
+     * @param a the start rotations, 4 floats per quaternion
+     * @param b the end rotations, 4 floats per quaternion
+     * @param t the interpolation parameter, 0 for {@code a} and 1 for {@code b}
+     * @param out receives the normalized results; may be {@code a} or {@code b}
+     * @param count the number of quaternions
+     */
     public static void nlerp(float[] a, float[] b, float t, float[] out, int count) {
         for (int i = 0; i < count; i++) {
             nlerpOne(a, b, 4 * i, t, out);
         }
     }
 
-    /** Per-joint slerp with joint weights {@code t[i]} (a blend mask); {@code out} may alias. */
+    /**
+     * Slerps each joint along the shorter arc with its own parameter {@code t[i]} (a blend mask).
+     *
+     * @param a the start rotations, 4 floats per joint, unit length
+     * @param b the end rotations, 4 floats per joint, unit length
+     * @param t the per-joint parameters, one per joint
+     * @param out receives the interpolated rotations; may be {@code a} or {@code b}
+     * @param count the number of joints
+     */
     public static void slerpMasked(float[] a, float[] b, float[] t, float[] out, int count) {
         for (int i = 0; i < count; i++) {
             slerpOne(a, b, 4 * i, t[i], out);
         }
     }
 
-    /** {@code out = a + t (b − a)} for {@code count} 3-vectors; {@code out} may alias. */
+    /**
+     * Interpolates 3-vectors linearly: {@code out = a + t (b − a)} for {@code count} vectors.
+     *
+     * @param a the start vectors, 3 floats each
+     * @param b the end vectors, 3 floats each
+     * @param t the interpolation parameter, 0 for {@code a} and 1 for {@code b}
+     * @param out receives the results; may be {@code a} or {@code b}
+     * @param count the number of vectors
+     */
     public static void lerp3(float[] a, float[] b, float t, float[] out, int count) {
         for (int i = 0; i < 3 * count; i++) {
             out[i] = (float) (a[i] + t * ((double) b[i] - a[i]));
         }
     }
 
-    /** Per-joint vector lerp with joint weights {@code t[i]}. */
+    /**
+     * Interpolates each joint's 3-vector linearly with its own parameter {@code t[i]} (a blend mask).
+     *
+     * @param a the start vectors, 3 floats per joint
+     * @param b the end vectors, 3 floats per joint
+     * @param t the per-joint parameters, one per joint
+     * @param out receives the results; may be {@code a} or {@code b}
+     * @param count the number of joints
+     */
     public static void lerp3Masked(float[] a, float[] b, float[] t, float[] out, int count) {
         for (int i = 0; i < count; i++) {
             double w = t[i];
@@ -272,6 +350,12 @@ public final class PoseKernelsf {
      * aligned to the first pose's hemisphere (weights need not sum to 1; a joint with zero total weight takes the
      * first pose). This is the standard (normalized linear) blend, not the geodesic mean; for that per joint use
      * {@link QuaternionCurvesf#weightedMean}.
+     *
+     * @param poses the rotation arrays of the poses, 4 floats per joint each; the first {@code poseCount} are used
+     * @param weights the weight of each pose
+     * @param poseCount the number of poses, at least 1
+     * @param out receives the blended rotations; may be one of the poses
+     * @param count the number of joints
      */
     public static void blendRotations(float[][] poses, float[] weights, int poseCount, float[] out, int count) {
         float[] first = poses[0];
@@ -305,7 +389,16 @@ public final class PoseKernelsf {
         }
     }
 
-    /** N-way weighted average of 3-vectors (translations or scales), normalized by the weight sum. */
+    /**
+     * N-way weighted average of 3-vectors (translations or scales), divided by the weight sum. If the weights sum to
+     * zero, the first pose is copied.
+     *
+     * @param poses the vector arrays of the poses, 3 floats per joint each; the first {@code poseCount} are used
+     * @param weights the weight of each pose
+     * @param poseCount the number of poses, at least 1
+     * @param out receives the blended vectors; may be one of the poses
+     * @param count the number of joints
+     */
     public static void blendVectors(float[][] poses, float[] weights, int poseCount, float[] out, int count) {
         double sum = 0.0;
         for (int k = 0; k < poseCount; k++) {
@@ -321,7 +414,14 @@ public final class PoseKernelsf {
         }
     }
 
-    /** Additive rotation layer {@code d = reference⁻¹ · pose} per joint; {@code out} may alias. */
+    /**
+     * Makes an additive rotation layer: {@code d = reference⁻¹ · pose} per joint, using the conjugate as the inverse.
+     *
+     * @param pose the rotations to encode, 4 floats per joint
+     * @param reference the reference rotations, 4 floats per joint, unit length
+     * @param out receives the additive rotations; may be {@code pose} or {@code reference}
+     * @param count the number of joints
+     */
     public static void makeAdditiveRotations(float[] pose, float[] reference, float[] out, int count) {
         for (int i = 0; i < count; i++) {
             int o = 4 * i;
@@ -335,8 +435,15 @@ public final class PoseKernelsf {
     }
 
     /**
-     * Applies an additive rotation layer at {@code weight}: {@code out = base · slerp(identity, d, weight)} per joint
-     * ({@code weight = 1} restores the pose the layer was made from); {@code out} may alias.
+     * Applies an additive rotation layer at {@code weight}: {@code out = base · slerp(identity, d, weight)} per joint,
+     * taking {@code d} along the shorter arc. With {@code weight = 1} and the reference as {@code base}, this restores
+     * the pose the layer was made from.
+     *
+     * @param base the base rotations, 4 floats per joint
+     * @param additive the additive rotations from {@link #makeAdditiveRotations}, 4 floats per joint, unit length
+     * @param weight the layer weight; 0 leaves {@code base} unchanged
+     * @param out receives the layered rotations; may be {@code base} or {@code additive}
+     * @param count the number of joints
      */
     public static void applyAdditiveRotations(float[] base, float[] additive, float weight, float[] out, int count) {
         for (int i = 0; i < count; i++) {
@@ -361,14 +468,29 @@ public final class PoseKernelsf {
         }
     }
 
-    /** Additive vector layer {@code d = pose − reference} (translations). */
+    /**
+     * Makes an additive vector layer (translations): {@code d = pose − reference} per joint.
+     *
+     * @param pose the vectors to encode, 3 floats per joint
+     * @param reference the reference vectors, 3 floats per joint
+     * @param out receives the differences; may be {@code pose} or {@code reference}
+     * @param count the number of joints
+     */
     public static void makeAdditiveVectors(float[] pose, float[] reference, float[] out, int count) {
         for (int i = 0; i < 3 * count; i++) {
             out[i] = (float) ((double) pose[i] - reference[i]);
         }
     }
 
-    /** Applies an additive vector layer: {@code out = base + weight · d}. */
+    /**
+     * Applies an additive vector layer: {@code out = base + weight · d} per joint.
+     *
+     * @param base the base vectors, 3 floats per joint
+     * @param additive the differences from {@link #makeAdditiveVectors}, 3 floats per joint
+     * @param weight the layer weight
+     * @param out receives the results; may be {@code base} or {@code additive}
+     * @param count the number of joints
+     */
     public static void applyAdditiveVectors(float[] base, float[] additive, float weight, float[] out, int count) {
         for (int i = 0; i < 3 * count; i++) {
             out[i] = (float) (base[i] + (double) weight * additive[i]);

@@ -28,14 +28,26 @@ import org.dynamisengine.vectrix.affine.DualQuatTransformd;
 /**
  * Structure-of-arrays storage for dual quaternions.
  * <p>
+ * Element {@code i} is the dual quaternion with real (rotation) part {@code (rx[i], ry[i], rz[i], rw[i])} and dual
+ * part {@code (dx[i], dy[i], dz[i], dw[i])}, as in {@link DualQuatTransformd}. The arrays are public and have a
+ * fixed length. Not thread-safe: synchronize writers yourself.
+ * <p>
  * Double-precision twin of {@link DualQuatSoA}, for world-scale transforms (see {@code world.WorldPos}).
  *
  * @since 2.3.0
  */
 public class DualQuatSoAd {
+    /** The real (rotation) part of each dual quaternion: x, y, z and w components. */
     public final double[] rx, ry, rz, rw;
+    /** The dual (translation) part of each dual quaternion: x, y, z and w components. */
     public final double[] dx, dy, dz, dw;
 
+    /**
+     * Creates storage for {@code size} dual quaternions, each the identity (real part {@code (0, 0, 0, 1)}, dual part
+     * zero).
+     *
+     * @param size the number of dual quaternions
+     */
     public DualQuatSoAd(int size) {
         rx = new double[size];
         ry = new double[size];
@@ -50,6 +62,12 @@ public class DualQuatSoAd {
         }
     }
 
+    /**
+     * Copies {@code dq} into element {@code i}.
+     *
+     * @param i the element index
+     * @param dq the dual quaternion to store
+     */
     public void set(int i, DualQuatTransformd dq) {
         rx[i] = dq.real.x;
         ry[i] = dq.real.y;

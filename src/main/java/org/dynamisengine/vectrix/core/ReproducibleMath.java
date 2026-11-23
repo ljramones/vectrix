@@ -35,8 +35,10 @@ package org.dynamisengine.vectrix.core;
  * <p>
  * The float and double versions of a function are overloads, so the argument type picks the precision. Java widens
  * an {@code int} or {@code long} argument to {@code float} when a float overload exists, so write
- * {@code log((double) n)} for the double result. The Vector API kernels of the {@code nn} package expand the float versions
- * inline, with the same operations in the same order.
+ * {@code log((double) n)} for the double result. The Vector API kernels of the {@code nn} package expand the float
+ * versions inline, with the same operations in the same order.
+ * <p>
+ * All methods are static, allocation-free and thread-safe.
  *
  * @since 2.6.0 (2.5.0 as {@code nn.NnMath})
  */
@@ -85,6 +87,9 @@ public final class ReproducibleMath {
     /**
      * {@code e^x}, within 1.1 ulp (measured on [-87.3, 88.7]); overflows to +∞ above 88.72, underflows
      * gradually to 0 below -87.3.
+     *
+     * @param x the exponent
+     * @return {@code e^x}
      */
     public static float exp(float x) {
         float c = java.lang.Math.min(java.lang.Math.max(x, -104f), 89f);
@@ -98,7 +103,12 @@ public final class ReproducibleMath {
         return t * Float.intBitsToFloat((k1 + 127) << 23) * Float.intBitsToFloat((k - k1 + 127) << 23);
     }
 
-    /** {@code e^x - 1} without cancellation near 0 (degree-10 Taylor below 0.5 in magnitude), within 2 ulp. */
+    /**
+     * {@code e^x - 1} without cancellation near 0 (degree-10 Taylor below 0.5 in magnitude), within 2 ulp.
+     *
+     * @param x the exponent
+     * @return {@code e^x - 1}
+     */
     public static float expm1(float x) {
         if (java.lang.Math.abs(x) < 0.5f) {
             float p = java.lang.Math.fma(java.lang.Math.fma(java.lang.Math.fma(java.lang.Math.fma(java.lang.Math.fma(java.lang.Math.fma(java.lang.Math.fma(java.lang.Math.fma(E10, x, E9), x, E8), x,
@@ -108,14 +118,24 @@ public final class ReproducibleMath {
         return exp(x) - 1f;
     }
 
-    /** {@code tanh x = expm1(2|x|) / (expm1(2|x|) + 2)}, signed; within 2.5 ulp; exactly ±1 beyond 9.1. */
+    /**
+     * {@code tanh x = expm1(2|x|) / (expm1(2|x|) + 2)}, signed; within 2.5 ulp; exactly ±1 beyond 9.1.
+     *
+     * @param x the argument
+     * @return the hyperbolic tangent of {@code x}, in {@code [-1, 1]}
+     */
     public static float tanh(float x) {
         float a = java.lang.Math.min(java.lang.Math.abs(x), 9.1f);
         float e = expm1(2f * a);
         return java.lang.Math.copySign(e / (e + 2f), x);
     }
 
-    /** The logistic function {@code 1 / (1 + e^-x)}, within 2.5 ulp. */
+    /**
+     * The logistic function {@code 1 / (1 + e^-x)}, within 2.5 ulp.
+     *
+     * @param x the argument
+     * @return {@code 1 / (1 + e^-x)}, in {@code [0, 1]}
+     */
     public static float sigmoid(float x) {
         return 1f / (1f + exp(-x));
     }
@@ -123,6 +143,9 @@ public final class ReproducibleMath {
     /**
      * {@code log x}, within 2 ulp: exact exponent extraction, then {@code 2·atanh(s)} with {@code s = f/(2+f)} as an
      * odd series. {@code log 0 = -∞}, negative arguments give NaN.
+     *
+     * @param x the argument
+     * @return the natural logarithm of {@code x}
      */
     public static float log(float x) {
         if (!(x > 0f) || x == Float.POSITIVE_INFINITY) {
@@ -143,7 +166,12 @@ public final class ReproducibleMath {
         return logReduced(m - 1f, e);
     }
 
-    /** {@code log(1 + y)}, accurate near 0, within 3 ulp. */
+    /**
+     * {@code log(1 + y)}, accurate near 0, within 3 ulp.
+     *
+     * @param y the argument, greater than -1
+     * @return {@code log(1 + y)}
+     */
     public static float log1p(float y) {
         if (y > -0.29289323f && y < 0.41421357f) {
             return logReduced(y, 0);
@@ -166,6 +194,9 @@ public final class ReproducibleMath {
      * 1 it returns {@code 1 - erfc(a)}, with {@code erfc} from a 64-term continued fraction whose relative error
      * vanishes in the subtraction, and {@code a²} carried exactly into the exponential. Within 2.5 ulp (measured on
      * [0, 4]).
+     *
+     * @param x the argument
+     * @return the error function of {@code x}, in {@code [-1, 1]}
      */
     public static float erf(float x) {
         float a = java.lang.Math.min(java.lang.Math.abs(x), 3.92f);
@@ -195,6 +226,9 @@ public final class ReproducibleMath {
      * The complementary error function {@code 1 - erf x}, accurate relative to its own (small) value for large
      * arguments: between -1 and 1 the Taylor series, and from 1 the continued fraction, both in double and rounded
      * once; below -1 {@code 1 - erf x} (no cancellation). Within 2.5 ulp (measured).
+     *
+     * @param x the argument
+     * @return {@code 1 - erf x}, in {@code [0, 2]}
      */
     public static float erfc(float x) {
         if (!(x >= 1f)) {
@@ -217,6 +251,9 @@ public final class ReproducibleMath {
      * lower tail: below √2 it is evaluated in double (the Taylor series, or in the tail the continued fraction) and
      * rounded once, so neither the cancellation of {@code (1 + erf)/2} nor the rounding of {@code x/√2} shows.
      * Within 2.5 ulp (measured).
+     *
+     * @param x the argument
+     * @return the probability that a standard normal variable is at most {@code x}, in {@code [0, 1]}
      */
     public static float normalCdf(float x) {
         if (!(x <= -1.4142135f)) {
@@ -236,7 +273,12 @@ public final class ReproducibleMath {
         return (float) (0.5 * erfcTailD(java.lang.Math.min(-x * INV_SQRT2_D, 10.1)));
     }
 
-    /** The standard normal density {@code e^(-x²/2)/√(2π)}, computed in double and rounded once. */
+    /**
+     * The standard normal density {@code e^(-x²/2)/√(2π)}, computed in double and rounded once.
+     *
+     * @param x the argument
+     * @return the standard normal density at {@code x}
+     */
     public static float normalPdf(float x) {
         double v = x;
         return (float) (0.3989422804014327 * exp(-0.5 * v * v));
@@ -273,13 +315,22 @@ public final class ReproducibleMath {
     /**
      * {@code sin a} in double, reproducibly: the argument is reduced by fdlibm's three-part π/2 (exact products for
      * {@code |a|} up to about 1.6e6, so the reduction loses nothing there), then Taylor series on [-π/4, π/4].
-     * Within 1 ulp of 1 absolutely (measured); NaN and infinities give NaN.
+     * Within 1 ulp of 1 absolutely (measured). NaN, infinities and arguments above about 1.4e16 in magnitude give
+     * NaN.
+     *
+     * @param a the angle in radians
+     * @return the sine of {@code a}
      */
     public static double sin(double a) {
         return sinCos(a, true);
     }
 
-    /** {@code cos a} in double, reproducibly; see {@link #sin(double)}. */
+    /**
+     * {@code cos a} in double, reproducibly; see {@link #sin(double)}.
+     *
+     * @param a the angle in radians
+     * @return the cosine of {@code a}
+     */
     public static double cos(double a) {
         return sinCos(a, false);
     }
@@ -312,6 +363,9 @@ public final class ReproducibleMath {
     /**
      * {@code log x} in double, reproducibly ({@code 2·atanh} series after exact exponent extraction); within 2 ulp
      * (measured). {@code log 0 = -∞}; negative arguments give NaN.
+     *
+     * @param x the argument
+     * @return the natural logarithm of {@code x}
      */
     public static double log(double x) {
         if (!(x > 0) || x == Double.POSITIVE_INFINITY) {
@@ -343,6 +397,10 @@ public final class ReproducibleMath {
     /**
      * {@code b^y} in double, reproducibly, as {@code e^(y·log b)}, for {@code b > 0} and moderate results; the rounding
      * of {@code y·log b} costs about {@code |y·log b|} ulps (2e-15 relative for {@code 10000^-2}).
+     *
+     * @param b the base, greater than 0
+     * @param y the exponent
+     * @return {@code b^y}
      */
     public static double pow(double b, double y) {
         return exp(y * log(b));
@@ -351,6 +409,9 @@ public final class ReproducibleMath {
     /**
      * {@code e^x} in double, reproducibly (Cody–Waite reduction, degree-13 Taylor), for {@code |x| <= 700}; within
      * 1 ulp (measured).
+     *
+     * @param x the exponent
+     * @return {@code e^x}
      */
     public static double exp(double x) {
         double kf = (x * LOG2E_D + ROUND_D) - ROUND_D;

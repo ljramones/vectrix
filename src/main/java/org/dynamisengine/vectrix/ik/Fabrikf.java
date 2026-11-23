@@ -63,8 +63,22 @@ public final class Fabrikf {
     }
 
     /**
-     * Solves; returns the final distance from the end joint to the target. Stops when it is at most
-     * {@code tolerance} or after {@code maxIterations} forward-backward passes.
+     * Solves the chain. Stops when the end joint is within {@code tolerance} of the target or after
+     * {@code maxIterations} backward-forward passes; an unreachable target without bend limits is handled in one
+     * straightening step. Uses a per-thread array for the bone lengths, which is allocated on the first call in each
+     * thread and reallocated when a chain has more than 32 bones.
+     *
+     * @param positions the joint positions, 3 floats per joint from index 0; updated in place
+     * @param count the number of joints
+     * @param lengths the bone lengths, {@code count − 1} entries, or null to measure them from {@code positions}
+     * @param targetX the x coordinate of the target
+     * @param targetY the y coordinate of the target
+     * @param targetZ the z coordinate of the target
+     * @param tolerance the end-joint distance at which to stop
+     * @param maxIterations the maximum number of backward-forward passes
+     * @param bendLimits the {@code [min, max]} bend of each joint in radians, at indices {@code 2i} and {@code 2i + 1}
+     *        for joint {@code i} (entries for joint 0 are ignored), or null for no limits
+     * @return the final distance from the end joint to the target
      */
     public static float solve(float[] positions, int count, float[] lengths, float targetX, float targetY,
             float targetZ, float tolerance, int maxIterations, float[] bendLimits) {

@@ -54,7 +54,7 @@ import org.dynamisengine.vectrix.simd.SimdSupport;
  */
 public final class Blasd {
 
-    /** The reduction block length. */
+    /** The reduction block length, in elements. */
     public static final int BLOCK = 256;
 
     private static final ValueLayout.OfDouble E = ValueLayout.JAVA_DOUBLE_UNALIGNED;
@@ -64,10 +64,16 @@ public final class Blasd {
 
 
     /**
-     * The dot product {@code Σ x[i]·y[i]}.
+     * The dot product {@code Σ x[i]·y[i]}, summed in the fixed order described in the class comment.
      *
+     * @param x the input array
+     * @param xOff the index of the first element of {@code x}
+     * @param y the second input array
+     * @param yOff the index of the first element of {@code y}
      * @param n the number of elements, {@code >= 0}
      * @return the dot product (0 for {@code n == 0})
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, an array is null or too
+     *         short for {@code n} elements from its offset
      */
     public static double dot(double[] x, int xOff, double[] y, int yOff, int n) {
         check(x, xOff, n, "x");
@@ -75,13 +81,31 @@ public final class Blasd {
         return n == 0 ? 0.0 : dotPairwise(x, xOff, y, yOff, 0, n);
     }
 
-    /** The sum {@code Σ x[i]}. */
+    /**
+     * The sum {@code Σ x[i]}, in the fixed order described in the class comment.
+     *
+     * @param x the input array
+     * @param xOff the index of the first element of {@code x}
+     * @param n the number of elements, {@code >= 0}
+     * @return the sum (0 for {@code n == 0})
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, an array is null or too
+     *         short for {@code n} elements from its offset
+     */
     public static double sum(double[] x, int xOff, int n) {
         check(x, xOff, n, "x");
         return n == 0 ? 0.0 : sumPairwise(x, xOff, 0, n);
     }
 
-    /** The sum of magnitudes {@code Σ |x[i]|}. */
+    /**
+     * The sum of magnitudes {@code Σ |x[i]|}, in the fixed order described in the class comment.
+     *
+     * @param x the input array
+     * @param xOff the index of the first element of {@code x}
+     * @param n the number of elements, {@code >= 0}
+     * @return the sum of magnitudes (0 for {@code n == 0})
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, an array is null or too
+     *         short for {@code n} elements from its offset
+     */
     public static double asum(double[] x, int xOff, int n) {
         check(x, xOff, n, "x");
         return n == 0 ? 0.0 : asumPairwise(x, xOff, 0, n);
@@ -89,7 +113,16 @@ public final class Blasd {
 
     /**
      * The Euclidean norm {@code sqrt(Σ x[i]²)}, without overflow or underflow: when the plain sum of squares is not
-     * a normal number, it is recomputed with the elements scaled by a power of two (exactly).
+     * a normal number, it is recomputed with the elements scaled by a power of two (exactly). The rescaling pass
+     * reads the elements a second time.
+     *
+     * @param x the input array
+     * @param xOff the index of the first element of {@code x}
+     * @param n the number of elements, {@code >= 0}
+     * @return the norm: 0 for {@code n == 0} or all zeros, NaN if any element is NaN, infinity if any element is
+     *         infinite
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, an array is null or too
+     *         short for {@code n} elements from its offset
      */
     public static double nrm2(double[] x, int xOff, int n) {
         check(x, xOff, n, "x");
@@ -116,7 +149,19 @@ public final class Blasd {
         return Math.scalb((double) Math.sqrt(t), e);
     }
 
-    /** {@code y[i] = fma(a, x[i], y[i])}. {@code x} and {@code y} may be the same at the same offset. */
+    /**
+     * Adds a scaled vector: {@code y[i] = fma(a, x[i], y[i])}, one rounding per element. {@code x} and {@code y} may
+     * be the same array at the same offset; other overlaps are not supported.
+     *
+     * @param a the scale factor
+     * @param x the input array
+     * @param xOff the index of the first element of {@code x}
+     * @param y the array to add to; receives the result
+     * @param yOff the index of the first element of {@code y}
+     * @param n the number of elements, {@code >= 0}
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, an array is null or too
+     *         short for {@code n} elements from its offset
+     */
     public static void axpy(double a, double[] x, int xOff, double[] y, int yOff, int n) {
         check(x, xOff, n, "x");
         check(y, yOff, n, "y");
@@ -131,7 +176,16 @@ public final class Blasd {
         }
     }
 
-    /** {@code x[i] = a·x[i]}. */
+    /**
+     * Scales a vector in place: {@code x[i] = a·x[i]}.
+     *
+     * @param a the scale factor
+     * @param x the array to scale; receives the result
+     * @param xOff the index of the first element of {@code x}
+     * @param n the number of elements, {@code >= 0}
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, an array is null or too
+     *         short for {@code n} elements from its offset
+     */
     public static void scal(double a, double[] x, int xOff, int n) {
         check(x, xOff, n, "x");
         int i = 0;
@@ -145,7 +199,16 @@ public final class Blasd {
         }
     }
 
-    /** The index of the first element of largest magnitude ({@code -1} for {@code n == 0}; NaN counts as largest). */
+    /**
+     * Finds the first element of largest magnitude. NaN counts as largest: the first NaN wins.
+     *
+     * @param x the input array
+     * @param xOff the index of the first element of {@code x}
+     * @param n the number of elements, {@code >= 0}
+     * @return the index of that element relative to {@code xOff}, or {@code -1} for {@code n == 0}
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, an array is null or too
+     *         short for {@code n} elements from its offset
+     */
     public static int iamax(double[] x, int xOff, int n) {
         check(x, xOff, n, "x");
         int best = -1;
@@ -380,10 +443,16 @@ public final class Blasd {
     }
 
     /**
-     * The dot product {@code Σ x[i]·y[i]}.
+     * The dot product {@code Σ x[i]·y[i]}, summed in the fixed order described in the class comment.
      *
+     * @param x the input segment
+     * @param xOff the index of the first element of {@code x} (in elements, not bytes)
+     * @param y the second input segment
+     * @param yOff the index of the first element of {@code y} (in elements, not bytes)
      * @param n the number of elements, {@code >= 0}
      * @return the dot product (0 for {@code n == 0})
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, a segment is null or too
+     *         short for {@code n} elements from its offset
      */
     public static double dot(MemorySegment x, long xOff, MemorySegment y, long yOff, long n) {
         check(x, xOff, n, "x");
@@ -391,13 +460,31 @@ public final class Blasd {
         return n == 0 ? 0.0 : dotPairwise(x, xOff, y, yOff, 0, n);
     }
 
-    /** The sum {@code Σ x[i]}. */
+    /**
+     * The sum {@code Σ x[i]}, in the fixed order described in the class comment.
+     *
+     * @param x the input segment
+     * @param xOff the index of the first element of {@code x} (in elements, not bytes)
+     * @param n the number of elements, {@code >= 0}
+     * @return the sum (0 for {@code n == 0})
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, a segment is null or too
+     *         short for {@code n} elements from its offset
+     */
     public static double sum(MemorySegment x, long xOff, long n) {
         check(x, xOff, n, "x");
         return n == 0 ? 0.0 : sumPairwise(x, xOff, 0, n);
     }
 
-    /** The sum of magnitudes {@code Σ |x[i]|}. */
+    /**
+     * The sum of magnitudes {@code Σ |x[i]|}, in the fixed order described in the class comment.
+     *
+     * @param x the input segment
+     * @param xOff the index of the first element of {@code x} (in elements, not bytes)
+     * @param n the number of elements, {@code >= 0}
+     * @return the sum of magnitudes (0 for {@code n == 0})
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, a segment is null or too
+     *         short for {@code n} elements from its offset
+     */
     public static double asum(MemorySegment x, long xOff, long n) {
         check(x, xOff, n, "x");
         return n == 0 ? 0.0 : asumPairwise(x, xOff, 0, n);
@@ -405,7 +492,16 @@ public final class Blasd {
 
     /**
      * The Euclidean norm {@code sqrt(Σ x[i]²)}, without overflow or underflow: when the plain sum of squares is not
-     * a normal number, it is recomputed with the elements scaled by a power of two (exactly).
+     * a normal number, it is recomputed with the elements scaled by a power of two (exactly). The rescaling pass
+     * reads the elements a second time.
+     *
+     * @param x the input segment
+     * @param xOff the index of the first element of {@code x} (in elements, not bytes)
+     * @param n the number of elements, {@code >= 0}
+     * @return the norm: 0 for {@code n == 0} or all zeros, NaN if any element is NaN, infinity if any element is
+     *         infinite
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, a segment is null or too
+     *         short for {@code n} elements from its offset
      */
     public static double nrm2(MemorySegment x, long xOff, long n) {
         check(x, xOff, n, "x");
@@ -432,7 +528,19 @@ public final class Blasd {
         return Math.scalb((double) Math.sqrt(t), e);
     }
 
-    /** {@code y[i] = fma(a, x[i], y[i])}. {@code x} and {@code y} may be the same at the same offset. */
+    /**
+     * Adds a scaled vector: {@code y[i] = fma(a, x[i], y[i])}, one rounding per element. {@code x} and {@code y} may
+     * be the same segment at the same offset; other overlaps are not supported.
+     *
+     * @param a the scale factor
+     * @param x the input segment
+     * @param xOff the index of the first element of {@code x} (in elements, not bytes)
+     * @param y the segment to add to; receives the result
+     * @param yOff the index of the first element of {@code y} (in elements, not bytes)
+     * @param n the number of elements, {@code >= 0}
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, a segment is null or too
+     *         short for {@code n} elements from its offset
+     */
     public static void axpy(double a, MemorySegment x, long xOff, MemorySegment y, long yOff, long n) {
         check(x, xOff, n, "x");
         check(y, yOff, n, "y");
@@ -447,7 +555,16 @@ public final class Blasd {
         }
     }
 
-    /** {@code x[i] = a·x[i]}. */
+    /**
+     * Scales a vector in place: {@code x[i] = a·x[i]}.
+     *
+     * @param a the scale factor
+     * @param x the segment to scale; receives the result
+     * @param xOff the index of the first element of {@code x} (in elements, not bytes)
+     * @param n the number of elements, {@code >= 0}
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, a segment is null or too
+     *         short for {@code n} elements from its offset
+     */
     public static void scal(double a, MemorySegment x, long xOff, long n) {
         check(x, xOff, n, "x");
         long i = 0;
@@ -461,7 +578,16 @@ public final class Blasd {
         }
     }
 
-    /** The index of the first element of largest magnitude ({@code -1} for {@code n == 0}; NaN counts as largest). */
+    /**
+     * Finds the first element of largest magnitude. NaN counts as largest: the first NaN wins.
+     *
+     * @param x the input segment
+     * @param xOff the index of the first element of {@code x} (in elements, not bytes)
+     * @param n the number of elements, {@code >= 0}
+     * @return the index of that element relative to {@code xOff}, or {@code -1} for {@code n == 0}
+     * @throws IllegalArgumentException if {@code n < 0}, an offset is negative, a segment is null or too
+     *         short for {@code n} elements from its offset
+     */
     public static long iamax(MemorySegment x, long xOff, long n) {
         check(x, xOff, n, "x");
         long best = -1;

@@ -32,20 +32,46 @@ package org.dynamisengine.vectrix.renderingmath;
  */
 @Deprecated(since = "2.3.0")
 public final class AtmosphereParams {
+    /** Planet radius, in the length unit of all the parameters. */
     public final float groundRadius;
+    /** Radius of the top of the atmosphere, greater than {@link #groundRadius}. */
     public final float atmosphereRadius;
 
+    /** Height over which the Rayleigh density falls by a factor of e. */
     public final float rayleighScaleHeight;
+    /** Height over which the Mie density falls by a factor of e. */
     public final float mieScaleHeight;
 
+    /** Rayleigh extinction coefficient at the ground for the red channel, per unit length. */
     public final float betaRayleighR;
+    /** Rayleigh extinction coefficient at the ground for the green channel, per unit length. */
     public final float betaRayleighG;
+    /** Rayleigh extinction coefficient at the ground for the blue channel, per unit length. */
     public final float betaRayleighB;
 
+    /** Mie extinction coefficient at the ground for the red channel, per unit length. */
     public final float betaMieR;
+    /** Mie extinction coefficient at the ground for the green channel, per unit length. */
     public final float betaMieG;
+    /** Mie extinction coefficient at the ground for the blue channel, per unit length. */
     public final float betaMieB;
 
+    /**
+     * Creates a parameter set. All lengths share one unit (for example metres) and the coefficients are per that
+     * unit.
+     *
+     * @param groundRadius the planet radius, greater than 0
+     * @param atmosphereRadius the radius of the top of the atmosphere, greater than {@code groundRadius}
+     * @param rayleighScaleHeight the Rayleigh scale height, greater than 0
+     * @param mieScaleHeight the Mie scale height, greater than 0
+     * @param betaRayleighR the red Rayleigh extinction coefficient at the ground
+     * @param betaRayleighG the green Rayleigh extinction coefficient at the ground
+     * @param betaRayleighB the blue Rayleigh extinction coefficient at the ground
+     * @param betaMieR the red Mie extinction coefficient at the ground
+     * @param betaMieG the green Mie extinction coefficient at the ground
+     * @param betaMieB the blue Mie extinction coefficient at the ground
+     * @throws IllegalArgumentException if a radius or scale height is out of range
+     */
     public AtmosphereParams(float groundRadius, float atmosphereRadius, float rayleighScaleHeight, float mieScaleHeight,
         float betaRayleighR, float betaRayleighG, float betaRayleighB, float betaMieR, float betaMieG, float betaMieB) {
         if (groundRadius <= 0.0f || atmosphereRadius <= groundRadius || rayleighScaleHeight <= 0.0f || mieScaleHeight <= 0.0f) {

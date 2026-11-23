@@ -47,12 +47,24 @@ public final class Norms {
     }
 
     /**
-     * {@code y = (x - mean)/σ·γ + β}, {@code σ = sqrt(var + eps)}.
+     * Layer normalization: {@code y = (x - mean)/σ·γ + β}, {@code σ = sqrt(var + eps)}. An empty row ({@code n = 0})
+     * writes nothing, not even {@code stats}.
      *
+     * @param x the row
+     * @param xOff the offset in {@code x}
      * @param gamma the scale ({@code n} values), or {@code null} for 1
+     * @param gOff the offset in {@code gamma}
      * @param beta the shift ({@code n} values), or {@code null} for 0
+     * @param bOff the offset in {@code beta}
+     * @param eps the term added to the variance, for example 1e-5
+     * @param y receives the normalized row; may be {@code x} at the same offset
+     * @param yOff the offset in {@code y}
+     * @param n the row length
      * @param stats receives {@code mean} at {@code stats[statsOff]} and {@code 1/σ} at {@code stats[statsOff + 1]},
      *        or {@code null}
+     * @param statsOff the offset in {@code stats}
+     * @throws IllegalArgumentException if {@code n < 0} or an array other than {@code stats} is too short for its
+     *         offset; {@code stats} is not checked up front
      */
     public static void layerNorm(float[] x, int xOff, float[] gamma, int gOff, float[] beta, int bOff, float eps,
             float[] y, int yOff, int n, float[] stats, int statsOff) {
@@ -98,10 +110,25 @@ public final class Norms {
      * {@code dx = (1/σ)·(dx̂ - mean(dx̂) - x̂·mean(dx̂·x̂))}, {@code dx̂ = dy·γ}, {@code x̂ = (x - mean)/σ};
      * {@code dγ += dy·x̂}, {@code dβ += dy}.
      *
+     * @param x the forward input
+     * @param xOff the offset in {@code x}
+     * @param gamma the scale used in the forward pass, or {@code null} for 1
+     * @param gOff the offset in {@code gamma}
      * @param stats the {@code mean, 1/σ} the forward kernel returned
+     * @param statsOff the offset in {@code stats}
+     * @param dy the gradient of the output
+     * @param dyOff the offset in {@code dy}
+     * @param dx receives the gradient of the input; may be {@code x} or {@code dy} at the same offset
+     * @param dxOff the offset in {@code dx}
      * @param dGamma accumulates the scale gradient, or {@code null}
+     * @param dgOff the offset in {@code dGamma}
      * @param dBeta accumulates the shift gradient, or {@code null}
+     * @param dbOff the offset in {@code dBeta}
+     * @param n the row length
      * @param scratch {@code 2n} floats of working memory
+     * @param scratchOff the offset in {@code scratch}
+     * @throws IllegalArgumentException if {@code n < 0} or an array other than {@code stats} is too short for its
+     *         offset; {@code stats} is not checked up front
      */
     public static void layerNormBackward(float[] x, int xOff, float[] gamma, int gOff, float[] stats, int statsOff,
             float[] dy, int dyOff, float[] dx, int dxOff, float[] dGamma, int dgOff, float[] dBeta, int dbOff, int n,
@@ -141,10 +168,21 @@ public final class Norms {
     }
 
     /**
-     * {@code y = x / rms·γ}, {@code rms = sqrt(mean(x²) + eps)}.
+     * RMS normalization: {@code y = x / rms·γ}, {@code rms = sqrt(mean(x²) + eps)}. An empty row ({@code n = 0})
+     * writes nothing, not even {@code stats}.
      *
-     * @param gamma the scale, or {@code null} for 1
+     * @param x the row
+     * @param xOff the offset in {@code x}
+     * @param gamma the scale ({@code n} values), or {@code null} for 1
+     * @param gOff the offset in {@code gamma}
+     * @param eps the term added to the mean square, for example 1e-6
+     * @param y receives the normalized row; may be {@code x} at the same offset
+     * @param yOff the offset in {@code y}
+     * @param n the row length
      * @param stats receives {@code 1/rms} at {@code stats[statsOff]}, or {@code null}
+     * @param statsOff the offset in {@code stats}
+     * @throws IllegalArgumentException if {@code n < 0} or an array other than {@code stats} is too short for its
+     *         offset; {@code stats} is not checked up front
      */
     public static void rmsNorm(float[] x, int xOff, float[] gamma, int gOff, float eps, float[] y, int yOff, int n,
             float[] stats, int statsOff) {
@@ -175,8 +213,23 @@ public final class Norms {
      * RMS-norm backward: {@code dx = (1/rms)·(dx̂ - x̂·mean(dx̂·x̂))}, {@code dx̂ = dy·γ}, {@code x̂ = x/rms};
      * {@code dγ += dy·x̂}.
      *
+     * @param x the forward input
+     * @param xOff the offset in {@code x}
+     * @param gamma the scale used in the forward pass, or {@code null} for 1
+     * @param gOff the offset in {@code gamma}
      * @param stats the {@code 1/rms} the forward kernel returned
+     * @param statsOff the offset in {@code stats}
+     * @param dy the gradient of the output
+     * @param dyOff the offset in {@code dy}
+     * @param dx receives the gradient of the input; may be {@code x} or {@code dy} at the same offset
+     * @param dxOff the offset in {@code dx}
+     * @param dGamma accumulates the scale gradient, or {@code null}
+     * @param dgOff the offset in {@code dGamma}
+     * @param n the row length
      * @param scratch {@code 2n} floats of working memory
+     * @param scratchOff the offset in {@code scratch}
+     * @throws IllegalArgumentException if {@code n < 0} or an array other than {@code stats} is too short for its
+     *         offset; {@code stats} is not checked up front
      */
     public static void rmsNormBackward(float[] x, int xOff, float[] gamma, int gOff, float[] stats, int statsOff,
             float[] dy, int dyOff, float[] dx, int dxOff, float[] dGamma, int dgOff, int n, float[] scratch,

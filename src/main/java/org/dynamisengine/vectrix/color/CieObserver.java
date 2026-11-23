@@ -49,7 +49,14 @@ public enum CieObserver {
         this.table = table;
     }
 
-    /** Colour-matching functions {@code (x̄, ȳ, z̄)} at {@code nm}. */
+    /**
+     * Returns the color-matching functions {@code (x̄, ȳ, z̄)} at a wavelength: exact at whole nanometres and linearly
+     * interpolated between them.
+     *
+     * @param nm the wavelength in nanometres; outside [{@link #MIN_NM}, {@link #MAX_NM}], or NaN, gives zero
+     * @param dest receives (x̄, ȳ, z̄)
+     * @return {@code dest}
+     */
     public Vector3d xyzBar(double nm, Vector3d dest) {
         if (!(nm >= MIN_NM && nm <= MAX_NM)) {
             return dest.set(0.0, 0.0, 0.0);
@@ -65,7 +72,14 @@ public enum CieObserver {
                 table[a + 2] + t * (table[b + 2] - table[a + 2]));
     }
 
-    /** The tabulated value of component {@code c} (0 = x̄, 1 = ȳ, 2 = z̄) at whole nanometre {@code nm}. */
+    /**
+     * Returns one tabulated value of the color-matching functions.
+     *
+     * @param nm the wavelength in whole nanometres; outside [{@link #MIN_NM}, {@link #MAX_NM}] gives 0
+     * @param c the component: 0 for x̄, 1 for ȳ, 2 for z̄; not checked, so other values read a neighboring
+     *          wavelength's entry or throw {@code ArrayIndexOutOfBoundsException}
+     * @return the tabulated value
+     */
     public double at(int nm, int c) {
         return nm < MIN_NM || nm > MAX_NM ? 0.0 : table[3 * (nm - MIN_NM) + c];
     }

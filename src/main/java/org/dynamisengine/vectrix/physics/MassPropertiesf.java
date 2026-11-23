@@ -39,35 +39,72 @@ public final class MassPropertiesf {
     private MassPropertiesf() {
     }
 
-    /** Volume {@code 4/3 π r³}. */
+    /**
+     * Volume {@code 4/3 π r³} of a sphere.
+     *
+     * @param radius the radius {@code r}
+     * @return the volume
+     */
     public static float sphereVolume(float radius) {
         return (float) (4.0 / 3.0 * Math.PI * radius * radius * radius);
     }
 
-    /** Volume {@code 8 hx hy hz} of a box with half extents {@code hx, hy, hz}. */
+    /**
+     * Volume {@code 8 hx hy hz} of a box with half extents {@code hx, hy, hz}.
+     *
+     * @param hx the half extent along X
+     * @param hy the half extent along Y
+     * @param hz the half extent along Z
+     * @return the volume
+     */
     public static float boxVolume(float hx, float hy, float hz) {
         return 8 * hx * hy * hz;
     }
 
-    /** Volume {@code π r² h + 4/3 π r³} of a capsule whose cylindrical section has length {@code height}. */
+    /**
+     * Volume {@code π r² h + 4/3 π r³} of a capsule whose cylindrical section has length {@code height}.
+     *
+     * @param radius the radius {@code r}
+     * @param height the length {@code h} of the cylindrical section, without the caps
+     * @return the volume
+     */
     public static float capsuleVolume(float radius, float height) {
         double r = radius;
         return (float) (Math.PI * r * r * (height + 4.0 / 3.0 * r));
     }
 
-    /** Volume {@code π r² h}. */
+    /**
+     * Volume {@code π r² h} of a cylinder.
+     *
+     * @param radius the radius {@code r}
+     * @param height the height {@code h}
+     * @return the volume
+     */
     public static float cylinderVolume(float radius, float height) {
         return (float) (Math.PI * radius * radius * height);
     }
 
-    /** Volume {@code π r² h / 3}. */
+    /**
+     * Volume {@code π r² h / 3} of a cone.
+     *
+     * @param radius the base radius {@code r}
+     * @param height the height {@code h}
+     * @return the volume
+     */
     public static float coneVolume(float radius, float height) {
         return (float) (Math.PI * radius * radius * height / 3.0);
     }
 
     /**
      * Parallel-axis theorem: the inertia about a point at {@code offset} from the center of mass, which is
-     * {@code I + m (|d|² E − d dᵀ)}.
+     * {@code I + m (|d|² E − d dᵀ)} with {@code d = offset} and {@code E} the identity. Computed in double.
+     * {@code dest} may be {@code inertiaAboutCom}.
+     *
+     * @param inertiaAboutCom the inertia tensor about the center of mass
+     * @param mass the mass {@code m}
+     * @param offset the point relative to the center of mass; only its length and direction matter, not its sign
+     * @param dest receives the inertia about the point
+     * @return {@code dest}
      */
     public static Matrix3f parallelAxis(Matrix3fc inertiaAboutCom, float mass, Vector3fc offset, Matrix3f dest) {
         double dx = offset.x(), dy = offset.y(), dz = offset.z(), m = mass;
@@ -80,7 +117,15 @@ public final class MassPropertiesf {
                 (float) (inertiaAboutCom.m22() + zz));
     }
 
-    /** The tensor {@code R I Rᵀ} of a body rotated by {@code rotation}. Computed in double, symmetric by construction. */
+    /**
+     * The tensor {@code R I Rᵀ} of a body rotated by {@code rotation}. Computed in double; the off-diagonal pairs are
+     * averaged, so the result is exactly symmetric. {@code dest} may be either input.
+     *
+     * @param inertia the tensor {@code I} in the body's frame
+     * @param rotation the rotation {@code R} from the body's frame to the target frame (orthonormal; not checked)
+     * @param dest receives the rotated tensor
+     * @return {@code dest}
+     */
     public static Matrix3f rotate(Matrix3fc inertia, Matrix3fc rotation, Matrix3f dest) {
         // rows of R (Matrix3f stores mColumnRow)
         double r00 = rotation.m00(), r01 = rotation.m10(), r02 = rotation.m20();
@@ -110,7 +155,16 @@ public final class MassPropertiesf {
      * Combines two bodies. Each is given by its mass, its center of mass and its inertia about that center, all in
      * one common frame. The result is the combined center of mass ({@code comOut}) and the inertia about it
      * ({@code inertiaOut}). Call repeatedly for compounds: the combination is exact and associative up to rounding.
+     * Computed in double. The outputs may alias the inputs. A total mass of 0 gives NaN results.
      *
+     * @param massA the mass of body A
+     * @param comA the center of mass of body A
+     * @param inertiaA the inertia of body A about {@code comA}
+     * @param massB the mass of body B
+     * @param comB the center of mass of body B
+     * @param inertiaB the inertia of body B about {@code comB}
+     * @param comOut receives the combined center of mass
+     * @param inertiaOut receives the combined inertia about {@code comOut}
      * @return the combined mass
      */
     public static float combine(float massA, Vector3fc comA, Matrix3fc inertiaA, float massB, Vector3fc comB,
@@ -141,12 +195,24 @@ public final class MassPropertiesf {
      * <p>
      * The volume integrals are taken relative to the mean vertex and accumulated in double, so a mesh far from the
      * origin loses no precision to the parallel-axis subtraction. Writes the center of mass to {@code comOut} and the
-     * inertia about it to {@code inertiaOut}. An inside-out mesh gives a negative mass.
+     * inertia about it to {@code inertiaOut}. An inside-out mesh gives a negative mass. A mesh of zero volume gives
+     * mass 0 and the mean vertex as its center of mass. The arrays start at index 0 and are not checked up front: a bad
+     * index throws {@link ArrayIndexOutOfBoundsException}. Does not allocate.
      *
      * @param xyz
-     *            vertex positions, packed
+     *            vertex positions, packed {@code x, y, z} per vertex
+     * @param vertexCount
+     *            the number of vertices; their mean is the reference point of the integrals
      * @param indices
      *            three vertex indices per triangle
+     * @param triangleCount
+     *            the number of triangles
+     * @param density
+     *            the uniform density
+     * @param comOut
+     *            receives the center of mass
+     * @param inertiaOut
+     *            receives the inertia tensor about the center of mass
      * @return the mass {@code density × volume}
      */
     public static float polyhedron(float[] xyz, int vertexCount, int[] indices, int triangleCount, float density,

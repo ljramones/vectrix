@@ -29,20 +29,81 @@ import org.dynamisengine.vectrix.core.Vector3fc;
 import org.dynamisengine.vectrix.curve.CubicCurveMath;
 
 /**
+ * A cubic Bézier segment over 3D points: {@code B(t) = (1-t)³·p0 + 3(1-t)²t·p1 + 3(1-t)t²·p2 + t³·p3}. The curve starts
+ * at {@code p0}, ends at {@code p3} and is pulled toward {@code p1} and {@code p2}.
+ * <p>
+ * The parameter {@code t} runs over {@code [0, 1]} on the segment and is not clamped: values outside extrapolate the
+ * cubic. The methods are static and stateless. Every {@code dest} may be one of the input points. Nothing allocates.
+ * {@link Bezier3d} is the double twin.
+ *
  * @since 1.0.0
  */
-
 public final class Bezier3f {
     private Bezier3f() {}
+
+    /**
+     * Evaluates the segment at {@code t}.
+     *
+     * @param p0 the start point
+     * @param p1 the first control point
+     * @param p2 the second control point
+     * @param p3 the end point
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @param dest receives the result
+     * @return {@code dest}
+     */
     public static Vector3f evaluate(Vector3fc p0, Vector3fc p1, Vector3fc p2, Vector3fc p3, float t, Vector3f dest) {
         return dest.set(CubicCurveMath.bezier(p0.x(), p1.x(), p2.x(), p3.x(), t), CubicCurveMath.bezier(p0.y(), p1.y(), p2.y(), p3.y(), t), CubicCurveMath.bezier(p0.z(), p1.z(), p2.z(), p3.z(), t));
     }
+
+    /**
+     * Computes the first derivative with respect to {@code t} (the tangent, not normalized).
+     *
+     * @param p0 the start point
+     * @param p1 the first control point
+     * @param p2 the second control point
+     * @param p3 the end point
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @param dest receives the result
+     * @return {@code dest}
+     */
     public static Vector3f derivative(Vector3fc p0, Vector3fc p1, Vector3fc p2, Vector3fc p3, float t, Vector3f dest) {
         return dest.set(CubicCurveMath.bezierDerivative(p0.x(), p1.x(), p2.x(), p3.x(), t), CubicCurveMath.bezierDerivative(p0.y(), p1.y(), p2.y(), p3.y(), t), CubicCurveMath.bezierDerivative(p0.z(), p1.z(), p2.z(), p3.z(), t));
     }
+
+    /**
+     * Computes the second derivative with respect to {@code t}.
+     *
+     * @param p0 the start point
+     * @param p1 the first control point
+     * @param p2 the second control point
+     * @param p3 the end point
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @param dest receives the result
+     * @return {@code dest}
+     */
     public static Vector3f secondDerivative(Vector3fc p0, Vector3fc p1, Vector3fc p2, Vector3fc p3, float t, Vector3f dest) {
         return dest.set(CubicCurveMath.bezierSecondDerivative(p0.x(), p1.x(), p2.x(), p3.x(), t), CubicCurveMath.bezierSecondDerivative(p0.y(), p1.y(), p2.y(), p3.y(), t), CubicCurveMath.bezierSecondDerivative(p0.z(), p1.z(), p2.z(), p3.z(), t));
     }
+
+    /**
+     * Evaluates the segment at {@code length} parameters, writing one point, one array per coordinate. The arrays are
+     * not checked up front; an output array may be {@code tValues} at the same offset.
+     *
+     * @param p0 the start point
+     * @param p1 the first control point
+     * @param p2 the second control point
+     * @param p3 the end point
+     * @param tValues the curve parameters
+     * @param tOffset the offset of the first parameter in {@code tValues}
+     * @param length the number of parameters to evaluate
+     * @param outX receives the x coordinates
+     * @param outXOffset the offset of the first coordinate in {@code outX}
+     * @param outY receives the y coordinates
+     * @param outYOffset the offset of the first coordinate in {@code outY}
+     * @param outZ receives the z coordinates
+     * @param outZOffset the offset of the first coordinate in {@code outZ}
+     */
     public static void evaluateBatch(Vector3fc p0, Vector3fc p1, Vector3fc p2, Vector3fc p3, float[] tValues, int tOffset, int length, float[] outX, int outXOffset, float[] outY, int outYOffset, float[] outZ, int outZOffset) {
         for (int i = 0; i < length; i++) {
             float t = tValues[tOffset + i];

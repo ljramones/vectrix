@@ -28,7 +28,29 @@ import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.simd.SimdSupport;
 
 /**
- * Batch skinning kernels for rigid-joint transforms.
+ * Batch skinning kernels: each output vertex blends up to four joint transforms of its bind-pose position.
+ * <p>
+ * Positions are structure-of-arrays ({@code inX}, {@code inY}, {@code inZ}). Joint indices and weights are
+ * interleaved, four per vertex ({@code jointIndices[4·i + k]}), except in the {@code ...SoA} variants, which take
+ * one array per influence slot. The weights are used as given, not normalized: if they do not sum to 1 the result is
+ * scaled. Unused slots need weight 0 and any valid joint index.
+ * <p>
+ * Which kernel to use:
+ * <ul>
+ * <li>{@link #skinLbs4MatrixPalette}: linear blend skinning from a packed 3×4 matrix palette; the fastest and the
+ * default. Build the palette once per frame with {@link #buildRigidMatrixPalette12}, or, when joints carry scale,
+ * with {@code PackedAffineKernels.trsToPackedAffineBatch} and {@code PackedAffineArray.raw()}.</li>
+ * <li>{@link #skinLbs4} and {@link #skinLbs4SoA}: linear blend skinning straight from a {@link TransformSoA},
+ * without a palette. They treat joints as rigid: rotation and translation only, the scale arrays are ignored.</li>
+ * <li>{@link #skinDualQuat4} and {@link #skinDualQuat4SoA}: dual quaternion blending, which keeps volume at
+ * twisting joints; slower.</li>
+ * </ul>
+ * <p>
+ * All kernels are scalar in both jars (a per-lane gather of joint data measured slower than the scalar loop), do not
+ * allocate and keep no state, so they are safe to call from any thread on separate outputs. They process vertices
+ * {@code [0, count)} from index 0 and do not check array sizes up front: a short array or an out-of-range joint index
+ * throws {@code ArrayIndexOutOfBoundsException}, possibly after earlier vertices were written. Each output array may
+ * be the corresponding input array. STRICT mode adds no validation: the results are the same in both modes.
  */
 public final class SkinningKernels {
     private static final String PROP_EXPERIMENTAL_SKINNING_SIMD = "vectrix.skinning.simd";
@@ -38,11 +60,42 @@ public final class SkinningKernels {
     private SkinningKernels() {
     }
 
+    /**
+     * Linear blend skinning with four influences per vertex, interleaved: {@code out = Σ w_k·(q_k·p·q_k⁻¹ + t_k)}.
+     * Joints are rigid: only each joint's rotation and translation are used, its scale is ignored. The rotations must
+     * be unit quaternions. No SIMD path.
+     *
+     * @param joints the skinning transforms (posed world times inverse bind-pose world) of the joints
+     * @param jointIndices four joint indices per vertex, interleaved: {@code jointIndices[4·i + k]}
+     * @param jointWeights four weights per vertex, interleaved like {@code jointIndices}
+     * @param inX the bind-pose x coordinates, one per vertex
+     * @param inY the bind-pose y coordinates
+     * @param inZ the bind-pose z coordinates
+     * @param outX receives the skinned x coordinates; may be {@code inX}
+     * @param outY receives the skinned y coordinates; may be {@code inY}
+     * @param outZ receives the skinned z coordinates; may be {@code inZ}
+     * @param count the number of vertices
+     */
     public static void skinLbs4(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
             float[] outX, float[] outY, float[] outZ, int count) {
         skinLbs4Scalar(joints, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, count);
     }
 
+    /**
+     * Same as {@link #skinLbs4}; there is no Vector API path for the interleaved layout.
+     *
+     * @param joints the skinning transforms of the joints
+     * @param jointIndices four joint indices per vertex, interleaved: {@code jointIndices[4·i + k]}
+     * @param jointWeights four weights per vertex, interleaved like {@code jointIndices}
+     * @param inX the bind-pose x coordinates, one per vertex
+     * @param inY the bind-pose y coordinates
+     * @param inZ the bind-pose z coordinates
+     * @param outX receives the skinned x coordinates; may be {@code inX}
+     * @param outY receives the skinned y coordinates; may be {@code inY}
+     * @param outZ receives the skinned z coordinates; may be {@code inZ}
+     * @param count the number of vertices
+     * @deprecated use {@link #skinLbs4}
+     */
     @Deprecated(since = "2.6.0", forRemoval = true)
     public static void skinLbs4Vector(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
             float[] outX, float[] outY, float[] outZ, int count) {
@@ -52,6 +105,21 @@ public final class SkinningKernels {
         skinLbs4Scalar(joints, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, count);
     }
 
+    /**
+     * Same as {@link #skinLbs4}.
+     *
+     * @param joints the skinning transforms of the joints
+     * @param jointIndices four joint indices per vertex, interleaved: {@code jointIndices[4·i + k]}
+     * @param jointWeights four weights per vertex, interleaved like {@code jointIndices}
+     * @param inX the bind-pose x coordinates, one per vertex
+     * @param inY the bind-pose y coordinates
+     * @param inZ the bind-pose z coordinates
+     * @param outX receives the skinned x coordinates; may be {@code inX}
+     * @param outY receives the skinned y coordinates; may be {@code inY}
+     * @param outZ receives the skinned z coordinates; may be {@code inZ}
+     * @param count the number of vertices
+     * @deprecated use {@link #skinLbs4}
+     */
     @Deprecated(since = "2.6.0", forRemoval = true)
     public static void skinLbs4Scalar(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
             float[] outX, float[] outY, float[] outZ, int count) {
@@ -62,6 +130,29 @@ public final class SkinningKernels {
         }
     }
 
+    /**
+     * Linear blend skinning with four influences per vertex, one array per influence slot: {@code out = Σ
+     * w_k·(q_k·p·q_k⁻¹ + t_k)}. Joints are rigid: only each joint's rotation and translation are used, its scale is
+     * ignored. The rotations must be unit quaternions. Gives the same bits as {@link #skinLbs4} for the same
+     * influences. No SIMD path.
+     *
+     * @param joints the skinning transforms (posed world times inverse bind-pose world) of the joints
+     * @param j0 the first joint index of each vertex
+     * @param j1 the second joint index of each vertex
+     * @param j2 the third joint index of each vertex
+     * @param j3 the fourth joint index of each vertex
+     * @param w0 the weight of {@code j0} for each vertex
+     * @param w1 the weight of {@code j1} for each vertex
+     * @param w2 the weight of {@code j2} for each vertex
+     * @param w3 the weight of {@code j3} for each vertex
+     * @param inX the bind-pose x coordinates, one per vertex
+     * @param inY the bind-pose y coordinates
+     * @param inZ the bind-pose z coordinates
+     * @param outX receives the skinned x coordinates; may be {@code inX}
+     * @param outY receives the skinned y coordinates; may be {@code inY}
+     * @param outZ receives the skinned z coordinates; may be {@code inZ}
+     * @param count the number of vertices
+     */
     public static void skinLbs4SoA(TransformSoA joints, int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2, float[] w3,
             float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
         if (count <= 0) {
@@ -78,6 +169,27 @@ public final class SkinningKernels {
         skinLbs4SoASimd(joints, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, count);
     }
 
+    /**
+     * Same as {@link #skinLbs4SoA}.
+     *
+     * @param joints the skinning transforms of the joints
+     * @param j0 the first joint index of each vertex
+     * @param j1 the second joint index of each vertex
+     * @param j2 the third joint index of each vertex
+     * @param j3 the fourth joint index of each vertex
+     * @param w0 the weight of {@code j0} for each vertex
+     * @param w1 the weight of {@code j1} for each vertex
+     * @param w2 the weight of {@code j2} for each vertex
+     * @param w3 the weight of {@code j3} for each vertex
+     * @param inX the bind-pose x coordinates, one per vertex
+     * @param inY the bind-pose y coordinates
+     * @param inZ the bind-pose z coordinates
+     * @param outX receives the skinned x coordinates; may be {@code inX}
+     * @param outY receives the skinned y coordinates; may be {@code inY}
+     * @param outZ receives the skinned z coordinates; may be {@code inZ}
+     * @param count the number of vertices
+     * @deprecated use {@link #skinLbs4SoA}
+     */
     @Deprecated(since = "2.6.0", forRemoval = true)
     public static void skinLbs4SoAScalar(TransformSoA joints, int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2, float[] w3,
             float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
@@ -86,6 +198,27 @@ public final class SkinningKernels {
         }
     }
 
+    /**
+     * Same as {@link #skinLbs4SoA}; there is no Vector API path.
+     *
+     * @param joints the skinning transforms of the joints
+     * @param j0 the first joint index of each vertex
+     * @param j1 the second joint index of each vertex
+     * @param j2 the third joint index of each vertex
+     * @param j3 the fourth joint index of each vertex
+     * @param w0 the weight of {@code j0} for each vertex
+     * @param w1 the weight of {@code j1} for each vertex
+     * @param w2 the weight of {@code j2} for each vertex
+     * @param w3 the weight of {@code j3} for each vertex
+     * @param inX the bind-pose x coordinates, one per vertex
+     * @param inY the bind-pose y coordinates
+     * @param inZ the bind-pose z coordinates
+     * @param outX receives the skinned x coordinates; may be {@code inX}
+     * @param outY receives the skinned y coordinates; may be {@code inY}
+     * @param outZ receives the skinned z coordinates; may be {@code inZ}
+     * @param count the number of vertices
+     * @deprecated use {@link #skinLbs4SoA}
+     */
     @Deprecated(since = "2.6.0", forRemoval = true)
     public static void skinLbs4SoASimd(TransformSoA joints, int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2, float[] w3,
             float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
@@ -95,6 +228,26 @@ public final class SkinningKernels {
         skinLbs4SoAScalar(joints, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, count);
     }
 
+    /**
+     * Dual quaternion skinning with four influences per vertex, interleaved.
+     * <p>
+     * The blend is dual quaternion linear blending: each joint's dual quaternion is weighted, with its sign flipped
+     * when its rotation lies in the opposite hemisphere from the first influence's ({@code j0}), the sum is divided by
+     * the length of its real part, and the resulting rigid transform is applied to the position. If the blended real
+     * part is exactly zero, the position is copied unchanged. The joint dual quaternions must be unit (unit real part,
+     * as from {@link org.dynamisengine.vectrix.affine.DualQuatTransformf}); scale is not supported. No SIMD path.
+     *
+     * @param joints the skinning transforms of the joints as dual quaternions
+     * @param jointIndices four joint indices per vertex, interleaved: {@code jointIndices[4·i + k]}
+     * @param jointWeights four weights per vertex, interleaved like {@code jointIndices}
+     * @param inX the bind-pose x coordinates, one per vertex
+     * @param inY the bind-pose y coordinates
+     * @param inZ the bind-pose z coordinates
+     * @param outX receives the skinned x coordinates; may be {@code inX}
+     * @param outY receives the skinned y coordinates; may be {@code inY}
+     * @param outZ receives the skinned z coordinates; may be {@code inZ}
+     * @param count the number of vertices
+     */
     public static void skinDualQuat4(DualQuatSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
             float[] outX, float[] outY, float[] outZ, int count) {
         for (int i = 0; i < count; i++) {
@@ -104,6 +257,33 @@ public final class SkinningKernels {
         }
     }
 
+    /**
+     * Dual quaternion skinning with four influences per vertex, one array per influence slot. Gives the same bits as
+     * {@link #skinDualQuat4} for the same influences.
+     * <p>
+     * The blend is dual quaternion linear blending: each joint's dual quaternion is weighted, with its sign flipped
+     * when its rotation lies in the opposite hemisphere from the first influence's ({@code j0}), the sum is divided by
+     * the length of its real part, and the resulting rigid transform is applied to the position. If the blended real
+     * part is exactly zero, the position is copied unchanged. The joint dual quaternions must be unit (unit real part,
+     * as from {@link org.dynamisengine.vectrix.affine.DualQuatTransformf}); scale is not supported. No SIMD path.
+     *
+     * @param joints the skinning transforms of the joints as dual quaternions
+     * @param j0 the first joint index of each vertex
+     * @param j1 the second joint index of each vertex
+     * @param j2 the third joint index of each vertex
+     * @param j3 the fourth joint index of each vertex
+     * @param w0 the weight of {@code j0} for each vertex
+     * @param w1 the weight of {@code j1} for each vertex
+     * @param w2 the weight of {@code j2} for each vertex
+     * @param w3 the weight of {@code j3} for each vertex
+     * @param inX the bind-pose x coordinates, one per vertex
+     * @param inY the bind-pose y coordinates
+     * @param inZ the bind-pose z coordinates
+     * @param outX receives the skinned x coordinates; may be {@code inX}
+     * @param outY receives the skinned y coordinates; may be {@code inY}
+     * @param outZ receives the skinned z coordinates; may be {@code inZ}
+     * @param count the number of vertices
+     */
     public static void skinDualQuat4SoA(DualQuatSoA joints, int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2, float[] w3,
             float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
         for (int i = 0; i < count; i++) {
@@ -112,10 +292,19 @@ public final class SkinningKernels {
     }
 
     /**
-     * Build a rigid matrix palette with 12 floats per joint, in the row-major layout of
+     * Builds a rigid matrix palette for {@link #skinLbs4MatrixPalette}: 12 floats per joint, joint {@code j} at
+     * {@code matrixPalette12[12·j ..]}, in the row-major packed 3×4 layout of
      * {@link org.dynamisengine.vectrix.affine.PackedAffineArray}:
-     * [r00 r01 r02 tx  r10 r11 r12 ty  r20 r21 r22 tz], where rRC is row R, column C
-     * for direct use with {@link #skinLbs4MatrixPalette(float[], int[], float[], float[], float[], float[], float[], float[], float[], int)}.
+     * {@code [r00 r01 r02 tx  r10 r11 r12 ty  r20 r21 r22 tz]}, where {@code rRC} is row R, column C.
+     * <p>
+     * Joints are rigid: the 3×3 part is the rotation matrix of each joint's quaternion and the scale arrays are
+     * ignored. The quaternion is not normalized, so it must be unit. For joints with scale, build the palette with
+     * {@code PackedAffineKernels.trsToPackedAffineBatch} instead. Joints {@code [0, jointCount)} are converted; the
+     * arrays are not checked up front.
+     *
+     * @param joints the skinning transforms of the joints
+     * @param matrixPalette12 receives {@code 12·jointCount} floats from index 0
+     * @param jointCount the number of joints
      */
     public static void buildRigidMatrixPalette12(TransformSoA joints, float[] matrixPalette12, int jointCount) {
         for (int j = 0; j < jointCount; j++) {
@@ -156,11 +345,26 @@ public final class SkinningKernels {
     }
 
     /**
-     * Stripped matrix-palette skinning kernel for work-equivalence/perf parity studies.
-     * Matrix palette layout per joint is 12 floats, row-major as in
-     * {@link org.dynamisengine.vectrix.affine.PackedAffineArray}:
-     * [r00 r01 r02 tx  r10 r11 r12 ty  r20 r21 r22 tz]. A {@code PackedAffineArray} can be passed directly
-     * through {@code raw()}.
+     * Linear blend skinning from a matrix palette, with four influences per vertex, interleaved: {@code out = Σ
+     * w_k·(M_k·p)}. The palette holds 12 floats per joint, joint {@code j} at {@code matrixPalette12[12·j ..]},
+     * row-major as in {@link org.dynamisengine.vectrix.affine.PackedAffineArray}: {@code [r00 r01 r02 tx  r10 r11 r12
+     * ty  r20 r21 r22 tz]}. A {@code PackedAffineArray} can be passed directly through {@code raw()}.
+     * <p>
+     * This is the default CPU skinning kernel and the fastest. The 3×3 part is used as given, so joints may carry scale
+     * or shear when the palette has them; one built by {@link #buildRigidMatrixPalette12} is rigid. The results are
+     * close to, but not bitwise equal to, {@link #skinLbs4}'s for the same rigid joints, since the arithmetic differs.
+     * No SIMD path.
+     *
+     * @param matrixPalette12 the palette, 12 floats per joint
+     * @param jointIndices four joint indices per vertex, interleaved: {@code jointIndices[4·i + k]}
+     * @param jointWeights four weights per vertex, interleaved like {@code jointIndices}
+     * @param inX the bind-pose x coordinates, one per vertex
+     * @param inY the bind-pose y coordinates
+     * @param inZ the bind-pose z coordinates
+     * @param outX receives the skinned x coordinates; may be {@code inX}
+     * @param outY receives the skinned y coordinates; may be {@code inY}
+     * @param outZ receives the skinned z coordinates; may be {@code inZ}
+     * @param count the number of vertices
      */
     public static void skinLbs4MatrixPalette(float[] matrixPalette12, int[] jointIndices, float[] jointWeights,
             float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {

@@ -38,10 +38,17 @@ public final class Loss {
     }
 
     /**
-     * The cross-entropy {@code -log softmax(x)[target]}.
+     * The cross-entropy {@code -log softmax(x)[target]}, computed as {@code logSumExp(x) - x[target]}.
      *
+     * @param logits the row of logits {@code x}
+     * @param off the offset of the row in {@code logits}
+     * @param n the number of classes, at least 1
+     * @param target the index of the true class, in {@code [0, n)}
      * @param scratch {@code n} floats of working memory
-     * @return the loss
+     * @param scratchOff the offset in {@code scratch}
+     * @return the loss, in nats
+     * @throws IllegalArgumentException if {@code target} is outside {@code [0, n)} or an array is too short for its
+     *         offset
      */
     public static float crossEntropy(float[] logits, int off, int n, int target, float[] scratch, int scratchOff) {
         if (target < 0 || target >= n) {
@@ -51,7 +58,20 @@ public final class Loss {
         return lse - logits[off + target];
     }
 
-    /** The gradient {@code dx = dLoss·(softmax(x) - onehot(target))}; {@code dx} may be {@code logits}. */
+    /**
+     * The gradient of {@link #crossEntropy} with respect to the logits:
+     * {@code dx = dLoss·(softmax(x) - onehot(target))}.
+     *
+     * @param logits the row of logits {@code x}
+     * @param off the offset of the row in {@code logits}
+     * @param n the number of classes, at least 1
+     * @param target the index of the true class, in {@code [0, n)}
+     * @param dLoss the gradient flowing into the loss (1 for a plain loss)
+     * @param dx receives the {@code n} gradients; may be {@code logits} at the same offset
+     * @param dxOff the offset in {@code dx}
+     * @throws IllegalArgumentException if {@code target} is outside {@code [0, n)} or an array is too short for its
+     *         offset
+     */
     public static void crossEntropyBackward(float[] logits, int off, int n, int target, float dLoss, float[] dx,
             int dxOff) {
         if (target < 0 || target >= n) {

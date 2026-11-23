@@ -30,13 +30,16 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Class for polygon/point intersection tests when testing many points against one or many static concave or convex, simple polygons.
+ * Class for polygon/point intersection tests when testing many points against one or many static concave or convex,
+ * simple polygons.
  * <p>
- * This is an implementation of the algorithm described in <a href="http://alienryderflex.com/polygon/">http://alienryderflex.com</a> and augmented with using a
- * custom interval tree to avoid testing all polygon edges against a point, but only those that intersect the imaginary ray along the same y co-ordinate of the
- * search point. This algorithm additionally also supports multiple polygons.
+ * This is an implementation of the algorithm described in
+ * <a href="http://alienryderflex.com/polygon/">http://alienryderflex.com</a> and augmented with using a custom
+ * interval tree to avoid testing all polygon edges against a point, but only those that intersect the imaginary ray
+ * along the same y co-ordinate of the search point. This algorithm additionally also supports multiple polygons.
  * <p>
- * This class is thread-safe and can be used in a multithreaded environment when testing many points against the same polygon concurrently.
+ * This class is thread-safe and can be used in a multithreaded environment when testing many points against the
+ * same polygon concurrently.
  * <p>
  * Reference: <a href="http://alienryderflex.com/polygon/">http://alienryderflex.com</a>
  * 
@@ -131,6 +134,7 @@ public class PolygonsIntersection {
     private static final ByStartComparator byStartComparator = new ByStartComparator();
     private static final ByEndComparator byEndComparator = new ByEndComparator();
 
+    /** The polygon vertices as interleaved {@code x, y} pairs, shared with the caller (not copied). */
     protected final float[] verticesXY;
     private float minX, minY, maxX, maxY;
     private float centerX, centerY, radiusSquared;
@@ -139,16 +143,19 @@ public class PolygonsIntersection {
     /**
      * Create a new {@link PolygonsIntersection} object with the given polygon vertices.
      * <p>
-     * The <code>verticesXY</code> array contains the x and y coordinates of all vertices. This array will not be copied so its content must remain constant for
-     * as long as the PolygonPointIntersection is used with it.
+     * The <code>verticesXY</code> array contains the x and y coordinates of all vertices. This array will not be
+     * copied so its content must remain constant for as long as this object is used with it. The constructor builds an
+     * interval tree over the edges and allocates; the test methods do not.
      * 
      * @param verticesXY
      *            contains the x and y coordinates of all vertices
      * @param polygons
-     *            defines the start vertices of a new polygon. The first vertex of the first polygon is always the
-     *            vertex with index 0. In order to define a hole simply define a polygon that is completely inside another polygon
+     *            the index of the first vertex of each polygon after the first, in increasing order; the first
+     *            polygon always starts at vertex 0, and <code>null</code> or an empty array means one polygon. In
+     *            order to define a hole simply define a polygon that is completely inside another polygon
      * @param count
-     *            the number of vertices to use from the <code>verticesXY</code> array, staring with index 0
+     *            the number of vertices to use from the <code>verticesXY</code> array, starting with index 0
+     * @throws IllegalArgumentException if the starts do not increase or a polygon would have fewer than 3 vertices
      */
     public PolygonsIntersection(float[] verticesXY, int[] polygons, int count) {
         // every polygon needs at least 3 vertices: the starts increase strictly and leave 3 vertices for the last one.
@@ -310,7 +317,8 @@ public class PolygonsIntersection {
      *            the x coordinate of the point to test
      * @param y
      *            the y coordinate of the point to test
-     * @return <code>true</code> iff the point lies inside any polygon; <code>false</code> otherwise
+     * @return <code>true</code> iff the point lies inside the region under the even-odd rule; <code>false</code>
+     *         otherwise
      */
     public boolean testPoint(float x, float y) {
         return testPoint(x, y, null);
@@ -328,9 +336,10 @@ public class PolygonsIntersection {
      *            the x coordinate of the point to test
      * @param y
      *            the y coordinate of the point to test
-     * @param inPolys
-     *            if not <code>null</code> then the <i>i</i>-th bit is set if the given point is inside the <i>i</i>-th polygon
-     * @return <code>true</code> iff the point lies inside the polygon and not inside a hole; <code>false</code> otherwise
+     * @param inPolys if not <code>null</code> then the <i>i</i>-th bit is set if the given point is inside the
+     *            <i>i</i>-th polygon
+     * @return <code>true</code> iff the point lies inside the region under the even-odd rule; <code>false</code>
+     *         otherwise
      */
     public boolean testPoint(float x, float y, BitSet inPolys) {
         // check bounding sphere first

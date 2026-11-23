@@ -29,7 +29,13 @@ import org.dynamisengine.vectrix.affine.Transformf;
 import java.nio.ByteBuffer;
 
 /**
- * Tight write kernels for runtime transform upload staging.
+ * Write kernels that stage per-instance transforms for upload, in draw order.
+ * <p>
+ * Every kernel takes an {@code order} array: output slot {@code i} receives source transform {@code order[i]}, for
+ * {@code i} in {@code [0, count)}. Outputs start at index 0 (or byte 0) and are written densely. Nothing is
+ * validated up front: indices out of range throw {@link ArrayIndexOutOfBoundsException} or
+ * {@link IndexOutOfBoundsException} after the earlier slots were written. The kernels are stateless, safe to call
+ * from any thread on separate outputs, and do not allocate.
  */
 public final class GpuTransformWriteKernels {
     private GpuTransformWriteKernels() {
@@ -40,6 +46,11 @@ public final class GpuTransformWriteKernels {
      * Each packed transform holds rows {@code [r00 r01 r02 tx, r10 r11 r12 ty, r20 r21 r22 tz]} (see
      * {@link PackedAffineArray}), so the output is
      * {@code [r00 r10 r20 0, r01 r11 r21 0, r02 r12 r22 0, tx ty tz 1]}.
+     *
+     * @param src the packed affine transforms
+     * @param order the source transform index of each output slot; at least {@code count} entries
+     * @param out receives 16 floats per slot, slot {@code i} at {@code 16 * i}; at least {@code 16 * count} floats
+     * @param count the number of slots to write
      */
     public static void writeMatrix4fFromPackedAffine(PackedAffineArray src, int[] order, float[] out, int count) {
         float[] data = src.raw();
@@ -67,7 +78,13 @@ public final class GpuTransformWriteKernels {
 
     /**
      * Copy packed affines in {@code order}, keeping the row-major {@code AFFINE_3X4_ROW_MAJOR} layout of
-     * {@link PackedAffineArray}.
+     * {@link PackedAffineArray}: slot {@code i} of {@code out} receives the 12 floats of transform
+     * {@code order[i]}.
+     *
+     * @param src the packed affine transforms
+     * @param order the source transform index of each output slot; at least {@code count} entries
+     * @param out receives 12 floats per slot, slot {@code i} at {@code 12 * i}; at least {@code 12 * count} floats
+     * @param count the number of slots to write
      */
     public static void writePackedAffine(PackedAffineArray src, int[] order, float[] out, int count) {
         float[] data = src.raw();
@@ -89,12 +106,32 @@ public final class GpuTransformWriteKernels {
         }
     }
 
+    /**
+     * Writes {@code transforms[order[i]]} into record {@code i} of {@code out} with
+     * {@link GpuTransformLayout#writeCompactTrs}, for {@code i} in {@code [0, count)}.
+     *
+     * @param layout the record layout
+     * @param transforms the source transforms
+     * @param order the source transform index of each record; at least {@code count} entries
+     * @param out the buffer, written with absolute puts from byte 0 in little-endian order
+     * @param count the number of records to write
+     */
     public static void writeCompactTrs(GpuTransformLayout layout, Transformf[] transforms, int[] order, ByteBuffer out, int count) {
         for (int i = 0; i < count; i++) {
             layout.writeCompactTrs(out, i, transforms[order[i]]);
         }
     }
 
+    /**
+     * Writes {@code transforms[order[i]]} into record {@code i} of {@code out} with
+     * {@link GpuTransformLayout#writeFloatTrs}, for {@code i} in {@code [0, count)}.
+     *
+     * @param layout the record layout
+     * @param transforms the source transforms
+     * @param order the source transform index of each record; at least {@code count} entries
+     * @param out the buffer, written with absolute puts from byte 0 in little-endian order
+     * @param count the number of records to write
+     */
     public static void writeFloatTrs(GpuTransformLayout layout, Transformf[] transforms, int[] order, ByteBuffer out, int count) {
         for (int i = 0; i < count; i++) {
             layout.writeFloatTrs(out, i, transforms[order[i]]);

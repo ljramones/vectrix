@@ -34,8 +34,8 @@ import org.dynamisengine.vectrix.core.Matrix3fc;
  * the basis exactly as {@link ShBasis} defines it, and costs one basis evaluation per sample direction.
  * <p>
  * "Rotating by R" moves a feature at direction {@code u} to {@code R u}: if {@code g = rotate(f, R)} then
- * {@code g(R u) = f(u)}. For many probes, build the matrix once with {@link #rotationMatrixL2}/{@link #rotationMatrixL3}
- * and apply it with {@link #applyL2}/{@link #applyL3}, which allocate nothing.
+ * {@code g(R u) = f(u)}. For many probes, build the matrix once with
+ * {@link #rotationMatrixL2}/{@link #rotationMatrixL3} and apply it with {@link #applyL2}/{@link #applyL3}.
  * <p>
  * Matrix layout: the band blocks one after another, each row-major: band 1 (3×3 at offset 0), band 2 (5×5 at 9),
  * band 3 (7×7 at 34). {@link #L2_MATRIX_SIZE} = 34 and {@link #L3_MATRIX_SIZE} = 83 floats.
@@ -194,12 +194,30 @@ public final class ShRotation {
         return d;
     }
 
-    /** L2 rotation matrix of {@code rotation} (a proper rotation) into {@code out} ({@link #L2_MATRIX_SIZE} floats). */
+    /**
+     * Builds the L2 SH rotation matrix (bands 1..2) of {@code rotation}, computed in double and rounded to float,
+     * in the block layout of the class comment. Thread-safe (per-thread scratch); does not allocate after the first
+     * call on a thread.
+     *
+     * @param rotation a proper rotation (orthonormal, determinant 1); other matrices give meaningless results
+     * @param out receives the matrix in elements 0..{@link #L2_MATRIX_SIZE} - 1
+     * @return {@code out}
+     * @throws ArrayIndexOutOfBoundsException if {@code out} is shorter than {@link #L2_MATRIX_SIZE}
+     */
     public static float[] rotationMatrixL2(Matrix3fc rotation, float[] out) {
         return toFloat(rotation, 2, out);
     }
 
-    /** L3 rotation matrix of {@code rotation} into {@code out} ({@link #L3_MATRIX_SIZE} floats). */
+    /**
+     * Builds the L3 SH rotation matrix (bands 1..3) of {@code rotation}, computed in double and rounded to float,
+     * in the block layout of the class comment. Thread-safe (per-thread scratch); does not allocate after the first
+     * call on a thread.
+     *
+     * @param rotation a proper rotation (orthonormal, determinant 1); other matrices give meaningless results
+     * @param out receives the matrix in elements 0..{@link #L3_MATRIX_SIZE} - 1
+     * @return {@code out}
+     * @throws ArrayIndexOutOfBoundsException if {@code out} is shorter than {@link #L3_MATRIX_SIZE}
+     */
     public static float[] rotationMatrixL3(Matrix3fc rotation, float[] out) {
         return toFloat(rotation, 3, out);
     }
@@ -215,37 +233,89 @@ public final class ShRotation {
         return out;
     }
 
-    /** L2 rotation matrix in double precision ({@link #L2_MATRIX_SIZE} doubles). */
+    /**
+     * Builds the L2 SH rotation matrix (bands 1..2) of {@code rotation}, in double precision, in the block layout of
+     * the class comment. Thread-safe (per-thread scratch); does not allocate after the first call on a thread.
+     *
+     * @param rotation a proper rotation (orthonormal, determinant 1); other matrices give meaningless results
+     * @param out receives the matrix in elements 0..{@link #L2_MATRIX_SIZE} - 1
+     * @return {@code out}
+     * @throws ArrayIndexOutOfBoundsException if {@code out} is shorter than {@link #L2_MATRIX_SIZE}
+     */
     public static double[] rotationMatrixL2(Matrix3dc rotation, double[] out) {
         build(rowMajor(rotation, SCRATCH.get()[3]), 2, out);
         return out;
     }
 
-    /** L3 rotation matrix in double precision ({@link #L3_MATRIX_SIZE} doubles). */
+    /**
+     * Builds the L3 SH rotation matrix (bands 1..3) of {@code rotation}, in double precision, in the block layout of
+     * the class comment. Thread-safe (per-thread scratch); does not allocate after the first call on a thread.
+     *
+     * @param rotation a proper rotation (orthonormal, determinant 1); other matrices give meaningless results
+     * @param out receives the matrix in elements 0..{@link #L3_MATRIX_SIZE} - 1
+     * @return {@code out}
+     * @throws ArrayIndexOutOfBoundsException if {@code out} is shorter than {@link #L3_MATRIX_SIZE}
+     */
     public static double[] rotationMatrixL3(Matrix3dc rotation, double[] out) {
         build(rowMajor(rotation, SCRATCH.get()[3]), 3, out);
         return out;
     }
 
-    /** Applies an L2 rotation matrix to RGB coefficients; {@code dest} may alias {@code in}. */
+    /**
+     * Applies an L2 SH rotation matrix to RGB coefficients: band 0 is copied, each band {@code l} in 1..2 is multiplied
+     * by its block of {@code matrix}. Thread-safe (per-thread scratch); does not allocate after the first call on a
+     * thread.
+     *
+     * @param matrix a matrix from {@code rotationMatrixL2}, at least {@link #L2_MATRIX_SIZE} elements
+     * @param in the coefficients to rotate
+     * @param dest receives the rotated coefficients; may be {@code in}
+     * @return {@code dest}
+     */
     public static ShCoeffs9f applyL2(float[] matrix, ShCoeffs9f in, ShCoeffs9f dest) {
         applyBands(matrix, in.c, dest.c, 2);
         return dest;
     }
 
-    /** Applies an L3 rotation matrix to RGB coefficients; {@code dest} may alias {@code in}. */
+    /**
+     * Applies an L3 SH rotation matrix to RGB coefficients: band 0 is copied, each band {@code l} in 1..3 is multiplied
+     * by its block of {@code matrix}. Thread-safe (per-thread scratch); does not allocate after the first call on a
+     * thread.
+     *
+     * @param matrix a matrix from {@code rotationMatrixL3}, at least {@link #L3_MATRIX_SIZE} elements
+     * @param in the coefficients to rotate
+     * @param dest receives the rotated coefficients; may be {@code in}
+     * @return {@code dest}
+     */
     public static ShCoeffs16f applyL3(float[] matrix, ShCoeffs16f in, ShCoeffs16f dest) {
         applyBands(matrix, in.c, dest.c, 3);
         return dest;
     }
 
-    /** Applies an L2 rotation matrix to RGB coefficients (double); {@code dest} may alias {@code in}. */
+    /**
+     * Applies an L2 SH rotation matrix to RGB coefficients: band 0 is copied, each band {@code l} in 1..2 is multiplied
+     * by its block of {@code matrix}. Thread-safe (per-thread scratch); does not allocate after the first call on a
+     * thread.
+     *
+     * @param matrix a matrix from {@code rotationMatrixL2}, at least {@link #L2_MATRIX_SIZE} elements
+     * @param in the coefficients to rotate
+     * @param dest receives the rotated coefficients; may be {@code in}
+     * @return {@code dest}
+     */
     public static ShCoeffs9d applyL2(double[] matrix, ShCoeffs9d in, ShCoeffs9d dest) {
         applyBands(matrix, in.c, dest.c, 2);
         return dest;
     }
 
-    /** Applies an L3 rotation matrix to RGB coefficients (double); {@code dest} may alias {@code in}. */
+    /**
+     * Applies an L3 SH rotation matrix to RGB coefficients: band 0 is copied, each band {@code l} in 1..3 is multiplied
+     * by its block of {@code matrix}. Thread-safe (per-thread scratch); does not allocate after the first call on a
+     * thread.
+     *
+     * @param matrix a matrix from {@code rotationMatrixL3}, at least {@link #L3_MATRIX_SIZE} elements
+     * @param in the coefficients to rotate
+     * @param dest receives the rotated coefficients; may be {@code in}
+     * @return {@code dest}
+     */
     public static ShCoeffs16d applyL3(double[] matrix, ShCoeffs16d in, ShCoeffs16d dest) {
         applyBands(matrix, in.c, dest.c, 3);
         return dest;
@@ -304,22 +374,58 @@ public final class ShRotation {
         }
     }
 
-    /** Rotates L2 RGB coefficients by {@code rotation}; {@code dest} may alias {@code in}. Allocates nothing. */
+    /**
+     * Rotates L2 RGB coefficients by {@code rotation}: builds the SH rotation matrix and applies it. To rotate
+     * many coefficient sets by one rotation, build the matrix once with {@code rotationMatrixL2} instead.
+     * Thread-safe (per-thread scratch); does not allocate after the first call on a thread.
+     *
+     * @param in the coefficients to rotate
+     * @param rotation a proper rotation (orthonormal, determinant 1)
+     * @param dest receives the rotated coefficients; may be {@code in}
+     * @return {@code dest}
+     */
     public static ShCoeffs9f rotateL2(ShCoeffs9f in, Matrix3fc rotation, ShCoeffs9f dest) {
         return applyL2(rotationMatrixL2(rotation, SCRATCH_F.get()[0]), in, dest);
     }
 
-    /** Rotates L3 RGB coefficients by {@code rotation}; {@code dest} may alias {@code in}. Allocates nothing. */
+    /**
+     * Rotates L3 RGB coefficients by {@code rotation}: builds the SH rotation matrix and applies it. To rotate
+     * many coefficient sets by one rotation, build the matrix once with {@code rotationMatrixL3} instead.
+     * Thread-safe (per-thread scratch); does not allocate after the first call on a thread.
+     *
+     * @param in the coefficients to rotate
+     * @param rotation a proper rotation (orthonormal, determinant 1)
+     * @param dest receives the rotated coefficients; may be {@code in}
+     * @return {@code dest}
+     */
     public static ShCoeffs16f rotateL3(ShCoeffs16f in, Matrix3fc rotation, ShCoeffs16f dest) {
         return applyL3(rotationMatrixL3(rotation, SCRATCH_F.get()[0]), in, dest);
     }
 
-    /** Rotates L2 RGB coefficients by {@code rotation} (double); {@code dest} may alias {@code in}. */
+    /**
+     * Rotates L2 RGB coefficients by {@code rotation}: builds the SH rotation matrix and applies it. To rotate
+     * many coefficient sets by one rotation, build the matrix once with {@code rotationMatrixL2} instead.
+     * Thread-safe (per-thread scratch); does not allocate after the first call on a thread.
+     *
+     * @param in the coefficients to rotate
+     * @param rotation a proper rotation (orthonormal, determinant 1)
+     * @param dest receives the rotated coefficients; may be {@code in}
+     * @return {@code dest}
+     */
     public static ShCoeffs9d rotateL2(ShCoeffs9d in, Matrix3dc rotation, ShCoeffs9d dest) {
         return applyL2(rotationMatrixL2(rotation, SCRATCH.get()[2]), in, dest);
     }
 
-    /** Rotates L3 RGB coefficients by {@code rotation} (double); {@code dest} may alias {@code in}. */
+    /**
+     * Rotates L3 RGB coefficients by {@code rotation}: builds the SH rotation matrix and applies it. To rotate
+     * many coefficient sets by one rotation, build the matrix once with {@code rotationMatrixL3} instead.
+     * Thread-safe (per-thread scratch); does not allocate after the first call on a thread.
+     *
+     * @param in the coefficients to rotate
+     * @param rotation a proper rotation (orthonormal, determinant 1)
+     * @param dest receives the rotated coefficients; may be {@code in}
+     * @return {@code dest}
+     */
     public static ShCoeffs16d rotateL3(ShCoeffs16d in, Matrix3dc rotation, ShCoeffs16d dest) {
         return applyL3(rotationMatrixL3(rotation, SCRATCH.get()[2]), in, dest);
     }

@@ -38,7 +38,22 @@ public final class Ccdf {
     private Ccdf() {
     }
 
-    /** Solves; returns the final distance from the end joint to the target. */
+    /**
+     * Runs CCD sweeps until the end joint is within {@code tolerance} of the target or {@code maxIterations} sweeps
+     * have run. Uses per-thread scratch arrays, which are allocated on the first call in each thread.
+     *
+     * @param positions the joint positions, 3 floats per joint from index 0; updated in place
+     * @param count the number of joints
+     * @param targetX the x coordinate of the target
+     * @param targetY the y coordinate of the target
+     * @param targetZ the z coordinate of the target
+     * @param tolerance the end-joint distance at which to stop
+     * @param maxIterations the maximum number of sweeps
+     * @param maxStepAngle the largest turn of one joint in one sweep, in radians, or {@code ≤ 0} for no cap
+     * @param deltasOut accumulates each bone's world-space rotation, 4 floats per bone for {@code count − 1} bones,
+     *        initialized by the caller (normally to identities); or null
+     * @return the final distance from the end joint to the target
+     */
     public static float solve(float[] positions, int count, float targetX, float targetY, float targetZ,
             float tolerance, int maxIterations, float maxStepAngle, float[] deltasOut) {
         float[] p = positions;

@@ -35,6 +35,10 @@ import org.dynamisengine.vectrix.fft.ComplexFftd;
  * suits spectral analysis (STFT, Welch). The cosine terms use exact argument reduction
  * ({@link AccurateMath#cosTurns}), so symmetric windows are bit-exactly symmetric and the values are within a few ulps.
  * The float overloads compute in double and round once.
+ * <p>
+ * In the formulas, {@code k} is the sample index and {@code D} is {@code n} for a periodic window and
+ * {@code n - 1} for a symmetric one; a symmetric window of length 1 is {@code {1}}. The window writers check the
+ * destination range and their shape parameter before writing anything. Only {@code chebyshev} allocates.
  *
  * @since 2.5.0
  */
@@ -50,62 +54,170 @@ public final class Windows {
     private Windows() {
     }
 
-    /** Hann: {@code 0.5 - 0.5·cos(2πk/D)}; 31.5 dB side lobes, 1.5 bins noise bandwidth. */
+    /**
+     * Hann: {@code 0.5 - 0.5·cos(2πk/D)}; 31.5 dB side lobes, 1.5 bins noise bandwidth.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
+     */
     public static void hann(double[] dest, int off, int n, boolean periodic) {
         cosineSum(HANN, dest, null, off, n, periodic);
     }
 
-    /** Hann, float. */
+    /**
+     * Hann, float.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
+     */
     public static void hann(float[] dest, int off, int n, boolean periodic) {
         cosineSum(HANN, null, dest, off, n, periodic);
     }
 
-    /** Hamming: {@code 0.54 - 0.46·cos(2πk/D)}; 42.7 dB side lobes. */
+    /**
+     * Hamming: {@code 0.54 - 0.46·cos(2πk/D)}; 42.7 dB side lobes.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
+     */
     public static void hamming(double[] dest, int off, int n, boolean periodic) {
         cosineSum(HAMMING, dest, null, off, n, periodic);
     }
 
-    /** Hamming, float. */
+    /**
+     * Hamming, float.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
+     */
     public static void hamming(float[] dest, int off, int n, boolean periodic) {
         cosineSum(HAMMING, null, dest, off, n, periodic);
     }
 
-    /** Blackman (0.42, 0.5, 0.08); 58 dB side lobes. */
+    /**
+     * Blackman (0.42, 0.5, 0.08); 58 dB side lobes.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
+     */
     public static void blackman(double[] dest, int off, int n, boolean periodic) {
         cosineSum(BLACKMAN, dest, null, off, n, periodic);
     }
 
-    /** Blackman, float. */
+    /**
+     * Blackman, float.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
+     */
     public static void blackman(float[] dest, int off, int n, boolean periodic) {
         cosineSum(BLACKMAN, null, dest, off, n, periodic);
     }
 
-    /** 4-term Blackman–Harris; 92 dB side lobes. */
+    /**
+     * 4-term Blackman–Harris; 92 dB side lobes.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
+     */
     public static void blackmanHarris(double[] dest, int off, int n, boolean periodic) {
         cosineSum(BLACKMAN_HARRIS, dest, null, off, n, periodic);
     }
 
-    /** 4-term Blackman–Harris, float. */
+    /**
+     * 4-term Blackman–Harris, float.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
+     */
     public static void blackmanHarris(float[] dest, int off, int n, boolean periodic) {
         cosineSum(BLACKMAN_HARRIS, null, dest, off, n, periodic);
     }
 
-    /** Blackman–Nuttall; 98 dB side lobes. */
+    /**
+     * Blackman–Nuttall; 98 dB side lobes.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
+     */
     public static void nuttall(double[] dest, int off, int n, boolean periodic) {
         cosineSum(NUTTALL, dest, null, off, n, periodic);
     }
 
-    /** Blackman–Nuttall, float. */
+    /**
+     * Blackman–Nuttall, float.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
+     */
     public static void nuttall(float[] dest, int off, int n, boolean periodic) {
         cosineSum(NUTTALL, null, dest, off, n, periodic);
     }
 
-    /** Flat top (the SRS coefficients): amplitude error below 0.01 dB for tones between bins. */
+    /**
+     * Flat top (the SRS coefficients): amplitude error below 0.01 dB for tones between bins.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
+     */
     public static void flatTop(double[] dest, int off, int n, boolean periodic) {
         cosineSum(FLAT_TOP, dest, null, off, n, periodic);
     }
 
-    /** Flat top, float. */
+    /**
+     * Flat top, float.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
+     */
     public static void flatTop(float[] dest, int off, int n, boolean periodic) {
         cosineSum(FLAT_TOP, null, dest, off, n, periodic);
     }
@@ -113,6 +225,11 @@ public final class Windows {
     /**
      * Sine window {@code sin(π(k + 0.5)/n)}: the MDCT analysis/synthesis window, power complementary over 50 %
      * overlap. It is always periodic in this sense.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
      */
     public static void sine(double[] dest, int off, int n) {
         check(dest == null ? -1 : dest.length, off, n);
@@ -121,7 +238,14 @@ public final class Windows {
         }
     }
 
-    /** Sine window, float. */
+    /**
+     * Sine window, float.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @throws IllegalArgumentException if {@code n < 1} or {@code dest} cannot hold {@code n} values from {@code off}
+     */
     public static void sine(float[] dest, int off, int n) {
         check(dest == null ? -1 : dest.length, off, n);
         for (int k = 0; k < n; k++) {
@@ -133,13 +257,31 @@ public final class Windows {
      * Kaiser: {@code I0(β·sqrt(1 - (2k/D - 1)²)) / I0(β)}. {@code β} trades main-lobe width for side-lobe level
      * (β = 0 is rectangular; see {@link FirDesign#kaiserBeta}).
      *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
      * @param beta the shape, {@code >= 0}
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1}, {@code dest} cannot hold {@code n} values from
+     *         {@code off}, or {@code beta} is negative or NaN
      */
     public static void kaiser(double[] dest, int off, int n, double beta, boolean periodic) {
         fill(KAISER, beta, dest, null, off, n, periodic);
     }
 
-    /** Kaiser, float. */
+    /**
+     * Kaiser, float.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param beta the shape, {@code >= 0}
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1}, {@code dest} cannot hold {@code n} values from
+     *         {@code off}, or {@code beta} is negative or NaN
+     */
     public static void kaiser(float[] dest, int off, int n, double beta, boolean periodic) {
         fill(KAISER, beta, null, dest, off, n, periodic);
     }
@@ -148,13 +290,31 @@ public final class Windows {
      * Tukey (tapered cosine): flat in the middle, with Hann tapers over a fraction {@code alpha} of the window
      * ({@code alpha = 0} is rectangular, {@code 1} is Hann).
      *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
      * @param alpha the tapered fraction, in [0, 1]
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1}, {@code dest} cannot hold {@code n} values from
+     *         {@code off}, or {@code alpha} is outside [0, 1]
      */
     public static void tukey(double[] dest, int off, int n, double alpha, boolean periodic) {
         fill(TUKEY, alpha, dest, null, off, n, periodic);
     }
 
-    /** Tukey, float. */
+    /**
+     * Tukey, float.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param alpha the tapered fraction, in [0, 1]
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1}, {@code dest} cannot hold {@code n} values from
+     *         {@code off}, or {@code alpha} is outside [0, 1]
+     */
     public static void tukey(float[] dest, int off, int n, double alpha, boolean periodic) {
         fill(TUKEY, alpha, null, dest, off, n, periodic);
     }
@@ -162,13 +322,31 @@ public final class Windows {
     /**
      * Gaussian: {@code exp(-((k - D/2)/sigma)²/2)}.
      *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
      * @param sigma the standard deviation in samples, {@code > 0}
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1}, {@code dest} cannot hold {@code n} values from
+     *         {@code off}, or {@code sigma} is not positive
      */
     public static void gaussian(double[] dest, int off, int n, double sigma, boolean periodic) {
         fill(GAUSSIAN, sigma, dest, null, off, n, periodic);
     }
 
-    /** Gaussian, float. */
+    /**
+     * Gaussian, float.
+     *
+     * @param dest receives the window values
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param sigma the standard deviation in samples, {@code > 0}
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1}, {@code dest} cannot hold {@code n} values from
+     *         {@code off}, or {@code sigma} is not positive
+     */
     public static void gaussian(float[] dest, int off, int n, double sigma, boolean periodic) {
         fill(GAUSSIAN, sigma, null, dest, off, n, periodic);
     }
@@ -178,7 +356,14 @@ public final class Windows {
      * is computed through a DFT of the Chebyshev polynomial (the usual method), which allocates; the side lobes
      * are within a small fraction of a dB of the target up to about 200 dB.
      *
+     * @param dest receives the window values, normalized to a peak of 1
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
      * @param attenuationDb the side-lobe attenuation in dB, {@code > 0}
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1}, {@code dest} cannot hold {@code n} values from
+     *         {@code off}, or {@code attenuationDb} is not positive
      */
     public static void chebyshev(double[] dest, int off, int n, double attenuationDb, boolean periodic) {
         check(dest == null ? -1 : dest.length, off, n);
@@ -186,7 +371,18 @@ public final class Windows {
         System.arraycopy(w, 0, dest, off, n);
     }
 
-    /** Dolph–Chebyshev, float. */
+    /**
+     * Dolph–Chebyshev, float. Allocates, like the double overload.
+     *
+     * @param dest receives the window values, normalized to a peak of 1
+     * @param off the index of the first value in {@code dest}
+     * @param n the window length, at least 1
+     * @param attenuationDb the side-lobe attenuation in dB, {@code > 0}
+     * @param periodic {@code true} for a periodic window (spectral analysis), {@code false} for a symmetric one
+     *        (filter design)
+     * @throws IllegalArgumentException if {@code n < 1}, {@code dest} cannot hold {@code n} values from
+     *         {@code off}, or {@code attenuationDb} is not positive
+     */
     public static void chebyshev(float[] dest, int off, int n, double attenuationDb, boolean periodic) {
         check(dest == null ? -1 : dest.length, off, n);
         double[] w = chebyshev(periodic ? n + 1 : n, attenuationDb);
@@ -198,7 +394,11 @@ public final class Windows {
     /**
      * The coherent gain {@code Σw / n}: a windowed tone's amplitude is scaled by it.
      *
+     * @param w the window values
+     * @param off the index of the first value in {@code w}
+     * @param n the window length, at least 1
      * @return the coherent gain
+     * @throws IllegalArgumentException if {@code n < 1} or {@code w} does not hold {@code n} values from {@code off}
      */
     public static double coherentGain(double[] w, int off, int n) {
         check(w == null ? -1 : w.length, off, n);
@@ -211,9 +411,13 @@ public final class Windows {
 
     /**
      * The equivalent noise bandwidth in bins, {@code n·Σw² / (Σw)²}: the window's noise power relative to a
-     * rectangular window (1.5 for Hann).
+     * rectangular window (1.5 for Hann). An all-zero window gives NaN.
      *
+     * @param w the window values
+     * @param off the index of the first value in {@code w}
+     * @param n the window length, at least 1
      * @return the noise bandwidth in bins
+     * @throws IllegalArgumentException if {@code n < 1} or {@code w} does not hold {@code n} values from {@code off}
      */
     public static double equivalentNoiseBandwidth(double[] w, int off, int n) {
         check(w == null ? -1 : w.length, off, n);

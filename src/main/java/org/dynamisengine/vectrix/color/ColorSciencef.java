@@ -26,22 +26,31 @@ package org.dynamisengine.vectrix.color;
 import org.dynamisengine.vectrix.core.Vector3f;
 
 /**
- * Minimal color science helpers including CIE 1931 approximations.
-  * @since 1.0.0
-  */
+ * Blackbody color, Planck's law and an analytic fit of the CIE 1931 color-matching functions, in float precision.
+ * <p>
+ * For colorimetry against the official CIE tables use {@link CieObserver} and {@link Spectra}. The methods are
+ * stateless, allocate nothing and are safe to call from any thread.
+ *
+ * @since 1.0.0
+ */
 public final class ColorSciencef {
+    /** Lower end of the wavelength range {@link #cie1931XyzBar} accepts, 380 nm. */
     public static final float VISIBLE_MIN_NM = 380.0f;
+    /** Upper end of the wavelength range {@link #cie1931XyzBar} accepts, 780 nm. */
     public static final float VISIBLE_MAX_NM = 780.0f;
 
     private ColorSciencef() {
     }
 
     /**
-     * CIE 1931 2-degree colour matching functions (xBar, yBar, zBar), using the multi-lobe piecewise-Gaussian
-     * fit of Wyman, Sloan and Shirley, "Simple Analytic Approximations to the CIE XYZ Color Matching
-     * Functions" (JCGT 2013). Its maximum absolute error against the official CIE 1 nm tables is 0.014 (x̄), 0.008
-     * (ȳ) and 0.022 (z̄); {@link CieObserver} has the tabulated values.
-     * The wavelength is clamped to [380, 780] nm.
+     * Returns the CIE 1931 2-degree color-matching functions (x̄, ȳ, z̄) at one wavelength, from the multi-lobe
+     * piecewise-Gaussian fit of Wyman, Sloan and Shirley, "Simple Analytic Approximations to the CIE XYZ Color Matching
+     * Functions" (JCGT 2013). Its maximum absolute error against the official CIE 1 nm tables is 0.014 (x̄), 0.008 (ȳ)
+     * and 0.022 (z̄); {@link CieObserver} has the tabulated values.
+     *
+     * @param wavelengthNm the wavelength in nanometres; clamped to [{@link #VISIBLE_MIN_NM}, {@link #VISIBLE_MAX_NM}]
+     * @param dest receives (x̄, ȳ, z̄)
+     * @return {@code dest}
      */
     public static Vector3f cie1931XyzBar(float wavelengthNm, Vector3f dest) {
         float wl = clamp(wavelengthNm, VISIBLE_MIN_NM, VISIBLE_MAX_NM);
@@ -53,7 +62,14 @@ public final class ColorSciencef {
     }
 
     /**
-     * Convert XYZ to linear sRGB.
+     * Converts CIE XYZ to linear sRGB (D65). Same as
+     * {@link ColorMathf#xyzToLinearSrgb(float, float, float, Vector3f)}.
+     *
+     * @param x the X tristimulus value
+     * @param y the Y tristimulus value
+     * @param z the Z tristimulus value
+     * @param dest receives the linear sRGB color
+     * @return {@code dest}
      */
     public static Vector3f xyzToLinearSrgb(float x, float y, float z, Vector3f dest) {
         // Single source with ColorMath (7-digit IEC 61966-2-1 matrix); this used to keep a 4-digit copy.
@@ -61,7 +77,14 @@ public final class ColorSciencef {
     }
 
     /**
-     * Convert linear sRGB to XYZ.
+     * Converts linear sRGB (D65) to CIE XYZ. Same as
+     * {@link ColorMathf#linearSrgbToXyz(float, float, float, Vector3f)}.
+     *
+     * @param r the linear red channel
+     * @param g the linear green channel
+     * @param b the linear blue channel
+     * @param dest receives X, Y and Z
+     * @return {@code dest}
      */
     public static Vector3f linearSrgbToXyz(float r, float g, float b, Vector3f dest) {
         return ColorMathf.linearSrgbToXyz(r, g, b, dest);
@@ -73,20 +96,20 @@ public final class ColorSciencef {
     }
 
     /**
-     * Color of a blackbody (Planckian radiator) at the given temperature, in linear sRGB, normalised so the largest
-     * channel is 1.
+     * Returns the color of a blackbody (Planckian radiator) at the given temperature, in linear sRGB, normalized so the
+     * largest channel is 1.
      * <p>
      * The chromaticity comes from the Planckian locus in CIE 1931 xy (cubic-spline fit by Kim et al., 2002, valid
-     * from 1667 K to 25000 K, within about 1e-4 of the exact locus) and is converted through the same XYZ to
-     * linear-sRGB matrix as {@code ColorMath*.xyzToLinearSrgb}. Below about 1900 K the color lies outside the sRGB
-     * gamut and its negative blue component is clipped to 0. The result is smooth in temperature: earlier versions
-     * used the Tanner Helland curve fit, which jumped at 6600 K. Note that 6500 K is close to, but not the same as,
-     * D65 (white): the Planckian locus passes slightly below D65 in y, so it is a little magenta.
+     * from 1667 K to 25000 K, within about 1e-4 of the exact locus) and is converted through
+     * {@link ColorMathf#xyzToLinearSrgb(float, float, float, Vector3f)}. The locus is evaluated in double precision.
+     * Below about 1900 K the color lies outside the sRGB gamut and its negative blue component is clipped to 0. The
+     * result is smooth in temperature. Note that 6500 K is close to, but not the same as, D65 white: the Planckian
+     * locus passes slightly below D65 in y, so it is a little magenta.
      *
      * @param kelvin color temperature in Kelvin; clamped to [1667, 25000]
-     * @param dest   destination vector to store the linear RGB result
+     * @param dest receives the linear RGB color
      * @return {@code dest}
-     * @throws IllegalArgumentException if {@code dest} is null, or kelvin is non-finite or &lt;= 0
+     * @throws IllegalArgumentException if {@code dest} is null, or {@code kelvin} is not finite or &lt;= 0
      */
     public static Vector3f kelvinToLinearRgb(float kelvin, Vector3f dest) {
         if (dest == null) {
@@ -109,8 +132,12 @@ public final class ColorSciencef {
     }
 
     /**
-     * Planck's law: spectral radiance of a blackbody at {@code kelvin}, in W·sr⁻¹·m⁻²·nm⁻¹, for a wavelength in nm.
-     * Uses the exact SI constants h, c and k (2019 redefinition).
+     * Returns the spectral radiance of a blackbody by Planck's law, in W·sr⁻¹·m⁻²·nm⁻¹. Uses the exact SI constants
+     * h, c and k (2019 redefinition) and computes in double precision.
+     *
+     * @param wavelengthNm the wavelength in nanometres, greater than 0
+     * @param kelvin the temperature in Kelvin, greater than 0
+     * @return the spectral radiance per nanometre
      */
     public static float planckRadiance(float wavelengthNm, float kelvin) {
         double h = 6.62607015e-34;

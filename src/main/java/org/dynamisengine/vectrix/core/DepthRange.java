@@ -45,12 +45,20 @@ public enum DepthRange {
         this.far = far;
     }
 
-    /** NDC depth of the near plane. */
+    /**
+     * NDC depth of the near plane.
+     *
+     * @return -1, 0 or 1
+     */
     public double nearNdc() {
         return near;
     }
 
-    /** NDC depth of the far plane (of infinity, for an infinite projection). */
+    /**
+     * NDC depth of the far plane (of infinity, for an infinite projection).
+     *
+     * @return 1 or 0
+     */
     public double farNdc() {
         return far;
     }

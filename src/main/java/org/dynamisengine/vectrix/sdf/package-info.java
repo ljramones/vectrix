@@ -22,6 +22,13 @@
  * THE SOFTWARE.
  */
 /**
- * Signed-distance-function primitives and related scalar distance utilities.
+ * Exact signed distance functions of basic shapes (sphere, box, capsule, cylinder, torus): negative inside, zero on
+ * the surface, positive outside.
+ * <p>
+ * <b>Contract.</b> Threading: the classes are stateless and safe to call from any thread. Allocation: no method
+ * allocates. Determinism: the functions use only arithmetic, comparisons and square roots, so they give the same
+ * bits on every platform for the same configuration. Errors: nothing is validated; NaN inputs give NaN results, and
+ * negative sizes give meaningless distances. Precision and naming: {@code Sdf3f} works in float and {@code Sdf3d}
+ * in double.
  */
 package org.dynamisengine.vectrix.sdf;

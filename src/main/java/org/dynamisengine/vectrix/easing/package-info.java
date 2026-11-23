@@ -23,5 +23,11 @@
  */
 /**
  * Easing functions over normalized time domains for animation blending and procedural timing.
+ * <p>
+ * <b>Contract.</b> Threading: the functions are static and stateless, safe from any thread. Allocation: none.
+ * Determinism: the polynomial easings are plain float or double arithmetic; the transcendental parts use
+ * {@code AccurateMath}, so they match across platforms under {@code -Dvectrix.strictMath}. Errors: nothing is
+ * validated or clamped; {@code t} outside {@code [0, 1]} extrapolates, and NaN gives NaN. Precision and naming:
+ * {@code Easingf} is float, {@code Easingd} double.
  */
 package org.dynamisengine.vectrix.easing;

@@ -45,7 +45,9 @@ import org.dynamisengine.vectrix.simd.SimdSupport;
  */
 public final class Formats {
 
-    /** The int8 quantization block length. */
+    /**
+     * The int8 quantization block length: each block of 32 elements shares one scale.
+     */
     public static final int QBLOCK = 32;
 
     private static final float[] E4M3 = table(4, 3, 7, true);
@@ -57,7 +59,13 @@ public final class Formats {
     private Formats() {
     }
 
-    /** float → bfloat16 bits: round to nearest even; NaN stays a (quiet) NaN. */
+    /**
+     * Converts a float to bfloat16 bits, rounding to nearest, ties to even. A NaN stays a NaN with the quiet bit
+     * set; values that round past the largest bfloat16 become infinity.
+     *
+     * @param x the value
+     * @return the bfloat16 bit pattern (the upper 16 bits of the rounded float)
+     */
     public static short toBf16(float x) {
         int b = Float.floatToRawIntBits(x);
         if (x != x) {
@@ -66,37 +74,72 @@ public final class Formats {
         return (short) ((b + 0x7fff + ((b >>> 16) & 1)) >>> 16);
     }
 
-    /** bfloat16 bits → float (exact). */
+    /**
+     * Converts bfloat16 bits to a float, exactly.
+     *
+     * @param h the bfloat16 bit pattern
+     * @return the float value
+     */
     public static float fromBf16(short h) {
         return Float.intBitsToFloat((h & 0xffff) << 16);
     }
 
-    /** float → FP8 E4M3 code. */
+    /**
+     * Converts a float to an FP8 E4M3 code (the OCP "FN" variant), rounding to nearest, ties to even.
+     *
+     * @param x the value
+     * @param saturate whether values beyond the range give ±448 instead of NaN
+     * @return the code; NaN gives {@code 0x7f}
+     */
     public static byte toE4M3(float x, boolean saturate) {
         return encode(x, E4M3_POS, true, saturate);
     }
 
-    /** FP8 E4M3 code → float (exact). */
+    /**
+     * Converts an FP8 E4M3 code to a float, exactly.
+     *
+     * @param b the code
+     * @return the value; {@code 0x7f} and {@code 0xff} give NaN
+     */
     public static float fromE4M3(byte b) {
         return E4M3[b & 0xff];
     }
 
-    /** float → FP8 E5M2 code. */
+    /**
+     * Converts a float to an FP8 E5M2 code, rounding to nearest, ties to even.
+     *
+     * @param x the value
+     * @param saturate whether values beyond the range give ±57344 instead of ±infinity
+     * @return the code; NaN gives {@code 0x7f}
+     */
     public static byte toE5M2(float x, boolean saturate) {
         return encode(x, E5M2_POS, false, saturate);
     }
 
-    /** FP8 E5M2 code → float (exact). */
+    /**
+     * Converts an FP8 E5M2 code to a float, exactly.
+     *
+     * @param b the code
+     * @return the value, which may be infinite or NaN
+     */
     public static float fromE5M2(byte b) {
         return E5M2[b & 0xff];
     }
 
     /**
      * Quantizes {@code n} floats ({@code n} a multiple of {@link #QBLOCK}) to int8 by blocks of 32: each block's scale
-     * is {@code max|x| / 127} and {@code q = rint(x / scale)}, so the largest element maps to ±127 exactly.
+     * is {@code max|x| / 127} and {@code q = rint(x / scale)}, so the largest element maps to ±127 exactly. An all-zero
+     * block gets scale 0 and codes 0; a block containing NaN gets a NaN scale and codes 0.
      *
-     * @param q receives {@code n} codes
+     * @param x the values
+     * @param xOff the offset in {@code x}
+     * @param n the number of values, a non-negative multiple of 32
+     * @param q receives {@code n} codes in [-127, 127]
+     * @param qOff the offset in {@code q}
      * @param scales receives {@code n / 32} scales
+     * @param sOff the offset in {@code scales}
+     * @throws IllegalArgumentException if {@code n} is not a non-negative multiple of 32 or an array is too short for
+     *         its offset; nothing is written then
      */
     public static void quantizeInt8(float[] x, int xOff, int n, byte[] q, int qOff, float[] scales, int sOff) {
         if (n < 0 || n % QBLOCK != 0) {
@@ -120,7 +163,19 @@ public final class Formats {
         }
     }
 
-    /** {@code x[i] = q[i]·scale[i / 32]}. */
+    /**
+     * Dequantizes int8 blocks: {@code x[i] = q[i]·scale[i / 32]}.
+     *
+     * @param q the codes
+     * @param qOff the offset in {@code q}
+     * @param scales the {@code n / 32} block scales
+     * @param sOff the offset in {@code scales}
+     * @param x receives {@code n} values
+     * @param xOff the offset in {@code x}
+     * @param n the number of values, a non-negative multiple of 32
+     * @throws IllegalArgumentException if {@code n} is not a non-negative multiple of 32 or an array is too short for
+     *         its offset; nothing is written then
+     */
     public static void dequantizeInt8(byte[] q, int qOff, float[] scales, int sOff, float[] x, int xOff, int n) {
         if (n < 0 || n % QBLOCK != 0) {
             throw new IllegalArgumentException("n must be a multiple of " + QBLOCK + ": " + n);
@@ -144,6 +199,17 @@ public final class Formats {
      * Widening the codes to float limits the speed: on an Apple M4 Max with the Vector API a 4096×4096
      * {@link #gemvInt8} takes 1.8 ms against 1.05 ms for the float {@code Gemmf.gemv}. Int8 saves memory (a quarter of
      * float), not time, unless the weights would otherwise not fit in memory bandwidth or cache.
+     *
+     * @param q the codes
+     * @param qOff the offset in {@code q}
+     * @param scales the {@code n / 32} block scales
+     * @param sOff the offset in {@code scales}
+     * @param x the float vector
+     * @param xOff the offset in {@code x}
+     * @param n the number of elements, a non-negative multiple of 32
+     * @return the dot product
+     * @throws IllegalArgumentException if {@code n} is not a non-negative multiple of 32 or an array is too short for
+     *         its offset
      */
     public static float dotInt8(byte[] q, int qOff, float[] scales, int sOff, float[] x, int xOff, int n) {
         if (n < 0 || n % QBLOCK != 0) {
@@ -203,6 +269,21 @@ public final class Formats {
     /**
      * {@code y = W·x} for an {@code m×n} int8 block-quantized row-major {@code W} (row {@code i} at codes
      * {@code q[qOff + i·n ..]} and scales {@code scales[sOff + i·n/32 ..]}): each element is {@link #dotInt8}.
+     * Only {@code y} is checked up front; the rows are checked one by one, so a short {@code q} or {@code scales}
+     * throws after the earlier elements of {@code y} are written.
+     *
+     * @param m the number of rows
+     * @param n the number of columns, a non-negative multiple of 32
+     * @param q the codes of {@code W}, row-major
+     * @param qOff the offset of row 0 in {@code q}
+     * @param scales the block scales of {@code W}, {@code n / 32} per row
+     * @param sOff the offset of row 0's scales in {@code scales}
+     * @param x the vector, {@code n} floats
+     * @param xOff the offset in {@code x}
+     * @param y receives {@code m} floats; must not overlap {@code x}
+     * @param yOff the offset in {@code y}
+     * @throws IllegalArgumentException if {@code m < 0}, {@code n} is not a non-negative multiple of 32, or an array
+     *         is too short for its offset
      */
     public static void gemvInt8(int m, int n, byte[] q, int qOff, float[] scales, int sOff, float[] x, int xOff,
             float[] y, int yOff) {

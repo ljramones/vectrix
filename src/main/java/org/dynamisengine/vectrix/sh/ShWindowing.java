@@ -45,7 +45,15 @@ public final class ShWindowing {
     private ShWindowing() {
     }
 
-    /** Weight of band {@code band} for the given window and width (1 at band 0, 0 at and beyond {@code width}). */
+    /**
+     * Returns the window weight of SH band {@code band}: 1 at band 0, {@code w(band / width)} below {@code width},
+     * and 0 at and beyond {@code width} (also for a NaN {@code width}).
+     *
+     * @param window the window shape
+     * @param band the SH band {@code l}, at least 0
+     * @param width the window width in bands, greater than 0
+     * @return the weight, in [0, 1]
+     */
     public static double weight(Window window, int band, double width) {
         if (band == 0) {
             return 1.0;
@@ -61,7 +69,14 @@ public final class ShWindowing {
         return AccurateMath.sin(x) / x;
     }
 
-    /** Single-precision {@link #weight(Window, int, double)}. */
+    /**
+     * Single-precision {@link #weight(Window, int, double)}: computed in double and rounded to float.
+     *
+     * @param window the window shape
+     * @param band the SH band {@code l}, at least 0
+     * @param width the window width in bands, greater than 0
+     * @return the weight, in [0, 1]
+     */
     public static float weight(Window window, int band, float width) {
         return (float) weight(window, band, (double) width);
     }
@@ -84,25 +99,61 @@ public final class ShWindowing {
         }
     }
 
-    /** Windows L2 RGB coefficients; {@code dest} may alias {@code in}. */
+    /**
+     * Windows L2 RGB coefficients: every coefficient of band {@code l} (0..2) is multiplied by
+     * {@link #weight(Window, int, double) weight(window, l, width)}.
+     *
+     * @param in the coefficients to window
+     * @param window the window shape
+     * @param width the window width in bands, greater than 0; 3 is the usual starting point
+     * @param dest receives the windowed coefficients; may be {@code in}
+     * @return {@code dest}
+     */
     public static ShCoeffs9f windowL2(ShCoeffs9f in, Window window, float width, ShCoeffs9f dest) {
         apply(in.c, dest.c, 2, window, width);
         return dest;
     }
 
-    /** Windows L3 RGB coefficients; {@code dest} may alias {@code in}. */
+    /**
+     * Windows L3 RGB coefficients: every coefficient of band {@code l} (0..3) is multiplied by
+     * {@link #weight(Window, int, double) weight(window, l, width)}.
+     *
+     * @param in the coefficients to window
+     * @param window the window shape
+     * @param width the window width in bands, greater than 0; 4 is the usual starting point
+     * @param dest receives the windowed coefficients; may be {@code in}
+     * @return {@code dest}
+     */
     public static ShCoeffs16f windowL3(ShCoeffs16f in, Window window, float width, ShCoeffs16f dest) {
         apply(in.c, dest.c, 3, window, width);
         return dest;
     }
 
-    /** Windows L2 RGB coefficients (double); {@code dest} may alias {@code in}. */
+    /**
+     * Windows L2 RGB coefficients in double precision: every coefficient of band {@code l} (0..2) is multiplied by
+     * {@link #weight(Window, int, double) weight(window, l, width)}.
+     *
+     * @param in the coefficients to window
+     * @param window the window shape
+     * @param width the window width in bands, greater than 0; 3 is the usual starting point
+     * @param dest receives the windowed coefficients; may be {@code in}
+     * @return {@code dest}
+     */
     public static ShCoeffs9d windowL2(ShCoeffs9d in, Window window, double width, ShCoeffs9d dest) {
         apply(in.c, dest.c, 2, window, width);
         return dest;
     }
 
-    /** Windows L3 RGB coefficients (double); {@code dest} may alias {@code in}. */
+    /**
+     * Windows L3 RGB coefficients in double precision: every coefficient of band {@code l} (0..3) is multiplied by
+     * {@link #weight(Window, int, double) weight(window, l, width)}.
+     *
+     * @param in the coefficients to window
+     * @param window the window shape
+     * @param width the window width in bands, greater than 0; 4 is the usual starting point
+     * @param dest receives the windowed coefficients; may be {@code in}
+     * @return {@code dest}
+     */
     public static ShCoeffs16d windowL3(ShCoeffs16d in, Window window, double width, ShCoeffs16d dest) {
         apply(in.c, dest.c, 3, window, width);
         return dest;

@@ -85,10 +85,30 @@ public final class ShBasis {
     private ShBasis() {
     }
 
+    /**
+     * Evaluates the 9 basis functions of bands 0..2 at a direction, in the index order of the class table.
+     * The direction should be unit length; it is not normalized. Does not allocate.
+     *
+     * @param dir the direction, unit length
+     * @param dest9 receives the 9 values in elements 0..8; longer arrays are allowed
+     * @return {@code dest9}
+     * @throws IllegalArgumentException if {@code dest9.length < 9}
+     */
     public static float[] evaluateL2(Vector3fc dir, float[] dest9) {
         return evaluateL2(dir.x(), dir.y(), dir.z(), dest9);
     }
 
+    /**
+     * Evaluates the 9 basis functions of bands 0..2 at a direction, in the index order of the class table.
+     * The direction should be unit length; it is not normalized. Does not allocate.
+     *
+     * @param x the x component of the unit direction
+     * @param y the y component of the unit direction
+     * @param z the z component of the unit direction
+     * @param dest9 receives the 9 values in elements 0..8; longer arrays are allowed
+     * @return {@code dest9}
+     * @throws IllegalArgumentException if {@code dest9.length < 9}
+     */
     public static float[] evaluateL2(float x, float y, float z, float[] dest9) {
         if (dest9.length < 9) {
             throw new IllegalArgumentException("dest9");
@@ -105,10 +125,30 @@ public final class ShBasis {
         return dest9;
     }
 
+    /**
+     * Evaluates the 9 basis functions of bands 0..2 at a direction, in the index order of the class table.
+     * The direction should be unit length; it is not normalized. Does not allocate.
+     *
+     * @param dir the direction, unit length
+     * @param dest9 receives the 9 values in elements 0..8; longer arrays are allowed
+     * @return {@code dest9}
+     * @throws IllegalArgumentException if {@code dest9.length < 9}
+     */
     public static double[] evaluateL2(Vector3dc dir, double[] dest9) {
         return evaluateL2(dir.x(), dir.y(), dir.z(), dest9);
     }
 
+    /**
+     * Evaluates the 9 basis functions of bands 0..2 at a direction, in the index order of the class table.
+     * The direction should be unit length; it is not normalized. Does not allocate.
+     *
+     * @param x the x component of the unit direction
+     * @param y the y component of the unit direction
+     * @param z the z component of the unit direction
+     * @param dest9 receives the 9 values in elements 0..8; longer arrays are allowed
+     * @return {@code dest9}
+     * @throws IllegalArgumentException if {@code dest9.length < 9}
+     */
     public static double[] evaluateL2(double x, double y, double z, double[] dest9) {
         if (dest9.length < 9) {
             throw new IllegalArgumentException("dest9");
@@ -125,10 +165,30 @@ public final class ShBasis {
         return dest9;
     }
 
+    /**
+     * Evaluates the 16 basis functions of bands 0..3 at a direction, in the index order of the class table.
+     * The direction should be unit length; it is not normalized. Does not allocate.
+     *
+     * @param dir the direction, unit length
+     * @param dest16 receives the 16 values in elements 0..15; longer arrays are allowed
+     * @return {@code dest16}
+     * @throws IllegalArgumentException if {@code dest16.length < 16}
+     */
     public static float[] evaluateL3(Vector3fc dir, float[] dest16) {
         return evaluateL3(dir.x(), dir.y(), dir.z(), dest16);
     }
 
+    /**
+     * Evaluates the 16 basis functions of bands 0..3 at a direction, in the index order of the class table.
+     * The direction should be unit length; it is not normalized. Does not allocate.
+     *
+     * @param x the x component of the unit direction
+     * @param y the y component of the unit direction
+     * @param z the z component of the unit direction
+     * @param dest16 receives the 16 values in elements 0..15; longer arrays are allowed
+     * @return {@code dest16}
+     * @throws IllegalArgumentException if {@code dest16.length < 16}
+     */
     public static float[] evaluateL3(float x, float y, float z, float[] dest16) {
         if (dest16.length < 16) {
             throw new IllegalArgumentException("dest16");
@@ -152,10 +212,30 @@ public final class ShBasis {
         return dest16;
     }
 
+    /**
+     * Evaluates the 16 basis functions of bands 0..3 at a direction, in the index order of the class table.
+     * The direction should be unit length; it is not normalized. Does not allocate.
+     *
+     * @param dir the direction, unit length
+     * @param dest16 receives the 16 values in elements 0..15; longer arrays are allowed
+     * @return {@code dest16}
+     * @throws IllegalArgumentException if {@code dest16.length < 16}
+     */
     public static double[] evaluateL3(Vector3dc dir, double[] dest16) {
         return evaluateL3(dir.x(), dir.y(), dir.z(), dest16);
     }
 
+    /**
+     * Evaluates the 16 basis functions of bands 0..3 at a direction, in the index order of the class table.
+     * The direction should be unit length; it is not normalized. Does not allocate.
+     *
+     * @param x the x component of the unit direction
+     * @param y the y component of the unit direction
+     * @param z the z component of the unit direction
+     * @param dest16 receives the 16 values in elements 0..15; longer arrays are allowed
+     * @return {@code dest16}
+     * @throws IllegalArgumentException if {@code dest16.length < 16}
+     */
     public static double[] evaluateL3(double x, double y, double z, double[] dest16) {
         if (dest16.length < 16) {
             throw new IllegalArgumentException("dest16");

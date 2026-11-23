@@ -40,8 +40,13 @@ public final class Eigen3d {
     /**
      * {@code a = V diag(λ) Vᵀ}: writes the eigenvalues in descending order to {@code eigenvalues} and the matching unit
      * eigenvectors to the columns of {@code eigenvectors}, which is a proper rotation (det +1). Only the symmetric part
-     * of {@code a} is used. {@code eigenvectors} may alias {@code a}.
+     * of {@code a} is used. {@code eigenvectors} may alias {@code a}. The Jacobi iteration stops when the off-diagonal
+     * part is negligible or after 64 sweeps. Uses a per-thread workspace; does not allocate after the thread's first
+     * call.
      *
+     * @param a the symmetric matrix
+     * @param eigenvalues receives the eigenvalues, largest first
+     * @param eigenvectors receives the unit eigenvectors as columns, in the order of {@code eigenvalues}
      * @return {@code eigenvalues}
      */
     public static Vector3d symmetric(Matrix3dc a, Vector3d eigenvalues, Matrix3d eigenvectors) {

@@ -62,12 +62,13 @@ public final class RealFft2d {
     }
 
     /**
-     * Creates a plan.
+     * Creates a plan, with row and column transform plans for these sizes. Allocates the plans' tables.
      *
-     * @param rows the number of rows, at least 1
-     * @param cols the number of columns, at least 1
+     * @param rows the number of rows, at least 1 and at most {@link ComplexFftd#MAX_SIZE}
+     * @param cols the number of columns, at least 1 and at most {@link ComplexFftd#MAX_SIZE}
      * @return the plan
-     * @throws IllegalArgumentException if a size is out of range or the spectrum exceeds an array
+     * @throws IllegalArgumentException if a size is out of range, the spectrum or the scratch exceeds an array, or
+     *         a size cannot be planned by {@link ComplexFftd#plan}
      */
     public static RealFft2d plan(int rows, int cols) {
         if (rows < 1 || cols < 1 || (long) rows * 2 * (cols / 2 + 1) > Integer.MAX_VALUE - 8) {
@@ -76,27 +77,47 @@ public final class RealFft2d {
         return new RealFft2d(rows, cols);
     }
 
-    /** @return the number of rows */
+    /**
+     * Returns the number of rows.
+     *
+     * @return the number of rows
+     */
     public int rows() {
         return rows;
     }
 
-    /** @return the number of columns */
+    /**
+     * Returns the number of columns.
+     *
+     * @return the number of columns
+     */
     public int cols() {
         return cols;
     }
 
-    /** @return the number of doubles per spectrum row: {@code 2·(cols/2 + 1)} */
+    /**
+     * Returns the number of doubles per spectrum row: {@code 2·(cols/2 + 1)}.
+     *
+     * @return the number of doubles per spectrum row: {@code 2·(cols/2 + 1)}
+     */
     public int spectrumRowLength() {
         return 2 * half;
     }
 
-    /** @return the number of doubles in the spectrum: {@code rows·spectrumRowLength()} */
+    /**
+     * Returns the number of doubles in the spectrum: {@code rows·spectrumRowLength()}.
+     *
+     * @return the number of doubles in the spectrum: {@code rows·spectrumRowLength()}
+     */
     public int spectrumLength() {
         return rows * 2 * half;
     }
 
-    /** @return the number of doubles the scratch array needs */
+    /**
+     * Returns the number of doubles the scratch array needs.
+     *
+     * @return the number of doubles the scratch array needs
+     */
     public int scratchSize() {
         return scratchSize;
     }
@@ -109,7 +130,8 @@ public final class RealFft2d {
      * @param out receives the {@link #spectrumLength()} doubles of the spectrum; must not overlap {@code in}
      * @param outOff the offset of the spectrum
      * @param scratch caller-owned working memory of at least {@link #scratchSize()} doubles
-     * @param scratchOff the offset into {@code scratch}
+     * @param scratchOff the offset into {@code scratch}; the scratch must not overlap {@code in} or {@code out}
+     * @throws IllegalArgumentException if an array is null or too short from its offset; nothing is written then
      */
     public void forward(double[] in, int inOff, double[] out, int outOff, double[] scratch, int scratchOff) {
         check(in, inOff, (long) rows * cols, "in");
@@ -132,7 +154,8 @@ public final class RealFft2d {
      * @param out receives the grid, {@code rows·cols} doubles; must not overlap {@code in}
      * @param outOff the offset of element {@code (0, 0)}
      * @param scratch caller-owned working memory of at least {@link #scratchSize()} doubles
-     * @param scratchOff the offset into {@code scratch}
+     * @param scratchOff the offset into {@code scratch}; the scratch must not overlap {@code in} or {@code out}
+     * @throws IllegalArgumentException if an array is null or too short from its offset; nothing is written then
      */
     public void inverse(double[] in, int inOff, double[] out, int outOff, double[] scratch, int scratchOff) {
         check(in, inOff, spectrumLength(), "in");

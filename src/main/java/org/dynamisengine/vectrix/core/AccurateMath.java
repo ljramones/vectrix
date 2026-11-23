@@ -24,16 +24,20 @@
 package org.dynamisengine.vectrix.core;
 
 /**
- * Accurate transcendental functions: never the {@code -Djoml.fastmath} approximations, and the single place
+ * Accurate transcendental functions: never the {@code -Dvectrix.fastmath} approximations, and the single place
  * where Vectrix chooses between {@link java.lang.Math} and {@link StrictMath}.
  * <p>
  * By default these delegate to {@code java.lang.Math}, whose results may differ in the last bit between CPU
  * architectures and JIT tiers (HotSpot intrinsics; about 6.9 % of double {@code sin}/{@code cos} inputs differ from
  * {@code StrictMath} on arm64). With {@code -Dvectrix.strictMath=true} they delegate to {@code StrictMath}
  * (fdlibm), which is bitwise reproducible on every platform; {@link Math}'s transcendental functions then use them
- * too, ignoring {@code -Djoml.fastmath}. See {@code docs/determinism.md}.
+ * too, ignoring {@code -Dvectrix.fastmath}. See {@code docs/determinism.md}.
  * <p>
- * Every transcendental call in the library goes through this class or through {@link Math}.
+ * Every call to a platform transcendental ({@code java.lang.Math} or {@code StrictMath}) in the library goes through
+ * this class. The only other transcendental code is the fast-math approximations in {@link Math} and the series of
+ * {@link ReproducibleMath}, which are reproducible in any configuration.
+ * <p>
+ * All methods are static, allocation-free and thread-safe.
  */
 public final class AccurateMath {
 
@@ -43,42 +47,106 @@ public final class AccurateMath {
     private AccurateMath() {
     }
 
+    /**
+     * Returns the sine of an angle.
+     *
+     * @param a the angle in radians
+     * @return the sine of {@code a}; NaN for NaN and infinities
+     */
     public static double sin(double a) {
         return STRICT ? StrictMath.sin(a) : java.lang.Math.sin(a);
     }
 
+    /**
+     * Returns the cosine of an angle.
+     *
+     * @param a the angle in radians
+     * @return the cosine of {@code a}; NaN for NaN and infinities
+     */
     public static double cos(double a) {
         return STRICT ? StrictMath.cos(a) : java.lang.Math.cos(a);
     }
 
+    /**
+     * Returns the tangent of an angle.
+     *
+     * @param a the angle in radians
+     * @return the tangent of {@code a}; NaN for NaN and infinities
+     */
     public static double tan(double a) {
         return STRICT ? StrictMath.tan(a) : java.lang.Math.tan(a);
     }
 
+    /**
+     * Returns the arc sine.
+     *
+     * @param a the sine, in {@code [-1, 1]}
+     * @return the angle in radians, in {@code [-pi/2, pi/2]}; NaN if {@code |a| > 1} or {@code a} is NaN
+     */
     public static double asin(double a) {
         return STRICT ? StrictMath.asin(a) : java.lang.Math.asin(a);
     }
 
+    /**
+     * Returns the arc cosine.
+     *
+     * @param a the cosine, in {@code [-1, 1]}
+     * @return the angle in radians, in {@code [0, pi]}; NaN if {@code |a| > 1} or {@code a} is NaN
+     */
     public static double acos(double a) {
         return STRICT ? StrictMath.acos(a) : java.lang.Math.acos(a);
     }
 
+    /**
+     * Returns the arc tangent.
+     *
+     * @param a the tangent
+     * @return the angle in radians, in {@code [-pi/2, pi/2]}
+     */
     public static double atan(double a) {
         return STRICT ? StrictMath.atan(a) : java.lang.Math.atan(a);
     }
 
+    /**
+     * Returns the angle of the point {@code (x, y)} from the positive x axis, with the semantics of
+     * {@link java.lang.Math#atan2(double, double)}.
+     *
+     * @param y the y coordinate
+     * @param x the x coordinate
+     * @return the angle in radians, in {@code [-pi, pi]}
+     */
     public static double atan2(double y, double x) {
         return STRICT ? StrictMath.atan2(y, x) : java.lang.Math.atan2(y, x);
     }
 
+    /**
+     * Returns {@code e} raised to a power.
+     *
+     * @param a the exponent
+     * @return {@code e^a}
+     */
     public static double exp(double a) {
         return STRICT ? StrictMath.exp(a) : java.lang.Math.exp(a);
     }
 
+    /**
+     * Returns the natural logarithm.
+     *
+     * @param a the argument
+     * @return the natural logarithm of {@code a}; -infinity for 0, NaN for negative values and NaN
+     */
     public static double log(double a) {
         return STRICT ? StrictMath.log(a) : java.lang.Math.log(a);
     }
 
+    /**
+     * Returns {@code a} raised to the power {@code b}, with the semantics of
+     * {@link java.lang.Math#pow(double, double)}.
+     *
+     * @param a the base
+     * @param b the exponent
+     * @return {@code a^b}
+     */
     public static double pow(double a, double b) {
         return STRICT ? StrictMath.pow(a, b) : java.lang.Math.pow(a, b);
     }
@@ -92,6 +160,7 @@ public final class AccurateMath {
      * @param e the numerator, any value
      * @param d the denominator, {@code 1 <= d <= 2^60}
      * @return the cosine
+     * @throws IllegalArgumentException if {@code d} is outside {@code [1, 2^60]}
      * @since 2.5.0
      */
     public static double cosTurns(long e, long d) {
@@ -105,6 +174,7 @@ public final class AccurateMath {
      * @param e the numerator, any value
      * @param d the denominator, {@code 1 <= d <= 2^60}
      * @return the sine
+     * @throws IllegalArgumentException if {@code d} is outside {@code [1, 2^60]}
      * @since 2.5.0
      */
     public static double sinTurns(long e, long d) {
@@ -142,7 +212,12 @@ public final class AccurateMath {
         return v + 0.0; // no negative zero
     }
 
-    /** Cube root, sign-preserving ({@code cbrt(-8) = -2}). */
+    /**
+     * Cube root, sign-preserving ({@code cbrt(-8) = -2}).
+     *
+     * @param a the argument
+     * @return the cube root of {@code a}
+     */
     public static double cbrt(double a) {
         return STRICT ? StrictMath.cbrt(a) : java.lang.Math.cbrt(a);
     }

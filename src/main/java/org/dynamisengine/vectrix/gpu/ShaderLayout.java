@@ -62,7 +62,16 @@ public final class ShaderLayout {
 
     /** Scalar component types; {@code bool} occupies 4 bytes in interface blocks. */
     public enum Scalar {
-        FLOAT(4, "float", ""), INT(4, "int", "i"), UINT(4, "uint", "u"), BOOL(4, "bool", "b"), DOUBLE(8, "double", "d");
+        /** 32-bit {@code float}. */
+        FLOAT(4, "float", ""),
+        /** 32-bit signed {@code int}. */
+        INT(4, "int", "i"),
+        /** 32-bit {@code uint}. */
+        UINT(4, "uint", "u"),
+        /** {@code bool}, stored as 4 bytes. */
+        BOOL(4, "bool", "b"),
+        /** 64-bit {@code double}. */
+        DOUBLE(8, "double", "d");
 
         final int bytes;
         final String glsl;
@@ -74,7 +83,11 @@ public final class ShaderLayout {
             this.vectorPrefix = vectorPrefix;
         }
 
-        /** Size in bytes. */
+        /**
+         * The size of one component.
+         *
+         * @return the size in bytes
+         */
         public int bytes() {
             return bytes;
         }
@@ -94,6 +107,12 @@ public final class ShaderLayout {
      * @param rowMajor whether a matrix is stored row by row
      */
     public record Basic(Scalar scalar, int columns, int rows, boolean rowMajor) implements Type {
+        /**
+         * Validates the components.
+         *
+         * @throws IllegalArgumentException if {@code columns} or {@code rows} is outside {@code [1, 4]}, if a matrix
+         *         is not float or double or has fewer than 2 rows, or if a non-matrix is row-major
+         */
         public Basic {
             if (columns < 1 || columns > 4 || rows < 1 || rows > 4) {
                 throw new IllegalArgumentException("columns and rows must be 1..4");
@@ -106,7 +125,11 @@ public final class ShaderLayout {
             }
         }
 
-        /** Whether this is a matrix. */
+        /**
+         * Whether this is a matrix.
+         *
+         * @return {@code true} if {@code columns > 1}
+         */
         public boolean isMatrix() {
             return columns > 1;
         }
@@ -119,6 +142,11 @@ public final class ShaderLayout {
      * @param length the element count
      */
     public record ArrayOf(Type element, int length) implements Type {
+        /**
+         * Validates the components.
+         *
+         * @throws IllegalArgumentException if {@code element} is null or {@code length} is less than 1
+         */
         public ArrayOf {
             if (element == null || length < 1) {
                 throw new IllegalArgumentException("arrays need an element type and a length of at least 1");
@@ -133,6 +161,11 @@ public final class ShaderLayout {
      * @param type the member type
      */
     public record Member(String name, Type type) {
+        /**
+         * Validates the components.
+         *
+         * @throws IllegalArgumentException if {@code name} is null or empty, or {@code type} is null
+         */
         public Member {
             if (name == null || name.isEmpty() || type == null) {
                 throw new IllegalArgumentException("members need a name and a type");
@@ -147,6 +180,12 @@ public final class ShaderLayout {
      * @param members the members, in declaration order
      */
     public record Struct(String name, List<Member> members) implements Type {
+        /**
+         * Copies {@code members} into an unmodifiable list and validates it.
+         *
+         * @throws IllegalArgumentException if there are no members or two members share a name
+         * @throws NullPointerException if {@code members} or one of its elements is null
+         */
         public Struct {
             members = List.copyOf(members);
             if (members.isEmpty()) {
@@ -173,63 +212,139 @@ public final class ShaderLayout {
     public record Entry(String path, int offset, int size, int arrayStride, int matrixStride) {
     }
 
+    /** The GLSL {@code float} type. */
     public static final Basic FLOAT = new Basic(Scalar.FLOAT, 1, 1, false);
+    /** The GLSL {@code int} type. */
     public static final Basic INT = new Basic(Scalar.INT, 1, 1, false);
+    /** The GLSL {@code uint} type. */
     public static final Basic UINT = new Basic(Scalar.UINT, 1, 1, false);
+    /** The GLSL {@code bool} type (4 bytes). */
     public static final Basic BOOL = new Basic(Scalar.BOOL, 1, 1, false);
+    /** The GLSL {@code double} type. */
     public static final Basic DOUBLE = new Basic(Scalar.DOUBLE, 1, 1, false);
 
-    /** {@code vecN}. */
+    /**
+     * The {@code vecN} type; {@code n == 1} gives the scalar type.
+     *
+     * @param n the component count, 1 to 4
+     * @return the type
+     * @throws IllegalArgumentException if {@code n} is outside {@code [1, 4]}
+     */
     public static Basic vec(int n) {
         return new Basic(Scalar.FLOAT, 1, n, false);
     }
 
-    /** {@code ivecN}. */
+    /**
+     * The {@code ivecN} type; {@code n == 1} gives the scalar type.
+     *
+     * @param n the component count, 1 to 4
+     * @return the type
+     * @throws IllegalArgumentException if {@code n} is outside {@code [1, 4]}
+     */
     public static Basic ivec(int n) {
         return new Basic(Scalar.INT, 1, n, false);
     }
 
-    /** {@code uvecN}. */
+    /**
+     * The {@code uvecN} type; {@code n == 1} gives the scalar type.
+     *
+     * @param n the component count, 1 to 4
+     * @return the type
+     * @throws IllegalArgumentException if {@code n} is outside {@code [1, 4]}
+     */
     public static Basic uvec(int n) {
         return new Basic(Scalar.UINT, 1, n, false);
     }
 
-    /** {@code bvecN}. */
+    /**
+     * The {@code bvecN} type; {@code n == 1} gives the scalar type.
+     *
+     * @param n the component count, 1 to 4
+     * @return the type
+     * @throws IllegalArgumentException if {@code n} is outside {@code [1, 4]}
+     */
     public static Basic bvec(int n) {
         return new Basic(Scalar.BOOL, 1, n, false);
     }
 
-    /** {@code dvecN}. */
+    /**
+     * The {@code dvecN} type; {@code n == 1} gives the scalar type.
+     *
+     * @param n the component count, 1 to 4
+     * @return the type
+     * @throws IllegalArgumentException if {@code n} is outside {@code [1, 4]}
+     */
     public static Basic dvec(int n) {
         return new Basic(Scalar.DOUBLE, 1, n, false);
     }
 
-    /** {@code matCxR}, column-major. */
+    /**
+     * The {@code matCxR} type, column-major. {@code columns == 1} gives a vector of {@code rows} components.
+     *
+     * @param columns the column count, 1 to 4
+     * @param rows the row count, 2 to 4 for a matrix
+     * @return the type
+     * @throws IllegalArgumentException if the dimensions are out of range
+     */
     public static Basic mat(int columns, int rows) {
         return new Basic(Scalar.FLOAT, columns, rows, false);
     }
 
-    /** {@code dmatCxR}, column-major. */
+    /**
+     * The {@code dmatCxR} type, column-major. {@code columns == 1} gives a vector of {@code rows} components.
+     *
+     * @param columns the column count, 1 to 4
+     * @param rows the row count, 2 to 4 for a matrix
+     * @return the type
+     * @throws IllegalArgumentException if the dimensions are out of range
+     */
     public static Basic dmat(int columns, int rows) {
         return new Basic(Scalar.DOUBLE, columns, rows, false);
     }
 
-    /** The row-major form of a matrix type. */
+    /**
+     * The row-major form of a matrix type.
+     *
+     * @param matrix a matrix type
+     * @return the same matrix type, stored row by row
+     * @throws IllegalArgumentException if {@code matrix} is not a matrix
+     */
     public static Basic rowMajor(Basic matrix) {
         return new Basic(matrix.scalar(), matrix.columns(), matrix.rows(), true);
     }
 
-    /** An array type. */
+    /**
+     * An array type.
+     *
+     * @param element the element type; nest arrays for multidimensional ones
+     * @param length the element count, at least 1
+     * @return the type
+     * @throws IllegalArgumentException if {@code element} is null or {@code length} is less than 1
+     */
     public static ArrayOf array(Type element, int length) {
         return new ArrayOf(element, length);
     }
 
-    /** A member. */
+    /**
+     * A named member.
+     *
+     * @param name the member name
+     * @param type the member type
+     * @return the member
+     * @throws IllegalArgumentException if {@code name} is null or empty, or {@code type} is null
+     */
     public static Member member(String name, Type type) {
         return new Member(name, type);
     }
 
-    /** A struct type. */
+    /**
+     * A struct type.
+     *
+     * @param name the GLSL type name
+     * @param members the members, in declaration order
+     * @return the type
+     * @throws IllegalArgumentException if there are no members or two members share a name
+     */
     public static Struct struct(String name, Member... members) {
         return new Struct(name, List.of(members));
     }
@@ -238,7 +353,13 @@ public final class ShaderLayout {
         return (x + a - 1) / a * a;
     }
 
-    /** The base alignment of {@code t} under {@code rules}. */
+    /**
+     * The base alignment of {@code t} under {@code rules}.
+     *
+     * @param rules the layout rules
+     * @param t the type
+     * @return the alignment in bytes
+     */
     public static int alignment(Rules rules, Type t) {
         switch (t) {
             case Basic b -> {
@@ -270,12 +391,25 @@ public final class ShaderLayout {
         return rules == Rules.STD140 ? roundUp(a, 16) : a;
     }
 
-    /** The stride between consecutive elements of an array of {@code element}. */
+    /**
+     * The stride between consecutive elements of an array of {@code element}.
+     *
+     * @param rules the layout rules
+     * @param element the element type
+     * @return the stride in bytes
+     */
     public static int arrayStride(Rules rules, Type element) {
         return roundUp(size(rules, element), arrayAlignment(rules, element));
     }
 
-    /** The stride between consecutive columns (rows, if row-major) of a matrix. */
+    /**
+     * The stride between consecutive columns (rows, if row-major) of a matrix.
+     *
+     * @param rules the layout rules
+     * @param matrix the matrix type
+     * @return the stride in bytes
+     * @throws IllegalArgumentException if {@code matrix} is not a matrix
+     */
     public static int matrixStride(Rules rules, Basic matrix) {
         if (!matrix.isMatrix()) {
             throw new IllegalArgumentException("not a matrix");
@@ -284,7 +418,13 @@ public final class ShaderLayout {
         return arrayStride(rules, new Basic(matrix.scalar(), 1, components, false));
     }
 
-    /** The size of {@code t} in bytes, including a struct's trailing padding. */
+    /**
+     * The size of {@code t} in bytes, including a struct's trailing padding.
+     *
+     * @param rules the layout rules
+     * @param t the type
+     * @return the size in bytes
+     */
     public static int size(Rules rules, Type t) {
         return switch (t) {
             case Basic b -> b.isMatrix() ? (b.rowMajor() ? b.rows() : b.columns()) * matrixStride(rules, b)
@@ -351,7 +491,13 @@ public final class ShaderLayout {
         throw new IllegalArgumentException("no member " + name + " in " + s.name());
     }
 
-    /** Lays out {@code block} as an interface block under {@code rules}. */
+    /**
+     * Lays out {@code block} as an interface block under {@code rules}.
+     *
+     * @param rules the layout rules
+     * @param block the block's members, as a struct
+     * @return the layout
+     */
     public static Block layout(Rules rules, Struct block) {
         return new Block(rules, block);
     }
@@ -392,12 +538,20 @@ public final class ShaderLayout {
             }
         }
 
-        /** The rules this block was laid out with. */
+        /**
+         * The rules this block was laid out with.
+         *
+         * @return the rules
+         */
         public Rules rules() {
             return rules;
         }
 
-        /** The block's type. */
+        /**
+         * The block's type.
+         *
+         * @return the struct this block was laid out from
+         */
         public Struct type() {
             return type;
         }
@@ -406,22 +560,36 @@ public final class ShaderLayout {
          * The block size as SPIR-V reflection reports it: the offset of the last member plus that member's declared
          * size. A trailing array counts its full stride; a trailing struct counts up to its own last member, without
          * its trailing padding.
+         *
+         * @return the size in bytes
          */
         public int size() {
             return declaredEnd(rules, type);
         }
 
-        /** The block's base alignment. */
+        /**
+         * The block's base alignment.
+         *
+         * @return the alignment in bytes
+         */
         public int alignment() {
             return ShaderLayout.alignment(rules, type);
         }
 
-        /** The size rounded up to the alignment: the stride of an array of these blocks, or of the struct. */
+        /**
+         * The size rounded up to the alignment: the stride of an array of these blocks, or of the struct.
+         *
+         * @return the padded size in bytes
+         */
         public int paddedSize() {
             return ShaderLayout.size(rules, type);
         }
 
-        /** Every member, depth first; elements of arrays of structs appear as {@code name[0].member}. */
+        /**
+         * Every member, depth first; elements of arrays of structs appear as {@code name[0].member}.
+         *
+         * @return an unmodifiable list of entries
+         */
         public List<Entry> entries() {
             return entries;
         }
@@ -429,6 +597,9 @@ public final class ShaderLayout {
         /**
          * The byte offset of a member path such as {@code "lights[3].color"} or {@code "weights[200]"}.
          *
+         * @param path the member path: names separated by {@code .}, each optionally followed by {@code [index]}
+         *        subscripts
+         * @return the offset in bytes from the start of the block
          * @throws IllegalArgumentException
          *             for an unknown member, an index out of range, or an index on a non-array
          */
@@ -436,7 +607,13 @@ public final class ShaderLayout {
             return resolve(path, new Type[1]);
         }
 
-        /** The array stride of the array at {@code path}. */
+        /**
+         * The array stride of the array at {@code path}.
+         *
+         * @param path a member path (see {@link #offset}) that names an array
+         * @return the stride in bytes
+         * @throws IllegalArgumentException if the path is invalid or does not name an array
+         */
         public int arrayStride(String path) {
             Type t = typeAt(path);
             if (!(t instanceof ArrayOf a)) {
@@ -445,7 +622,13 @@ public final class ShaderLayout {
             return ShaderLayout.arrayStride(rules, a.element());
         }
 
-        /** The matrix stride of the matrix at {@code path} (index into arrays of matrices first). */
+        /**
+         * The matrix stride of the matrix at {@code path} (index into arrays of matrices first).
+         *
+         * @param path a member path (see {@link #offset}) that names a matrix
+         * @return the stride in bytes
+         * @throws IllegalArgumentException if the path is invalid or does not name a matrix
+         */
         public int matrixStride(String path) {
             Type t = typeAt(path);
             if (!(t instanceof Basic b) || !b.isMatrix()) {
@@ -497,7 +680,12 @@ public final class ShaderLayout {
          * members only, so a struct holding a row-major matrix is rejected.
          *
          * @param storage
-         *            {@code "uniform"} or {@code "buffer"}
+         *            {@code "uniform"} or {@code "buffer"}; written as given, not validated
+         * @param blockName the block name
+         * @param instanceName the instance name
+         * @param binding the binding number
+         * @return the GLSL source, one declaration per line
+         * @throws IllegalArgumentException if a struct contains a row-major matrix
          */
         public String toGlsl(String storage, String blockName, String instanceName, int binding) {
             StringBuilder sb = new StringBuilder();

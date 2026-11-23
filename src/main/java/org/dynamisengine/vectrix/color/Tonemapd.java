@@ -42,20 +42,36 @@ public final class Tonemapd {
         return java.lang.Math.max(0.0, java.lang.Math.min(1.0, x));
     }
 
-    /** Narkowicz's fit of the ACES RRT+ODT curve (2015), per channel: {@code x (2.51 x + 0.03) / (x (2.43 x + 0.59) + 0.14)}. */
+    /**
+     * Applies Narkowicz's fit of the ACES RRT+ODT curve (2015) to one channel:
+     * {@code x (2.51 x + 0.03) / (x (2.43 x + 0.59) + 0.14)}, clamped to [0, 1].
+     *
+     * @param x the exposed linear value, at least 0
+     * @return the display-referred linear value, in [0, 1]
+     */
     public static double acesNarkowicz(double x) {
         return clamp01(x * (2.51 * x + 0.03) / (x * (2.43 * x + 0.59) + 0.14));
     }
 
-    /** {@link #acesNarkowicz} per channel. */
+    /**
+     * Applies {@link #acesNarkowicz(double)} to each channel.
+     *
+     * @param rgb the exposed linear sRGB color
+     * @param dest receives the display-referred color; may be {@code rgb}
+     * @return {@code dest}
+     */
     public static Vector3d acesNarkowicz(Vector3dc rgb, Vector3d dest) {
         return dest.set(acesNarkowicz(rgb.x()), acesNarkowicz(rgb.y()), acesNarkowicz(rgb.z()));
     }
 
     /**
-     * Stephen Hill's fit of the ACES RRT+ODT (sRGB output): the ACES input matrix, a rational fit of the tone curve per
-     * channel, and the output matrix. More faithful to ACES than {@link #acesNarkowicz}, including its desaturation of
-     * bright colours.
+     * Applies Stephen Hill's fit of the ACES RRT+ODT (sRGB output): the ACES input matrix, a rational fit of the tone
+     * curve per channel, and the output matrix, with each channel clamped to [0, 1]. More faithful to ACES than
+     * {@link #acesNarkowicz}, including its desaturation of bright colors.
+     *
+     * @param rgb the exposed linear sRGB color
+     * @param dest receives the display-referred color; may be {@code rgb}
+     * @return {@code dest}
      */
     public static Vector3d acesHill(Vector3dc rgb, Vector3d dest) {
         double r = rgb.x(), g = rgb.y(), b = rgb.z();
@@ -77,11 +93,16 @@ public final class Tonemapd {
     }
 
     /**
-     * AgX (Sobotka), in the widely used approximation of Wrensch: the AgX inset matrix, a log2 encoding over
+     * Applies AgX (Sobotka), in the widely used approximation of Wrensch: the AgX inset matrix, a log2 encoding over
      * {@code [-12.47, 4.03]} EV, a sixth-order fit of the default contrast curve, the outset matrix, and the 2.2 power
-     * back to linear. Hue-stable at high intensities, where per-channel curves skew towards the primaries. The published
-     * inset matrix's rows sum to 1 only within 1.4e-4, so grey stays neutral to about 2e-4 and, where the log clamp
-     * engages near 16, the output dips by about 3e-6.
+     * back to linear, with each channel clamped to [0, 1] before that power. It keeps hues stable at high intensities,
+     * where per-channel curves skew towards the primaries. The published inset matrix's rows sum to 1 only within
+     * 1.4e-4, so grey stays neutral to about 2e-4 and, where the log clamp engages near 16, the output dips by about
+     * 3e-6.
+     *
+     * @param rgb the exposed linear sRGB color; channels at or below 0 map to the bottom of the log range
+     * @param dest receives the display-referred color; may be {@code rgb}
+     * @return {@code dest}
      */
     public static Vector3d agx(Vector3dc rgb, Vector3d dest) {
         double r = rgb.x(), g = rgb.y(), b = rgb.z();
@@ -117,8 +138,13 @@ public final class Tonemapd {
     }
 
     /**
-     * Khronos PBR Neutral (2024): leaves colours below about 0.8 almost untouched (so base colours reproduce their
-     * sRGB values), compresses highlights, and desaturates towards white as they clip.
+     * Applies Khronos PBR Neutral (2024): leaves colors below about 0.8 almost untouched (so base colors reproduce
+     * their sRGB values), compresses highlights towards 1, and desaturates towards white as they clip. The result is
+     * not clamped.
+     *
+     * @param rgb the exposed linear sRGB color, channels at least 0
+     * @param dest receives the display-referred color; may be {@code rgb}
+     * @return {@code dest}
      */
     public static Vector3d khronosPbrNeutral(Vector3dc rgb, Vector3d dest) {
         double startCompression = 0.8 - 0.04;
@@ -144,16 +170,30 @@ public final class Tonemapd {
     }
 
     /**
-     * Uchimura's "GT" curve (Gran Turismo Sport, 2017) with its default parameters: a toe, a linear section that keeps
-     * mid-tones unchanged (0.22 to 0.62), and a smooth shoulder to 1.
+     * Applies Uchimura's "GT" curve (Gran Turismo Sport, 2017) with its default parameters (P = 1, a = 1, m = 0.22,
+     * l = 0.4, c = 1.33, b = 0): a toe, a linear section that keeps mid-tones unchanged (0.22 to 0.532), and a smooth
+     * shoulder towards 1.
+     *
+     * @param x the exposed linear value
+     * @return the display-referred linear value, below 1
      */
     public static double uchimura(double x) {
         return uchimura(x, 1.0, 1.0, 0.22, 0.4, 1.33, 0.0);
     }
 
     /**
-     * Uchimura's curve with explicit parameters: {@code maxBrightness} P, {@code contrast} a, linear-section start m and
-     * length l, black tightness c and pedestal b.
+     * Applies Uchimura's "GT" curve with explicit parameters. The linear section runs from {@code linearStart} m to
+     * {@code m + (P - m) l / a}; below m it blends into the toe {@code m (x / m)^c + b}, above it the shoulder rises
+     * towards P.
+     *
+     * @param x the exposed linear value
+     * @param maxBrightness the maximum output P, greater than {@code linearStart}
+     * @param contrast the slope a of the linear section, greater than 0
+     * @param linearStart the start m of the linear section, greater than 0
+     * @param linearLength the length l of the linear section, as a fraction of {@code P - m}
+     * @param black the toe exponent c (black tightness)
+     * @param pedestal the black level b added to the toe
+     * @return the display-referred linear value
      */
     public static double uchimura(double x, double maxBrightness, double contrast, double linearStart, double linearLength,
             double black, double pedestal) {
@@ -178,9 +218,12 @@ public final class Tonemapd {
     }
 
     /**
-     * Lottes' curve (2016) with its published defaults: contrast 1.6, shoulder 0.977, white at 8, and middle grey 0.18
-     * mapped to 0.267. The curve keeps rising past the white point, so the result is clamped to {@code [0, 1]}, as in
-     * Lottes' presentation.
+     * Applies Lottes' curve (2016) with its published defaults: contrast 1.6, shoulder 0.977, white at 8, and middle
+     * grey 0.18 mapped to 0.267. The curve keeps rising past the white point, so the result is clamped to
+     * {@code [0, 1]}, as in Lottes' presentation.
+     *
+     * @param x the exposed linear value; negative values count as 0
+     * @return the display-referred linear value, in [0, 1]
      */
     public static double lottes(double x) {
         double a = 1.6, d = 0.977, hdrMax = 8.0, midIn = 0.18, midOut = 0.267;
@@ -193,15 +236,26 @@ public final class Tonemapd {
         return clamp01(xa / (xad * b + c));
     }
 
-    /** Extended Reinhard with a white point: {@code x (1 + x / white²) / (1 + x)}, which maps {@code white} to 1. */
+    /**
+     * Applies extended Reinhard with a white point: {@code x (1 + x / white²) / (1 + x)}, which maps {@code white}
+     * to 1. Values above {@code white} give results above 1; nothing is clamped.
+     *
+     * @param x the exposed linear value, at least 0
+     * @param white the input value that maps to 1, greater than 0
+     * @return the display-referred linear value
+     */
     public static double reinhardExtended(double x, double white) {
         return x * (1.0 + x / (white * white)) / (1.0 + x);
     }
 
     /**
-     * DynamisLightEngine's current tonemap, reproduced exactly: {@code 1 - exp(-color * exposure)} per channel, with
+     * Applies DynamisLightEngine's current tonemap, reproduced exactly: {@code 1 - exp(-x * exposure)}, with
      * {@code exposure} clamped to at least 1e-4 (post-processing shaders in {@code VulkanPostShaderSources} and
      * {@code GlShaderSources}). Its exposure is a plain multiplier; see {@link Exposured} for physical exposure.
+     *
+     * @param x the linear value
+     * @param exposure the exposure multiplier
+     * @return the tonemapped value, below 1
      */
     public static double lightEngineExponential(double x, double exposure) {
         return 1.0 - AccurateMath.exp(-x * java.lang.Math.max(exposure, 0.0001));

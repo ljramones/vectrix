@@ -33,5 +33,16 @@
  * </ul>
  * These are pure functions. Vectrix never steps a simulation: bodies, solvers, integration and vehicle models belong
  * to the physics library. Contact kernels are in {@code geometry.Contacts*}.
+ * <p>
+ * <b>Contract.</b> Threading: the classes are stateless and safe to call from any thread; the destination objects
+ * belong to the caller. Allocation: no method allocates. Determinism: the transcendental functions go through
+ * {@code AccurateMath}, so results match across platforms under {@code -Dvectrix.strictMath}; no kernel consults the
+ * math mode. Errors: only {@code PbdConstraints*.shapeMatchingGoal} validates its arguments (array lengths, with
+ * {@code IllegalArgumentException}); the other methods trust their inputs, degenerate constraint configurations give
+ * zero corrections, a total mass of 0 in {@code combine} gives NaN, and {@code polyhedron} relies on Java's array
+ * bounds checks. Precision and naming: classes ending in {@code f} are float and their {@code d} twins double; the
+ * spring steps, the tyre kernels, the {@code MassPropertiesf} tensor operations and the shape-matching rotation
+ * compute in double even in the float classes. Inertia tensors are symmetric {@code Matrix3f}/{@code Matrix3d}
+ * (column-major), and angles are in radians.
  */
 package org.dynamisengine.vectrix.physics;

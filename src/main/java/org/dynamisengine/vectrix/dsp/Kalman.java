@@ -32,6 +32,9 @@ package org.dynamisengine.vectrix.dsp;
  * positive semi-definite despite rounding; both steps also symmetrize {@code P} exactly. Every sum runs in a fixed
  * order, so results are reproducible. Nothing allocates; calls take {@link #scratchSize(int, int)} doubles of
  * scratch.
+ * <p>
+ * All arrays are used from index 0. Only the scratch size is checked up front; other arrays that are too short
+ * fail with {@link ArrayIndexOutOfBoundsException} part way through, leaving the state partly updated.
  *
  * @since 2.5.0
  */
@@ -40,7 +43,13 @@ public final class Kalman {
     private Kalman() {
     }
 
-    /** @return the scratch doubles {@link #predict} and {@link #update} need */
+    /**
+     * Returns the scratch size of {@link #predict} and {@link #update}.
+     *
+     * @param n the number of states
+     * @param m the number of measurements (0 for {@link #predict} alone)
+     * @return the number of scratch doubles
+     */
     public static int scratchSize(int n, int m) {
         return 3 * n * n + 2 * n * m + m * m + 2 * m + n;
     }
@@ -48,10 +57,13 @@ public final class Kalman {
     /**
      * Predict: {@code x = F·x}, {@code P = F·P·Fᵀ + Q}.
      *
+     * @param n the number of states
      * @param x the {@code n} state values, updated
      * @param p the {@code n×n} covariance, updated
      * @param f the {@code n×n} transition matrix
      * @param q the {@code n×n} process noise covariance
+     * @param scratch at least {@code scratchSize(n, 0)} doubles of working memory
+     * @throws IllegalArgumentException if {@code scratch} is too short
      */
     public static void predict(int n, double[] x, double[] p, double[] f, double[] q, double[] scratch) {
         need(scratch, scratchSize(n, 0));
@@ -77,11 +89,17 @@ public final class Kalman {
      * Update with a measurement {@code z}: innovation {@code y = z - H·x}, gain {@code K = P·Hᵀ·S⁻¹},
      * {@code x += K·y}, and the Joseph-form covariance.
      *
+     * @param n the number of states
+     * @param m the number of measurements
+     * @param x the {@code n} state values, updated
+     * @param p the {@code n×n} covariance, updated
      * @param h the {@code m×n} measurement matrix
      * @param r the {@code m×m} measurement noise covariance
      * @param z the {@code m} measurements
+     * @param scratch at least {@code scratchSize(n, m)} doubles of working memory
      * @return the squared Mahalanobis distance {@code yᵀ·S⁻¹·y} of the innovation (for gating)
-     * @throws IllegalStateException if {@code S} is not positive definite
+     * @throws IllegalArgumentException if {@code scratch} is too short
+     * @throws IllegalStateException if {@code S} is not positive definite; {@code x} and {@code p} are then unchanged
      */
     public static double update(int n, int m, double[] x, double[] p, double[] h, double[] r, double[] z,
             double[] scratch) {

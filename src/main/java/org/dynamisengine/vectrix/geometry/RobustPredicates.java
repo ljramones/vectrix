@@ -32,8 +32,12 @@ import java.math.BigDecimal;
  * exceeds Shewchuk's forward error bound; otherwise it recomputes exactly with {@link BigDecimal} (every product and
  * sum of doubles is exact there). The exact path only runs for near-degenerate configurations.
  * <p>
- * Results are the determinants themselves, so their magnitude is meaningful when the fast path is taken; only the
- * sign is guaranteed. Float coordinates convert to double exactly.
+ * Results are the determinants themselves when the fast path is taken; the exact path returns only the sign
+ * ({@code -1.0}, {@code 0.0} or {@code 1.0}), so only the sign is guaranteed. Float coordinates convert to double
+ * exactly. The fast path does not allocate; the exact path allocates {@link BigDecimal} temporaries.
+ * <p>
+ * Coordinates must be finite: a NaN or infinite coordinate can send a predicate to the exact path, where it throws
+ * {@link NumberFormatException}. The class is stateless and safe to call from any thread.
  *
  * @since 2.2.0
  */
@@ -50,6 +54,14 @@ public final class RobustPredicates {
     /**
      * Positive if {@code a, b, c} are in counter-clockwise order, negative if clockwise, zero if collinear: twice the
      * signed area {@code (a - c) × (b - c)}.
+     *
+     * @param ax the x coordinate of a
+     * @param ay the y coordinate of a
+     * @param bx the x coordinate of b
+     * @param by the y coordinate of b
+     * @param cx the x coordinate of c
+     * @param cy the y coordinate of c
+     * @return the orientation determinant, or only its sign when it was computed exactly
      */
     public static double orient2d(double ax, double ay, double bx, double by, double cx, double cy) {
         double detLeft = (ax - cx) * (by - cy);
@@ -77,7 +89,18 @@ public final class RobustPredicates {
         return acx.multiply(bcy).subtract(acy.multiply(bcx)).signum();
     }
 
-    /** {@link #orient2d(double, double, double, double, double, double)} for float coordinates. */
+    /**
+     * {@link #orient2d(double, double, double, double, double, double)} for float coordinates, which are widened to
+     * double exactly.
+     *
+     * @param ax the x coordinate of a
+     * @param ay the y coordinate of a
+     * @param bx the x coordinate of b
+     * @param by the y coordinate of b
+     * @param cx the x coordinate of c
+     * @param cy the y coordinate of c
+     * @return the orientation determinant, or only its sign when it was computed exactly
+     */
     public static double orient2d(float ax, float ay, float bx, float by, float cx, float cy) {
         return orient2d((double) ax, ay, bx, by, cx, cy);
     }
@@ -85,6 +108,20 @@ public final class RobustPredicates {
     /**
      * Positive if {@code d} lies below the plane through {@code a, b, c} (which appear counter-clockwise seen from
      * above), negative if above, zero if coplanar: the determinant of {@code a - d, b - d, c - d}.
+     *
+     * @param ax the x coordinate of a
+     * @param ay the y coordinate of a
+     * @param az the z coordinate of a
+     * @param bx the x coordinate of b
+     * @param by the y coordinate of b
+     * @param bz the z coordinate of b
+     * @param cx the x coordinate of c
+     * @param cy the y coordinate of c
+     * @param cz the z coordinate of c
+     * @param dx the x coordinate of the tested point d
+     * @param dy the y coordinate of the tested point d
+     * @param dz the z coordinate of the tested point d
+     * @return the orientation determinant, or only its sign when it was computed exactly
      */
     public static double orient3d(double ax, double ay, double az, double bx, double by, double bz, double cx, double cy,
             double cz, double dx, double dy, double dz) {
@@ -110,7 +147,17 @@ public final class RobustPredicates {
 
     /**
      * Positive if {@code d} lies inside the circle through {@code a, b, c} (counter-clockwise), negative if outside,
-     * zero if cocircular.
+     * zero if cocircular. If {@code a, b, c} are clockwise, the sign is reversed.
+     *
+     * @param ax the x coordinate of a
+     * @param ay the y coordinate of a
+     * @param bx the x coordinate of b
+     * @param by the y coordinate of b
+     * @param cx the x coordinate of c
+     * @param cy the y coordinate of c
+     * @param dx the x coordinate of the tested point d
+     * @param dy the y coordinate of the tested point d
+     * @return the incircle determinant, or only its sign when it was computed exactly
      */
     public static double incircle(double ax, double ay, double bx, double by, double cx, double cy, double dx,
             double dy) {
@@ -140,7 +187,24 @@ public final class RobustPredicates {
 
     /**
      * Positive if {@code e} lies inside the sphere through {@code a, b, c, d} (with {@code orient3d(a, b, c, d) > 0}),
-     * negative if outside, zero if cospherical.
+     * negative if outside, zero if cospherical. If {@code orient3d(a, b, c, d) < 0}, the sign is reversed.
+     *
+     * @param ax the x coordinate of a
+     * @param ay the y coordinate of a
+     * @param az the z coordinate of a
+     * @param bx the x coordinate of b
+     * @param by the y coordinate of b
+     * @param bz the z coordinate of b
+     * @param cx the x coordinate of c
+     * @param cy the y coordinate of c
+     * @param cz the z coordinate of c
+     * @param dx the x coordinate of d
+     * @param dy the y coordinate of d
+     * @param dz the z coordinate of d
+     * @param ex the x coordinate of the tested point e
+     * @param ey the y coordinate of the tested point e
+     * @param ez the z coordinate of the tested point e
+     * @return the insphere determinant, or only its sign when it was computed exactly
      */
     public static double insphere(double ax, double ay, double az, double bx, double by, double bz, double cx,
             double cy, double cz, double dx, double dy, double dz, double ex, double ey, double ez) {
@@ -205,7 +269,24 @@ public final class RobustPredicates {
         return sum.signum();
     }
 
-    /** {@link #orient3d(double, double, double, double, double, double, double, double, double, double, double, double)} for floats. */
+    /**
+     * {@link #orient3d(double, double, double, double, double, double, double, double, double, double, double, double)
+     * orient3d} for float coordinates, which are widened to double exactly.
+     *
+     * @param ax the x coordinate of a
+     * @param ay the y coordinate of a
+     * @param az the z coordinate of a
+     * @param bx the x coordinate of b
+     * @param by the y coordinate of b
+     * @param bz the z coordinate of b
+     * @param cx the x coordinate of c
+     * @param cy the y coordinate of c
+     * @param cz the z coordinate of c
+     * @param dx the x coordinate of the tested point d
+     * @param dy the y coordinate of the tested point d
+     * @param dz the z coordinate of the tested point d
+     * @return the orientation determinant, or only its sign when it was computed exactly
+     */
     public static double orient3d(float ax, float ay, float az, float bx, float by, float bz, float cx, float cy,
             float cz, float dx, float dy, float dz) {
         return orient3d((double) ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);

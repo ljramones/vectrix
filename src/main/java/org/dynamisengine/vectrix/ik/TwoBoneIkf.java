@@ -45,8 +45,22 @@ public final class TwoBoneIkf {
     }
 
     /**
-     * Solves the chain; returns the remaining distance from the new end position to the target (0 when reached).
-     * If the pole is in line with the target, the current bend direction is kept.
+     * Solves the chain. If the pole is in line with the target, the current bend direction is kept. If the target is
+     * at the root or a bone has zero length, the chain is left unchanged and both deltas are the identity. Uses
+     * per-thread scratch arrays, which are allocated on the first call in each thread.
+     *
+     * @param root the root joint position (fixed)
+     * @param mid the current middle joint position
+     * @param end the current end joint position
+     * @param target the position the end joint should reach
+     * @param pole a point on the side the chain should bend toward
+     * @param maxStretch the largest factor the bones may lengthen by for out-of-reach targets; values at or below 1
+     *        disable stretching
+     * @param midOut receives the new middle joint position; may be {@code mid}, but not {@code target}
+     * @param endOut receives the new end joint position; may be {@code end}, but not {@code target}
+     * @param rootDelta receives the world-space delta rotation of the root bone
+     * @param midDelta receives the world-space delta rotation of the middle bone, applied after {@code rootDelta}
+     * @return the remaining distance from the new end position to the target (0 when reached)
      */
     public static float solve(Vector3fc root, Vector3fc mid, Vector3fc end, Vector3fc target, Vector3fc pole,
             float maxStretch, Vector3f midOut, Vector3f endOut, Quaternionf rootDelta, Quaternionf midDelta) {

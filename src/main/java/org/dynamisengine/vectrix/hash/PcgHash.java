@@ -24,6 +24,13 @@
 package org.dynamisengine.vectrix.hash;
 
 /**
+ * Stateless 32-bit integer hashes built on the PCG generator: one LCG step followed by the RXS-M-XS output
+ * permutation. Each input bit affects every output bit, so consecutive inputs give unrelated outputs, which suits
+ * procedural noise, per-cell random values and seeding. Not cryptographic.
+ * <p>
+ * The methods are pure functions of their arguments: they give the same bits on every platform, do not allocate and
+ * are safe to call from any thread.
+ *
  * @since 1.0.0
  */
 
@@ -34,12 +41,27 @@ public final class PcgHash {
     private PcgHash() {
     }
 
+    /**
+     * Hashes one 32-bit value.
+     *
+     * @param input the value to hash
+     * @return the hash, any 32-bit value
+     */
     public static int hash32(int input) {
         int state = input * PCG_MULTIPLIER + PCG_INCREMENT;
         int word = ((state >>> ((state >>> 28) + 4)) ^ state) * 277803737;
         return (word >>> 22) ^ word;
     }
 
+    /**
+     * Hashes three 32-bit values by chaining {@link #hash32(int)}: {@code hash32(hash32(hash32(x) ^ y) ^ z)}. The
+     * order of the arguments matters.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @return the hash, any 32-bit value
+     */
     public static int hash32(int x, int y, int z) {
         int h = hash32(x);
         h = hash32(h ^ y);

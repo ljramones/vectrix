@@ -25,6 +25,17 @@
  * Inverse-kinematics kernels: analytic two-bone, FABRIK and CCD passes over flat position chains, a damped
  * least-squares step, swing-twist / cone / hinge joint limits, and aim rotations. They are pure functions of vectors,
  * quaternions and arrays; iteration counts, tolerances and limits are always parameters. Rigs, poses, chain
- * definitions and solve policy belong to Animis (see {@code docs/architecture/math-gpu-ownership.md}).
+ * definitions and solve policy belong to Animis (see {@code docs/architecture/math-gpu-ownership.md} in the Dynamis
+ * repository).
+ * <p>
+ * <b>Contract.</b> Threading: the classes are stateless static utilities and safe to call from any thread on separate
+ * output objects and arrays. Allocation: the solvers use per-thread scratch arrays that are allocated on the first
+ * call in each thread ({@code Fabrik} also reallocates its length array for chains of more than 32 bones); otherwise
+ * nothing is allocated. Determinism: transcendentals go through {@link org.dynamisengine.vectrix.core.AccurateMath},
+ * so results match across platforms under {@code -Dvectrix.strictMath}. Errors: no method validates its inputs or
+ * throws; degenerate geometry (zero-length bones, parallel axes) takes the documented fallback, and the position
+ * arrays take a joint count but no offsets, start at index 0 and rely on Java's array bounds checks. Precision and
+ * naming: classes ending in {@code f} take and return {@code float} and evaluate in {@code double}; classes ending in
+ * {@code d} are their {@code double} twins and share the same double-precision helpers.
  */
 package org.dynamisengine.vectrix.ik;

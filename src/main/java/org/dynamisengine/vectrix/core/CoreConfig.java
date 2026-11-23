@@ -64,13 +64,19 @@ public final class CoreConfig {
     /**
      * The math mode in effect for the calling thread: the innermost {@link #runWithMathMode} /
      * {@link #callWithMathMode} override if one is active, otherwise the process-wide default.
+     *
+     * @return the math mode in effect for the calling thread
      */
     public static MathMode mathMode() {
         // JDK 25's ScopedValue.orElse rejects null, so the default is passed as the fallback
         return ACTIVE_OVERRIDES.get() != 0 ? SCOPED_MODE.orElse(mathMode) : mathMode;
     }
 
-    /** The process-wide default math mode, ignoring any override active on the calling thread. */
+    /**
+     * The process-wide default math mode, ignoring any override active on the calling thread.
+     *
+     * @return the process-wide default math mode
+     */
     public static MathMode defaultMathMode() {
         return mathMode;
     }
@@ -79,6 +85,8 @@ public final class CoreConfig {
      * Runs {@code task} with {@code mode} as the math mode for the calling thread, without changing the mode other
      * threads see.
      *
+     * @param mode the math mode for the duration of {@code task}
+     * @param task the task to run on the calling thread
      * @throws IllegalArgumentException if {@code mode} or {@code task} is null
      */
     public static void runWithMathMode(MathMode mode, Runnable task) {
@@ -95,6 +103,12 @@ public final class CoreConfig {
      * Calls {@code task} with {@code mode} as the math mode for the calling thread and returns its result, without
      * changing the mode other threads see. Checked exceptions thrown by {@code task} propagate unchanged.
      *
+     * @param <T> the result type
+     * @param <X> the type of exception {@code task} may throw
+     * @param mode the math mode for the duration of {@code task}
+     * @param task the task to call on the calling thread
+     * @return the result of {@code task}
+     * @throws X if {@code task} throws it
      * @throws IllegalArgumentException if {@code mode} or {@code task} is null
      */
     public static <T, X extends Throwable> T callWithMathMode(MathMode mode, ScopedValue.CallableOp<? extends T, X> task)
@@ -117,6 +131,7 @@ public final class CoreConfig {
      * Sets the process-wide default math mode. Overrides active through {@link #runWithMathMode} /
      * {@link #callWithMathMode} keep their mode until they end.
      *
+     * @param mode the new default math mode
      * @throws IllegalArgumentException if {@code mode} is null
      */
     public static void setMathMode(MathMode mode) {
@@ -128,6 +143,9 @@ public final class CoreConfig {
 
     /**
      * Parse a math-mode property value. {@code null}, empty or unrecognised values mean {@link MathMode#FAST}.
+     *
+     * @param value the property value, matched case-insensitively against {@code STRICT}; may be null
+     * @return {@link MathMode#STRICT} for {@code "STRICT"}, otherwise {@link MathMode#FAST}
      */
     public static MathMode parseMathMode(String value) {
         if (value == null || value.isEmpty()) {
@@ -138,6 +156,9 @@ public final class CoreConfig {
 
     /**
      * Whether a float squared length counts as unit under {@link MathMode#STRICT}. NaN is never unit.
+     *
+     * @param lengthSquared the squared length to test
+     * @return {@code true} if {@code |lengthSquared - 1| <= STRICT_UNIT_TOLERANCE_F}
      */
     public static boolean withinStrictUnitTolerance(float lengthSquared) {
         return java.lang.Math.abs(lengthSquared - 1.0f) <= STRICT_UNIT_TOLERANCE_F;
@@ -145,6 +166,9 @@ public final class CoreConfig {
 
     /**
      * Whether a double squared length counts as unit under {@link MathMode#STRICT}. NaN is never unit.
+     *
+     * @param lengthSquared the squared length to test
+     * @return {@code true} if {@code |lengthSquared - 1| <= STRICT_UNIT_TOLERANCE_D}
      */
     public static boolean withinStrictUnitTolerance(double lengthSquared) {
         return java.lang.Math.abs(lengthSquared - 1.0) <= STRICT_UNIT_TOLERANCE_D;
@@ -155,6 +179,8 @@ public final class CoreConfig {
      * and comparing on playback. Two runs can only be expected to agree bitwise when their fingerprints are
      * equal; the {@code os.arch} and {@code java.vm.version} entries only matter while
      * {@code vectrix.strictMath} is false. See {@code docs/determinism.md}.
+     *
+     * @return the settings as {@code name=value} pairs separated by semicolons
      */
     public static String determinismFingerprint() {
         return "vectrix.math.mode=" + mathMode()

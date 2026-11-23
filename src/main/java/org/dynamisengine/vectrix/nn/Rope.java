@@ -30,10 +30,10 @@ import org.dynamisengine.vectrix.core.ReproducibleMath;
  * <p>
  * Pairs are {@code (x[2i], x[2i + 1])} in the {@link Layout#INTERLEAVED} layout (the original paper, GPT-J) and
  * {@code (x[i], x[i + dim/2])} in the {@link Layout#HALF} layout (GPT-NeoX, LLaMA in Hugging Face form). Angles grow to
- * millions of radians at long contexts, where float sine and cosine are useless; here the angle is formed in double and
- * its sine and cosine come from {@link org.dynamisengine.vectrix.core.ReproducibleMath}'s reproducible double routine (exact argument reduction), and the
- * rotation is computed in double and rounded once. Results are the same bits everywhere. A plan is immutable and
- * shareable; nothing allocates.
+ * millions of radians at long contexts, where float sine and cosine are useless; here the angle is formed in double
+ * and its sine and cosine come from {@link org.dynamisengine.vectrix.core.ReproducibleMath}'s reproducible double
+ * routine (exact argument reduction), and the rotation is computed in double and rounded once. Results are the same
+ * bits everywhere. A plan is immutable and shareable; nothing allocates.
  *
  * @since 2.5.0
  */
@@ -62,7 +62,10 @@ public final class Rope {
      *
      * @param dim the head dimension, even and positive
      * @param base the frequency base (10000 in most models), {@code > 1}
+     * @param layout which features form a rotated pair
      * @return the plan
+     * @throws IllegalArgumentException if {@code dim} is odd or below 2, {@code base} is not above 1 (or NaN), or
+     *         {@code layout} is null
      */
     public static Rope plan(int dim, double base, Layout layout) {
         if (dim < 2 || (dim & 1) != 0 || !(base > 1) || layout == null) {
@@ -78,7 +81,11 @@ public final class Rope {
     /**
      * Creates a plan with caller-chosen frequencies (for scaled variants such as NTK-aware or YaRN), copied.
      *
-     * @param invFreq the {@code dim/2} angular frequencies in radians per position
+     * @param invFreq the {@code dim/2} angular frequencies in radians per position; the head dimension is
+     *        {@code 2·invFreq.length}
+     * @param layout which features form a rotated pair
+     * @return the plan
+     * @throws IllegalArgumentException if {@code invFreq} is null or empty, or {@code layout} is null
      */
     public static Rope plan(double[] invFreq, Layout layout) {
         if (invFreq == null || invFreq.length == 0 || layout == null) {
@@ -87,17 +94,36 @@ public final class Rope {
         return new Rope(2 * invFreq.length, invFreq.clone(), layout);
     }
 
-    /** @return the head dimension */
+    /**
+     * Returns the head dimension.
+     *
+     * @return the head dimension, even and at least 2
+     */
     public int dim() {
         return dim;
     }
 
-    /** Rotates the head vector {@code x[off .. off + dim)} in place for {@code position}. */
+    /**
+     * Rotates the head vector {@code x[off .. off + dim)} in place for {@code position}.
+     *
+     * @param x the head vector, rotated in place
+     * @param off the offset of the head vector in {@code x}
+     * @param position the token position; negative values rotate the other way
+     * @throws IllegalArgumentException if {@code x} does not hold {@code dim} values from {@code off}
+     */
     public void apply(float[] x, int off, long position) {
         rotate(x, off, position, 1.0);
     }
 
-    /** The backward pass (and the inverse rotation): rotates {@code dy[off .. off + dim)} in place by the opposite angle. */
+    /**
+     * The backward pass, which is also the inverse rotation: rotates {@code dy[off .. off + dim)} in place by the
+     * opposite angle.
+     *
+     * @param dy the gradient of the head vector, rotated in place
+     * @param off the offset of the head vector in {@code dy}
+     * @param position the token position used in the forward pass
+     * @throws IllegalArgumentException if {@code dy} does not hold {@code dim} values from {@code off}
+     */
     public void applyBackward(float[] dy, int off, long position) {
         rotate(dy, off, position, -1.0);
     }
@@ -110,7 +136,8 @@ public final class Rope {
         double pos = position;
         for (int i = 0; i < half; i++) {
             double a = pos * invFreq[i];
-            // ReproducibleMath.sin/cos expanded inline, sharing one argument reduction (RopeTest checks they agree bitwise)
+            // ReproducibleMath.sin/cos expanded inline, sharing one argument reduction (RopeTest checks they agree
+            // bitwise)
             double s;
             double c;
             {

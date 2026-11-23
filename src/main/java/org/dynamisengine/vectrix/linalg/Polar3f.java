@@ -27,8 +27,8 @@ import org.dynamisengine.vectrix.core.Matrix3f;
 import org.dynamisengine.vectrix.core.Matrix3fc;
 
 /**
- * Polar decomposition of 3×3 matrices (single precision; computed in double), from the signed SVD: the rotation closest to a matrix,
- * as used by shape matching, deformation gradients and orthonormalising drifting rotation matrices.
+ * Polar decomposition of 3×3 matrices (single precision; computed in double), from the signed SVD: the rotation closest
+ * to a matrix, as used by shape matching, deformation gradients and orthonormalising drifting rotation matrices.
  *
  * @since 2.2.0
  */
@@ -39,8 +39,12 @@ public final class Polar3f {
     /**
      * {@code a = R S} with {@code R = U Vᵀ} a proper rotation and {@code S = V diag(σ) Vᵀ} symmetric (positive
      * semi-definite when {@code det(a) >= 0}; otherwise the reflection is in {@code S}). {@code R} is the rotation that
-     * minimises {@code ||a - R||_F}. Outputs may alias {@code a}.
+     * minimises {@code ||a - R||_F}. Outputs may alias {@code a}. Uses a per-thread workspace; does not allocate after
+     * the thread's first call.
      *
+     * @param a the matrix to decompose
+     * @param rotation receives the rotation factor {@code R}
+     * @param stretch receives the symmetric factor {@code S}
      * @return {@code rotation}
      */
     public static Matrix3f decompose(Matrix3fc a, Matrix3f rotation, Matrix3f stretch) {
@@ -51,7 +55,14 @@ public final class Polar3f {
         return Conv.set(rotation, r);
     }
 
-    /** The rotation factor of {@link #decompose} alone. {@code dest} may alias {@code a}. */
+    /**
+     * The rotation factor of {@link #decompose} alone: the proper rotation closest to {@code a} in the Frobenius
+     * norm. {@code dest} may alias {@code a}.
+     *
+     * @param a the matrix
+     * @param dest receives the rotation
+     * @return {@code dest}
+     */
     public static Matrix3f rotation(Matrix3fc a, Matrix3f dest) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] r = ws.out9a;

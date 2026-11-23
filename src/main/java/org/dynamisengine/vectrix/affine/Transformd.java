@@ -30,28 +30,53 @@ import org.dynamisengine.vectrix.core.Vector3d;
 import org.dynamisengine.vectrix.core.Vector3dc;
 
 /**
- * First-class transform primitive with translation/rotation/scale.
+ * Transform stored as translation, rotation and scale (TRS). A point maps as
+ * {@code p' = translation + rotation * (scale * p)}: scale first, then rotate, then translate.
+ * <p>
+ * Instances are mutable and not thread-safe. The rotation is used as given, so keep it a unit quaternion. Methods
+ * with a {@code dest} parameter allow {@code dest} to be {@code this} or an argument.
  * <p>
  * Double-precision twin of {@link Transformf}, for world-scale transforms (see {@code world.WorldPos}).
  *
  * @since 2.3.0
  */
 public class Transformd {
+    /** The translation, applied last. Starts at zero. */
     public final Vector3d translation = new Vector3d();
+    /** The rotation, a unit quaternion. Starts as the identity. */
     public final Quaterniond rotation = new Quaterniond();
+    /** The scale along the local x, y and z axes, applied first. Starts at {@code (1, 1, 1)}. */
     public final Vector3d scale = new Vector3d(1.0, 1.0, 1.0);
 
+    /** Creates the identity transform. */
     public Transformd() {
     }
 
+    /**
+     * Creates a transform from copies of the three parts.
+     *
+     * @param translation the translation
+     * @param rotation the rotation, a unit quaternion
+     * @param scale the scale
+     */
     public Transformd(Vector3dc translation, Quaterniondc rotation, Vector3dc scale) {
         set(translation, rotation, scale);
     }
 
+    /**
+     * Creates a copy of {@code other}.
+     *
+     * @param other the transform to copy
+     */
     public Transformd(Transformd other) {
         set(other);
     }
 
+    /**
+     * Sets this to the identity transform.
+     *
+     * @return this
+     */
     public Transformd identity() {
         translation.zero();
         rotation.identity();
@@ -59,10 +84,24 @@ public class Transformd {
         return this;
     }
 
+    /**
+     * Copies {@code other} into this.
+     *
+     * @param other the transform to copy
+     * @return this
+     */
     public Transformd set(Transformd other) {
         return set(other.translation, other.rotation, other.scale);
     }
 
+    /**
+     * Copies the three parts into this.
+     *
+     * @param translation the translation
+     * @param rotation the rotation, a unit quaternion
+     * @param scale the scale
+     * @return this
+     */
     public Transformd set(Vector3dc translation, Quaterniondc rotation, Vector3dc scale) {
         this.translation.set(translation);
         this.rotation.set(rotation);
@@ -70,27 +109,54 @@ public class Transformd {
         return this;
     }
 
+    /**
+     * Writes this transform into {@code dest} as the 4x3 matrix {@code T * R * S}.
+     *
+     * @param dest receives the matrix
+     * @return {@code dest}
+     */
     public Matrix4x3d toAffineMat4Fast(Matrix4x3d dest) {
         return dest.translationRotateScale(translation, rotation, scale);
     }
 
+    /**
+     * Writes this transform into {@code dest} as the affine matrix {@code T * R * S}.
+     *
+     * @param dest receives the matrix
+     * @return {@code dest}
+     */
     public Affine4d toAffine4dFast(Affine4d dest) {
         return dest.translationRotateScale(translation, rotation, scale);
     }
 
+    /**
+     * Sets this to the decomposition of {@code affine}; see {@link Affine4d#getTransform(Transformd)} for
+     * the conditions under which it is exact.
+     *
+     * @param affine the matrix to decompose
+     * @return this
+     */
     public Transformd set(Affine4d affine) {
         return affine.getTransform(this);
     }
 
     /**
-     * Compute {@code dest = parent * local} in TRS form.
+     * Computes {@code dest = parent * local} in TRS form: applied to a point, {@code local} acts first. The
+     * translation is exact. The rotations multiply and the scales multiply per axis, which matches the matrix product
+     * only when {@code parent.scale} is uniform (or {@code local.rotation} keeps the axes aligned); otherwise the
+     * product has shear, which TRS cannot represent, and the result is an approximation.
+     *
+     * @param parent the outer transform
+     * @param local the inner transform
+     * @param dest receives the composition; may be {@code parent} or {@code local}
+     * @return {@code dest}
      */
     public static Transformd compose(Transformd parent, Transformd local, Transformd dest) {
         double ltx = local.translation.x * parent.scale.x;
         double lty = local.translation.y * parent.scale.y;
         double ltz = local.translation.z * parent.scale.z;
 
-        // Read parent's translation before writing dest: dest may be parent (review finding M-2).
+        // Read parent's translation before writing dest: dest may be parent.
         double ptx = parent.translation.x, pty = parent.translation.y, ptz = parent.translation.z;
         parent.rotation.transform(ltx, lty, ltz, dest.translation);
         dest.translation.add(ptx, pty, ptz);
@@ -100,7 +166,12 @@ public class Transformd {
     }
 
     /**
-     * Fast inverse for rigid transforms (translation + unit quaternion rotation).
+     * Computes the inverse of the rigid part: the conjugate rotation, the translation
+     * {@code -(rotation^-1 * translation)} and scale {@code (1, 1, 1)}. The scale of this transform is ignored, so
+     * the result is the inverse only when the scale is {@code (1, 1, 1)} and the rotation is a unit quaternion.
+     *
+     * @param dest receives the inverse; may be {@code this}
+     * @return {@code dest}
      */
     public Transformd invertRigidFast(Transformd dest) {
         dest.scale.set(1.0, 1.0, 1.0);
@@ -109,6 +180,15 @@ public class Transformd {
         return dest;
     }
 
+    /**
+     * Linearly interpolates translation and scale, and normalized-lerps the rotation ({@code nlerp}, along the
+     * shorter arc). Cheaper than {@link #interpolate}, but the rotation does not turn at a constant rate.
+     *
+     * @param target the end transform, reached at {@code alpha = 1}
+     * @param alpha the interpolation factor; 0 gives this, 1 gives {@code target}
+     * @param dest receives the result; may be {@code this} or {@code target}
+     * @return {@code dest}
+     */
     public Transformd interpolateFast(Transformd target, double alpha, Transformd dest) {
         double invAlpha = 1.0 - alpha;
         dest.translation.set(
@@ -124,7 +204,13 @@ public class Transformd {
     }
 
     /**
-     * Higher quality TRS interpolation using SLERP for rotation.
+     * Linearly interpolates translation and scale, and spherically interpolates the rotation ({@code slerp}, along
+     * the shorter arc). The rotation turns at a constant rate.
+     *
+     * @param target the end transform, reached at {@code alpha = 1}
+     * @param alpha the interpolation factor; 0 gives this, 1 gives {@code target}
+     * @param dest receives the result; may be {@code this} or {@code target}
+     * @return {@code dest}
      */
     public Transformd interpolate(Transformd target, double alpha, Transformd dest) {
         double invAlpha = 1.0 - alpha;

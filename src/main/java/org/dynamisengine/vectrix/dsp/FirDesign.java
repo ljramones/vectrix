@@ -36,6 +36,10 @@ import org.dynamisengine.vectrix.core.AccurateMath;
  * <p>
  * For a Kaiser design, {@link #kaiserBeta} and {@link #kaiserTaps} give the window shape and length for a
  * stop-band attenuation and transition width (Kaiser's formulas).
+ * <p>
+ * The window designs and the responses do not allocate; {@link #remez} allocates its frequency grid. Argument errors
+ * throw {@link IllegalArgumentException} before any tap is written, except that a design with no gain at its
+ * reference frequency is detected only after the taps are computed.
  *
  * @since 2.5.0
  */
@@ -47,7 +51,7 @@ public final class FirDesign {
     /**
      * Kaiser's window shape for a stop-band attenuation.
      *
-     * @param attenuationDb the attenuation in dB, {@code > 0}
+     * @param attenuationDb the attenuation in dB, {@code > 0}; below 21 dB the result is 0 (rectangular)
      * @return β for {@link Windows#kaiser}
      */
     public static double kaiserBeta(double attenuationDb) {
@@ -67,6 +71,7 @@ public final class FirDesign {
      * @param attenuationDb the attenuation in dB, {@code > 0}
      * @param transitionWidth the transition band in cycles per sample, in (0, 0.5)
      * @return the number of taps, at least 1
+     * @throws IllegalArgumentException if {@code transitionWidth} is outside (0, 0.5)
      */
     public static int kaiserTaps(double attenuationDb, double transitionWidth) {
         if (!(transitionWidth > 0 && transitionWidth < 0.5)) {
@@ -81,10 +86,12 @@ public final class FirDesign {
      *
      * @param h receives the taps
      * @param off the offset of the first tap
-     * @param n the number of taps
+     * @param n the number of taps, at least 1
      * @param cutoff the cutoff in cycles per sample, in (0, 0.5)
      * @param window {@code n} window values from {@code windowOff}, or {@code null} for rectangular
      * @param windowOff the offset of the window
+     * @throws IllegalArgumentException if {@code cutoff} is outside (0, 0.5), an array does not hold {@code n}
+     *         values from its offset, or the design has no gain at DC
      */
     public static void lowpass(double[] h, int off, int n, double cutoff, double[] window, int windowOff) {
         checkBand(cutoff);
@@ -99,7 +106,14 @@ public final class FirDesign {
      * A high-pass filter: an odd number of taps is required (an even-length symmetric filter has a zero at
      * Nyquist).
      *
+     * @param h receives the taps
+     * @param off the offset of the first tap
+     * @param n the number of taps, odd
      * @param cutoff the cutoff in cycles per sample, in (0, 0.5)
+     * @param window {@code n} window values from {@code windowOff}, or {@code null} for rectangular
+     * @param windowOff the offset of the window
+     * @throws IllegalArgumentException if {@code cutoff} is outside (0, 0.5), {@code n} is even, an array does not
+     *         hold {@code n} values from its offset, or the design has no gain at Nyquist
      */
     public static void highpass(double[] h, int off, int n, double cutoff, double[] window, int windowOff) {
         checkBand(cutoff);
@@ -114,8 +128,15 @@ public final class FirDesign {
     /**
      * A band-pass filter, unit gain at the band centre.
      *
-     * @param low the lower edge in cycles per sample
+     * @param h receives the taps
+     * @param off the offset of the first tap
+     * @param n the number of taps, at least 1
+     * @param low the lower edge in cycles per sample, {@code > 0}
      * @param high the upper edge, {@code low < high < 0.5}
+     * @param window {@code n} window values from {@code windowOff}, or {@code null} for rectangular
+     * @param windowOff the offset of the window
+     * @throws IllegalArgumentException if an edge is outside (0, 0.5), {@code low >= high}, an array does not hold
+     *         {@code n} values from its offset, or the design has no gain at the band centre
      */
     public static void bandpass(double[] h, int off, int n, double low, double high, double[] window, int windowOff) {
         checkBand(low);
@@ -133,8 +154,15 @@ public final class FirDesign {
     /**
      * A band-stop (notch) filter, unit gain at DC; an odd number of taps is required.
      *
-     * @param low the lower edge in cycles per sample
+     * @param h receives the taps
+     * @param off the offset of the first tap
+     * @param n the number of taps, odd
+     * @param low the lower edge in cycles per sample, {@code > 0}
      * @param high the upper edge, {@code low < high < 0.5}
+     * @param window {@code n} window values from {@code windowOff}, or {@code null} for rectangular
+     * @param windowOff the offset of the window
+     * @throws IllegalArgumentException if an edge is outside (0, 0.5), {@code low >= high}, {@code n} is even, an
+     *         array does not hold {@code n} values from its offset, or the design has no gain at DC
      */
     public static void bandstop(double[] h, int off, int n, double low, double high, double[] window, int windowOff) {
         checkBand(low);
@@ -155,15 +183,21 @@ public final class FirDesign {
      * filter that minimizes the largest weighted error {@code W(f)·|D(f) - A(f)|} over the given bands, where
      * {@code A} is the filter's real amplitude. The bands are pairs of edges in cycles per sample; the gaps between
      * them are transition bands, left free. Up to the grid resolution the result has the equal-ripple alternation
-     * that characterizes the optimum, so for a given length it beats any window design.
+     * that characterizes the optimum, so for a given length it beats any window design. The design allocates its
+     * dense frequency grid and working arrays, of a size proportional to {@code n}.
      *
      * @param h receives the taps
+     * @param off the offset of the first tap
      * @param n the number of taps, odd and at least 3
      * @param bands {@code 2·k} ascending edges in [0, 0.5]: band {@code j} is {@code [bands[2j], bands[2j + 1]]}
      * @param desired the {@code k} band gains
      * @param weights the {@code k} positive band weights (a band weighted 10 has a tenth of the ripple)
      * @return the achieved weighted ripple {@code δ} (after at most 200 exchanges; an infeasible specification
      *         returns its best attempt, recognizable by a large ripple)
+     * @throws IllegalArgumentException if {@code n} is even or less than 3, {@code h} does not hold {@code n} taps
+     *         from {@code off}, the array lengths do not match, an edge is outside [0, 0.5] or out of order, a
+     *         weight is not positive, or the bands are too narrow for {@code n} taps (checked before any tap is
+     *         written)
      */
     public static double remez(double[] h, int off, int n, double[] bands, double[] desired, double[] weights) {
         if (n < 3 || (n & 1) == 0) {
@@ -363,8 +397,12 @@ public final class FirDesign {
     /**
      * The frequency response {@code H(f) = Σ h[k]·exp(-2πi f k)}.
      *
+     * @param h the taps
+     * @param off the offset of the first tap
+     * @param n the number of taps, at least 1
      * @param f the frequency in cycles per sample
      * @param dest receives the real part at {@code dest[0]} and the imaginary part at {@code dest[1]}
+     * @throws IllegalArgumentException if {@code n < 1} or {@code h} does not hold {@code n} taps from {@code off}
      */
     public static void response(double[] h, int off, int n, double f, double[] dest) {
         check(h, off, n, null, 0);
@@ -379,7 +417,16 @@ public final class FirDesign {
         dest[1] = im;
     }
 
-    /** {@code |H(f)|}. */
+    /**
+     * The magnitude response {@code |H(f)|} of the taps.
+     *
+     * @param h the taps
+     * @param off the offset of the first tap
+     * @param n the number of taps, at least 1
+     * @param f the frequency in cycles per sample
+     * @return the linear gain at {@code f}
+     * @throws IllegalArgumentException if {@code n < 1} or {@code h} does not hold {@code n} taps from {@code off}
+     */
     public static double magnitude(double[] h, int off, int n, double f) {
         check(h, off, n, null, 0);
         double re = 0.0;

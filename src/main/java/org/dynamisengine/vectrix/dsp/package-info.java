@@ -30,5 +30,28 @@
  * allocation-free on the processing paths, and filter state is held by the caller, so one design can drive any
  * number of channels and threads. The Kalman, extended and unscented Kalman and particle filters estimate state from
  * noisy measurements. See {@code docs/guides/signal-processing.md} and {@code docs/guides/state-estimation.md}.
+ * <p>
+ * <b>Contract.</b> Threading: the static classes keep no state and are safe to call from any thread; plans
+ * ({@link org.dynamisengine.vectrix.dsp.Stftd}, {@link org.dynamisengine.vectrix.dsp.Dctd},
+ * {@link org.dynamisengine.vectrix.dsp.Mdctd}, {@link org.dynamisengine.vectrix.dsp.Correlation},
+ * {@link org.dynamisengine.vectrix.dsp.Resampler}, {@link org.dynamisengine.vectrix.dsp.Wavelet} and their float
+ * twins) are immutable and shareable, while filter state and scratch belong to one thread at a time;
+ * {@link org.dynamisengine.vectrix.dsp.ExtendedKalman} and {@link org.dynamisengine.vectrix.dsp.UnscentedKalman}
+ * instances own work arrays, so use one per stream and thread. Allocation: no processing method allocates; making
+ * a plan or a filter instance allocates, as do the setup methods {@code Windows.chebyshev},
+ * {@code FirDesign.remez}, {@code Smoothers.savitzkyGolay}, {@code Wavelet.daubechies} and the filter copies
+ * returned by {@code Wavelet.lowpass} and {@code Wavelet.highpass}. Determinism: every sum runs in a fixed order,
+ * results do not depend on SIMD, and the streaming filters ({@code Biquad}, {@code Resampler}) give the same bits
+ * however a stream is chunked; windows, twiddles and filter designs use {@code AccurateMath}, so they match across
+ * platforms under {@code -Dvectrix.strictMath}, and the particle filter uses {@code ReproducibleMath}. Errors: bad
+ * sizes, offsets and parameters throw {@link IllegalArgumentException}, in the methods that take offsets before
+ * any element is written unless the method says otherwise; the Kalman filters, the adaptive and particle filters
+ * and the Wiener helpers without offsets use their arrays from index 0 and rely on Java's bounds checks; a failed
+ * numerical precondition (a covariance that is not positive definite, a DCT-IV of odd size) throws
+ * {@link IllegalStateException}, and a singular Toeplitz system or a FIR design without gain throws
+ * {@link IllegalArgumentException}. Precision and naming: unsuffixed classes are double; {@code Stftf},
+ * {@code Dctf} and {@code Mdctf} are the float twins of the {@code ...d} plans; the float overloads of
+ * {@code Windows}, {@code Biquad}, {@code Goertzel} and {@code Resampler} compute in double and round only their
+ * outputs, and {@code Smoothers.median} works on floats.
  */
 package org.dynamisengine.vectrix.dsp;

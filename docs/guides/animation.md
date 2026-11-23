@@ -156,7 +156,9 @@ The other entry points:
 
 ## Accuracy, allocation and threading
 
-- The `animation` and `ik` kernels store floats but evaluate in double, and they do not allocate.
+- The `animation` and `ik` kernels store floats but evaluate in double. They do not allocate after warm-up. Several
+  keep per-thread scratch, allocated on their first call in each thread (`Fabrikf` also grows it once for chains
+  longer than 32 bones).
 - The skinning kernels are scalar in both jars, and allocation-free.
 - In STRICT mode, the quaternion operations with a unit-length precondition (`log`, `swingTwist`, `squad`, ...)
   throw for non-unit input instead of trusting it.

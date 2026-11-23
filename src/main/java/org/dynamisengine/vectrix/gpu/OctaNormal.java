@@ -26,16 +26,22 @@ package org.dynamisengine.vectrix.gpu;
 import org.dynamisengine.vectrix.core.Vector3f;
 
 /**
- * Octahedral unit normal encoding/decoding.
+ * Octahedral normal encoding: a direction mapped onto the octahedron, unfolded into a square and stored as two
+ * snorm16 values in 32 bits. Stateless and allocation-free.
  */
 public final class OctaNormal {
     private OctaNormal() {
     }
 
     /**
-     * Encode a unit normal to signed-normalized 16-bit x/y.
+     * Encodes a direction as two snorm16 octahedral coordinates. The input is divided by its L1 norm, so it need not
+     * be unit length; the zero vector or NaN gives NaN coordinates, which encode as 0 and decode to
+     * {@code (0, 0, 1)}.
      *
-     * @return packed x in low 16 bits, y in high 16 bits
+     * @param nx the direction's x
+     * @param ny the direction's y
+     * @param nz the direction's z
+     * @return packed x in the low 16 bits, y in the high 16 bits
      */
     public static int encodeSnorm16(float nx, float ny, float nz) {
         float invL1 = 1.0f / (java.lang.Math.abs(nx) + java.lang.Math.abs(ny) + java.lang.Math.abs(nz));
@@ -54,7 +60,11 @@ public final class OctaNormal {
     }
 
     /**
-     * Decode signed-normalized 16-bit octahedral normal.
+     * Decodes {@link #encodeSnorm16} into a unit vector.
+     *
+     * @param packed the code: x in the low 16 bits, y in the high 16 bits
+     * @param dest receives the normalized direction
+     * @return {@code dest}
      */
     public static Vector3f decodeSnorm16(int packed, Vector3f dest) {
         float x = PackedNorm.unpackSnorm16(packed);

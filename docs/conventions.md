@@ -149,8 +149,9 @@ The same inputs give the same bits on every platform when you:
 - keep the settings listed in [determinism.md](determinism.md) equal between runs.
 
 The `blas` and `nn` kernels and `ReproducibleMath` go further: they give the same bits everywhere in any
-configuration. The `fft` and `dsp` kernels give the same bits with or without SIMD and however a stream is
-chunked. Their twiddle factors, windows and filter designs use the platform's `sin` and `cos`, so they match
+configuration. The `fft` and `dsp` kernels give the same bits with or without SIMD, and the stream filters
+(`Biquad`, `Resampler`) give the same bits however a stream is chunked. `BlockConvolverd` adds the carried tail
+separately, so its last bits depend on where blocks start. Their twiddle factors, windows and filter designs use the platform's `sin` and `cos`, so they match
 across platforms under `vectrix.strictMath`.
 
 `CoreConfig.determinismFingerprint()` records those settings. SIMD and scalar paths give identical bits. For
@@ -188,7 +189,9 @@ Run the `simd` jar with `--add-modules jdk.incubator.vector`. Without that flag 
 | `IllegalArgumentException` | A bad argument in the array APIs (sizes, offsets, ranges); an input outside the domain in STRICT mode |
 | `IllegalStateException` | A numerical precondition failed during the call, for example a Kalman innovation covariance that is not positive definite |
 | `ArithmeticException` | Exact integer arithmetic overflowed (`WorldPos` cells) |
-| `IndexOutOfBoundsException` | Index arguments of the JOML-derived types (`Matrix4f.getRow`), and the older array APIs |
+| `IndexOutOfBoundsException` | Row and column indices of the matrix types (`Matrix4f.getRow`), and the older array APIs (as `ArrayIndexOutOfBoundsException`) |
+
+Component indices of the vector types (`Vector3f.get(int)`, `Vector3f.setComponent`) throw `IllegalArgumentException`.
 
 In FAST mode, the JOML-derived types do not validate values. A NaN input gives a NaN output.
 
@@ -216,3 +219,4 @@ written `vectrix.*`, and the `vectrix.` name wins when both are set.
 | `vectrix.format`, `vectrix.format.decimals` | `true`, `3` | Number formatting in `toString` |
 | `vectrix.debug` | `false` | Extra runtime checks, such as rejecting heap buffers on the `Unsafe` backend |
 | `vectrix.epsilon.*` | | The `Epsilonf`/`Epsilond` defaults |
+| `vectrix.runtime.instanceSubmission.forceMatrix` | `false` | `InstanceSubmissionPipeline` uploads `Matrix4f` instead of packed 3×4 transforms |

@@ -39,7 +39,14 @@ public final class LightEngineCompatf {
     private LightEngineCompatf() {
     }
 
-    /** {@code distributionGGX(ndh, roughness)}: {@code a² / max(3.14159 d², 0.0001)}, {@code a = roughness²}. */
+    /**
+     * Returns the shaders' {@code distributionGGX(ndh, roughness)}: {@code a² / max(3.14159 d², 0.0001)} with
+     * {@code a = roughness²} and {@code d = nDotH² (a² - 1) + 1}. Negative {@code nDotH} is not rejected.
+     *
+     * @param nDotH the cosine between the normal and the half vector
+     * @param roughness the perceptual roughness, in [0, 1]
+     * @return the distribution value
+     */
     public static float distributionGgx(float nDotH, float roughness) {
         float a = roughness * roughness;
         float a2 = a * a;
@@ -47,19 +54,41 @@ public final class LightEngineCompatf {
         return a2 / java.lang.Math.max(3.14159f * d * d, 0.0001f);
     }
 
-    /** {@code geometrySchlickGGX(ndv, roughness)} with {@code k = (roughness + 1)² / 8}. */
+    /**
+     * Returns the shaders' {@code geometrySchlickGGX(ndv, roughness)}:
+     * {@code nDotX / max(nDotX (1 - k) + k, 0.0001)} with {@code k = (roughness + 1)² / 8}.
+     *
+     * @param nDotX the cosine between the normal and the view or light direction, in [0, 1]
+     * @param roughness the perceptual roughness, in [0, 1]
+     * @return the masking term for one direction
+     */
     public static float geometrySchlickGgx(float nDotX, float roughness) {
         float r = roughness + 1.0f;
         float k = (r * r) / 8.0f;
         return nDotX / java.lang.Math.max(nDotX * (1.0f - k) + k, 0.0001f);
     }
 
-    /** {@code geometrySmith(ndv, ndl, roughness)}: the product of the two separable terms. */
+    /**
+     * Returns the shaders' {@code geometrySmith(ndv, ndl, roughness)}: the product of the two separable
+     * {@link #geometrySchlickGgx} terms.
+     *
+     * @param nDotV the cosine between the normal and the view direction, in [0, 1]
+     * @param nDotL the cosine between the normal and the light direction, in [0, 1]
+     * @param roughness the perceptual roughness, in [0, 1]
+     * @return the masking-shadowing term
+     */
     public static float geometrySmith(float nDotV, float nDotL, float roughness) {
         return geometrySchlickGgx(nDotV, roughness) * geometrySchlickGgx(nDotL, roughness);
     }
 
-    /** {@code fresnelSchlick(cosTheta, f0)} for one channel: {@code f0 + (1 - f0) pow(1 - cosTheta, 5)}. */
+    /**
+     * Returns the shaders' {@code fresnelSchlick(cosTheta, f0)} for one channel:
+     * {@code f0 + (1 - f0) pow(1 - cosTheta, 5)}.
+     *
+     * @param cosTheta the cosine of the incidence angle, in [0, 1]
+     * @param f0 the reflectance at normal incidence
+     * @return the reflectance
+     */
     public static float fresnelSchlick(float cosTheta, float f0) {
         return f0 + (1.0f - f0) * (float) org.dynamisengine.vectrix.core.AccurateMath.pow(1.0f - cosTheta, 5.0f);
     }

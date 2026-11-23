@@ -42,10 +42,16 @@ public final class Toeplitz {
      * Linear prediction by Levinson–Durbin: the coefficients {@code a[1..p]} minimizing the error of
      * {@code x[t] ≈ -Σ a[k]·x[t - k]}, given the autocorrelation {@code r[0..p]}.
      *
-     * @param a receives {@code p + 1} coefficients with {@code a[0] = 1}
-     * @param reflection receives the {@code p} reflection (PARCOR) coefficients, or {@code null}
+     * @param r the autocorrelation at lags {@code 0..p}, from index 0
+     * @param p the prediction order, {@code >= 0}
+     * @param a receives {@code p + 1} coefficients with {@code a[0] = 1}, from index 0
+     * @param reflection receives the {@code p} reflection (PARCOR) coefficients, or {@code null}; its length is not
+     *        checked up front
+     * @param scratch at least {@code p + 1} doubles of working memory
      * @return the final prediction error power
-     * @throws IllegalArgumentException if {@code r[0] <= 0} or the recursion becomes unstable ({@code |k| >= 1})
+     * @throws IllegalArgumentException if {@code p < 0}, {@code r}, {@code a} or {@code scratch} holds fewer than
+     *         {@code p + 1} values, {@code r[0] <= 0}, or the recursion becomes unstable ({@code |k| >= 1}); in the
+     *         last case {@code a} and {@code reflection} are partly overwritten
      */
     public static double levinsonDurbin(double[] r, int p, double[] a, double[] reflection, double[] scratch) {
         if (p < 0 || r.length < p + 1 || a.length < p + 1 || scratch.length < p + 1) {
@@ -82,9 +88,13 @@ public final class Toeplitz {
     /**
      * Solves {@code T·x = b} for the symmetric Toeplitz matrix with first row {@code r[0..n)} (Levinson's algorithm).
      *
-     * @param x receives the {@code n} unknowns
-     * @param scratch {@code 2n} doubles
-     * @throws IllegalArgumentException if a leading submatrix is singular
+     * @param r the first row of the matrix, {@code n} values from index 0
+     * @param b the right-hand side, {@code n} values from index 0
+     * @param n the order of the system, at least 1
+     * @param x receives the {@code n} unknowns; may be {@code b}
+     * @param scratch at least {@code 2n} doubles of working memory
+     * @throws IllegalArgumentException if {@code n < 1}, an array is too short, or a leading submatrix is singular
+     *         (in that case {@code x} is partly overwritten)
      */
     public static void solve(double[] r, double[] b, int n, double[] x, double[] scratch) {
         if (n < 1 || r.length < n || b.length < n || x.length < n || scratch.length < 2 * n) {

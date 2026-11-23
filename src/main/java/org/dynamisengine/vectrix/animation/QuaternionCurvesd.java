@@ -39,6 +39,9 @@ import org.dynamisengine.vectrix.core.Quaterniond;
  * <li>{@link #weightedMean}: the weighted geodesic (Karcher) mean, by fixed-point iteration in the tangent space;
  * exact, unlike normalized linear blending.</li>
  * </ul>
+ * <p>
+ * Key arrays start at index 0 with 4 doubles per key. The evaluation methods use a per-thread scratch array, which is
+ * allocated on the first call in each thread.
  *
  * @since 2.3.0
  */
@@ -58,7 +61,14 @@ public final class QuaternionCurvesd {
         return dest.set(s[o], s[o + 1], s[o + 2], s[o + 3]);
     }
 
-    /** Flips keys in place so that consecutive keys have a non-negative dot product; returns the number flipped. */
+    /**
+     * Flips keys in place so that each key has a non-negative dot product with the one before it (after that one's
+     * own flip). The first key is never flipped.
+     *
+     * @param keys the keys, 4 doubles each
+     * @param count the number of keys
+     * @return the number of keys flipped
+     */
     public static int unroll(double[] keys, int count) {
         int flips = 0;
         for (int k = 1; k < count; k++) {
@@ -77,6 +87,11 @@ public final class QuaternionCurvesd {
     /**
      * SQUAD control points {@code sᵢ = qᵢ exp(−(log(qᵢ⁻¹ qᵢ₋₁) + log(qᵢ⁻¹ qᵢ₊₁)) / 4)} for unrolled keys, with
      * {@code s₀ = q₀} and {@code sₙ₋₁ = qₙ₋₁}, into {@code outControls} (same layout).
+     *
+     * @param keys the unrolled keys, 4 doubles each, unit length
+     * @param count the number of keys
+     * @param outControls receives the {@code count} control points; must not be {@code keys}
+     * @return {@code outControls}
      */
     public static double[] squadControlPoints(double[] keys, int count, double[] outControls) {
         double[] s = QuatKernels.SCRATCH.get();
@@ -108,7 +123,15 @@ public final class QuaternionCurvesd {
 
     /**
      * SQUAD on segment {@code i} (between keys i and i + 1) at {@code t} in [0, 1]:
-     * {@code slerp(slerp(qᵢ, qᵢ₊₁, t), slerp(sᵢ, sᵢ₊₁, t), 2t(1 − t))}.
+     * {@code slerp(slerp(qᵢ, qᵢ₊₁, t), slerp(sᵢ, sᵢ₊₁, t), 2t(1 − t))}. The slerps follow the arcs as given, so
+     * the keys must be unrolled.
+     *
+     * @param keys the unrolled keys, 4 doubles each, unit length
+     * @param controls the control points from {@link #squadControlPoints}
+     * @param i the segment, in {@code [0, count − 2]}
+     * @param t the parameter within the segment, in [0, 1]
+     * @param dest receives the normalized rotation
+     * @return {@code dest}
      */
     public static Quaterniond squad(double[] keys, double[] controls, int i, double t, Quaterniond dest) {
         double[] s = QuatKernels.SCRATCH.get();
@@ -124,7 +147,16 @@ public final class QuaternionCurvesd {
         return store(s, 24, dest);
     }
 
-    /** Spherical cubic Bezier through control rotations {@code q0..q3} (as given; unroll them first) at {@code t}. */
+    /**
+     * Evaluates the spherical cubic Bezier curve with control rotations {@code q0..q3} at {@code t}. The curve passes
+     * through {@code q0} and {@code q3}. The slerps follow the arcs as given, so unroll the keys first.
+     *
+     * @param keys the key array, 4 doubles per key
+     * @param first the index of {@code q0}; keys {@code first} to {@code first + 3} are used
+     * @param t the curve parameter, in [0, 1]
+     * @param dest receives the normalized rotation
+     * @return {@code dest}
+     */
     public static Quaterniond bezier(double[] keys, int first, double t, Quaterniond dest) {
         double[] s = QuatKernels.SCRATCH.get();
         for (int k = 0; k < 4; k++) {
@@ -144,6 +176,13 @@ public final class QuaternionCurvesd {
     /**
      * Kim-Kim-Shin cumulative cubic B-spline on segment {@code i} (between keys i and i + 1; keys i − 1 and i + 2
      * are clamped at the ends) at {@code t} in [0, 1]. Keys must be unrolled.
+     *
+     * @param keys the unrolled keys, 4 doubles each, unit length
+     * @param count the number of keys
+     * @param i the segment, in {@code [0, count − 2]}
+     * @param t the parameter within the segment, in [0, 1]
+     * @param dest receives the normalized rotation
+     * @return {@code dest}
      */
     public static Quaterniond cumulativeBSpline(double[] keys, int count, int i, double t, Quaterniond dest) {
         double[] s = QuatKernels.SCRATCH.get();
@@ -176,8 +215,15 @@ public final class QuaternionCurvesd {
 
     /**
      * Weighted geodesic mean of {@code count} rotations: the minimizer of {@code Σ wᵢ d(m, qᵢ)²} on SO(3), by
-     * iterating {@code m ← m exp(Σ wᵢ log(m⁻¹ qᵢ) / Σ wᵢ)} from the normalized linear blend until the step is below
-     * 1e-15 rad (at most 64 iterations). Keys may be in either hemisphere. Weights must not all be zero.
+     * iterating {@code m ← m exp(Σ wᵢ log(m⁻¹ qᵢ) / Σ wᵢ)} from the normalized linear blend until the step (a half
+     * angle) is below 1e-15 rad, at most 64 iterations. Keys may be in either hemisphere. The weights must not sum to
+     * zero, or the result is NaN.
+     *
+     * @param keys the rotations, 4 doubles each, unit length
+     * @param weights the weight of each rotation
+     * @param count the number of rotations, at least 1
+     * @param dest receives the normalized mean rotation
+     * @return {@code dest}
      */
     public static Quaterniond weightedMean(double[] keys, double[] weights, int count, Quaterniond dest) {
         double[] s = QuatKernels.SCRATCH.get();

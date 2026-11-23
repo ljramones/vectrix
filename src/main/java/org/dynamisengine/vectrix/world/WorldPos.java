@@ -32,7 +32,7 @@ import org.dynamisengine.vectrix.core.Vector3f;
  * A position in a large world: an integer {@link #cell} of size {@code 2^cellBits} metres and a double-precision
  * {@link #offset} from the cell's center point {@code cell · cellSize}, kept canonical in
  * {@code [−cellSize/2, cellSize/2]} per axis. Resolution is the offset's: at most
- * {@code ulp(cellSize / 2)} (5.7e-14 m for 1 km cells) everywhere, at 10⁹ m from the origin as at the origin, where a
+ * {@code ulp(cellSize / 2)} (1.1e-13 m for 1024 m cells) everywhere, at 10⁹ m from the origin as at the origin, where a
  * plain double has 1.2e-7 m and a float 64 m.
  * <p>
  * Exactness: with power-of-two cells and the centered offset range, splitting any double into cell and offset
@@ -40,19 +40,31 @@ import org.dynamisengine.vectrix.core.Vector3f;
  * grows in magnitude, so it never needs more bits than the input had). {@link #sub(WorldPos, Vector3d)} forms
  * {@code Δcell · cellSize + Δoffset} and rounds once (the offset difference's own rounding error is carried along by
  * TwoSum), so relative positions are correctly rounded to within an ulp regardless of distance from the origin.
+ * <p>
+ * Cell arithmetic is exact: a cell index that would overflow {@code long}, or an offset too large or not finite to
+ * rebase, throws {@link ArithmeticException}. Positions with different cell sizes cannot be combined
+ * ({@link IllegalArgumentException}). A {@code WorldPos} is mutable and not thread-safe.
  *
  * @since 2.3.0
  */
 public final class WorldPos {
-    /** Cell index (exact integer arithmetic; overflow throws). */
+    /** Cell index along each axis (exact integer arithmetic; overflow throws). */
     public final Vector3L cell = new Vector3L();
-    /** Offset from {@code cell · cellSize}, canonical in {@code [−cellSize/2, cellSize/2]} after {@link #normalize()}. */
+    /**
+     * Offset from {@code cell · cellSize} in metres, canonical in {@code [−cellSize/2, cellSize/2]} after
+     * {@link #normalize()}.
+     */
     public final Vector3d offset = new Vector3d();
 
     private final int cellBits;
     private final double cellSize;
 
-    /** A position at the origin with cells of {@code 2^cellBits} metres ({@code -32 ≤ cellBits ≤ 40}). */
+    /**
+     * Creates a position at the origin with cells of {@code 2^cellBits} metres.
+     *
+     * @param cellBits log2 of the cell size in metres, in {@code [-32, 40]}
+     * @throws IllegalArgumentException if {@code cellBits} is out of range
+     */
     public WorldPos(int cellBits) {
         if (cellBits < -32 || cellBits > 40) {
             throw new IllegalArgumentException("cellBits " + cellBits);
@@ -61,18 +73,30 @@ public final class WorldPos {
         this.cellSize = java.lang.Math.scalb(1.0, cellBits);
     }
 
-    /** Copies {@code other}, which must use the same cell size. */
+    /**
+     * Creates a copy of {@code other}, with the same cell size.
+     *
+     * @param other the position to copy
+     */
     public WorldPos(WorldPos other) {
         this(other.cellBits);
         set(other);
     }
 
-    /** log2 of the cell size. */
+    /**
+     * Returns log2 of the cell size.
+     *
+     * @return the cell size exponent, in {@code [-32, 40]}
+     */
     public int cellBits() {
         return cellBits;
     }
 
-    /** Cell size in metres. */
+    /**
+     * Returns the cell size.
+     *
+     * @return {@code 2^cellBits}, in metres
+     */
     public double cellSize() {
         return cellSize;
     }
@@ -83,6 +107,13 @@ public final class WorldPos {
         }
     }
 
+    /**
+     * Copies the cell and offset of {@code other}.
+     *
+     * @param other the position to copy, with the same cell size
+     * @return this
+     * @throws IllegalArgumentException if the cell sizes differ
+     */
     public WorldPos set(WorldPos other) {
         check(other);
         cell.set(other.cell);
@@ -90,14 +121,31 @@ public final class WorldPos {
         return this;
     }
 
-    /** Sets this to the double-precision position {@code (x, y, z)}, split exactly into cell and offset. */
+    /**
+     * Sets this to the double-precision position {@code (x, y, z)}, split exactly into cell and offset.
+     *
+     * @param x the x coordinate in metres
+     * @param y the y coordinate in metres
+     * @param z the z coordinate in metres
+     * @return this
+     * @throws ArithmeticException if a coordinate is not finite (see {@link #normalize()})
+     */
     public WorldPos set(double x, double y, double z) {
         cell.set(0, 0, 0);
         offset.set(x, y, z);
         return normalize();
     }
 
-    /** Sets cell and offset (any offset; it is canonicalized). */
+    /**
+     * Sets the cell and the offset. The offset may be any value; it is canonicalized with {@link #normalize()}.
+     *
+     * @param cell the cell index
+     * @param ox the x offset from the cell's center, in metres
+     * @param oy the y offset from the cell's center, in metres
+     * @param oz the z offset from the cell's center, in metres
+     * @return this
+     * @throws ArithmeticException if the offset cannot be rebased (see {@link #normalize()})
+     */
     public WorldPos set(Vector3Lc cell, double ox, double oy, double oz) {
         this.cell.set(cell);
         offset.set(ox, oy, oz);
@@ -126,7 +174,16 @@ public final class WorldPos {
         return (long) c;
     }
 
-    /** Moves whole cells from the offset into the cell index, exactly; the offset ends in {@code [−size/2, size/2]}. */
+    /**
+     * Moves whole cells from the offset into the cell index, exactly; the offset ends in {@code [−size/2, size/2]}.
+     * <p>
+     * If it throws, the axes processed before the failing one may already have their offset reduced without the cell
+     * index being updated, so the position is no longer valid.
+     *
+     * @return this
+     * @throws ArithmeticException if an offset is not finite or is {@code 2^62} cells or more, or a cell index
+     *     overflows
+     */
     public WorldPos normalize() {
         long cx = split(offset.x, 0), cy = split(offset.y, 1), cz = split(offset.z, 2);
         cell.set(java.lang.Math.addExact(cell.x, cx), java.lang.Math.addExact(cell.y, cy),
@@ -134,13 +191,27 @@ public final class WorldPos {
         return this;
     }
 
-    /** Moves by {@code (dx, dy, dz)} metres (one rounding, at offset resolution) and renormalizes. */
+    /**
+     * Moves by {@code (dx, dy, dz)} metres (one rounding, at offset resolution) and renormalizes.
+     *
+     * @param dx the x displacement in metres
+     * @param dy the y displacement in metres
+     * @param dz the z displacement in metres
+     * @return this
+     * @throws ArithmeticException if the result cannot be rebased (see {@link #normalize()})
+     */
     public WorldPos add(double dx, double dy, double dz) {
         offset.add(dx, dy, dz);
         return normalize();
     }
 
-    /** Moves by whole cells, exactly. */
+    /**
+     * Moves by whole cells, exactly.
+     *
+     * @param cells the number of cells to move along each axis
+     * @return this
+     * @throws ArithmeticException if a cell index overflows; this is then unchanged
+     */
     public WorldPos addCells(Vector3Lc cells) {
         cell.addExact(cells);
         return this;
@@ -150,7 +221,15 @@ public final class WorldPos {
         return CameraRelative.diff(ca, oa, cb, ob, cellBits);
     }
 
-    /** This minus {@code other} in metres, correctly rounded to double (within an ulp) at any distance. */
+    /**
+     * Returns this minus {@code other} in metres, correctly rounded to double (within an ulp) at any distance.
+     *
+     * @param other the position to subtract, with the same cell size
+     * @param dest receives the difference
+     * @return {@code dest}
+     * @throws IllegalArgumentException if the cell sizes differ
+     * @throws ArithmeticException if the cell difference overflows {@code long}
+     */
     public Vector3d sub(WorldPos other, Vector3d dest) {
         check(other);
         return dest.set(axisDiff(cell.x, other.cell.x, offset.x, other.offset.x),
@@ -159,8 +238,14 @@ public final class WorldPos {
     }
 
     /**
-     * This minus {@code other} rounded to single precision: the camera-relative position for rendering. Within one
-     * float ulp of the exact difference, at 10⁹ m from the origin as anywhere else.
+     * Returns this minus {@code other} rounded to single precision: the camera-relative position for rendering. Within
+     * one float ulp of the exact difference, at 10⁹ m from the origin as anywhere else.
+     *
+     * @param other the position to subtract, usually the camera, with the same cell size
+     * @param dest receives the difference in metres
+     * @return {@code dest}
+     * @throws IllegalArgumentException if the cell sizes differ
+     * @throws ArithmeticException if the cell difference overflows {@code long}
      */
     public Vector3f sub(WorldPos other, Vector3f dest) {
         check(other);
@@ -177,13 +262,29 @@ public final class WorldPos {
         return axisDiff(ca, (long) c, oa, p - java.lang.Math.scalb(c, cellBits));
     }
 
-    /** This position minus the double-precision point {@code p} (split exactly into cell and offset), rounded once. */
+    /**
+     * Returns this position minus the double-precision point {@code p} (split exactly into cell and offset), rounded
+     * once.
+     *
+     * @param px the x coordinate of the point in metres
+     * @param py the y coordinate of the point in metres
+     * @param pz the z coordinate of the point in metres
+     * @param dest receives the difference in metres
+     * @return {@code dest}
+     * @throws ArithmeticException if a coordinate is not finite or too large, or the cell difference overflows
+     */
     public Vector3d sub(double px, double py, double pz, Vector3d dest) {
         return dest.set(axisDiffPoint(cell.x, offset.x, px), axisDiffPoint(cell.y, offset.y, py),
                 axisDiffPoint(cell.z, offset.z, pz));
     }
 
-    /** The position as one double per axis ({@code cell · size + offset}, rounded once): lossy far from the origin. */
+    /**
+     * Returns the position as one double per axis ({@code cell · size + offset}, rounded once): lossy far from the
+     * origin.
+     *
+     * @param dest receives the position in metres
+     * @return {@code dest}
+     */
     public Vector3d toDouble(Vector3d dest) {
         return dest.set(java.lang.Math.scalb((double) cell.x, cellBits) + offset.x,
                 java.lang.Math.scalb((double) cell.y, cellBits) + offset.y,

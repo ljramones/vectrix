@@ -49,6 +49,13 @@ public final class ShadowCascadesd {
      * The practical split scheme (Zhang et al. 2006): {@code split_i = λ · n (f/n)^(i/N) + (1 − λ)(n + (f − n) i/N)},
      * blending logarithmic ({@code λ = 1}) and uniform ({@code λ = 0}) splits. Writes {@code count + 1} distances to
      * {@code out}, with {@code out[0] = near} and {@code out[count] = far} exactly.
+     *
+     * @param near the camera near distance {@code n}, greater than 0
+     * @param far the far distance {@code f} of the last cascade, greater than {@code near}
+     * @param count the number of cascades {@code N}, at least 1
+     * @param lambda the blend {@code λ}, in [0, 1]
+     * @param out receives the split distances; at least {@code count + 1} long, written from index 0
+     * @return {@code out}
      */
     public static double[] practicalSplits(double near, double far, int count, double lambda, double[] out) {
         double n = near, f = far, ratio = f / n;
@@ -66,6 +73,13 @@ public final class ShadowCascadesd {
      * of a symmetric perspective with half-angle tangents {@code tanHalfX} (horizontal) and {@code tanHalfY}, in
      * view space: writes {@code (0, 0, −centerDistance, radius)}. Transform the center to world space with the
      * camera's inverse view matrix.
+     *
+     * @param tanHalfX the tangent of half the horizontal field of view
+     * @param tanHalfY the tangent of half the vertical field of view
+     * @param sliceNear the view distance where the slice begins, at least 0
+     * @param sliceFar the view distance where the slice ends, greater than {@code sliceNear}
+     * @param dest receives {@code (0, 0, −centerDistance, radius)}
+     * @return {@code dest}
      */
     public static Vector4d sliceSphere(double tanHalfX, double tanHalfY, double sliceNear, double sliceFar,
             Vector4d dest) {
@@ -79,12 +93,24 @@ public final class ShadowCascadesd {
     }
 
     /**
-     * Light view and orthographic projection for a cascade whose bounding sphere (world space) is {@code center},
-     * {@code radius}, lit along unit direction {@code lightDir} (from the light into the scene). The map covers the
+     * Builds the light view and orthographic projection for a cascade whose bounding sphere (world space) is
+     * {@code center}, {@code radius}, lit along {@code lightDir} (from the light into the scene). The map covers the
      * sphere, extended by {@code casterDistance} toward the light for occluders outside it; the light-space origin
      * is snapped to whole texels of a {@code resolution}² map, whose half-width {@code radius · res / (res − 2)}
      * leaves room for the snap so the sphere is always inside. {@code up} fixes the light's rotation about its
-     * direction (any direction not parallel to {@code lightDir}); keep it constant between frames.
+     * direction (any direction not parallel to {@code lightDir}); keep it constant between frames. The depth range
+     * of the projection runs from the light plane, {@code casterDistance + radius} in front of the center, to the far
+     * side of the sphere.
+     *
+     * @param center the center of the cascade's bounding sphere, in world space
+     * @param radius the radius of the bounding sphere, greater than 0
+     * @param lightDir the direction the light travels; normalized internally, so it need not be unit length
+     * @param up a reference up direction, not parallel to {@code lightDir}
+     * @param casterDistance how far beyond the sphere, toward the light, occluders are still captured, at least 0
+     * @param resolution the shadow-map size in texels (square), greater than 2
+     * @param range the depth convention of the projection
+     * @param viewDest receives the light view matrix (world to light space)
+     * @param projDest receives the orthographic light projection
      */
     public static void stableLightMatrices(Vector3dc center, double radius, Vector3dc lightDir, Vector3dc up,
             double casterDistance, int resolution, DepthRange range, Matrix4d viewDest, Matrix4d projDest) {
@@ -136,6 +162,17 @@ public final class ShadowCascadesd {
     }
 
     /**
+     * Forwards to the {@link org.dynamisengine.vectrix.core.DepthRange} overload.
+     *
+     * @param center the center of the cascade's bounding sphere, in world space
+     * @param radius the radius of the bounding sphere
+     * @param lightDir the direction the light travels
+     * @param up a reference up direction, not parallel to {@code lightDir}
+     * @param casterDistance how far beyond the sphere, toward the light, occluders are still captured
+     * @param resolution the shadow-map size in texels, greater than 2
+     * @param range the depth convention of the projection
+     * @param viewDest receives the light view matrix
+     * @param projDest receives the orthographic light projection
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)

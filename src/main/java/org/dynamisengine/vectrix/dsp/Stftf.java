@@ -29,9 +29,9 @@ import org.dynamisengine.vectrix.fft.RealFftf;
  * A short-time Fourier transform plan over floats; the single-precision twin of {@link Stftd}.
  * <p>
  * Frame {@code t} covers samples {@code [t·hop, t·hop + n)}. {@link #analyze} windows one frame with the analysis
- * window and returns its half spectrum ({@link #spectrumLength()} doubles, as {@link RealFftf}). {@link #synthesize}
+ * window and returns its half spectrum ({@link #spectrumLength()} floats, as {@link RealFftf}). {@link #synthesize}
  * inverse-transforms a (possibly modified) spectrum, applies the synthesis window, adds it into a caller-held
- * overlap state of {@link #stateSize()} doubles, and emits the {@code hop} samples that are now complete.
+ * overlap state of {@link #stateSize()} floats, and emits the {@code hop} samples that are now complete.
  * <p>
  * The emitted samples are divided by the overlap sum {@code Σ wa[j + m·hop]·ws[j + m·hop]}, so analysis followed by
  * synthesis reconstructs the signal exactly (to rounding) for <i>any</i> pair of windows and hop whose overlap sum
@@ -100,27 +100,48 @@ public final class Stftf {
         return new Stftf(n, hop, analysisWindow, analysisOff, synthesisWindow, synthesisOff);
     }
 
-    /** @return the frame length */
+    /**
+     * Returns the frame length {@code n}, which is also the FFT size.
+     *
+     * @return the frame length in samples
+     */
     public int frameLength() {
         return n;
     }
 
-    /** @return the frame advance */
+    /**
+     * Returns the frame advance: the number of samples between frame starts and emitted per synthesized frame.
+     *
+     * @return the hop in samples
+     */
     public int hop() {
         return hop;
     }
 
-    /** @return the floats in one frame's half spectrum: {@code 2·(n/2 + 1)} */
+    /**
+     * Returns the length of one frame's half spectrum, {@code 2·(n/2 + 1)}: {@code n/2 + 1} interleaved complex
+     * values from DC to Nyquist.
+     *
+     * @return the number of floats
+     */
     public int spectrumLength() {
         return fft.spectrumLength();
     }
 
-    /** @return the floats of overlap state a synthesis stream carries: {@code n} */
+    /**
+     * Returns the size of the overlap state a synthesis stream carries, {@code n}.
+     *
+     * @return the number of floats
+     */
     public int stateSize() {
         return n;
     }
 
-    /** @return the floats of scratch a call needs */
+    /**
+     * Returns the scratch size of {@link #analyze} and {@link #synthesize}.
+     *
+     * @return the number of floats
+     */
     public int scratchSize() {
         return scratchSize;
     }
@@ -128,7 +149,14 @@ public final class Stftf {
     /**
      * Windows the frame {@code in[inOff .. inOff + n)} and transforms it.
      *
-     * @param out receives {@link #spectrumLength()} floats; must not overlap {@code in}
+     * @param in the samples
+     * @param inOff the offset of the frame's first sample
+     * @param out receives {@link #spectrumLength()} floats; must not overlap {@code in} or {@code scratch}
+     * @param outOff the offset of the spectrum
+     * @param scratch working memory of {@link #scratchSize()} floats
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
      */
     public void analyze(float[] in, int inOff, float[] out, int outOff, float[] scratch, int scratchOff) {
         check(in, inOff, n, "in");
@@ -145,8 +173,15 @@ public final class Stftf {
      * writes the {@code hop} completed samples to {@code out}. {@code spectrum} is not modified.
      *
      * @param spectrum the frame's half spectrum, {@link #spectrumLength()} floats
-     * @param out receives {@code hop} samples
+     * @param spectrumOff the offset of the spectrum
+     * @param out receives {@code hop} samples; must not overlap {@code state} or {@code scratch}
+     * @param outOff the offset of the first output sample
      * @param state the {@link #stateSize()} floats of overlap state, zero at the start of a stream
+     * @param stateOff the offset of the state
+     * @param scratch working memory of {@link #scratchSize()} floats
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
      */
     public void synthesize(float[] spectrum, int spectrumOff, float[] out, int outOff, float[] state,
             int stateOff, float[] scratch, int scratchOff) {

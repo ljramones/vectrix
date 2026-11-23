@@ -37,8 +37,8 @@ package org.dynamisengine.vectrix.fft;
  * relative leakage of 7.8e-12 at {@code 2^20}, now 1.1e-16.
  *
  * @since 1.0.0
- *
- * @deprecated use the planned transforms {@link ComplexFftd} and {@link RealFftd}: any size, faster, and allocation-free with caller scratch
+ * @deprecated use the planned transforms {@link ComplexFftd} and {@link RealFftd}: any size, faster, and
+ *             allocation-free with caller scratch
  */
 @Deprecated(since = "2.6.0", forRemoval = true)
 public final class FFT1d {
@@ -58,14 +58,32 @@ public final class FFT1d {
     private FFT1d() {
     }
 
+    /**
+     * Transforms {@code data} in place, unscaled.
+     *
+     * @param data the interleaved complex values; its length is twice a power of two
+     * @throws IllegalArgumentException if {@code data} is null or its length is not twice a power of two
+     */
     public static void forward(double[] data) {
         transform(data, false);
     }
 
+    /**
+     * Inverse-transforms {@code data} in place, dividing by the number of complex values.
+     *
+     * @param data the interleaved complex values; its length is twice a power of two
+     * @throws IllegalArgumentException if {@code data} is null or its length is not twice a power of two
+     */
     public static void inverse(double[] data) {
         transform(data, true);
     }
 
+    /**
+     * Tests whether a complex count is a size this class can transform.
+     *
+     * @param complexCount the number of complex values
+     * @return whether {@code complexCount} is a positive power of two
+     */
     public static boolean isPowerOfTwoSize(int complexCount) {
         return complexCount > 0 && (complexCount & (complexCount - 1)) == 0;
     }

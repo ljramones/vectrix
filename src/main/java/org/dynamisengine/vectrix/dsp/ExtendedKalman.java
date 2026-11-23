@@ -29,7 +29,10 @@ package org.dynamisengine.vectrix.dsp;
  * <p>
  * The update shares {@link Kalman}'s numerics (Cholesky-solved gain, Joseph-form covariance, exact symmetrization).
  * An instance owns the work arrays the model functions write into, so use one per estimated stream and thread. The
- * filter itself allocates nothing per step. Angles in the state or measurement need wrapping in the model functions.
+ * filter itself allocates nothing per step. Angle state components can be wrapped in {@code f}, but the innovation
+ * {@code z - h(x)} is formed here without wrapping: for an angle measurement, shift {@code z} by a multiple of 2π
+ * to within π of {@code h(x)} before calling {@link #update}. The vectors and matrices are used from index 0, with
+ * no length checks beyond Java's bounds checks.
  *
  * @since 2.5.0
  */
@@ -50,12 +53,15 @@ public final class ExtendedKalman {
     /**
      * Creates a filter.
      *
-     * @param n the state dimension
-     * @param m the measurement dimension
+     * The constructor allocates the work arrays; the steps do not allocate.
+     *
+     * @param n the state dimension, at least 1
+     * @param m the measurement dimension, at least 1
      * @param f the transition {@code x → f(x)} ({@code n} values)
      * @param fJacobian {@code x → ∂f/∂x} ({@code n×n}, row-major)
      * @param h the measurement {@code x → h(x)} ({@code m} values)
      * @param hJacobian {@code x → ∂h/∂x} ({@code m×n}, row-major)
+     * @throws IllegalArgumentException if {@code n} or {@code m} is less than 1
      */
     public ExtendedKalman(int n, int m, VectorFunction f, VectorFunction fJacobian, VectorFunction h,
             VectorFunction hJacobian) {
@@ -75,7 +81,13 @@ public final class ExtendedKalman {
         scratch = new double[Kalman.scratchSize(n, m)];
     }
 
-    /** Predict: {@code F = ∂f/∂x} at the current estimate, {@code x = f(x)}, {@code P = F·P·Fᵀ + Q}. */
+    /**
+     * Predict: {@code F = ∂f/∂x} at the current estimate, {@code x = f(x)}, {@code P = F·P·Fᵀ + Q}.
+     *
+     * @param x the {@code n} state values, updated
+     * @param p the {@code n×n} covariance (row-major), updated
+     * @param q the {@code n×n} process noise covariance (row-major)
+     */
     public void predict(double[] x, double[] p, double[] q) {
         fJacobian.apply(x, jf);
         f.apply(x, fx);
@@ -91,7 +103,13 @@ public final class ExtendedKalman {
     /**
      * Update with measurement {@code z}: innovation {@code y = z - h(x)}, {@code H = ∂h/∂x} at the current estimate.
      *
+     * @param x the {@code n} state values, updated
+     * @param p the {@code n×n} covariance (row-major), updated
+     * @param r the {@code m×m} measurement noise covariance (row-major)
+     * @param z the {@code m} measurements
      * @return the squared Mahalanobis distance of the innovation
+     * @throws IllegalStateException if the innovation covariance is not positive definite; {@code x} and {@code p}
+     *         are then unchanged
      */
     public double update(double[] x, double[] p, double[] r, double[] z) {
         h.apply(x, hx);

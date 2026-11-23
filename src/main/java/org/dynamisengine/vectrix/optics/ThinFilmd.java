@@ -34,13 +34,18 @@ public final class ThinFilmd {
     }
 
     /**
-     * Evaluate thin-film reflectance for RGB tri-band wavelengths.
+     * Computes the reflectance of a single thin film on a substrate at the three wavelengths of
+     * {@link SpectralRGBd} (red, green, blue), each by {@link #reflectance}. Under total internal reflection the
+     * result is 1 in every channel (up to rounding when it happens at the substrate).
      *
-     * @param etaI incident medium IOR
-     * @param etaFilm film IOR
-     * @param etaSub substrate IOR
-     * @param thicknessNm film thickness in nanometers
-     * @param cosThetaI cosine of incident angle in [0,1]
+     * @param etaI incident medium IOR, greater than 0
+     * @param etaFilm film IOR, greater than 0
+     * @param etaSub substrate IOR (real), greater than 0
+     * @param thicknessNm film thickness in nanometers, at least 0
+     * @param cosThetaI cosine of incident angle, clamped to {@code [0, 1]}
+     * @param dest receives the reflectance per channel
+     * @return {@code dest}
+     * @throws IllegalArgumentException if an IOR is not greater than 0 or the thickness is negative
      */
     public static Vector3d reflectanceRgb(double etaI, double etaFilm, double etaSub, double thicknessNm, double cosThetaI, Vector3d dest) {
         if (etaI <= 0.0 || etaFilm <= 0.0 || etaSub <= 0.0 || thicknessNm < 0.0) {
@@ -72,7 +77,20 @@ public final class ThinFilmd {
     }
 
     /**
-     * Evaluate thin-film reflectance at a single wavelength in nanometers.
+     * Returns the unpolarized reflectance of a single thin film on a substrate at one wavelength, by the Airy
+     * summation of the multiple reflections inside the film (the mean of the s and p reflectances). Returns 1 under
+     * total internal reflection at the top of the film, and 1 up to rounding under total internal reflection at the
+     * substrate. With zero thickness the result is the reflectance of the bare substrate.
+     *
+     * @param etaI incident medium IOR, greater than 0
+     * @param etaFilm film IOR, greater than 0
+     * @param etaSub substrate IOR (real), greater than 0
+     * @param thicknessNm film thickness in nanometers, at least 0
+     * @param cosThetaI cosine of incident angle, clamped to {@code [0, 1]}
+     * @param wavelengthNm the vacuum wavelength in nanometers, greater than 0
+     * @return the reflectance, in {@code [0, 1]}
+     * @throws IllegalArgumentException if an IOR or the wavelength is not greater than 0, or the thickness is
+     *         negative
      */
     public static double reflectance(double etaI, double etaFilm, double etaSub, double thicknessNm, double cosThetaI, double wavelengthNm) {
         if (etaI <= 0.0 || etaFilm <= 0.0 || etaSub <= 0.0 || thicknessNm < 0.0 || wavelengthNm <= 0.0) {

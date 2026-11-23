@@ -38,77 +38,153 @@ public final class NnMath {
     private NnMath() {
     }
 
-    /** Forwards to {@link ReproducibleMath#exp}. */
+    /**
+     * Forwards to {@link ReproducibleMath#exp(float)}.
+     *
+     * @param x the argument
+     * @return {@code e^x}
+     */
     public static float exp(float x) {
         return ReproducibleMath.exp(x);
     }
 
-    /** Forwards to {@link ReproducibleMath#expm1}. */
+    /**
+     * Forwards to {@link ReproducibleMath#expm1(float)}.
+     *
+     * @param x the argument
+     * @return {@code e^x - 1}
+     */
     public static float expm1(float x) {
         return ReproducibleMath.expm1(x);
     }
 
-    /** Forwards to {@link ReproducibleMath#tanh}. */
+    /**
+     * Forwards to {@link ReproducibleMath#tanh(float)}.
+     *
+     * @param x the argument
+     * @return the hyperbolic tangent of {@code x}
+     */
     public static float tanh(float x) {
         return ReproducibleMath.tanh(x);
     }
 
-    /** Forwards to {@link ReproducibleMath#sigmoid}. */
+    /**
+     * Forwards to {@link ReproducibleMath#sigmoid(float)}.
+     *
+     * @param x the argument
+     * @return {@code 1 / (1 + e^-x)}
+     */
     public static float sigmoid(float x) {
         return ReproducibleMath.sigmoid(x);
     }
 
-    /** Forwards to {@link ReproducibleMath#log}. */
+    /**
+     * Forwards to {@link ReproducibleMath#log(float)}.
+     *
+     * @param x the argument
+     * @return the natural logarithm of {@code x}
+     */
     public static float log(float x) {
         return ReproducibleMath.log(x);
     }
 
-    /** Forwards to {@link ReproducibleMath#log1p}. */
+    /**
+     * Forwards to {@link ReproducibleMath#log1p(float)}.
+     *
+     * @param y the argument
+     * @return {@code ln(1 + y)}
+     */
     public static float log1p(float y) {
         return ReproducibleMath.log1p(y);
     }
 
-    /** Forwards to {@link ReproducibleMath#erf}. */
+    /**
+     * Forwards to {@link ReproducibleMath#erf(float)}.
+     *
+     * @param x the argument
+     * @return the error function of {@code x}
+     */
     public static float erf(float x) {
         return ReproducibleMath.erf(x);
     }
 
-    /** Forwards to {@link ReproducibleMath#erfc}. */
+    /**
+     * Forwards to {@link ReproducibleMath#erfc(float)}.
+     *
+     * @param x the argument
+     * @return {@code 1 - erf(x)}
+     */
     public static float erfc(float x) {
         return ReproducibleMath.erfc(x);
     }
 
-    /** Forwards to {@link ReproducibleMath#normalCdf}. */
+    /**
+     * Forwards to {@link ReproducibleMath#normalCdf(float)}.
+     *
+     * @param x the argument
+     * @return the standard normal cumulative distribution at {@code x}
+     */
     public static float normalCdf(float x) {
         return ReproducibleMath.normalCdf(x);
     }
 
-    /** Forwards to {@link ReproducibleMath#normalPdf}. */
+    /**
+     * Forwards to {@link ReproducibleMath#normalPdf(float)}.
+     *
+     * @param x the argument
+     * @return the standard normal density at {@code x}
+     */
     public static float normalPdf(float x) {
         return ReproducibleMath.normalPdf(x);
     }
 
-    /** Forwards to {@link ReproducibleMath#sin}. */
+    /**
+     * Forwards to {@link ReproducibleMath#sin(double)}.
+     *
+     * @param a the angle in radians
+     * @return the sine of {@code a}
+     */
     public static double sinD(double a) {
         return ReproducibleMath.sin(a);
     }
 
-    /** Forwards to {@link ReproducibleMath#cos}. */
+    /**
+     * Forwards to {@link ReproducibleMath#cos(double)}.
+     *
+     * @param a the angle in radians
+     * @return the cosine of {@code a}
+     */
     public static double cosD(double a) {
         return ReproducibleMath.cos(a);
     }
 
-    /** Forwards to {@link ReproducibleMath#log}. */
+    /**
+     * Forwards to {@link ReproducibleMath#log(double)}.
+     *
+     * @param x the argument
+     * @return the natural logarithm of {@code x}
+     */
     public static double logD(double x) {
         return ReproducibleMath.log(x);
     }
 
-    /** Forwards to {@link ReproducibleMath#pow}. */
+    /**
+     * Forwards to {@link ReproducibleMath#pow(double, double)}.
+     *
+     * @param b the base
+     * @param y the exponent
+     * @return {@code b^y}
+     */
     public static double powD(double b, double y) {
         return ReproducibleMath.pow(b, y);
     }
 
-    /** Forwards to {@link ReproducibleMath#exp}. */
+    /**
+     * Forwards to {@link ReproducibleMath#exp(double)}.
+     *
+     * @param x the argument
+     * @return {@code e^x}
+     */
     public static double expD(double x) {
         return ReproducibleMath.exp(x);
     }

@@ -52,6 +52,7 @@ public final class Mdctd {
      *
      * @param n the number of coefficients, even and at least 2
      * @return the plan
+     * @throws IllegalArgumentException if {@code n} is odd or less than 2
      */
     public static Mdctd plan(int n) {
         if (n < 2 || (n & 1) != 0) {
@@ -60,12 +61,20 @@ public final class Mdctd {
         return new Mdctd(n);
     }
 
-    /** @return the number of coefficients; frames have {@code 2n} samples */
+    /**
+     * Returns the number of coefficients {@code n}; frames have {@code 2n} samples.
+     *
+     * @return the number of coefficients
+     */
     public int size() {
         return n;
     }
 
-    /** @return the doubles of scratch a call needs */
+    /**
+     * Returns the scratch size of {@link #forward} and {@link #inverse}.
+     *
+     * @return the number of doubles
+     */
     public int scratchSize() {
         return scratchSize;
     }
@@ -73,7 +82,14 @@ public final class Mdctd {
     /**
      * Transforms {@code 2n} samples into {@code n} coefficients.
      *
-     * @param out receives {@code n} coefficients; must not overlap {@code in}
+     * @param in the {@code 2n} samples, already windowed
+     * @param inOff the offset of the first sample
+     * @param out receives {@code n} coefficients; must not overlap {@code in} or {@code scratch}
+     * @param outOff the offset of the first coefficient
+     * @param scratch working memory of {@link #scratchSize()} doubles
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
      */
     public void forward(double[] in, int inOff, double[] out, int outOff, double[] scratch, int scratchOff) {
         range(in, inOff, 2 * n, "in");
@@ -96,7 +112,15 @@ public final class Mdctd {
      * Inverse-transforms {@code n} coefficients into {@code 2n} samples, scaled by {@code 2/n} for exact
      * overlap-add reconstruction.
      *
-     * @param out receives {@code 2n} samples; must not overlap {@code in}
+     * @param in the {@code n} coefficients
+     * @param inOff the offset of the first coefficient
+     * @param out receives {@code 2n} samples, to be windowed and overlap-added; must not overlap {@code in} or
+     *        {@code scratch}
+     * @param outOff the offset of the first sample
+     * @param scratch working memory of {@link #scratchSize()} doubles
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
      */
     public void inverse(double[] in, int inOff, double[] out, int outOff, double[] scratch, int scratchOff) {
         range(in, inOff, n, "in");

@@ -48,17 +48,29 @@ public enum DepthRange {
         this.far = far;
     }
 
-    /** NDC depth of the near plane. */
+    /**
+     * Returns the NDC depth of the near plane.
+     *
+     * @return the near-plane NDC depth
+     */
     public double nearNdc() {
         return near;
     }
 
-    /** NDC depth of the far plane (of infinity, for an infinite projection). */
+    /**
+     * Returns the NDC depth of the far plane (of infinity, for an infinite projection).
+     *
+     * @return the far-plane NDC depth
+     */
     public double farNdc() {
         return far;
     }
 
-    /** @return the same convention as a {@link org.dynamisengine.vectrix.core.DepthRange} */
+    /**
+     * Converts this constant to the core enum.
+     *
+     * @return the same convention as a {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
     public org.dynamisengine.vectrix.core.DepthRange toCore() {
         return org.dynamisengine.vectrix.core.DepthRange.values()[ordinal()];
     }

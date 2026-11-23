@@ -29,8 +29,8 @@ import org.dynamisengine.vectrix.core.Matrix4f;
 import org.dynamisengine.vectrix.core.Matrix4fc;
 
 /**
- * Householder QR decomposition of 3×3 and 4×4 matrices (single precision; computed in double): {@code a = Q R} with {@code Q}
- * orthogonal and {@code R} upper triangular with a non-negative diagonal (unique for invertible {@code a}).
+ * Householder QR decomposition of 3×3 and 4×4 matrices (single precision; computed in double): {@code a = Q R} with
+ * {@code Q} orthogonal and {@code R} upper triangular with a non-negative diagonal (unique for invertible {@code a}).
  *
  * @since 2.2.0
  */
@@ -38,7 +38,14 @@ public final class Qrf {
     private Qrf() {
     }
 
-    /** 3×3 QR. Outputs may alias {@code a}. */
+    /**
+     * 3×3 QR decomposition {@code a = Q R}. Outputs may alias {@code a}. Uses a per-thread workspace; does not allocate
+     * after the thread's first call.
+     *
+     * @param a the matrix to decompose
+     * @param q receives the orthogonal factor {@code Q}
+     * @param r receives the upper-triangular factor {@code R}, with a non-negative diagonal
+     */
     public static void decompose(Matrix3fc a, Matrix3f q, Matrix3f r) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] qq = ws.out9a, rr = ws.out9b;
@@ -47,7 +54,14 @@ public final class Qrf {
         Conv.set(r, rr);
     }
 
-    /** 4×4 QR. Outputs may alias {@code a}. */
+    /**
+     * 4×4 QR decomposition {@code a = Q R}. Outputs may alias {@code a}. Uses a per-thread workspace; does not allocate
+     * after the thread's first call.
+     *
+     * @param a the matrix to decompose
+     * @param q receives the orthogonal factor {@code Q}
+     * @param r receives the upper-triangular factor {@code R}, with a non-negative diagonal
+     */
     public static void decompose(Matrix4fc a, Matrix4f q, Matrix4f r) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] qq = ws.out9a, rr = ws.out9b;

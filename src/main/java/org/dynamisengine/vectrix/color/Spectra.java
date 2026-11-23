@@ -34,15 +34,21 @@ import org.dynamisengine.vectrix.core.Vector3d;
  * @since 2.3.0
  */
 public final class Spectra {
-    /** First and last D65 wavelengths (nm). */
+    /** First wavelength of the D65 table, in nanometres. */
     public static final int D65_MIN_NM = 300;
-    /** Last D65 wavelength (nm). */
+    /** Last wavelength of the D65 table, in nanometres. */
     public static final int D65_MAX_NM = 830;
 
     private Spectra() {
     }
 
-    /** Relative spectral power of CIE illuminant D65 at {@code nm} (official 1 nm table, interpolated). */
+    /**
+     * Returns the relative spectral power of CIE illuminant D65 (official 1 nm table, 100 at 560 nm), linearly
+     * interpolated between whole nanometres.
+     *
+     * @param nm the wavelength in nanometres; outside [{@link #D65_MIN_NM}, {@link #D65_MAX_NM}], or NaN, gives 0
+     * @return the relative spectral power
+     */
     public static double d65(double nm) {
         if (!(nm >= D65_MIN_NM && nm <= D65_MAX_NM)) {
             return 0.0;
@@ -60,7 +66,17 @@ public final class Spectra {
         return nm < D65_MIN_NM || nm > D65_MAX_NM ? 0.0 : CieData.D65[nm - D65_MIN_NM];
     }
 
-    /** Raw tristimulus sums {@code Σ φ x̄, Σ φ ȳ, Σ φ z̄} (Δλ = 1 nm, k = 1) of the 1 nm spectrum {@code spd}. */
+    /**
+     * Returns the raw tristimulus sums {@code (Σ φ x̄, Σ φ ȳ, Σ φ z̄)} of an emission spectrum, with Δλ = 1 nm and
+     * k = 1. Samples outside the observer's range contribute nothing. Scale the result yourself, for example by
+     * 683 lm/W for photometric units.
+     *
+     * @param spd the spectrum φ, one sample per nanometre
+     * @param firstNm the wavelength of {@code spd[0]}, in nanometres
+     * @param observer the standard observer
+     * @param dest receives the sums
+     * @return {@code dest}
+     */
     public static Vector3d tristimulus(double[] spd, int firstNm, CieObserver observer, Vector3d dest) {
         double x = 0.0, y = 0.0, z = 0.0;
         int lo = java.lang.Math.max(firstNm, CieObserver.MIN_NM);
@@ -75,8 +91,15 @@ public final class Spectra {
     }
 
     /**
-     * XYZ of a reflectance spectrum (1 nm samples) under D65, with {@code k = 1 / Σ D65 ȳ} so a perfect diffuser has
-     * {@code Y = 1}.
+     * Returns the XYZ of a reflectance spectrum under D65, with {@code k = 1 / Σ D65 ȳ} so a perfect diffuser has
+     * {@code Y = 1}. The sums run over the observer's range, 360 to 830 nm; wavelengths that {@code reflectance} does
+     * not cover count as reflectance 0.
+     *
+     * @param reflectance the reflectance, one sample per nanometre, usually in [0, 1]
+     * @param firstNm the wavelength of {@code reflectance[0]}, in nanometres
+     * @param observer the standard observer
+     * @param dest receives X, Y and Z
+     * @return {@code dest}
      */
     public static Vector3d reflectanceToXyz(double[] reflectance, int firstNm, CieObserver observer, Vector3d dest) {
         double x = 0.0, y = 0.0, z = 0.0, n = 0.0;
@@ -92,7 +115,13 @@ public final class Spectra {
         return dest.set(x / n, y / n, z / n);
     }
 
-    /** XYZ white point of D65 for {@code observer}, normalized to {@code Y = 1}. */
+    /**
+     * Returns the XYZ white point of D65 for an observer, normalized to {@code Y = 1}.
+     *
+     * @param observer the standard observer
+     * @param dest receives the white point
+     * @return {@code dest}
+     */
     public static Vector3d whitePointD65(CieObserver observer, Vector3d dest) {
         double x = 0.0, y = 0.0, z = 0.0;
         for (int nm = CieObserver.MIN_NM; nm <= CieObserver.MAX_NM; nm++) {

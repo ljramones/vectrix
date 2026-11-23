@@ -22,6 +22,16 @@
  * THE SOFTWARE.
  */
 /**
- * Hashing helpers for procedural generation, sampling, and spatial indexing.
+ * Hashing helpers for procedural generation, sampling, and spatial indexing: the PCG integer hash
+ * ({@code PcgHash}), grid-cell hashes ({@code SpatialHash}) and the counter-based Philox4x32-10 random number
+ * generator ({@code Philox}).
+ * <p>
+ * <b>Contract.</b> Threading: every method is a pure function of its arguments, safe to call from any thread; there
+ * is no generator state. Allocation: no method allocates. Determinism: the hashes and the Philox words are integer
+ * operations, the same bits on every platform; {@code Philox.fillNormal} uses {@code ReproducibleMath}, so its
+ * results are also the same bits everywhere. Errors: the {@code Philox} fill methods check their offset and count
+ * and throw {@link java.lang.IllegalArgumentException} before writing anything; {@code Philox.block} relies on
+ * array bounds checks. Precision and naming: hashes are 32-bit {@code int}s; {@code Philox} produces 32-bit words
+ * and float uniforms and normals.
  */
 package org.dynamisengine.vectrix.hash;

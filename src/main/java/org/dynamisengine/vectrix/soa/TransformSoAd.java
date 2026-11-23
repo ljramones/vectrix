@@ -26,24 +26,64 @@ package org.dynamisengine.vectrix.soa;
 import org.dynamisengine.vectrix.affine.Transformd;
 
 /**
- * Structure-of-arrays storage for transform batches.
+ * Structure-of-arrays storage for transform batches: element {@code i} is the translation
+ * {@code (tx[i], ty[i], tz[i])}, the rotation quaternion {@code (qx[i], qy[i], qz[i], qw[i])} and the scale
+ * {@code (sx[i], sy[i], sz[i])} of a {@link Transformd}.
+ * <p>
+ * The arrays are public and have a fixed length. Not thread-safe: synchronize writers yourself.
  * <p>
  * Double-precision twin of {@link TransformSoA}, for world-scale transforms (see {@code world.WorldPos}).
  *
  * @since 2.3.0
  */
 public class TransformSoAd {
+    /**
+     * The x translation of each transform.
+     */
     public final double[] tx;
+    /**
+     * The y translation of each transform.
+     */
     public final double[] ty;
+    /**
+     * The z translation of each transform.
+     */
     public final double[] tz;
+    /**
+     * The x component of each rotation quaternion.
+     */
     public final double[] qx;
+    /**
+     * The y component of each rotation quaternion.
+     */
     public final double[] qy;
+    /**
+     * The z component of each rotation quaternion.
+     */
     public final double[] qz;
+    /**
+     * The w (scalar) component of each rotation quaternion.
+     */
     public final double[] qw;
+    /**
+     * The x scale of each transform.
+     */
     public final double[] sx;
+    /**
+     * The y scale of each transform.
+     */
     public final double[] sy;
+    /**
+     * The z scale of each transform.
+     */
     public final double[] sz;
 
+    /**
+     * Creates storage for {@code size} transforms, each the identity: zero translation, rotation {@code (0, 0, 0, 1)}
+     * and scale 1.
+     *
+     * @param size the number of transforms
+     */
     public TransformSoAd(int size) {
         tx = new double[size];
         ty = new double[size];
@@ -63,10 +103,21 @@ public class TransformSoAd {
         }
     }
 
+    /**
+     * Returns the number of transforms.
+     *
+     * @return the length of the arrays
+     */
     public int size() {
         return tx.length;
     }
 
+    /**
+     * Copies {@code t} into element {@code i}.
+     *
+     * @param i the element index
+     * @param t the transform to store
+     */
     public void set(int i, Transformd t) {
         tx[i] = t.translation.x;
         ty[i] = t.translation.y;
@@ -80,6 +131,13 @@ public class TransformSoAd {
         sz[i] = t.scale.z;
     }
 
+    /**
+     * Copies element {@code i} into {@code dest}.
+     *
+     * @param i the element index
+     * @param dest receives the transform
+     * @return {@code dest}
+     */
     public Transformd get(int i, Transformd dest) {
         dest.translation.set(tx[i], ty[i], tz[i]);
         dest.rotation.set(qx[i], qy[i], qz[i], qw[i]);

@@ -37,9 +37,10 @@ import org.dynamisengine.vectrix.simd.SimdSupport;
  * Softmax, log-softmax and log-sum-exp over one row of floats, forward and backward.
  * <p>
  * The maximum is subtracted before exponentiating, so no input overflows. Sums use {@link Blasf}'s documented
- * order and exponentials {@link org.dynamisengine.vectrix.core.ReproducibleMath#exp(float)} (vectorized with the same operations), so results are the same bits on
- * every platform and jar. Outputs may alias inputs at the same offset; nothing allocates. Apply a kernel per row to
- * process a matrix: rows are independent, so threads may share the work freely.
+ * order and exponentials {@link org.dynamisengine.vectrix.core.ReproducibleMath#exp(float)} (vectorized with the
+ * same operations), so results are the same bits on every platform and jar. Outputs may alias inputs at the same
+ * offset; nothing allocates. Apply a kernel per row to process a matrix: rows are independent, so threads may share
+ * the work freely.
  *
  * @since 2.5.0
  */
@@ -48,7 +49,16 @@ public final class Softmax {
     private Softmax() {
     }
 
-    /** {@code y[i] = e^(x[i] - m) / Σ e^(x[j] - m)}, {@code m = max x}. */
+    /**
+     * Softmax: {@code y[i] = e^(x[i] - m) / Σ e^(x[j] - m)}, {@code m = max x}. An empty row writes nothing.
+     *
+     * @param x the row
+     * @param xOff the offset in {@code x}
+     * @param y receives the output; may be {@code x} at the same offset
+     * @param yOff the offset in {@code y}
+     * @param n the row length
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void softmax(float[] x, int xOff, float[] y, int yOff, int n) {
         check(x, xOff, n, "x");
         check(y, yOff, n, "y");
@@ -63,7 +73,18 @@ public final class Softmax {
         }
     }
 
-    /** {@code y[i] = x[i] - m - log Σ e^(x[j] - m)}, without forming the probabilities. */
+    /**
+     * Log-softmax: {@code y[i] = x[i] - m - log Σ e^(x[j] - m)}, without forming the probabilities.
+     *
+     * @param x the row
+     * @param xOff the offset in {@code x}
+     * @param y receives the output; may be {@code x} at the same offset
+     * @param yOff the offset in {@code y}
+     * @param n the row length
+     * @param scratch {@code n} floats of working memory; must not overlap {@code x}
+     * @param scratchOff the offset in {@code scratch}
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void logSoftmax(float[] x, int xOff, float[] y, int yOff, int n, float[] scratch, int scratchOff) {
         check(x, xOff, n, "x");
         check(y, yOff, n, "y");
@@ -80,9 +101,15 @@ public final class Softmax {
     }
 
     /**
-     * {@code log Σ e^(x[i])}, stable for any range ({@code -∞} for an empty row).
+     * Returns {@code log Σ e^(x[i])}, stable for any range. If the maximum is infinite, it is the result.
      *
+     * @param x the row
+     * @param xOff the offset in {@code x}
+     * @param n the row length
      * @param scratch {@code n} floats of working memory
+     * @param scratchOff the offset in {@code scratch}
+     * @return the log-sum-exp; {@code -∞} for an empty row
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
      */
     public static float logSumExp(float[] x, int xOff, int n, float[] scratch, int scratchOff) {
         check(x, xOff, n, "x");
@@ -98,7 +125,18 @@ public final class Softmax {
         return m + ReproducibleMath.log(Blasf.sum(scratch, scratchOff, n));
     }
 
-    /** Softmax backward from its output: {@code dx[i] = y[i]·(dy[i] - Σ dy[j]·y[j])}. */
+    /**
+     * Softmax backward from its output: {@code dx[i] = y[i]·(dy[i] - Σ dy[j]·y[j])}.
+     *
+     * @param y the forward output
+     * @param yOff the offset in {@code y}
+     * @param dy the gradient of the output
+     * @param dyOff the offset in {@code dy}
+     * @param dx receives the gradient of the input; may be {@code y} or {@code dy} at the same offset
+     * @param dxOff the offset in {@code dx}
+     * @param n the row length
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void softmaxBackward(float[] y, int yOff, float[] dy, int dyOff, float[] dx, int dxOff, int n) {
         check(y, yOff, n, "y");
         check(dy, dyOff, n, "dy");
@@ -109,7 +147,18 @@ public final class Softmax {
         }
     }
 
-    /** Log-softmax backward from its output: {@code dx[i] = dy[i] - e^(y[i])·Σ dy[j]}. */
+    /**
+     * Log-softmax backward from its output: {@code dx[i] = dy[i] - e^(y[i])·Σ dy[j]}.
+     *
+     * @param y the forward output
+     * @param yOff the offset in {@code y}
+     * @param dy the gradient of the output
+     * @param dyOff the offset in {@code dy}
+     * @param dx receives the gradient of the input; may be {@code y} or {@code dy} at the same offset
+     * @param dxOff the offset in {@code dx}
+     * @param n the row length
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void logSoftmaxBackward(float[] y, int yOff, float[] dy, int dyOff, float[] dx, int dxOff, int n) {
         check(y, yOff, n, "y");
         check(dy, dyOff, n, "dy");
@@ -179,7 +228,10 @@ public final class Softmax {
         static final FloatVector E3V = FloatVector.broadcast(S, NnConstants.E3);
         static final FloatVector E2V = FloatVector.broadcast(S, NnConstants.E2);
 
-        /** {@link Softmax#expShifted} on whole vectors, with {@link org.dynamisengine.vectrix.core.ReproducibleMath#exp(float)} expanded inline; returns the index reached. */
+        /**
+         * {@link Softmax#expShifted} on whole vectors, with {@link org.dynamisengine.vectrix.core.ReproducibleMath#exp(float)}
+         * expanded inline; returns the index reached.
+         */
         static int expShifted(float[] x, int xOff, float[] y, int yOff, int n, float m) {
             int i = 0;
             float floor = m - 1e38f; // e^(x - m) is 0 below it; clamping keeps x - m finite for TwoSum

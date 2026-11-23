@@ -28,12 +28,26 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Validated vertex input layout descriptor.
+ * An interleaved vertex layout: a vertex stride and its attributes, validated on construction. Immutable.
+ * <p>
+ * Validation requires every attribute offset to be a multiple of its component size, every attribute to end within
+ * the stride, no two attributes to overlap and no two to share a name. The stride itself is not checked for
+ * alignment.
  */
 public final class VertexLayout {
+    /** The size of one vertex in bytes. */
     public final int strideBytes;
+    /** The attributes, in the order given; unmodifiable. */
     public final List<VertexAttribute> attributes;
 
+    /**
+     * Creates and validates a layout. The list is copied.
+     *
+     * @param strideBytes the size of one vertex in bytes, at least 1
+     * @param attributes the attributes, at least one
+     * @throws IllegalArgumentException if {@code strideBytes} is not positive, the list is null or empty, or the
+     *         attributes are misaligned, exceed the stride, overlap or share a name
+     */
     public VertexLayout(int strideBytes, List<VertexAttribute> attributes) {
         if (strideBytes <= 0) {
             throw new IllegalArgumentException("strideBytes");
@@ -46,12 +60,26 @@ public final class VertexLayout {
         validate();
     }
 
+    /**
+     * Creates and validates a layout from an attribute array; see the constructor.
+     *
+     * @param strideBytes the size of one vertex in bytes, at least 1
+     * @param attributes the attributes, at least one
+     * @return the layout
+     * @throws IllegalArgumentException if the layout is invalid (see the constructor)
+     */
     public static VertexLayout ofInterleaved(int strideBytes, VertexAttribute... attributes) {
         ArrayList<VertexAttribute> list = new ArrayList<VertexAttribute>(attributes.length);
         Collections.addAll(list, attributes);
         return new VertexLayout(strideBytes, list);
     }
 
+    /**
+     * Finds an attribute by name.
+     *
+     * @param name the attribute name
+     * @return the attribute, or {@code null} if there is none with that name
+     */
     public VertexAttribute attribute(String name) {
         for (int i = 0; i < attributes.size(); i++) {
             VertexAttribute a = attributes.get(i);

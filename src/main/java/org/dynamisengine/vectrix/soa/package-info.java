@@ -22,6 +22,18 @@
  * THE SOFTWARE.
  */
 /**
- * Structure-of-arrays batch containers and operations.
+ * Structure-of-arrays batch containers and operations: transforms ({@link org.dynamisengine.vectrix.soa.TransformSoA}),
+ * dual quaternions and bounds stored one array per component, with batch kernels for hierarchy composition
+ * ({@link org.dynamisengine.vectrix.soa.TransformKernels}) and mesh skinning
+ * ({@link org.dynamisengine.vectrix.soa.SkinningKernels}).
+ * <p>
+ * <b>Contract.</b> Threading: the containers are mutable and not thread-safe; the kernels are static and stateless,
+ * safe to call from any thread on separate outputs. Allocation: only the container constructors allocate; the
+ * kernels do not. Determinism: {@code TransformKernels.composeBatch} gives the same bits on its scalar and Vector API
+ * paths; the skinning kernels are scalar only. Errors: the kernels take a count and start at index 0 without
+ * checking array sizes up front, so a short array or a bad joint index throws
+ * {@code ArrayIndexOutOfBoundsException}; in STRICT mode {@code composeBatch} throws
+ * {@code IllegalArgumentException} for non-unit rotations before writing. Precision and naming: the containers are
+ * float unless their name ends in {@code d}; the kernels work on the float containers.
  */
 package org.dynamisengine.vectrix.soa;

@@ -34,10 +34,15 @@ public final class Fresnelf {
     }
 
     /**
-     * Unpolarized dielectric Fresnel reflectance.
+     * Returns the unpolarized Fresnel reflectance of a smooth dielectric interface, the mean of the s and p
+     * reflectances. Returns 1 under total internal reflection.
      *
      * @param cosThetaI cosine of the incident angle; a negative value means the ray arrives from the {@code etaT}
-     *                  side, and the indices are swapped
+     *                  side, and the indices are swapped. Values beyond 1 in magnitude are clamped.
+     * @param etaI the refractive index of the incident medium, greater than 0
+     * @param etaT the refractive index of the transmitting medium, greater than 0
+     * @return the reflectance, in {@code [0, 1]}
+     * @throws IllegalArgumentException if {@code etaI} or {@code etaT} is not greater than 0
      */
     public static float dielectric(float cosThetaI, float etaI, float etaT) {
         if (etaI <= 0.0f || etaT <= 0.0f) {
@@ -63,16 +68,28 @@ public final class Fresnelf {
     }
 
     /**
-     * Unpolarized conductor Fresnel reflectance with complex relative IOR {@code n + i k} (exact).
-     * The incident medium is assumed to have IOR 1.
+     * Returns the exact unpolarized Fresnel reflectance of a conductor with complex relative IOR {@code n + i k}.
+     * The incident medium is assumed to have IOR 1. Same as {@link #conductor(float, float, float)}.
+     *
+     * @param cosThetaI cosine of the incident angle, clamped to {@code [0, 1]}
+     * @param eta the complex IOR: {@code n} in the real part and the extinction {@code k} in the imaginary part
+     * @return the reflectance, in {@code [0, 1]}
+     * @throws IllegalArgumentException if {@code n} or {@code k} is negative
      */
     public static float conductor(float cosThetaI, Complexf eta) {
         return conductor(cosThetaI, eta.real, eta.imag);
     }
 
     /**
-     * Unpolarized conductor Fresnel reflectance with complex relative IOR {@code n + i k} (exact).
-     * The incident medium is assumed to have IOR 1.
+     * Returns the exact unpolarized Fresnel reflectance of a conductor with complex relative IOR {@code n + i k},
+     * the mean of the s and p reflectances. The incident medium is assumed to have IOR 1. For {@code k = 0} this
+     * equals {@link #dielectric} with {@code etaI = 1} and {@code etaT = n}.
+     *
+     * @param cosThetaI cosine of the incident angle, clamped to {@code [0, 1]}
+     * @param n the real part of the IOR, at least 0
+     * @param k the extinction coefficient, at least 0
+     * @return the reflectance, in {@code [0, 1]}
+     * @throws IllegalArgumentException if {@code n} or {@code k} is negative
      */
     public static float conductor(float cosThetaI, float n, float k) {
         if (n < 0.0f || k < 0.0f) {
@@ -108,6 +125,12 @@ public final class Fresnelf {
     }
 
     /**
+     * Returns the conductor reflectance for an IOR given as an {@code fft.Complexf}. Allocates a copy of the IOR.
+     *
+     * @param cosThetaI cosine of the incident angle, clamped to {@code [0, 1]}
+     * @param eta the complex IOR: {@code n} in the real part and {@code k} in the imaginary part
+     * @return the reflectance, in {@code [0, 1]}
+     * @throws IllegalArgumentException if {@code n} or {@code k} is negative
      * @deprecated use the overload taking {@link Complexf} from {@code core}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)

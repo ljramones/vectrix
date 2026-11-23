@@ -35,7 +35,8 @@ import org.dynamisengine.vectrix.core.AccurateMath;
  * {@code 2 (y size + x)} and covers {@code nDotV = (x + 0.5) / size} and perceptual roughness
  * {@code (y + 0.5) / size} ({@code α = roughness²}). That is the {@code vec2(nDotV, roughness)} lookup used by
  * DynamisLightEngine. The integral is a deterministic Hammersley estimate with GGX importance sampling, accumulated in
- * double precision: the same inputs give the same table on every platform.
+ * double precision. Its only transcendental is {@link AccurateMath#cos}, so under {@code -Dvectrix.strictMath=true}
+ * the same inputs give the same table on every platform.
  *
  * @since 2.1.0
  */
@@ -53,9 +54,13 @@ public final class DfgLutBuilder {
     }
 
     /**
-     * Fills {@code outAb} (length at least {@code 2 * size * size}) with the table.
+     * Fills {@code outAb} (length at least {@code 2 * size * size}) with the table, in the layout described on the
+     * class. Allocates one two-element scratch array per call.
      *
+     * @param size the table width and height in texels, positive
      * @param sampleCount Hammersley samples per texel; 512 to 1024 is typical for 8-bit to 16-bit precision
+     * @param model the masking-shadowing term to integrate with
+     * @param outAb receives the interleaved {@code (a, b)} pairs, starting at index 0
      * @throws IllegalArgumentException if {@code size} or {@code sampleCount} is not positive, {@code model} is null or
      *                                  {@code outAb} is too small
      */
@@ -82,8 +87,15 @@ public final class DfgLutBuilder {
     }
 
     /**
-     * The DFG term for one {@code (nDotV, perceptualRoughness)}: writes {@code a} to {@code outAb[0]} and {@code b}
-     * to {@code outAb[1]}.
+     * Computes the DFG term for one {@code (nDotV, perceptualRoughness)}: writes {@code a} to {@code outAb[0]} and
+     * {@code b} to {@code outAb[1]}. Arguments are not validated: {@code sampleCount <= 0} gives NaN, a null
+     * {@code model} integrates {@link Model#SCHLICK_GGX_KARIS}, and with that model {@code nDotV = 0} gives NaN.
+     *
+     * @param nDotV the cosine between the normal and the view direction, in (0, 1]
+     * @param perceptualRoughness the perceptual roughness, in [0, 1]; {@code α = perceptualRoughness²}
+     * @param sampleCount the number of Hammersley samples, positive
+     * @param model the masking-shadowing term to integrate with
+     * @param outAb receives {@code a} at index 0 and {@code b} at index 1; length at least 2
      */
     public static void integrate(double nDotV, double perceptualRoughness, int sampleCount, Model model, double[] outAb) {
         double alpha = perceptualRoughness * perceptualRoughness;
@@ -131,7 +143,14 @@ public final class DfgLutBuilder {
      * The cloth (sheen) DFG term of Filament: {@code ∫ D_Charlie(α) V_Neubelt nDotL dl} over the hemisphere, the
      * directional albedo of the Charlie sheen lobe, for {@code α = perceptualRoughness²}. Integrated by stratified
      * uniform sampling of the half vector ({@code pdf_l = 1 / (2π · 4 vDotH)}). Store it as the third DFG channel
-     * and scale sheen energy with it, as Filament does. @since 2.3.0
+     * and scale sheen energy with it, as Filament does. Arguments are not validated: {@code sampleCount <= 0} or
+     * {@code perceptualRoughness = 0} gives NaN.
+     *
+     * @param nDotV the cosine between the normal and the view direction, in (0, 1]
+     * @param perceptualRoughness the perceptual roughness, in (0, 1]
+     * @param sampleCount the number of samples, positive
+     * @return the directional albedo of the sheen lobe
+     * @since 2.3.0
      */
     public static double integrateCloth(double nDotV, double perceptualRoughness, int sampleCount) {
         double alpha = perceptualRoughness * perceptualRoughness;
@@ -161,7 +180,14 @@ public final class DfgLutBuilder {
 
     /**
      * Builds the cloth DFG channel ({@code size × size}, u = nDotV, v = perceptual roughness, texel centers, the same
-     * layout as {@link #build}). @since 2.3.0
+     * layout as {@link #build} but one float per texel: texel {@code (x, y)} is at index {@code y size + x}).
+     * Arguments are not validated: {@code out} must hold at least {@code size * size} floats, otherwise an
+     * {@code ArrayIndexOutOfBoundsException} is thrown after part of it is written.
+     *
+     * @param size the table width and height in texels
+     * @param sampleCount samples per texel, positive
+     * @param out receives the table, starting at index 0
+     * @since 2.3.0
      */
     public static void buildCloth(int size, int sampleCount, float[] out) {
         for (int y = 0; y < size; y++) {

@@ -46,26 +46,59 @@ public final class Goertzel {
     /**
      * Writes {@code X(f)} to {@code dest[0]} (real) and {@code dest[1]} (imaginary).
      *
+     * @param x the samples
+     * @param off the offset of the first sample
+     * @param n the number of samples, at least 1
      * @param f the frequency in cycles per sample (any value; only its fractional part matters)
+     * @param dest receives the real and imaginary parts
+     * @throws IllegalArgumentException if {@code n < 1} or {@code x} does not hold {@code n} samples from {@code off}
      */
     public static void dft(double[] x, int off, int n, double f, double[] dest) {
         check(x == null ? -1 : x.length, off, n);
         run(x, null, off, n, f, dest);
     }
 
-    /** {@code X(f)} of float samples, computed in double. */
+    /**
+     * Writes {@code X(f)} of float samples to {@code dest[0]} (real) and {@code dest[1]} (imaginary), computed in
+     * double.
+     *
+     * @param x the samples
+     * @param off the offset of the first sample
+     * @param n the number of samples, at least 1
+     * @param f the frequency in cycles per sample (any value; only its fractional part matters)
+     * @param dest receives the real and imaginary parts
+     * @throws IllegalArgumentException if {@code n < 1} or {@code x} does not hold {@code n} samples from {@code off}
+     */
     public static void dft(float[] x, int off, int n, double f, double[] dest) {
         check(x == null ? -1 : x.length, off, n);
         run(null, x, off, n, f, dest);
     }
 
-    /** {@code |X(f)|²}. */
+    /**
+     * Returns the power {@code |X(f)|²} of one DFT value.
+     *
+     * @param x the samples
+     * @param off the offset of the first sample
+     * @param n the number of samples, at least 1
+     * @param f the frequency in cycles per sample (any value; only its fractional part matters)
+     * @return {@code |X(f)|²}
+     * @throws IllegalArgumentException if {@code n < 1} or {@code x} does not hold {@code n} samples from {@code off}
+     */
     public static double power(double[] x, int off, int n, double f) {
         check(x == null ? -1 : x.length, off, n);
         return run(x, null, off, n, f, null);
     }
 
-    /** {@code |X(f)|²} of float samples, computed in double. */
+    /**
+     * Returns the power {@code |X(f)|²} of one DFT value of float samples, computed in double.
+     *
+     * @param x the samples
+     * @param off the offset of the first sample
+     * @param n the number of samples, at least 1
+     * @param f the frequency in cycles per sample (any value; only its fractional part matters)
+     * @return {@code |X(f)|²}
+     * @throws IllegalArgumentException if {@code n < 1} or {@code x} does not hold {@code n} samples from {@code off}
+     */
     public static double power(float[] x, int off, int n, double f) {
         check(x == null ? -1 : x.length, off, n);
         return run(null, x, off, n, f, null);

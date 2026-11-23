@@ -50,7 +50,9 @@ public class Matrix2f implements Externalizable, Cloneable, Matrix2fc {
      */
     public static final int BYTES = 4*Float.BYTES;
 
+    /** Column 0: {@code m00} is row 0, {@code m01} is row 1. */
     public float m00, m01;
+    /** Column 1: {@code m10} is row 0, {@code m11} is row 1. */
     public float m10, m11;
 
     /**
@@ -651,7 +653,8 @@ public class Matrix2f implements Externalizable, Cloneable, Matrix2fc {
      * starting at the given address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      *
@@ -670,7 +673,8 @@ public class Matrix2f implements Externalizable, Cloneable, Matrix2fc {
      * starting at the given address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      *

@@ -37,16 +37,32 @@ package org.dynamisengine.vectrix.affine;
  * <p>
  * JOML-style accessors name elements by column first: {@code Matrix4f.mCR()} is column C, row R. The mapping is
  * therefore {@code rRC = m.mCR()}, for example {@code r01 = m.m10()} and {@code tx = m.m30()}.
+ * <p>
+ * Transform {@code i} occupies {@code raw()[12 * i]} to {@code raw()[12 * i + 11]}. The class does not check indices;
+ * an index out of range throws {@link ArrayIndexOutOfBoundsException} from the array access. Threads may write
+ * disjoint transforms concurrently.
  */
 public final class PackedAffineArray {
+    /** The number of floats per transform: 12. */
     public static final int STRIDE_FLOATS = 12;
 
     private final float[] data;
 
+    /**
+     * Creates storage for {@code count} transforms, all zero (not identity).
+     *
+     * @param count the number of transforms, at least 0
+     */
     public PackedAffineArray(int count) {
         this.data = new float[count * STRIDE_FLOATS];
     }
 
+    /**
+     * Wraps {@code data} without copying it: writes through this object change {@code data}, and the other way round.
+     *
+     * @param data the packed transforms; its length must be a multiple of 12
+     * @throws IllegalArgumentException if {@code data.length} is not a multiple of 12
+     */
     public PackedAffineArray(float[] data) {
         if (data.length % STRIDE_FLOATS != 0) {
             throw new IllegalArgumentException("Packed affine array length must be a multiple of 12");
@@ -54,20 +70,50 @@ public final class PackedAffineArray {
         this.data = data;
     }
 
+    /**
+     * Returns the number of transforms.
+     *
+     * @return {@code raw().length / 12}
+     */
     public int size() {
         return data.length / STRIDE_FLOATS;
     }
 
+    /**
+     * Returns the backing array itself, not a copy.
+     *
+     * @return the backing array
+     */
     public float[] raw() {
         return data;
     }
 
+    /**
+     * Returns the array index of the first float of transform {@code index}. Does not check {@code index}.
+     *
+     * @param index the transform index
+     * @return {@code 12 * index}
+     */
     public int offsetOf(int index) {
         return index * STRIDE_FLOATS;
     }
 
     /**
-     * Set transform {@code index} from its rows; see the class documentation for the element meaning.
+     * Sets transform {@code index} from its rows; see the class documentation for the element meaning.
+     *
+     * @param index the transform index, in {@code [0, size())}
+     * @param r00 row 0, column 0
+     * @param r01 row 0, column 1
+     * @param r02 row 0, column 2
+     * @param tx the translation x (row 0, column 3)
+     * @param r10 row 1, column 0
+     * @param r11 row 1, column 1
+     * @param r12 row 1, column 2
+     * @param ty the translation y (row 1, column 3)
+     * @param r20 row 2, column 0
+     * @param r21 row 2, column 1
+     * @param r22 row 2, column 2
+     * @param tz the translation z (row 2, column 3)
      */
     public void set(int index,
                     float r00, float r01, float r02, float tx,

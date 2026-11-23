@@ -26,11 +26,11 @@ package org.dynamisengine.vectrix.nn;
 /**
  * Picks a token from a row of logits: greedy, or random with temperature, top-k and top-p (nucleus) filtering.
  * <p>
- * The randomness is the caller's uniform number {@code u} in [0, 1) (for example from {@link org.dynamisengine.vectrix.hash.Philox}), so sampling is
- * reproducible. Candidates are ranked by probability with ties broken by the lower index, top-k keeps the first
- * {@code k}, top-p the shortest prefix whose probability reaches {@code p}, and {@code u} selects within the kept
- * mass by cumulative probability in rank order. Nothing allocates: the caller passes {@code n} floats and
- * {@code n} ints of scratch.
+ * The randomness is the caller's uniform number {@code u} in [0, 1) (for example from
+ * {@link org.dynamisengine.vectrix.hash.Philox}), so sampling is reproducible. Candidates are ranked by probability
+ * with ties broken by the lower index, top-k keeps the first {@code k}, top-p the shortest prefix whose probability
+ * reaches {@code p}, and {@code u} selects within the kept mass by cumulative probability in rank order. Nothing
+ * allocates: the caller passes {@code n} floats and {@code n} ints of scratch.
  *
  * @since 2.5.0
  */
@@ -39,7 +39,15 @@ public final class Sampler {
     private Sampler() {
     }
 
-    /** The index of the largest logit (the first of equals); -1 for an empty row. */
+    /**
+     * Returns the index of the largest logit, the first of equal ones. NaN logits after the first element are
+     * skipped. The offsets are not checked up front: a short array throws {@code ArrayIndexOutOfBoundsException}.
+     *
+     * @param logits the row of logits
+     * @param off the offset of the row in {@code logits}
+     * @param n the number of logits
+     * @return the index relative to {@code off}, or -1 if {@code n <= 0}
+     */
     public static int argmax(float[] logits, int off, int n) {
         int best = -1;
         float m = Float.NEGATIVE_INFINITY;
@@ -54,15 +62,22 @@ public final class Sampler {
     }
 
     /**
-     * Samples a token.
+     * Samples a token. The probabilities are {@code softmax(logits / temperature)}; {@code topK} filtering is
+     * applied first, then {@code topP} within the kept tokens.
      *
+     * @param logits the row of logits
+     * @param off the offset of the row in {@code logits}
+     * @param n the number of logits, at least 1
      * @param temperature {@code <= 0} for greedy decoding; otherwise logits are divided by it
      * @param topK keep the {@code topK} most probable tokens ({@code <= 0} for all)
      * @param topP keep the smallest set whose probability reaches {@code topP} ({@code >= 1} for all)
      * @param u a uniform random number in [0, 1)
      * @param probs {@code n} floats of scratch
+     * @param probsOff the offset in {@code probs}
      * @param order {@code n} ints of scratch
-     * @return the chosen index
+     * @param orderOff the offset in {@code order}
+     * @return the chosen index, relative to {@code off}
+     * @throws IllegalArgumentException if {@code n < 1} or an array is too short for its offset
      */
     public static int sample(float[] logits, int off, int n, float temperature, int topK, float topP, float u,
             float[] probs, int probsOff, int[] order, int orderOff) {

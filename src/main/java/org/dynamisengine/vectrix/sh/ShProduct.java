@@ -132,7 +132,16 @@ public final class ShProduct {
         return sum;
     }
 
-    /** The Gaunt coefficient {@code ∫ Y_i Y_j Y_k dω} for indices below 16. */
+    /**
+     * Returns the Gaunt coefficient {@code ∫ Y_i Y_j Y_k dω} of three {@link ShBasis} functions, computed exactly
+     * from their polynomials on each call (it does not read the cached table and does not allocate).
+     *
+     * @param i the first basis index, 0..15
+     * @param j the second basis index, 0..15
+     * @param k the third basis index, 0..15
+     * @return the integral over the unit sphere
+     * @throws ArrayIndexOutOfBoundsException if an index is outside 0..15
+     */
     public static double gaunt(int i, int j, int k) {
         return triple(POLY[i], POLY[j], POLY[k]);
     }
@@ -196,52 +205,121 @@ public final class ShProduct {
         System.arraycopy(t, 0, out, 0, 3 * size);
     }
 
-    /** Channel-wise product of two L2 RGB functions, projected to L2; {@code dest} may alias either input. */
+    /**
+     * Multiplies two L2 RGB functions channel by channel and projects the product back onto L2
+     * (9 coefficients per channel); the higher bands of the exact product are dropped.
+     * Uses a per-thread scratch array, so it is thread-safe and does not allocate after the first call on a thread.
+     *
+     * @param a the first function
+     * @param b the second function
+     * @param dest receives the projected product; may be {@code a} or {@code b}
+     * @return {@code dest}
+     */
     public static ShCoeffs9f multiplyL2(ShCoeffs9f a, ShCoeffs9f b, ShCoeffs9f dest) {
         rgb(a.c, b.c, dest.c, COUNT_L2, 9);
         return dest;
     }
 
-    /** Channel-wise product of two L3 RGB functions, projected to L3; {@code dest} may alias either input. */
+    /**
+     * Multiplies two L3 RGB functions channel by channel and projects the product back onto L3
+     * (16 coefficients per channel); the higher bands of the exact product are dropped.
+     * Uses a per-thread scratch array, so it is thread-safe and does not allocate after the first call on a thread.
+     *
+     * @param a the first function
+     * @param b the second function
+     * @param dest receives the projected product; may be {@code a} or {@code b}
+     * @return {@code dest}
+     */
     public static ShCoeffs16f multiplyL3(ShCoeffs16f a, ShCoeffs16f b, ShCoeffs16f dest) {
         rgb(a.c, b.c, dest.c, IDX.length, 16);
         return dest;
     }
 
-    /** Channel-wise product (double), projected to L2. */
+    /**
+     * Multiplies two L2 RGB functions channel by channel and projects the product back onto L2
+     * (9 coefficients per channel); the higher bands of the exact product are dropped. In double precision.
+     * Uses a per-thread scratch array, so it is thread-safe and does not allocate after the first call on a thread.
+     *
+     * @param a the first function
+     * @param b the second function
+     * @param dest receives the projected product; may be {@code a} or {@code b}
+     * @return {@code dest}
+     */
     public static ShCoeffs9d multiplyL2(ShCoeffs9d a, ShCoeffs9d b, ShCoeffs9d dest) {
         rgb(a.c, b.c, dest.c, COUNT_L2, 9);
         return dest;
     }
 
-    /** Channel-wise product (double), projected to L3. */
+    /**
+     * Multiplies two L3 RGB functions channel by channel and projects the product back onto L3
+     * (16 coefficients per channel); the higher bands of the exact product are dropped. In double precision.
+     * Uses a per-thread scratch array, so it is thread-safe and does not allocate after the first call on a thread.
+     *
+     * @param a the first function
+     * @param b the second function
+     * @param dest receives the projected product; may be {@code a} or {@code b}
+     * @return {@code dest}
+     */
     public static ShCoeffs16d multiplyL3(ShCoeffs16d a, ShCoeffs16d b, ShCoeffs16d dest) {
         rgb(a.c, b.c, dest.c, IDX.length, 16);
         return dest;
     }
 
     /**
-     * Product of an L2 RGB function with a scalar L2 function {@code s} (9 coefficients, e.g. visibility),
-     * projected to L2; {@code dest} may alias {@code a}.
+     * Multiplies an L2 RGB function by a scalar L2 function (for example visibility) and projects the product
+     * back onto L2. Uses a per-thread scratch array, so it is thread-safe and does not allocate after the
+     * first call on a thread.
+     *
+     * @param a the RGB function
+     * @param s9 the scalar function's 9 coefficients in {@link ShBasis} order, in elements 0..8
+     * @param dest receives the projected product; may be {@code a}
+     * @return {@code dest}
      */
     public static ShCoeffs9f multiplyScalarL2(ShCoeffs9f a, float[] s9, ShCoeffs9f dest) {
         scalar(a.c, s9, dest.c, COUNT_L2, 9);
         return dest;
     }
 
-    /** Product of an L3 RGB function with a scalar L3 function (16 coefficients), projected to L3. */
+    /**
+     * Multiplies an L3 RGB function by a scalar L3 function (for example visibility) and projects the product
+     * back onto L3. Uses a per-thread scratch array, so it is thread-safe and does not allocate after the
+     * first call on a thread.
+     *
+     * @param a the RGB function
+     * @param s16 the scalar function's 16 coefficients in {@link ShBasis} order, in elements 0..15
+     * @param dest receives the projected product; may be {@code a}
+     * @return {@code dest}
+     */
     public static ShCoeffs16f multiplyScalarL3(ShCoeffs16f a, float[] s16, ShCoeffs16f dest) {
         scalar(a.c, s16, dest.c, IDX.length, 16);
         return dest;
     }
 
-    /** Double-precision {@link #multiplyScalarL2(ShCoeffs9f, float[], ShCoeffs9f)}. */
+    /**
+     * Multiplies an L2 RGB function by a scalar L2 function (for example visibility) and projects the product
+     * back onto L2. In double precision. Uses a per-thread scratch array, so it is thread-safe and does not
+     * allocate after the first call on a thread.
+     *
+     * @param a the RGB function
+     * @param s9 the scalar function's 9 coefficients in {@link ShBasis} order, in elements 0..8
+     * @param dest receives the projected product; may be {@code a}
+     * @return {@code dest}
+     */
     public static ShCoeffs9d multiplyScalarL2(ShCoeffs9d a, double[] s9, ShCoeffs9d dest) {
         scalar(a.c, s9, dest.c, COUNT_L2, 9);
         return dest;
     }
 
-    /** Double-precision {@link #multiplyScalarL3(ShCoeffs16f, float[], ShCoeffs16f)}. */
+    /**
+     * Multiplies an L3 RGB function by a scalar L3 function (for example visibility) and projects the product
+     * back onto L3. In double precision. Uses a per-thread scratch array, so it is thread-safe and does not
+     * allocate after the first call on a thread.
+     *
+     * @param a the RGB function
+     * @param s16 the scalar function's 16 coefficients in {@link ShBasis} order, in elements 0..15
+     * @param dest receives the projected product; may be {@code a}
+     * @return {@code dest}
+     */
     public static ShCoeffs16d multiplyScalarL3(ShCoeffs16d a, double[] s16, ShCoeffs16d dest) {
         scalar(a.c, s16, dest.c, IDX.length, 16);
         return dest;

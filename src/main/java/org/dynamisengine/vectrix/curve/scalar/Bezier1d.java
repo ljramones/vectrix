@@ -27,16 +27,67 @@ package org.dynamisengine.vectrix.curve.scalar;
 import org.dynamisengine.vectrix.curve.CubicCurveMath;
 
 /**
+ * A cubic Bézier segment over scalar values: {@code B(t) = (1-t)³·p0 + 3(1-t)²t·p1 + 3(1-t)t²·p2 + t³·p3}. The curve
+ * starts at {@code p0}, ends at {@code p3} and is pulled toward {@code p1} and {@code p2}.
+ * <p>
+ * The parameter {@code t} runs over {@code [0, 1]} on the segment and is not clamped: values outside extrapolate the
+ * cubic. The methods are static and stateless. Nothing allocates. {@link Bezier1f} is the float twin.
+ *
  * @since 1.0.0
  */
-
 public final class Bezier1d {
     private Bezier1d() {}
 
+    /**
+     * Evaluates the segment at {@code t}.
+     *
+     * @param p0 the start value
+     * @param p1 the first control value
+     * @param p2 the second control value
+     * @param p3 the end value
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @return the value at {@code t}
+     */
     public static double evaluate(double p0, double p1, double p2, double p3, double t) { return CubicCurveMath.bezier(p0, p1, p2, p3, t); }
+
+    /**
+     * Computes the first derivative with respect to {@code t}.
+     *
+     * @param p0 the start value
+     * @param p1 the first control value
+     * @param p2 the second control value
+     * @param p3 the end value
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @return the derivative at {@code t}
+     */
     public static double derivative(double p0, double p1, double p2, double p3, double t) { return CubicCurveMath.bezierDerivative(p0, p1, p2, p3, t); }
+
+    /**
+     * Computes the second derivative with respect to {@code t}.
+     *
+     * @param p0 the start value
+     * @param p1 the first control value
+     * @param p2 the second control value
+     * @param p3 the end value
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @return the second derivative at {@code t}
+     */
     public static double secondDerivative(double p0, double p1, double p2, double p3, double t) { return CubicCurveMath.bezierSecondDerivative(p0, p1, p2, p3, t); }
 
+    /**
+     * Evaluates the segment at {@code length} parameters, writing one value. The arrays are not checked up front; an
+     * output array may be {@code tValues} at the same offset.
+     *
+     * @param p0 the start value
+     * @param p1 the first control value
+     * @param p2 the second control value
+     * @param p3 the end value
+     * @param tValues the curve parameters
+     * @param tOffset the offset of the first parameter in {@code tValues}
+     * @param length the number of parameters to evaluate
+     * @param outValues receives the {@code length} values
+     * @param outOffset the offset of the first value in {@code outValues}
+     */
     public static void evaluateBatch(double p0, double p1, double p2, double p3, double[] tValues, int tOffset, int length, double[] outValues, int outOffset) {
         for (int i = 0; i < length; i++) {
             outValues[outOffset + i] = evaluate(p0, p1, p2, p3, tValues[tOffset + i]);

@@ -29,7 +29,12 @@ import org.dynamisengine.vectrix.core.Vector3f;
 import org.dynamisengine.vectrix.core.Vector3fc;
 
 /**
- * Mesh-oriented geometric helpers used by render and mesh pipelines.
+ * Mesh-oriented geometric helpers used by render and mesh pipelines: barycentric coordinates, closest points on
+ * triangles, triangle area, winding and quality measures, and per-vertex normals and tangents of indexed triangle
+ * lists.
+ * <p>
+ * The class is stateless and safe to call from any thread. The per-triangle methods do not allocate, except
+ * {@link #triangleMinAngle}; the per-vertex mesh methods allocate small temporaries as stated on each method.
  */
 public final class MeshMath {
     /** Triangles with sin^2 of the angle at a below this are degenerate for {@link #barycentric}. */
@@ -41,8 +46,18 @@ public final class MeshMath {
     }
 
     /**
-     * Compute barycentric coordinates for point {@code p} in triangle {@code abc}.
+     * Computes the barycentric coordinates {@code (u, v, w)} of point {@code p} with respect to triangle
+     * {@code abc}, so that {@code u a + v b + w c} is the projection of {@code p} onto the triangle's plane. The
+     * coordinates sum to 1 and are not clamped, so they can be negative when {@code p} lies outside the triangle.
+     * <p>
+     * A degenerate triangle (the squared sine of the angle at {@code a} below {@code 1e-6}; the test is relative, so it
+     * does not depend on the triangle's size) gives {@code (NaN, NaN, NaN)}. {@code dest} may be any of the inputs.
      *
+     * @param p the point
+     * @param a the first vertex
+     * @param b the second vertex
+     * @param c the third vertex
+     * @param dest receives the weights of {@code a}, {@code b} and {@code c} in x, y and z
      * @return {@code dest}
      */
     public static Vector3f barycentric(Vector3fc p, Vector3fc a, Vector3fc b, Vector3fc c, Vector3f dest) {
@@ -77,7 +92,12 @@ public final class MeshMath {
     }
 
     /**
-     * Return whether barycentric coordinate triplet is inside or on the triangle.
+     * Returns whether a barycentric coordinate triple lies inside or on the triangle: every component is at least
+     * {@code -Epsilonf.ABSOLUTE}. The sum of the components is not checked; NaN components give {@code false}.
+     *
+     * @param barycentric the barycentric coordinates, for example from
+     *        {@link #barycentric(Vector3fc, Vector3fc, Vector3fc, Vector3fc, Vector3f)}
+     * @return {@code true} if the point is inside or on the boundary of the triangle
      */
     public static boolean isInsideBarycentric(Vector3fc barycentric) {
         float e = Epsilonf.ABSOLUTE;
@@ -85,8 +105,14 @@ public final class MeshMath {
     }
 
     /**
-     * Compute closest point on triangle {@code abc} to point {@code p}.
+     * Computes the point of triangle {@code abc} (interior, edges or vertices) closest to point {@code p}, by
+     * Voronoi region classification. {@code dest} may be any of the inputs.
      *
+     * @param p the point
+     * @param a the first vertex
+     * @param b the second vertex
+     * @param c the third vertex
+     * @param dest receives the closest point
      * @return {@code dest}
      */
     public static Vector3f closestPointOnTriangle(Vector3fc p, Vector3fc a, Vector3fc b, Vector3fc c, Vector3f dest) {
@@ -149,16 +175,27 @@ public final class MeshMath {
     }
 
     /**
-     * Twice the signed area of a 2D triangle.
+     * Returns twice the signed area of a 2D triangle: {@code (b - a) × (c - a)}, positive when {@code a, b, c} are
+     * counter-clockwise. For an exact sign on near-degenerate input use {@link RobustPredicates#orient2d}.
+     *
+     * @param a the first vertex
+     * @param b the second vertex
+     * @param c the third vertex
+     * @return twice the signed area
      */
     public static float signedArea2(Vector2fc a, Vector2fc b, Vector2fc c) {
         return (b.x() - a.x()) * (c.y() - a.y()) - (b.y() - a.y()) * (c.x() - a.x());
     }
 
     /**
-     * Triangle winding in 2D.
+     * Classifies the winding of a 2D triangle. The triangle counts as degenerate when the absolute value of
+     * {@link #signedArea2} is at most {@code 1e-6} times {@code |b - a|² + |c - a|²}, so the result does not depend on
+     * the triangle's scale.
      *
-     * @return {@code 1} for CCW, {@code -1} for CW, {@code 0} for degenerate
+     * @param a the first vertex
+     * @param b the second vertex
+     * @param c the third vertex
+     * @return {@code 1} for counter-clockwise, {@code -1} for clockwise, {@code 0} for degenerate (or NaN input)
      */
     public static int winding2D(Vector2fc a, Vector2fc b, Vector2fc c) {
         float s = signedArea2(a, b, c);
@@ -175,7 +212,12 @@ public final class MeshMath {
     }
 
     /**
-     * Triangle area in 3D.
+     * Returns the (unsigned) area of a 3D triangle: half the length of {@code (b - a) × (c - a)}.
+     *
+     * @param a the first vertex
+     * @param b the second vertex
+     * @param c the third vertex
+     * @return the area, 0 for a degenerate triangle
      */
     public static float triangleArea(Vector3fc a, Vector3fc b, Vector3fc c) {
         float abx = b.x() - a.x();
@@ -200,8 +242,19 @@ public final class MeshMath {
      * Vertex normals of an indexed triangle mesh into {@code normalsOut} (3 floats per vertex): the sum of the
      * adjacent face normals weighted by face area ({@code angleWeighted == false}) or by the corner angle at the
      * vertex ({@code true}, which does not depend on how faces are triangulated), normalised. Vertices with no
-     * non-degenerate face get the zero vector.
+     * non-degenerate face, or whose weighted face normals cancel, get the zero vector.
+     * <p>
+     * The vertex count is {@code positions.length / 3}; the first {@code 3 * vertexCount} elements of
+     * {@code normalsOut} are overwritten. Arrays start at index 0 and are not range-checked up front: a bad index
+     * throws {@link ArrayIndexOutOfBoundsException} after part of the output has been written. The method allocates
+     * a three-element {@code int} array per triangle.
      *
+     * @param positions vertex positions, {@code x, y, z} per vertex
+     * @param indices vertex indices, 3 per triangle; face normals follow the right-hand rule on the vertex order
+     * @param triangleCount the number of triangles to read from {@code indices}
+     * @param angleWeighted {@code true} to weight by corner angle, {@code false} to weight by face area
+     * @param normalsOut receives the unit normals, {@code x, y, z} per vertex; at least {@code positions.length}
+     *        elements (rounded down to a multiple of 3)
      * @since 2.2.0
      */
     public static void vertexNormals(float[] positions, int[] indices, int triangleCount, boolean angleWeighted,
@@ -252,8 +305,20 @@ public final class MeshMath {
      * tangent and bitangent are projected onto the plane of that vertex's normal, normalised, and weighted by the
      * corner angle, as in MikkTSpace. Unlike MikkTSpace it does not split vertices whose corners disagree (mirrored UV
      * seams), which is mesh topology and MeshForge's job: on meshes already split at UV seams the tangent directions
-     * agree. Vertices without a usable corner get {@code (1, 0, 0, 1)} projected onto their normal.
+     * agree. Vertices without a usable corner get {@code (1, 0, 0)} (or {@code (0, 1, 0)} when the normal is along
+     * x) projected onto the plane perpendicular to their normal, with {@code w = 1}.
+     * <p>
+     * The vertex count is {@code positions.length / 3}; arrays start at index 0 and are not range-checked up front.
+     * Triangles whose UV mapping is degenerate are skipped. The method allocates two {@code double} arrays of
+     * {@code 3 * vertexCount} elements, plus a three-element {@code int} array per triangle.
      *
+     * @param positions vertex positions, {@code x, y, z} per vertex
+     * @param normals unit vertex normals, {@code x, y, z} per vertex
+     * @param uvs texture coordinates, {@code s, t} per vertex
+     * @param indices vertex indices, 3 per triangle
+     * @param triangleCount the number of triangles to read from {@code indices}
+     * @param tangentsOut receives the tangents, {@code x, y, z, w} per vertex; at least {@code 4 * vertexCount}
+     *        elements
      * @since 2.2.0
      */
     public static void vertexTangents(float[] positions, float[] normals, float[] uvs, int[] indices,
@@ -333,8 +398,12 @@ public final class MeshMath {
 
     /**
      * Triangle aspect ratio {@code L_max · perimeter / (4√3 · area)}: 1 for an equilateral triangle, growing without
-     * bound as the triangle degenerates (infinite for zero area).
+     * bound as the triangle degenerates (infinite for zero area). {@code L_max} is the longest edge.
      *
+     * @param a the first vertex
+     * @param b the second vertex
+     * @param c the third vertex
+     * @return the aspect ratio, at least 1, or {@link Float#POSITIVE_INFINITY} for zero area
      * @since 2.2.0
      */
     public static float triangleAspectRatio(Vector3fc a, Vector3fc b, Vector3fc c) {
@@ -347,8 +416,13 @@ public final class MeshMath {
     }
 
     /**
-     * Triangle radius ratio {@code 2 r_in / R_circ}: 1 for an equilateral triangle, 0 for a degenerate one.
+     * Triangle radius ratio {@code 2 r_in / R_circ} (inradius over circumradius, doubled): 1 for an equilateral
+     * triangle, 0 for a degenerate one.
      *
+     * @param a the first vertex
+     * @param b the second vertex
+     * @param c the third vertex
+     * @return the radius ratio in {@code [0, 1]}
      * @since 2.2.0
      */
     public static float triangleRadiusRatio(Vector3fc a, Vector3fc b, Vector3fc c) {
@@ -365,7 +439,12 @@ public final class MeshMath {
 
     /**
      * Smallest interior angle of the triangle, in radians ({@code π/3} for an equilateral triangle, 0 if degenerate).
+     * Allocates a nine-element {@code float} array per call.
      *
+     * @param a the first vertex
+     * @param b the second vertex
+     * @param c the third vertex
+     * @return the smallest interior angle in radians, in {@code [0, π/3]}
      * @since 2.2.0
      */
     public static float triangleMinAngle(Vector3fc a, Vector3fc b, Vector3fc c) {

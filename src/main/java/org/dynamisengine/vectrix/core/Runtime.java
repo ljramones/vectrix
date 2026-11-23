@@ -42,14 +42,33 @@ public final class Runtime {
     private Runtime() {
     }
 
+    /**
+     * Returns the raw bits of a float ({@link Float#floatToRawIntBits(float)}); NaN payloads are kept.
+     *
+     * @param flt the value
+     * @return its IEEE 754 bits
+     */
     public static int floatToIntBits(float flt) {
         return Float.floatToRawIntBits(flt);
     }
 
+    /**
+     * Returns the raw bits of a double ({@link Double#doubleToRawLongBits(double)}); NaN payloads are kept.
+     *
+     * @param dbl the value
+     * @return its IEEE 754 bits
+     */
     public static long doubleToLongBits(double dbl) {
         return Double.doubleToRawLongBits(dbl);
     }
 
+    /**
+     * Inserts a {@code '+'} after every {@code 'E'} that is directly followed by a digit, so positive exponents
+     * line up with negative ones ({@code "1.0E3"} becomes {@code "1.0E+3"}).
+     *
+     * @param str the formatted text
+     * @return the text with explicit exponent signs
+     */
     public static String formatNumbers(String str) {
         StringBuilder res = new StringBuilder(str.length() + 16);
         int eIndex = Integer.MIN_VALUE;
@@ -65,6 +84,14 @@ public final class Runtime {
         return res.toString();
     }
 
+    /**
+     * Formats a number with {@code format}, writing NaN and infinities as {@code NaN}, {@code +Inf} and {@code -Inf},
+     * padded on the left with spaces to about the width {@code format} gives zero.
+     *
+     * @param number the number to format
+     * @param format the format to use
+     * @return the formatted number
+     */
     public static String format(double number, NumberFormat format) {
         if (Double.isNaN(number)) {
             return padLeft(format, " NaN");
@@ -83,10 +110,26 @@ public final class Runtime {
         return sb.append(str).toString();
     }
 
+    /**
+     * Returns whether two floats have identical bits (so NaN equals NaN) or differ by at most {@code delta}.
+     *
+     * @param a the first value
+     * @param b the second value
+     * @param delta the largest allowed absolute difference
+     * @return {@code true} if the values are equal within {@code delta}
+     */
     public static boolean equals(float a, float b, float delta) {
         return Float.floatToIntBits(a) == Float.floatToIntBits(b) || Math.abs(a - b) <= delta;
     }
 
+    /**
+     * Returns whether two doubles have identical bits (so NaN equals NaN) or differ by at most {@code delta}.
+     *
+     * @param a the first value
+     * @param b the second value
+     * @param delta the largest allowed absolute difference
+     * @return {@code true} if the values are equal within {@code delta}
+     */
     public static boolean equals(double a, double b, double delta) {
         return Double.doubleToLongBits(a) == Double.doubleToLongBits(b) || Math.abs(a - b) <= delta;
     }

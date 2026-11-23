@@ -28,7 +28,9 @@ import org.dynamisengine.vectrix.core.Matrix3f;
 import org.dynamisengine.vectrix.core.Vector3f;
 
 /**
- * Position-based dynamics constraint helpers.
+ * Position-based dynamics (PBD) constraint projections (single precision). Each method computes the position
+ * corrections that move particles toward satisfying one constraint; the caller's solver applies them and iterates. An
+ * inverse mass of 0 pins a particle. Degenerate configurations give zero corrections. No method allocates.
  *
  * @since 1.10.12
  */
@@ -39,6 +41,21 @@ public final class PbdConstraintsf {
     private PbdConstraintsf() {
     }
 
+    /**
+     * Returns the correction for particle A only, from the distance constraint
+     * {@code C = |posA − posB| − restLength}: {@code dA = −k wA C / (wA + wB) · (posA − posB) / |posA − posB|}.
+     * For B's correction, call again with A and B (and their inverse masses) swapped. The correction is zero when the
+     * particles are closer than {@code 1e-6} or both are pinned. {@code dest} may be either position.
+     *
+     * @param posA the position of particle A
+     * @param invMassA the inverse mass {@code wA} of A (0 = pinned)
+     * @param posB the position of particle B
+     * @param invMassB the inverse mass {@code wB} of B (0 = pinned)
+     * @param restLength the rest distance
+     * @param stiffness {@code k} in [0,1]; 1 solves the linearized constraint in one step
+     * @param dest receives the correction for A
+     * @return {@code dest}
+     */
     public static Vector3f distanceConstraint(
             Vector3f posA, float invMassA,
             Vector3f posB, float invMassB,
@@ -59,8 +76,17 @@ public final class PbdConstraintsf {
 
     /**
      * Equal-mass form of
-     * {@link #bendConstraint(Vector3f, float, Vector3f, float, Vector3f, float, float, float, Vector3f, Vector3f, Vector3f)}
-     * (all inverse masses 1).
+     * {@link #bendConstraint(Vector3f, float, Vector3f, float, Vector3f, float, float, float, Vector3f, Vector3f,
+     * Vector3f) bendConstraint} (all inverse masses 1).
+     *
+     * @param p0 the first end point
+     * @param p1 the corner point
+     * @param p2 the second end point
+     * @param restAngle the rest angle at {@code p1}, in radians in [0, π]
+     * @param stiffness in [0,1]; 1 solves the linearized constraint in one step
+     * @param d0 receives the correction for {@code p0}
+     * @param d1 receives the correction for {@code p1}
+     * @param d2 receives the correction for {@code p2}
      */
     public static void bendConstraint(
             Vector3f p0, Vector3f p1, Vector3f p2,
@@ -78,8 +104,17 @@ public final class PbdConstraintsf {
      * gradient direction is undefined there. Inputs are read before any output is written, so outputs may
      * alias inputs.
      *
+     * @param p0 the first end point
      * @param invMass0 inverse mass of {@code p0} (0 = pinned)
-     * @param stiffness in [0,1]; 1 solves the linearised constraint in one step
+     * @param p1 the corner point
+     * @param invMass1 inverse mass of {@code p1} (0 = pinned)
+     * @param p2 the second end point
+     * @param invMass2 inverse mass of {@code p2} (0 = pinned)
+     * @param restAngle the rest angle at {@code p1}, in radians in [0, π]
+     * @param stiffness in [0,1]; 1 solves the linearized constraint in one step
+     * @param d0 receives the correction for {@code p0}
+     * @param d1 receives the correction for {@code p1}
+     * @param d2 receives the correction for {@code p2}
      */
     public static void bendConstraint(
             Vector3f p0, float invMass0, Vector3f p1, float invMass1, Vector3f p2, float invMass2,
@@ -131,8 +166,20 @@ public final class PbdConstraintsf {
 
     /**
      * Equal-mass form of
-     * {@link #volumeConstraint(Vector3f, float, Vector3f, float, Vector3f, float, Vector3f, float, float, float, Vector3f, Vector3f, Vector3f, Vector3f)}
-     * (all inverse masses 1).
+     * {@link #volumeConstraint(Vector3f, float, Vector3f, float, Vector3f, float, Vector3f, float, float, float,
+     * Vector3f, Vector3f, Vector3f, Vector3f) volumeConstraint} (all inverse masses 1).
+     *
+     * @param p0 the first vertex of the tetrahedron
+     * @param p1 the second vertex
+     * @param p2 the third vertex
+     * @param p3 the fourth vertex
+     * @param restVolume the signed rest volume
+     * @param stiffness in [0,1]; 1 solves the linearized constraint in one step
+     * @param d0 receives the correction for {@code p0}
+     * @param d1 receives the correction for {@code p1}
+     * @param d2 receives the correction for {@code p2}
+     * @param d3 receives the correction for {@code p3}
+     * @return the current signed volume
      */
     public static float volumeConstraint(
             Vector3f p0, Vector3f p1, Vector3f p2, Vector3f p3,
@@ -145,8 +192,24 @@ public final class PbdConstraintsf {
      * Tetrahedron volume constraint {@code C = V - restVolume}, with the signed volume
      * {@code V = (p1-p0) . ((p2-p0) x (p3-p0)) / 6}. Writes the corrections
      * {@code d_i = -k C w_i grad_i(V) / sum_j w_j |grad_j(V)|^2}. The corrections are mass-weighted, so they
-     * conserve linear momentum. Inputs are read before any output is written.
+     * conserve linear momentum. Inputs are read before any output is written, so outputs may alias inputs. A flat
+     * tetrahedron is pushed back toward its rest volume; the corrections are zero only when the volume gradient
+     * vanishes (all four points on one line) or every vertex is pinned.
      *
+     * @param p0 the first vertex of the tetrahedron
+     * @param invMass0 inverse mass of {@code p0} (0 = pinned)
+     * @param p1 the second vertex
+     * @param invMass1 inverse mass of {@code p1} (0 = pinned)
+     * @param p2 the third vertex
+     * @param invMass2 inverse mass of {@code p2} (0 = pinned)
+     * @param p3 the fourth vertex
+     * @param invMass3 inverse mass of {@code p3} (0 = pinned)
+     * @param restVolume the signed rest volume
+     * @param stiffness in [0,1]; 1 solves the linearized constraint in one step
+     * @param d0 receives the correction for {@code p0}
+     * @param d1 receives the correction for {@code p1}
+     * @param d2 receives the correction for {@code p2}
+     * @param d3 receives the correction for {@code p3}
      * @return the current signed volume
      */
     public static float volumeConstraint(
@@ -187,9 +250,18 @@ public final class PbdConstraintsf {
      * polar decomposition of {@code A_pq = sum m_i (x_i - c)(x0_i - c0)^T}, extracted with the iterative
      * method of Mueller et al. 2016, "A Robust Method to Extract the Rotational Part of Deformations". The
      * iteration starts from a Gram-Schmidt estimate, so large rotations converge too. Goals are
-     * {@code R (x0_i - c0) + c}. This method does not allocate.
+     * {@code R (x0_i - c0) + c}, where {@code c} and {@code c0} are the mass-weighted centroids of the current and rest
+     * positions. This method does not allocate.
+     * <p>
+     * If the total mass is at most {@code 1e-6}, the rotation is the identity and each goal is the current position.
+     * {@code goalPositions} may be {@code currentPositions}; its elements must not be null.
      *
+     * @param currentPositions the current positions {@code x_i}
+     * @param restPositions the rest positions {@code x0_i}
+     * @param masses the particle masses {@code m_i}
      * @param rotationOut receives R (column-major, so {@code rotationOut.transform(v)} applies it)
+     * @param goalPositions receives the goal position of each particle
+     * @throws IllegalArgumentException if the four arrays differ in length
      */
     public static void shapeMatchingGoal(
             Vector3f[] currentPositions,

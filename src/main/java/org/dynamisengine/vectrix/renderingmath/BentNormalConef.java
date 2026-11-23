@@ -34,21 +34,38 @@ public final class BentNormalConef {
     }
 
     /**
-     * Convert ambient accessibility AO in [0,1] to cone half-angle.
-     * Uses spherical-cap relation: solidAngle = 2*pi*AO.
+     * Converts ambient accessibility (unoccluded fraction of the hemisphere) to the half-angle of a cone with the
+     * same share of the sphere: a cone of solid angle {@code 2π · ao}, so {@code acos(1 − ao)}.
+     *
+     * @param ao the ambient accessibility, clamped to {@code [0, 1]}
+     * @return the cone half-angle in radians, in {@code [0, π/2]}
      */
     public static float coneAngleFromAo(float ao) {
         float a = clamp01(ao);
         return (float) org.dynamisengine.vectrix.core.AccurateMath.acos(1.0f - a);
     }
 
+    /**
+     * Returns the solid angle of a cone, {@code 2π (1 − cos halfAngle)}.
+     *
+     * @param halfAngle the half-angle in radians; negative values count as 0
+     * @return the solid angle in steradians
+     */
     public static float coneSolidAngle(float halfAngle) {
         float a = java.lang.Math.max(0.0f, halfAngle);
         return (float) (2.0 * java.lang.Math.PI * (1.0 - org.dynamisengine.vectrix.core.AccurateMath.cos(a)));
     }
 
     /**
-     * Approximate intersection solid angle of two cones sharing the same apex.
+     * Estimates the solid angle of the intersection of two cones with a shared apex. Returns 0 for disjoint cones
+     * and the smaller cone's solid angle when one contains the other; in between, it ramps linearly with the
+     * angular overlap {@code (a + b − d) / (2 min(a, b))}, where {@code d} is the angle between the axes.
+     *
+     * @param halfAngleA the half-angle of the first cone in radians; negative values count as 0
+     * @param axisA the unit axis of the first cone
+     * @param halfAngleB the half-angle of the second cone in radians; negative values count as 0
+     * @param axisB the unit axis of the second cone
+     * @return the estimated solid angle in steradians
      */
     public static float estimateIntersectionSolidAngle(float halfAngleA, Vector3fc axisA, float halfAngleB, Vector3fc axisB) {
         float a = java.lang.Math.max(0.0f, halfAngleA);

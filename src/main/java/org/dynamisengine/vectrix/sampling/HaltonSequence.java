@@ -29,17 +29,38 @@ import org.dynamisengine.vectrix.core.Vector3d;
 import org.dynamisengine.vectrix.core.Vector3f;
 
 /**
- * Deterministic Halton low-discrepancy sequence utilities.
-  * @since 1.0.0
-  */
+ * Halton low-discrepancy sequence: coordinate {@code k} of point {@code index} is the radical inverse of
+ * {@code index} in base {@code b_k}, with bases 2, 3 and 5 for the 2D and 3D points. All functions are pure and
+ * stateless, and no method allocates. Values are in {@code [0, 1)}; the float variants are clamped to the largest
+ * float below 1. Point 0 is the origin.
+ *
+ * @since 1.0.0
+ */
 public final class HaltonSequence {
     private HaltonSequence() {
     }
 
+    /**
+     * Returns the radical inverse of {@code index} in {@code base}, in single precision.
+     *
+     * @param index the sample index, non-negative
+     * @param base the base, at least 2; use distinct primes for different dimensions
+     * @return the value, in {@code [0, 1)}
+     * @throws IllegalArgumentException if {@code index} is negative or {@code base} is less than 2
+     */
     public static float halton(int index, int base) {
         return toUnitFloat(haltonDouble(index, base));
     }
 
+    /**
+     * Returns the radical inverse of {@code index} in {@code base}: the base-{@code base} digits of {@code index}
+     * mirrored about the radix point. Computed in double precision.
+     *
+     * @param index the sample index, non-negative
+     * @param base the base, at least 2; use distinct primes for different dimensions
+     * @return the value, in {@code [0, 1)}
+     * @throws IllegalArgumentException if {@code index} is negative or {@code base} is less than 2
+     */
     public static double haltonDouble(int index, int base) {
         if (index < 0) {
             throw new IllegalArgumentException("index");
@@ -58,22 +79,68 @@ public final class HaltonSequence {
         return r;
     }
 
+    /**
+     * Writes the 2D Halton point at {@code index} (bases 2 and 3) into {@code dest}, in single precision.
+     *
+     * @param index the sample index, non-negative
+     * @param dest receives the point, in {@code [0, 1)²}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector2f halton2D(int index, Vector2f dest) {
         return dest.set(halton(index, 2), halton(index, 3));
     }
 
+    /**
+     * Writes the 2D Halton point at {@code index} (bases 2 and 3) into {@code dest}, in double precision.
+     *
+     * @param index the sample index, non-negative
+     * @param dest receives the point, in {@code [0, 1)²}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector2d halton2D(int index, Vector2d dest) {
         return dest.set(haltonDouble(index, 2), haltonDouble(index, 3));
     }
 
+    /**
+     * Writes the 3D Halton point at {@code index} (bases 2, 3 and 5) into {@code dest}, in single precision.
+     *
+     * @param index the sample index, non-negative
+     * @param dest receives the point, in {@code [0, 1)³}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector3f halton3D(int index, Vector3f dest) {
         return dest.set(halton(index, 2), halton(index, 3), halton(index, 5));
     }
 
+    /**
+     * Writes the 3D Halton point at {@code index} (bases 2, 3 and 5) into {@code dest}, in double precision.
+     *
+     * @param index the sample index, non-negative
+     * @param dest receives the point, in {@code [0, 1)³}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector3d halton3D(int index, Vector3d dest) {
         return dest.set(haltonDouble(index, 2), haltonDouble(index, 3), haltonDouble(index, 5));
     }
 
+    /**
+     * Writes the 2D Halton points (bases 2 and 3) {@code startIndex} to {@code startIndex + count - 1} into two float
+     * arrays: point {@code i} goes to {@code outX[outXOffset + i]} and {@code outY[outYOffset + i]}. The arguments are
+     * checked before any element is written.
+     *
+     * @param startIndex the index of the first point, non-negative
+     * @param count the number of points, non-negative
+     * @param outX receives the x coordinates
+     * @param outXOffset the first index written in {@code outX}
+     * @param outY receives the y coordinates
+     * @param outYOffset the first index written in {@code outY}
+     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, or an output range is
+     *         outside its array
+     */
     public static void haltonBatch2D(int startIndex, int count, float[] outX, int outXOffset, float[] outY, int outYOffset) {
         checkBatch(startIndex, count, outX.length, outXOffset, outY.length, outYOffset);
         for (int i = 0; i < count; i++) {
@@ -83,6 +150,20 @@ public final class HaltonSequence {
         }
     }
 
+    /**
+     * Writes the 2D Halton points (bases 2 and 3) {@code startIndex} to {@code startIndex + count - 1} into two double
+     * arrays: point {@code i} goes to {@code outX[outXOffset + i]} and {@code outY[outYOffset + i]}. The arguments are
+     * checked before any element is written.
+     *
+     * @param startIndex the index of the first point, non-negative
+     * @param count the number of points, non-negative
+     * @param outX receives the x coordinates
+     * @param outXOffset the first index written in {@code outX}
+     * @param outY receives the y coordinates
+     * @param outYOffset the first index written in {@code outY}
+     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, or an output range is
+     *         outside its array
+     */
     public static void haltonBatch2D(int startIndex, int count, double[] outX, int outXOffset, double[] outY, int outYOffset) {
         checkBatch(startIndex, count, outX.length, outXOffset, outY.length, outYOffset);
         for (int i = 0; i < count; i++) {

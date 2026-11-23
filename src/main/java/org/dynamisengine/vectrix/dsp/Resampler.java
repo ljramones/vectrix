@@ -83,7 +83,8 @@ public final class Resampler {
      *
      * @param up the interpolation factor, at least 1
      * @param down the decimation factor, at least 1
-     * @return the plan
+     * @return the plan; making it allocates the filter
+     * @throws IllegalArgumentException if a factor is less than 1 or the filter would exceed 2^24 taps
      */
     public static Resampler plan(int up, int down) {
         return plan(up, down, 32, 100.0);
@@ -97,7 +98,8 @@ public final class Resampler {
      * @param zeroCrossings the filter half-length in zero crossings of the sinc, at least 1: longer filters have
      *        narrower transition bands
      * @param attenuationDb the stop-band attenuation in dB, {@code > 0}
-     * @return the plan
+     * @return the plan; making it allocates the filter
+     * @throws IllegalArgumentException if an argument is out of range or the filter would exceed 2^24 taps
      */
     public static Resampler plan(int up, int down, int zeroCrossings, double attenuationDb) {
         if (up < 1 || down < 1 || zeroCrossings < 1 || !(attenuationDb > 0)) {
@@ -110,27 +112,49 @@ public final class Resampler {
         return new Resampler(up, down, zeroCrossings, attenuationDb);
     }
 
-    /** @return the interpolation factor, reduced by the common divisor */
+    /**
+     * Returns the interpolation factor, reduced by the common divisor of {@code up} and {@code down}.
+     *
+     * @return the reduced interpolation factor
+     */
     public int up() {
         return up;
     }
 
-    /** @return the decimation factor, reduced by the common divisor */
+    /**
+     * Returns the decimation factor, reduced by the common divisor of {@code up} and {@code down}.
+     *
+     * @return the reduced decimation factor
+     */
     public int down() {
         return down;
     }
 
-    /** @return the filter's group delay in output samples */
+    /**
+     * Returns the filter's group delay, by which the output lags the input.
+     *
+     * @return the delay in output samples
+     */
     public double delay() {
         return delay;
     }
 
-    /** @return the doubles of state per stream: the input history and the stream position */
+    /**
+     * Returns the size of the state each stream carries: the input history and the stream position.
+     *
+     * @return the number of state doubles
+     */
     public int stateSize() {
         return perPhase;
     }
 
-    /** @return the largest number of outputs a call with {@code inCount} inputs can write */
+    /**
+     * Returns the largest number of outputs a call with {@code inCount} inputs can write,
+     * {@code inCount·up/down + 1}.
+     *
+     * @param inCount the number of input samples
+     * @return the output capacity a call needs
+     */
     public int maxOutput(int inCount) {
         return (int) (((long) inCount * up) / down + 1);
     }
@@ -138,16 +162,37 @@ public final class Resampler {
     /**
      * Converts {@code count} input samples.
      *
-     * @param state {@link #stateSize()} doubles, zero at the start of a stream
+     * @param in the input samples
+     * @param inOff the offset of the first input
+     * @param count the number of input samples, {@code >= 0}
      * @param out room for {@link #maxOutput(int) maxOutput(count)} samples; must not overlap {@code in}
+     * @param outOff the offset of the first output
+     * @param state {@link #stateSize()} doubles, zero at the start of a stream
+     * @param stateOff the offset of the state
      * @return the number of outputs written
+     * @throws IllegalArgumentException if {@code count} is negative or an array does not hold its values from its
+     *         offset ({@code out} must have room for {@code maxOutput(count)}; checked before anything is written)
      */
     public int process(double[] in, int inOff, int count, double[] out, int outOff, double[] state, int stateOff) {
         check(in == null ? -1 : in.length, inOff, count, "in");
         return run(in, null, inOff, count, out, null, outOff, state, stateOff);
     }
 
-    /** Converts float samples, computing in double; see {@link #process(double[], int, int, double[], int, double[], int)}. */
+    /**
+     * Converts float samples, computing in double with double state; only the outputs are rounded to float.
+     *
+     * @param in the input samples
+     * @param inOff the offset of the first input
+     * @param count the number of input samples, {@code >= 0}
+     * @param out room for {@link #maxOutput(int) maxOutput(count)} samples; must not overlap {@code in}
+     * @param outOff the offset of the first output
+     * @param state {@link #stateSize()} doubles, zero at the start of a stream
+     * @param stateOff the offset of the state
+     * @return the number of outputs written
+     * @throws IllegalArgumentException if {@code count} is negative or an array does not hold its values from its
+     *         offset ({@code out} must have room for {@code maxOutput(count)}; checked before anything is written)
+     * @see #process(double[], int, int, double[], int, double[], int)
+     */
     public int process(float[] in, int inOff, int count, float[] out, int outOff, double[] state, int stateOff) {
         check(in == null ? -1 : in.length, inOff, count, "in");
         return run(null, in, inOff, count, null, out, outOff, state, stateOff);

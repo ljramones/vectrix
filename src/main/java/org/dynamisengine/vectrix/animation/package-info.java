@@ -22,8 +22,19 @@
  * THE SOFTWARE.
  */
 /**
- * Animation math: quaternion key unrolling, SQUAD, spherical Bezier and Kim-Kim-Shin cumulative B-splines over key
- * arrays, the weighted geodesic (Karcher) mean of rotations, and an exact critically damped rotation spring. Rig and
- * IK policy belong to Animis. Quaternion keys are flat {@code x, y, z, w} arrays.
+ * Animation math: skeletal pose kernels over flat per-joint arrays (forward kinematics and its inverse, rotation and
+ * vector blending, additive layers); quaternion key unrolling, SQUAD, spherical Bezier and Kim-Kim-Shin cumulative
+ * B-splines over key arrays; the weighted geodesic (Karcher) mean of rotations; and an exact critically damped
+ * rotation spring. Rig and IK policy belong to Animis. Quaternions are flat {@code x, y, z, w} arrays.
+ * <p>
+ * <b>Contract.</b> Threading: the classes are stateless static utilities and safe to call from any thread on separate
+ * output arrays. Allocation: {@code PoseKernels} never allocates; {@code QuaternionCurves} and
+ * {@code QuaternionSpring} use a per-thread scratch array that is allocated on the first call in each thread.
+ * Determinism: transcendentals go through {@link org.dynamisengine.vectrix.core.AccurateMath}, so results match
+ * across platforms under {@code -Dvectrix.strictMath}. Errors: the array methods take a count but no offsets, start
+ * at index 0 and rely on Java's array bounds checks; the hierarchy methods throw {@link IllegalArgumentException}
+ * when a parent does not precede its child; other values are not validated. Precision and naming: classes ending in
+ * {@code f} store {@code float} and compute in {@code double}, rounding once per output; classes ending in {@code d}
+ * are their {@code double} twins and use the same formulas.
  */
 package org.dynamisengine.vectrix.animation;

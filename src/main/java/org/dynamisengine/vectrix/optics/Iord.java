@@ -31,6 +31,14 @@ public final class Iord {
     private Iord() {
     }
 
+    /**
+     * Returns the relative refractive index {@code etaI / etaT}.
+     *
+     * @param etaI the refractive index of the incident medium, greater than 0
+     * @param etaT the refractive index of the transmitting medium, greater than 0
+     * @return {@code etaI / etaT}
+     * @throws IllegalArgumentException if {@code etaI} or {@code etaT} is not greater than 0
+     */
     public static double etaRatio(double etaI, double etaT) {
         if (etaI <= 0.0 || etaT <= 0.0) {
             throw new IllegalArgumentException("eta");
@@ -39,7 +47,13 @@ public final class Iord {
     }
 
     /**
-     * Schlick F0 from incident and transmitted IORs.
+     * Returns the reflectance at normal incidence, {@code F0 = ((etaI − etaT) / (etaI + etaT))²}, as used by
+     * Schlick's approximation.
+     *
+     * @param etaI the refractive index of the incident medium, greater than 0
+     * @param etaT the refractive index of the transmitting medium, greater than 0
+     * @return {@code F0}, in {@code [0, 1)}
+     * @throws IllegalArgumentException if {@code etaI} or {@code etaT} is not greater than 0
      */
     public static double schlickF0(double etaI, double etaT) {
         if (etaI <= 0.0 || etaT <= 0.0) {
@@ -50,7 +64,12 @@ public final class Iord {
     }
 
     /**
-     * Schlick F0 from eta ratio (etaI/etaT).
+     * Returns the reflectance at normal incidence from the relative index {@code η = etaI / etaT},
+     * {@code F0 = ((η − 1) / (η + 1))²}.
+     *
+     * @param etaRatio the relative refractive index, greater than 0
+     * @return {@code F0}, in {@code [0, 1)}
+     * @throws IllegalArgumentException if {@code etaRatio} is not greater than 0
      */
     public static double schlickF0FromEtaRatio(double etaRatio) {
         if (etaRatio <= 0.0) {

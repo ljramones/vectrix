@@ -2167,10 +2167,30 @@ public class Quaterniond implements Externalizable, Cloneable, Quaterniondc {
                 cosHalf);
     }
 
+    /**
+     * Negates quaternions in a sequence as needed so that each has a non-negative dot product with its predecessor.
+     * {@code q} and {@code -q} are the same rotation, so the rotations are unchanged, but interpolating between
+     * neighbors then takes the short way. The first element is never changed. Modifies the elements in place.
+     *
+     * @param sequence the quaternions, changed in place; no element may be null
+     * @throws IllegalArgumentException in {@link MathMode#STRICT} mode, if an element is not a unit quaternion; nothing
+     *         is changed in that case
+     */
     public static void ensureConsistentHemisphere(Quaterniond[] sequence) {
         ensureConsistentHemisphere(sequence, 0, sequence.length);
     }
 
+    /**
+     * Negates quaternions in {@code sequence[offset .. offset + length)} as needed so that each has a non-negative dot
+     * product with its predecessor; see {@link #ensureConsistentHemisphere(Quaterniond[])}. The element at
+     * {@code offset} is never changed.
+     *
+     * @param sequence the quaternions, changed in place; no element in the range may be null
+     * @param offset the index of the first element
+     * @param length the number of elements
+     * @throws IllegalArgumentException if the range does not fit in {@code sequence}, or, in {@link MathMode#STRICT}
+     *         mode, if an element in the range is not a unit quaternion; nothing is changed in either case
+     */
     public static void ensureConsistentHemisphere(Quaterniond[] sequence, int offset, int length) {
         if (offset < 0 || length < 0 || offset + length > sequence.length) {
             throw new IllegalArgumentException("offset/length");

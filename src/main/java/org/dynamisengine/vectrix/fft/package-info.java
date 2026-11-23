@@ -34,6 +34,18 @@
  * scratch, never allocate, and are deterministic. Twiddle factors are computed with exact argument reduction, so
  * the error grows only with {@code log n}. The Vector API paths of the {@code -simd} jar give the same bits as the
  * scalar ones. The original radix-2 classes {@code FFT1d}, {@code FFT1f}, {@code Convolutiond} and
- * {@code Convolutionf} are deprecated. See {@code docs/guides/signal-processing.md}.
+ * {@code Convolutionf} are deprecated, and so are {@code Complexd} and {@code Complexf}, which moved to the
+ * {@code core} package. See {@code docs/guides/signal-processing.md}.
+ * <p>
+ * <b>Contract.</b> Threading: plans are immutable and can be shared by any number of threads; scratch arrays and
+ * {@code BlockConvolverd}/{@code BlockConvolverf} state belong to one thread at a time. Allocation: creating a plan
+ * allocates its tables; transforms and {@code process}/{@code flush} calls do not allocate (the deprecated classes
+ * do). Determinism: results do not depend on SIMD or thread count, but a block convolver's output bits depend on
+ * where its blocks start; twiddles use {@code AccurateMath}, so they match across platforms under
+ * {@code -Dvectrix.strictMath=true}. Errors: invalid sizes and offsets, too-short arrays or segments and too-small
+ * scratch throw {@link java.lang.IllegalArgumentException} before any element is written; NaN and infinities
+ * propagate through the arithmetic. Precision and naming: classes ending in {@code d} are double, their {@code f}
+ * twins float; {@code ComplexFft2d} and {@code RealFft2d} are the two-dimensional double transforms. Complex data
+ * is interleaved (real, imaginary) and 2D data row-major.
  */
 package org.dynamisengine.vectrix.fft;

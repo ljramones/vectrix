@@ -34,10 +34,11 @@ import org.dynamisengine.vectrix.core.Vector4d;
 import org.dynamisengine.vectrix.linalg.Eigen3d;
 
 /**
- * Bounding-volume construction for point sets (double precision; computed in double where it matters): Welzl's
- * minimal enclosing sphere, PCA-fitted oriented boxes, the minimal-area enclosing rectangle in 2D (rotating
- * calipers), an approximate minimal-volume box in 3D, and k-DOPs. Points are {@code x, y, z} (or {@code x, y})
- * tuples in a flat array. These are fitting routines: they allocate scratch proportional to the input.
+ * Bounding-volume construction for point sets (double precision): Welzl's minimal enclosing sphere, PCA-fitted oriented
+ * boxes, the minimal-area enclosing rectangle in 2D (searched over the convex hull's edge directions), an approximate
+ * minimal-volume box in 3D, and k-DOPs. Points are {@code x, y, z} (or {@code x, y}) tuples in a flat array, starting
+ * at index 0. These are fitting routines: they allocate scratch proportional to the input. The bounds of single shapes
+ * ({@code aabOf...} and {@code transformSphere}) do not allocate.
  *
  * @since 2.2.0
  */
@@ -46,8 +47,16 @@ public final class BoundingVolumesd {
     }
 
     /**
-     * The smallest sphere containing all {@code count} points (Welzl 1991, iterative with a fixed pseudo-random
-     * order, so the result is deterministic). Writes {@code (cx, cy, cz, radius)} to {@code dest}.
+     * Computes the smallest sphere that contains the first {@code count} points (Welzl 1991, iterative with a fixed
+     * pseudo-random order, so the result is deterministic). The work is done in double. A point counts as inside when
+     * its squared distance from the center exceeds the squared radius by at most a relative {@code 1e-12}, so points
+     * may lie outside the result by about that much.
+     *
+     * @param xyz the points as packed {@code x, y, z} triples starting at index 0
+     * @param count the number of points, at least 1
+     * @param dest receives {@code (cx, cy, cz, radius)}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code count <= 0}
      */
     public static Vector4d minimalSphere(double[] xyz, int count, Vector4d dest) {
         if (count <= 0) {
@@ -172,10 +181,18 @@ public final class BoundingVolumesd {
     }
 
     /**
-     * Oriented box fitted by principal component analysis: the axes are the eigenvectors of the point covariance
-     * (columns of {@code axes}, a rotation), and the box is the tight extent along them. When the covariance has
-     * repeated eigenvalues (fewer than three points, or symmetric point sets) the axes within that eigenspace are not
-     * unique; any choice gives a valid bounding box.
+     * Fits an oriented box to the points by principal component analysis. The axes are the eigenvectors of the point
+     * covariance (accumulated in double), ordered by descending variance; they form a proper rotation (det +1). The box
+     * is the tight extent of the points along them. When the covariance has repeated eigenvalues (fewer than three
+     * points, or symmetric point sets) the axes within that eigenspace are not unique; any choice gives a valid
+     * bounding box.
+     *
+     * @param xyz the points as packed {@code x, y, z} triples starting at index 0
+     * @param count the number of points, at least 1
+     * @param center receives the box center
+     * @param axes receives the box axes as its columns
+     * @param halfExtents receives the half extents along the three columns of {@code axes}
+     * @throws IllegalArgumentException if {@code count <= 0}
      */
     public static void pcaObb(double[] xyz, int count, Vector3d center, Matrix3d axes, Vector3d halfExtents) {
         if (count <= 0) {
@@ -232,10 +249,18 @@ public final class BoundingVolumesd {
     }
 
     /**
-     * The minimal-area rectangle enclosing {@code count} 2D points: convex hull (monotone chain, exact orientation
-     * tests) and the hull-edge directions (an optimal rectangle has a side on a hull edge). Writes the centre, the
-     * unit direction of its first side, and its half extents along that side and the perpendicular one; returns the
-     * area.
+     * Finds the minimal-area rectangle that encloses {@code count} 2D points and returns its area. It builds the convex
+     * hull (monotone chain, exact orientation tests) and tries the direction of every hull edge, since an optimal
+     * rectangle has a side on a hull edge. The work is done in double. A single point gives a zero-size rectangle with
+     * {@code axisU = (1, 0)}; collinear points give a zero-width one.
+     *
+     * @param xy the points as packed {@code x, y} pairs starting at index 0
+     * @param count the number of points, at least 1 (not checked)
+     * @param center receives the rectangle center
+     * @param axisU receives the unit direction of the rectangle's first side
+     * @param halfExtents receives the half extents along {@code axisU} and along {@code axisU} rotated 90 degrees
+     *        counter-clockwise
+     * @return the area of the rectangle
      */
     public static double minimalAreaRectangle(double[] xy, int count, Vector2d center, Vector2d axisU,
             Vector2d halfExtents) {
@@ -313,9 +338,18 @@ public final class BoundingVolumesd {
     }
 
     /**
-     * An approximation of the minimal-volume oriented box: for each PCA axis, the minimal-area rectangle of the points
-     * projected onto the plane perpendicular to it, extruded along it; the smallest of these and the PCA box. Writes
-     * the box as {@link #pcaObb} does and returns its volume.
+     * Fits an oriented box of small volume to the points, an approximation of the minimal-volume box. It starts from
+     * the {@link #pcaObb} box. Then, for each PCA axis, it takes the minimal-area rectangle of the points projected
+     * onto the plane perpendicular to that axis and extrudes it along the axis. The smallest of these four boxes is
+     * written; its axes form a proper rotation.
+     *
+     * @param xyz the points as packed {@code x, y, z} triples starting at index 0
+     * @param count the number of points, at least 1
+     * @param center receives the box center
+     * @param axes receives the box axes as its columns
+     * @param halfExtents receives the half extents along the three columns of {@code axes}
+     * @return the volume of the box written
+     * @throws IllegalArgumentException if {@code count <= 0}
      */
     public static double approximateMinimalObb(double[] xyz, int count, Vector3d center, Matrix3d axes,
             Vector3d halfExtents) {
@@ -353,7 +387,18 @@ public final class BoundingVolumesd {
         return best;
     }
 
-    /** Number of directions of a k-DOP: {@code k / 2}. */
+    /**
+     * Writes the {@code k / 2} directions of a k-DOP and returns how many it wrote. The directions are not normalized:
+     * the three coordinate axes first, then for {@code k = 14} the four corner diagonals {@code (1, ±1, ±1)}, for
+     * {@code k = 18} the six edge diagonals {@code (1, ±1, 0), (1, 0, ±1), (0, 1, ±1)}, and for {@code k = 26} the
+     * corner diagonals followed by the edge diagonals. Allocates its small direction tables on each call.
+     *
+     * @param k the number of k-DOP planes: 6, 14, 18 or 26
+     * @param out receives the directions as packed {@code x, y, z} triples from index 0; at least {@code 3 * k / 2}
+     *        elements
+     * @return the number of directions written, {@code k / 2}
+     * @throws IllegalArgumentException if {@code k} is not 6, 14, 18 or 26
+     */
     public static int kDopDirections(int k, double[] out) {
         double[][] axes = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
         double[][] corners = {{1, 1, 1}, {1, 1, -1}, {1, -1, 1}, {1, -1, -1}};
@@ -388,9 +433,17 @@ public final class BoundingVolumesd {
     }
 
     /**
-     * k-DOP ({@code k} = 6, 14, 18 or 26) of the points: for each of the {@code k / 2} directions of
-     * {@link #kDopDirections} (not normalised), the minimum and maximum of {@code p · direction} into
-     * {@code minMax[2i]} and {@code minMax[2i + 1]}. The 6-DOP is the AABB.
+     * Computes the k-DOP of the points. For each direction {@code i} of {@link #kDopDirections}, the minimum and
+     * maximum of {@code p · direction} go to {@code minMax[2i]} and {@code minMax[2i + 1]}. The directions are not
+     * normalized, so the diagonal values are not distances. The 6-DOP is the AABB, as {@code minX, maxX, minY, maxY,
+     * minZ, maxZ}. With {@code count == 0} every minimum is {@code +∞} and every maximum {@code −∞}. Allocates a small
+     * table.
+     *
+     * @param xyz the points as packed {@code x, y, z} triples starting at index 0
+     * @param count the number of points, 0 or more
+     * @param k the number of k-DOP planes: 6, 14, 18 or 26
+     * @param minMax receives the {@code k} bounds; at least {@code k} elements
+     * @throws IllegalArgumentException if {@code k} is not 6, 14, 18 or 26
      */
     public static void kDop(double[] xyz, int count, int k, double[] minMax) {
         double[] dirs = new double[39];
@@ -408,9 +461,14 @@ public final class BoundingVolumesd {
     }
 
     /**
-     * Axis-aligned bounds of an oriented box: center {@code center}, unit axes in the columns of {@code axes}, half
-     * extents {@code halfExtents}. Each world half extent is {@code Σ_j |axes_ij| h_j}, which is exact (tight).
+     * Computes the axis-aligned bounds of an oriented box. Each world half extent is {@code Σ_j |axes_ij| h_j}, which
+     * is exact (tight).
      *
+     * @param center the box center
+     * @param axes the box axes as columns, unit length
+     * @param halfExtents the half extents along the columns of {@code axes}
+     * @param min receives the minimum corner; may alias an input
+     * @param max receives the maximum corner; may alias an input
      * @since 2.4.0
      */
     public static void aabOfObb(Vector3dc center, Matrix3dc axes, Vector3dc halfExtents, Vector3d min, Vector3d max) {
@@ -424,8 +482,13 @@ public final class BoundingVolumesd {
     }
 
     /**
-     * Axis-aligned bounds of a capsule (segment {@code a}–{@code b}, radius {@code r}). Exact.
+     * Computes the axis-aligned bounds of a capsule. Exact.
      *
+     * @param a one end of the capsule's segment
+     * @param b the other end of the capsule's segment
+     * @param r the capsule radius, non-negative
+     * @param min receives the minimum corner; may alias an input
+     * @param max receives the maximum corner; may alias an input
      * @since 2.4.0
      */
     public static void aabOfCapsule(Vector3dc a, Vector3dc b, double r, Vector3d min, Vector3d max) {
@@ -435,12 +498,17 @@ public final class BoundingVolumesd {
     }
 
     /**
-     * Axis-aligned bounds of a solid cylinder with cap centers {@code a} and {@code b} and radius {@code r}.
+     * Computes the axis-aligned bounds of a solid cylinder.
      * <p>
-     * The bounds are exact: along world axis {@code i}, each cap disc extends {@code r · sqrt(u_j² + u_k²) / |u|},
-     * where {@code u = b − a}. That form does not cancel. A zero-length cylinder has no defined disc orientation, so
-     * it is bounded as a sphere of radius {@code r}.
+     * The bounds are exact up to rounding: along world axis {@code i}, each cap disc extends
+     * {@code r · sqrt(u_j² + u_k²) / |u|}, where {@code u = b − a}. That form does not cancel. A zero-length cylinder
+     * has no defined disc orientation, so it is bounded as a sphere of radius {@code r}.
      *
+     * @param a the center of one cap
+     * @param b the center of the other cap
+     * @param r the cylinder radius, non-negative
+     * @param min receives the minimum corner; may alias an input
+     * @param max receives the maximum corner; may alias an input
      * @since 2.4.0
      */
     public static void aabOfCylinder(Vector3dc a, Vector3dc b, double r, Vector3d min, Vector3d max) {
@@ -458,9 +526,14 @@ public final class BoundingVolumesd {
     }
 
     /**
-     * Axis-aligned bounds of {@code count} points ({@code xyz}, packed) transformed by the affine {@code m}, with no
-     * allocation. With {@code count == 0}, {@code min} is {@code +∞} and {@code max} is {@code −∞}.
+     * Computes the axis-aligned bounds of {@code count} points transformed by the affine {@code m}, with no allocation.
+     * With {@code count == 0}, {@code min} is {@code +∞} and {@code max} is {@code −∞}.
      *
+     * @param xyz the points as packed {@code x, y, z} triples starting at index 0
+     * @param count the number of points, 0 or more
+     * @param m the affine transform applied to each point
+     * @param min receives the minimum corner
+     * @param max receives the maximum corner
      * @since 2.4.0
      */
     public static void aabOfTransformedPoints(double[] xyz, int count, Matrix4x3dc m, Vector3d min, Vector3d max) {
@@ -549,11 +622,16 @@ public final class BoundingVolumesd {
     }
 
     /**
-     * The bounding sphere of a sphere ({@code sphere.xyz} center, {@code sphere.w} radius) under the affine
-     * {@code m}: the transformed center, and the radius scaled by the largest singular value of {@code m}'s linear
-     * part ({@link #maxStretch}). That radius is exact for any linear part, including shear and non-uniform scale,
-     * and rounded up.
+     * Computes a bounding sphere of a sphere transformed by the affine {@code m}: the transformed center, and the
+     * radius scaled by the largest singular value of {@code m}'s linear part. That singular value comes from a Jacobi
+     * eigenvalue solve in double and is rounded up by a few ulps, and the scaled radius is rounded up by two ulps, so
+     * the result contains the transformed sphere. That holds for any linear part, including shear and non-uniform
+     * scale, where the largest-column-length shortcut is too small. Does not allocate.
      *
+     * @param sphere the sphere: center in {@code x, y, z}, radius in {@code w}
+     * @param m the affine transform
+     * @param dest receives the transformed sphere in the same layout; may alias {@code sphere}
+     * @return {@code dest}
      * @since 2.4.0
      */
     public static Vector4d transformSphere(Vector4dc sphere, Matrix4x3dc m, Vector4d dest) {

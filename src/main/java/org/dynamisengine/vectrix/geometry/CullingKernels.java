@@ -42,12 +42,16 @@ import jdk.incubator.vector.VectorSpecies;
  * Extract the planes once per view with {@link FrustumPlanes#set(Matrix4fc, boolean, DepthRange)}, naming the depth
  * range the projection was built for, then classify any number of boxes with
  * {@link #frustumCullAabbBatch(FrustumPlanes, AABBSoA, int[], int)}. The batch call does not allocate.
+ * <p>
+ * The test is conservative: a box is {@code OUTSIDE} only when it lies entirely behind one plane, so a box near a
+ * frustum corner can be reported as {@code INTERSECT} although it is outside. A box with a NaN bound is never
+ * reported {@code OUTSIDE}. The methods keep no state and are safe to call from any thread on separate outputs.
  */
 public final class CullingKernels {
     /**
      * {@code -Dvectrix.culling.simd=false} keeps {@link #frustumCullAabbBatch} on the scalar kernel. The SIMD kernel is
-     * the default since it classifies every box exactly like the scalar one, NaN and infinite bounds included
-     * ({@code SimdPathTest}); it is 2.7&times; faster on AVX-512 x86 and about 15 % faster on arm64 (docs/benchmarks.md).
+     * the default since it classifies every box exactly like the scalar one, NaN and infinite bounds included ({@code
+     * SimdPathTest}); it is 2.7&times; faster on AVX-512 x86 and about 15 % faster on arm64 (docs/benchmarks.md).
      */
     private static final String PROP_CULLING_SIMD = "vectrix.culling.simd";
     private static final int SIMD_BATCH_THRESHOLD = 64;
@@ -64,6 +68,14 @@ public final class CullingKernels {
      * Uses the Vector API kernel when it is available (the {@code simd} artifact with
      * {@code --add-modules jdk.incubator.vector}), the math mode is FAST and {@code count} is between 64 and 32768;
      * otherwise the scalar kernel. Both give identical results.
+     * <p>
+     * Arrays start at index 0 and are not range-checked up front; a too-short array throws
+     * {@link ArrayIndexOutOfBoundsException} after part of {@code outResult} has been written.
+     *
+     * @param frustum the frustum planes
+     * @param bounds the boxes; box {@code i} is element {@code i} of each min and max array
+     * @param outResult receives one classification per box, from index 0
+     * @param count the number of boxes, starting at index 0; nothing is written when it is 0 or negative
      */
     public static void frustumCullAabbBatch(FrustumPlanes frustum, AABBSoA bounds, int[] outResult, int count) {
         if (count <= 0) {
@@ -80,7 +92,12 @@ public final class CullingKernels {
     }
 
     /**
-     * Force scalar implementation regardless of runtime backend.
+     * Classifies the boxes with the scalar kernel, whatever the runtime backend.
+     *
+     * @param frustum the frustum planes
+     * @param bounds the boxes; box {@code i} is element {@code i} of each min and max array
+     * @param outResult receives one classification per box, from index 0
+     * @param count the number of boxes, starting at index 0; nothing is written when it is 0 or negative
      *
      * @deprecated call {@code frustumCullAabbBatch}, which picks the backend ({@code SimdSupport})
      */
@@ -149,7 +166,14 @@ public final class CullingKernels {
     }
 
     /**
-     * Force SIMD-lane-style implementation (4-at-a-time loop structure).
+     * Classifies the boxes with the Vector API kernel when it is available, otherwise with a scalar loop unrolled
+     * four at a time. Unlike {@link #frustumCullAabbBatch(FrustumPlanes, AABBSoA, int[], int)}, it ignores the math
+     * mode and the batch-size limits.
+     *
+     * @param frustum the frustum planes
+     * @param bounds the boxes; box {@code i} is element {@code i} of each min and max array
+     * @param outResult receives one classification per box, from index 0
+     * @param count the number of boxes, starting at index 0; nothing is written when it is 0 or negative
      *
      * @deprecated call {@code frustumCullAabbBatch}, which picks the backend ({@code SimdSupport})
      */
@@ -184,6 +208,11 @@ public final class CullingKernels {
     /**
      * Extracts the planes of {@code viewProj} for an OpenGL depth range ([-1, 1]), then classifies.
      *
+     * @param viewProj the view-projection matrix
+     * @param bounds the boxes; box {@code i} is element {@code i} of each min and max array
+     * @param outResult receives one classification per box, from index 0
+     * @param count the number of boxes, starting at index 0
+
      * @deprecated allocates a {@link FrustumPlanes} per call and assumes OpenGL depth, which culls nothing near the
      *             camera for a [0, 1] or reverse-Z projection; extract the planes once with
      *             {@link FrustumPlanes#set(Matrix4fc, boolean, DepthRange)} and call
@@ -194,6 +223,19 @@ public final class CullingKernels {
         frustumCullAabbBatch(new FrustumPlanes().set(viewProj, false), bounds, outResult, count);
     }
 
+    /**
+     * Classifies one axis-aligned box against the frustum, with the same conservative test as the batch kernels.
+     *
+     * @param frustum the frustum planes
+     * @param minX the minimum x of the box
+     * @param minY the minimum y of the box
+     * @param minZ the minimum z of the box
+     * @param maxX the maximum x of the box
+     * @param maxY the maximum y of the box
+     * @param maxZ the maximum z of the box
+     * @return {@link FrustumIntersection#INSIDE}, {@link FrustumIntersection#INTERSECT} or
+     *         {@link FrustumIntersection#OUTSIDE}
+     */
     public static int classifyAabb(FrustumPlanes frustum, float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
         boolean inside = true;
         for (int p = 0; p < FrustumPlanes.COUNT; p++) {
@@ -223,7 +265,7 @@ public final class CullingKernels {
      * Vector API implementation. It lives in its own class so that only the SIMD path loads
      * {@code jdk.incubator.vector}: HotSpot verifies every method of a class when it links, so Vector API code in
      * {@code CullingKernels} itself made even the scalar path throw {@link NoClassDefFoundError} on a JVM started
-     * without {@code --add-modules jdk.incubator.vector} (review M-15).
+     * without {@code --add-modules jdk.incubator.vector}.
      */
     private static final class Simd {
         static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;

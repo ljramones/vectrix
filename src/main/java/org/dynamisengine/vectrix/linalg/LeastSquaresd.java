@@ -37,9 +37,18 @@ public final class LeastSquaresd {
     }
 
     /**
-     * Minimises {@code ||A x - b||₂} for the {@code rows × cols} matrix {@code a} (row-major, {@code rows >= cols}).
+     * Minimises {@code ||A x - b||₂} for the {@code rows × cols} matrix {@code a} (row-major, {@code rows >= cols})
+     * by Householder QR, computed in double. A diagonal element of {@code R} at most {@code 1e-13} times the largest
+     * counts as rank deficient. Arrays start at index 0. Allocates {@code O(rows²)} scratch per call: meant for
+     * fitting, not per-frame loops.
      *
+     * @param a the matrix, row-major, {@code rows * cols} elements
+     * @param b the right-hand side, {@code rows} elements
+     * @param rows the number of equations
+     * @param cols the number of unknowns, at least 1 and at most {@code rows}
+     * @param x receives the solution, {@code cols} elements
      * @return false if {@code A} is rank deficient (to working precision); {@code x} is then unspecified
+     * @throws IllegalArgumentException if {@code rows < cols} or {@code cols <= 0}
      */
     public static boolean solve(double[] a, double[] b, int rows, int cols, double[] x) {
         if (rows < cols || cols <= 0) {
@@ -49,8 +58,16 @@ public final class LeastSquaresd {
     }
 
     /**
-     * Best-fit plane {@code n·p + d = 0} (unit {@code n}) through {@code count} points stored as {@code x, y, z} triples:
-     * the normal is the covariance eigenvector with the smallest eigenvalue. Writes {@code (n, d)} to {@code dest}.
+     * Best-fit plane {@code n·p + d = 0} (unit {@code n}) through {@code count} points stored as {@code x, y, z}
+     * triples: the normal is the covariance eigenvector with the smallest eigenvalue. Writes {@code (n, d)} to {@code
+     * dest}. The sign of the normal is arbitrary. With fewer than three points, or collinear points, the plane is one
+     * of many that fit. Uses a per-thread workspace; does not allocate after the thread's first call.
+     *
+     * @param xyz the points, {@code x, y, z} per point, from index 0
+     * @param count the number of points, at least 1
+     * @param dest receives the unit normal in x, y, z and the offset {@code d} in w
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code count <= 0} or {@code xyz} holds fewer than {@code count} points
      */
     public static Vector4d fitPlane(double[] xyz, int count, Vector4d dest) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
@@ -62,7 +79,17 @@ public final class LeastSquaresd {
         return dest.set(nx, ny, nz, -(nx * c[0] + ny * c[1] + nz * c[2]));
     }
 
-    /** Best-fit line through {@code count} points: a point on it (the centroid) and its unit direction (largest-eigenvalue eigenvector). */
+    /**
+     * Best-fit line through {@code count} points: a point on it (the centroid) and its unit direction (the covariance
+     * eigenvector with the largest eigenvalue). The sign of the direction is arbitrary. Uses a per-thread workspace;
+     * does not allocate after the thread's first call.
+     *
+     * @param xyz the points, {@code x, y, z} per point, from index 0
+     * @param count the number of points, at least 1
+     * @param point receives the centroid of the points
+     * @param direction receives the unit direction of the line
+     * @throws IllegalArgumentException if {@code count <= 0} or {@code xyz} holds fewer than {@code count} points
+     */
     public static void fitLine(double[] xyz, int count, Vector3d point, Vector3d direction) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] c = ws.centroid3;

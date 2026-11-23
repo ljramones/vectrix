@@ -24,7 +24,12 @@
 package org.dynamisengine.vectrix.sh;
 
 /**
- * RGB SH coefficients for L0..L3 (16 bands), flattened as [c0.r, c0.g, c0.b, ...].
+ * RGB SH coefficients up to order 3 (bands l = 0..3, 16 coefficients per channel), flattened as
+ * {@code [c0.r, c0.g, c0.b, c1.r, ... c15.b]}: coefficient {@code i}, channel {@code ch} is at
+ * {@code c[i * 3 + ch]}. Coefficient {@code i = l * (l + 1) + m} for band {@code l} and
+ * {@code -l <= m <= l}.
+ * <p>
+ * Not thread-safe; give each thread its own instance.
   * @since 1.0.0
   */
 public final class ShCoeffs16f {
@@ -42,11 +47,19 @@ public final class ShCoeffs16f {
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
     public static final int BANDS = COEFFS;
+    /** The number of color channels (red, green, blue). */
     public static final int CHANNELS = 3;
+    /** The length of {@link #c}: {@code COEFFS * CHANNELS} = 48. */
     public static final int SIZE = COEFFS * CHANNELS;
 
+    /** The coefficients, {@link #SIZE} values interleaved by channel: {@code c[i * CHANNELS + channel]}. */
     public final float[] c = new float[SIZE];
 
+    /**
+     * Sets every coefficient to zero.
+     *
+     * @return this
+     */
     public ShCoeffs16f zero() {
         for (int i = 0; i < SIZE; i++) {
             c[i] = 0.0f;

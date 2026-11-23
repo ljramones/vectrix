@@ -40,7 +40,19 @@ public final class DampedLeastSquaresd {
     /**
      * One step: writes the rotation vector of each bone ({@code count − 1} entries, xyz, radians) to
      * {@code rotationsOut} without moving the chain; if any exceeds {@code maxStepAngle} (when positive), the whole
-     * step is scaled down uniformly, preserving its direction. Returns the current end-effector error.
+     * step is scaled down uniformly, preserving its direction. With {@code lambda = 0} a straight chain makes the
+     * system singular and the step NaN; use a positive damping.
+     *
+     * @param positions the joint positions, 3 doubles per joint from index 0; not modified
+     * @param count the number of joints, at least 2
+     * @param targetX the x coordinate of the target
+     * @param targetY the y coordinate of the target
+     * @param targetZ the z coordinate of the target
+     * @param lambda the damping {@code λ}, in the unit of the positions
+     * @param maxStepAngle the largest rotation of any bone in this step, in radians, or {@code ≤ 0} for no cap
+     * @param rotationsOut receives the world-space rotation vector of each bone, 3 doubles per bone for
+     *        {@code count − 1} bones; for {@link #apply}
+     * @return the end-effector distance to the target before the step
      */
     public static double step(double[] positions, int count, double targetX, double targetY, double targetZ, double lambda,
             double maxStepAngle, double[] rotationsOut) {
@@ -91,7 +103,13 @@ public final class DampedLeastSquaresd {
 
     /**
      * Applies per-bone world rotation vectors to the chain (from the last bone to the root, each about its joint and
-     * moving everything beyond it), preserving bone lengths.
+     * moving everything beyond it), preserving bone lengths. Uses per-thread scratch arrays, which are allocated on
+     * the first call in each thread.
+     *
+     * @param positions the joint positions, 3 doubles per joint from index 0; updated in place
+     * @param count the number of joints
+     * @param rotations the world-space rotation vector of each bone (axis times angle in radians), 3 doubles per bone,
+     *        as written by {@link #step}
      */
     public static void apply(double[] positions, int count, double[] rotations) {
         double[] p = positions;
@@ -112,7 +130,19 @@ public final class DampedLeastSquaresd {
 
     /**
      * Iterates {@link #step} and {@link #apply} until the error is at most {@code tolerance} or {@code maxIterations}
-     * steps; {@code scratchRotations} holds {@code 3 (count − 1)} values. Returns the final error.
+     * steps have been applied.
+     *
+     * @param positions the joint positions, 3 doubles per joint from index 0; updated in place
+     * @param count the number of joints, at least 2
+     * @param targetX the x coordinate of the target
+     * @param targetY the y coordinate of the target
+     * @param targetZ the z coordinate of the target
+     * @param lambda the damping {@code λ}, in the unit of the positions, greater than 0
+     * @param maxStepAngle the largest rotation of any bone per step, in radians, or {@code ≤ 0} for no cap
+     * @param tolerance the end-effector distance at which to stop
+     * @param maxIterations the maximum number of steps
+     * @param scratchRotations working storage of at least {@code 3 (count − 1)} doubles; its contents are overwritten
+     * @return the final distance from the end effector to the target
      */
     public static double solve(double[] positions, int count, double targetX, double targetY, double targetZ,
             double lambda, double maxStepAngle, double tolerance, int maxIterations, double[] scratchRotations) {

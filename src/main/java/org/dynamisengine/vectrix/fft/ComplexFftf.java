@@ -53,7 +53,8 @@ import org.dynamisengine.vectrix.simd.SimdSupport;
  * threads. The transforms keep no state and do not allocate: each call takes a caller-owned scratch array of at
  * least {@link #scratchSize()} values (one per thread), which it overwrites. Results are deterministic: the same
  * inputs give the same bits on every platform under {@code -Dvectrix.strictMath=true} (which also fixes the
- * twiddles), independently of the thread count.
+ * twiddles), independently of the thread count. The Vector API path of the {@code -simd} jar performs the
+ * scalar operations lane by lane, so it gives the same bits as the scalar path.
  *
  * @since 2.5.0
  */
@@ -162,7 +163,8 @@ public final class ComplexFftf {
      *
      * @param n the transform size, {@code 1 <= n <= MAX_SIZE}
      * @return the plan
-     * @throws IllegalArgumentException if {@code n} is out of range
+     * @throws IllegalArgumentException if {@code n} is out of range, or if it has a prime factor above 61 and
+     *         exceeds {@code 2^27}
      */
     public static ComplexFftf plan(int n) {
         if (n < 1 || n > MAX_SIZE) {
@@ -177,6 +179,7 @@ public final class ComplexFftf {
      *
      * @param min the minimum size, {@code 1 <= min <= MAX_SIZE}
      * @return the fast size
+     * @throws IllegalArgumentException if {@code min} is out of range
      */
     public static int fastSize(int min) {
         if (min < 1 || min > MAX_SIZE) {
@@ -195,28 +198,42 @@ public final class ComplexFftf {
         return (int) best;
     }
 
-    /** @return the number of complex values transformed */
+    /**
+     * Returns the number of complex values transformed.
+     *
+     * @return the number of complex values transformed
+     */
     public int size() {
         return n;
     }
 
-    /** @return the number of floats the scratch array needs for the array overloads */
+    /**
+     * Returns the number of floats the scratch array needs for the array overloads.
+     *
+     * @return the number of floats the scratch array needs for the array overloads
+     */
     public int scratchSize() {
         return scratchSize;
     }
 
-    /** @return the number of floats the scratch array needs for the {@link MemorySegment} overloads */
+    /**
+     * Returns the number of floats the scratch array needs for the {@link MemorySegment} overloads.
+     *
+     * @return the number of floats the scratch array needs for the {@link MemorySegment} overloads
+     */
     public long segmentScratchSize() {
         return 2L * n + scratchSize;
     }
 
     /**
-     * Transforms {@code data[off .. off + 2n)} in place.
+     * Transforms {@code data[off .. off + 2n)} in place. {@code scratch} must not overlap {@code data}.
      *
      * @param data the interleaved complex values
      * @param off the offset of the first value
      * @param scratch caller-owned working memory of at least {@link #scratchSize()} floats
      * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if {@code data} does not hold {@code 2n} values from {@code off} or
+     *         {@code scratch} is too small from {@code scratchOff}; nothing is written then
      */
     public void forward(float[] data, int off, float[] scratch, int scratchOff) {
         check(data, off, scratch, scratchOff, scratchSize);
@@ -224,12 +241,15 @@ public final class ComplexFftf {
     }
 
     /**
-     * Inverse-transforms {@code data[off .. off + 2n)} in place, dividing by {@code n}.
+     * Inverse-transforms {@code data[off .. off + 2n)} in place, dividing by {@code n} (a correctly rounded
+     * division, exact for powers of two). {@code scratch} must not overlap {@code data}.
      *
      * @param data the interleaved complex values
      * @param off the offset of the first value
      * @param scratch caller-owned working memory of at least {@link #scratchSize()} floats
      * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if {@code data} does not hold {@code 2n} values from {@code off} or
+     *         {@code scratch} is too small from {@code scratchOff}; nothing is written then
      */
     public void inverse(float[] data, int off, float[] scratch, int scratchOff) {
         check(data, off, scratch, scratchOff, scratchSize);
@@ -241,7 +261,9 @@ public final class ComplexFftf {
      * Transforms {@code 2n} native-order floats at the start of {@code data} in place.
      *
      * @param data the interleaved complex values, at least {@code 8n} bytes
-     * @param scratch caller-owned working memory of at least {@link #segmentScratchSize()} floats
+     * @param scratch caller-owned working memory of at least {@link #segmentScratchSize()} floats, used from index 0
+     * @throws IllegalArgumentException if {@code data} is null or shorter than 8n bytes, or {@code scratch} is
+     *         null or shorter than {@link #segmentScratchSize()}; nothing is written then
      */
     public void forward(MemorySegment data, float[] scratch) {
         segment(data, scratch, false);
@@ -252,7 +274,9 @@ public final class ComplexFftf {
      * {@code n}.
      *
      * @param data the interleaved complex values, at least {@code 8n} bytes
-     * @param scratch caller-owned working memory of at least {@link #segmentScratchSize()} floats
+     * @param scratch caller-owned working memory of at least {@link #segmentScratchSize()} floats, used from index 0
+     * @throws IllegalArgumentException if {@code data} is null or shorter than 8n bytes, or {@code scratch} is
+     *         null or shorter than {@link #segmentScratchSize()}; nothing is written then
      */
     public void inverse(MemorySegment data, float[] scratch) {
         segment(data, scratch, true);

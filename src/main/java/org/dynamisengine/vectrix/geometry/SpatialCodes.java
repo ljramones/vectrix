@@ -27,6 +27,10 @@ package org.dynamisengine.vectrix.geometry;
  * Space-filling-curve codes for sorting points and building linear BVHs: Morton (Z-order) codes in 2D and 3D with
  * 32- and 64-bit results, and Hilbert curve indices, which keep consecutive indices spatially adjacent. Inputs are
  * non-negative integer grid coordinates; quantise floats first (for example {@code (int) ((x - min) / extent * 1024)}).
+ * <p>
+ * Morton encoders keep only the low bits of each coordinate that fit the code (16, 32, 10 or 21); higher bits are
+ * ignored. The class is stateless and safe to call from any thread. The Morton and 2D Hilbert methods do not
+ * allocate; the 3D Hilbert methods allocate a three-element {@code int} array per call.
  *
  * @since 2.2.0
  */
@@ -76,47 +80,104 @@ public final class SpatialCodes {
         return x;
     }
 
-    /** 2D Morton code of {@code x, y} in {@code [0, 65535]}: bit {@code i} of x goes to bit {@code 2i}, of y to {@code 2i + 1}. */
+    /**
+     * 2D Morton code of {@code x, y} in {@code [0, 65535]}: bit {@code i} of x goes to bit {@code 2i}, of y to
+     * {@code 2i + 1}. All 32 bits are used, so the code is negative when bit 15 of {@code y} is set; compare codes
+     * as unsigned ints, and widen with {@link Integer#toUnsignedLong} before decoding.
+     *
+     * @param x the x cell coordinate; only the low 16 bits are used
+     * @param y the y cell coordinate; only the low 16 bits are used
+     * @return the 32-bit Morton code, as an unsigned int
+     */
     public static int morton2d(int x, int y) {
         return (int) (spread2(x & 0xFFFF) | (spread2(y & 0xFFFF) << 1));
     }
 
-    /** 64-bit 2D Morton code of {@code x, y} in {@code [0, 2³² - 1]} (as unsigned ints). */
+    /**
+     * 64-bit 2D Morton code of {@code x, y} in {@code [0, 2³² - 1]} (as unsigned ints). The code can be negative as
+     * a {@code long}; compare codes as unsigned longs.
+     *
+     * @param x the x cell coordinate, read as an unsigned int
+     * @param y the y cell coordinate, read as an unsigned int
+     * @return the 64-bit Morton code, as an unsigned long
+     */
     public static long morton2d64(int x, int y) {
         return spread2(x & 0xFFFFFFFFL) | (spread2(y & 0xFFFFFFFFL) << 1);
     }
 
-    /** x of a 2D Morton code (32- or 64-bit). */
+    /**
+     * Decodes x from a 2D Morton code (32- or 64-bit). Pass a 32-bit code from {@link #morton2d} zero-extended
+     * ({@code Integer.toUnsignedLong(code)}): a negative int widened with sign extension decodes to a wrong value.
+     *
+     * @param code the Morton code
+     * @return the x cell coordinate (an unsigned int for 64-bit codes)
+     */
     public static int morton2dX(long code) {
         return (int) compact2(code);
     }
 
-    /** y of a 2D Morton code (32- or 64-bit). */
+    /**
+     * Decodes y from a 2D Morton code (32- or 64-bit). Pass a 32-bit code from {@link #morton2d} zero-extended
+     * ({@code Integer.toUnsignedLong(code)}): a negative int widened with sign extension decodes to a wrong value.
+     *
+     * @param code the Morton code
+     * @return the y cell coordinate (an unsigned int for 64-bit codes)
+     */
     public static int morton2dY(long code) {
         return (int) compact2(code >>> 1);
     }
 
-    /** 3D Morton code of {@code x, y, z} in {@code [0, 1023]} (10 bits each, 30 bits used). */
+    /**
+     * 3D Morton code of {@code x, y, z} in {@code [0, 1023]} (10 bits each, 30 bits used): bit {@code i} of x goes
+     * to bit {@code 3i}, of y to {@code 3i + 1}, of z to {@code 3i + 2}.
+     *
+     * @param x the x cell coordinate; only the low 10 bits are used
+     * @param y the y cell coordinate; only the low 10 bits are used
+     * @param z the z cell coordinate; only the low 10 bits are used
+     * @return the Morton code, non-negative
+     */
     public static int morton3d(int x, int y, int z) {
         return (int) (spread3(x & 0x3FF) | (spread3(y & 0x3FF) << 1) | (spread3(z & 0x3FF) << 2));
     }
 
-    /** 64-bit 3D Morton code of {@code x, y, z} in {@code [0, 2²¹ - 1]} (21 bits each, 63 bits used). */
+    /**
+     * 64-bit 3D Morton code of {@code x, y, z} in {@code [0, 2²¹ - 1]} (21 bits each, 63 bits used).
+     *
+     * @param x the x cell coordinate; only the low 21 bits are used
+     * @param y the y cell coordinate; only the low 21 bits are used
+     * @param z the z cell coordinate; only the low 21 bits are used
+     * @return the Morton code, non-negative
+     */
     public static long morton3d64(int x, int y, int z) {
         return spread3(x & 0x1FFFFF) | (spread3(y & 0x1FFFFF) << 1) | (spread3(z & 0x1FFFFF) << 2);
     }
 
-    /** x of a 3D Morton code (32- or 64-bit). */
+    /**
+     * Decodes x from a 3D Morton code (32- or 64-bit).
+     *
+     * @param code the Morton code
+     * @return the x cell coordinate
+     */
     public static int morton3dX(long code) {
         return (int) compact3(code);
     }
 
-    /** y of a 3D Morton code. */
+    /**
+     * Decodes y from a 3D Morton code (32- or 64-bit).
+     *
+     * @param code the Morton code
+     * @return the y cell coordinate
+     */
     public static int morton3dY(long code) {
         return (int) compact3(code >>> 1);
     }
 
-    /** z of a 3D Morton code. */
+    /**
+     * Decodes z from a 3D Morton code (32- or 64-bit).
+     *
+     * @param code the Morton code
+     * @return the z cell coordinate
+     */
     public static int morton3dZ(long code) {
         return (int) compact3(code >>> 2);
     }
@@ -125,7 +186,12 @@ public final class SpatialCodes {
 
     /**
      * Index along the 2D Hilbert curve of order {@code bits} (a {@code 2^bits × 2^bits} grid, {@code bits <= 31}) of
-     * cell {@code (x, y)}. Consecutive indices are always edge-adjacent cells.
+     * cell {@code (x, y)}. Consecutive indices are always edge-adjacent cells. The curve starts at {@code (0, 0)}.
+     *
+     * @param x the x cell coordinate, in {@code [0, 2^bits)}
+     * @param y the y cell coordinate, in {@code [0, 2^bits)}
+     * @param bits the curve order, in {@code [0, 31]}
+     * @return the Hilbert index, in {@code [0, 4^bits)}
      */
     public static long hilbert2d(int x, int y, int bits) {
         long d = 0;
@@ -148,7 +214,13 @@ public final class SpatialCodes {
         return d;
     }
 
-    /** Inverse of {@link #hilbert2d}: writes {@code x} to {@code out[0]} and {@code y} to {@code out[1]}. */
+    /**
+     * Inverse of {@link #hilbert2d}: writes {@code x} to {@code out[0]} and {@code y} to {@code out[1]}.
+     *
+     * @param d the Hilbert index, in {@code [0, 4^bits)}
+     * @param bits the curve order, in {@code [0, 31]}
+     * @param out receives the cell coordinates; at least 2 elements
+     */
     public static void hilbert2dToXy(long d, int bits, int[] out) {
         long n = 1L << bits;
         long x = 0, y = 0, t = d;
@@ -174,7 +246,14 @@ public final class SpatialCodes {
 
     /**
      * Index along the 3D Hilbert curve of order {@code bits} ({@code bits <= 21}) of cell {@code (x, y, z)}, by
-     * Skilling's transpose algorithm (2004). Consecutive indices are face-adjacent cells.
+     * Skilling's transpose algorithm (2004). Consecutive indices are face-adjacent cells. Allocates a three-element
+     * {@code int} array per call.
+     *
+     * @param x the x cell coordinate, in {@code [0, 2^bits)}
+     * @param y the y cell coordinate, in {@code [0, 2^bits)}
+     * @param z the z cell coordinate, in {@code [0, 2^bits)}
+     * @param bits the curve order, in {@code [1, 21]}
+     * @return the Hilbert index, in {@code [0, 8^bits)}
      */
     public static long hilbert3d(int x, int y, int z, int bits) {
         int[] c = {x, y, z};
@@ -215,7 +294,14 @@ public final class SpatialCodes {
         return d;
     }
 
-    /** Inverse of {@link #hilbert3d}: writes {@code x, y, z} to {@code out[0..2]}. */
+    /**
+     * Inverse of {@link #hilbert3d}: writes {@code x, y, z} to {@code out[0..2]}. Allocates a three-element
+     * {@code int} array per call.
+     *
+     * @param d the Hilbert index, in {@code [0, 8^bits)}
+     * @param bits the curve order, in {@code [1, 21]}
+     * @param out receives the cell coordinates; at least 3 elements
+     */
     public static void hilbert3dToXyz(long d, int bits, int[] out) {
         int[] c = new int[3];
         for (int b = bits - 1, k = 3 * bits - 1; b >= 0; b--) {

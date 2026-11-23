@@ -262,7 +262,10 @@ final class CieData {
         0.000001251141, 0.0000004518100, 0.000000000000,
     };
 
-    /** CIE 1964 10-degree x̄10, ȳ10, z̄10 at 360..830 nm, 1 nm steps (CIE 018:2019 Table 7); z̄10 is undefined in the dataset from 560 nm and stored as 0 (CIE 15, ASTM E308). */
+    /**
+     * CIE 1964 10-degree x̄10, ȳ10, z̄10 at 360..830 nm, 1 nm steps (CIE 018:2019 Table 7); z̄10 is undefined in the
+     * dataset from 560 nm and stored as 0 (CIE 15, ASTM E308).
+     */
     static final double[] CMF_1964 = {
         0.0000001222, 0.000000013398, 0.000000535027, 0.000000185138, 0.000000020294, 0.00000081072, 0.00000027883,
         0.00000003056, 0.0000012212, 0.00000041747, 0.00000004574, 0.0000018287, 0.00000062133, 0.00000006805,

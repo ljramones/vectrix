@@ -42,7 +42,15 @@ public final class Warpf {
     private Warpf() {
     }
 
-    /** Uniform point on the unit disk, Shirley and Chiu's concentric mapping (low distortion). Density {@code 1/π}. */
+    /**
+     * Maps a point of the unit square to a uniformly distributed point on the unit disk, using Shirley and Chiu's
+     * concentric mapping (low distortion). The density is {@code 1/π} per unit area.
+     *
+     * @param u1 the first uniform variate, in {@code [0, 1)}
+     * @param u2 the second uniform variate, in {@code [0, 1)}
+     * @param dest receives the point, with {@code x² + y² <= 1}
+     * @return {@code dest}
+     */
     public static Vector2f squareToUniformDiskConcentric(float u1, float u2, Vector2f dest) {
         float a = 2.0f * u1 - 1.0f;
         float b = 2.0f * u2 - 1.0f;
@@ -61,7 +69,16 @@ public final class Warpf {
         return dest.set(r * (float) AccurateMath.cos(phi), r * (float) AccurateMath.sin(phi));
     }
 
-    /** Cosine-weighted hemisphere direction (Malley's method on the concentric disk). Density {@code cosθ / π}. */
+    /**
+     * Maps a point of the unit square to a cosine-weighted direction on the {@code +z} hemisphere, by lifting the
+     * concentric disk point to the hemisphere (Malley's method). The density is {@code cosθ / π} per unit solid
+     * angle; see {@link #pdfCosineHemisphere}.
+     *
+     * @param u1 the first uniform variate, in {@code [0, 1)}
+     * @param u2 the second uniform variate, in {@code [0, 1)}
+     * @param dest receives the unit direction, with {@code z >= 0}
+     * @return {@code dest}
+     */
     public static Vector3f squareToCosineHemisphere(float u1, float u2, Vector3f dest) {
         float a = 2.0f * u1 - 1.0f;
         float b = 2.0f * u2 - 1.0f;
@@ -87,12 +104,25 @@ public final class Warpf {
         return dest.set(x, y, z);
     }
 
-    /** Density of {@link #squareToCosineHemisphere}: {@code cosθ / π} for {@code cosθ > 0}, else 0. */
+    /**
+     * Returns the density of {@link #squareToCosineHemisphere} per unit solid angle.
+     *
+     * @param cosTheta the cosine of the angle between the direction and {@code +z}
+     * @return {@code cosθ / π} for {@code cosTheta > 0}, else 0
+     */
     public static float pdfCosineHemisphere(float cosTheta) {
         return cosTheta > 0.0f ? cosTheta * INV_PI : 0.0f;
     }
 
-    /** Uniform hemisphere direction. Density {@code 1 / (2π)}. */
+    /**
+     * Maps a point of the unit square to a uniformly distributed direction on the {@code +z} hemisphere. The density
+     * is {@code 1 / (2π)} per unit solid angle.
+     *
+     * @param u1 the first uniform variate, in {@code [0, 1)}; it becomes {@code z}
+     * @param u2 the second uniform variate, in {@code [0, 1)}; it sets the azimuth {@code 2π u2}
+     * @param dest receives the unit direction
+     * @return {@code dest}
+     */
     public static Vector3f squareToUniformHemisphere(float u1, float u2, Vector3f dest) {
         float z = u1;
         float r = (float) java.lang.Math.sqrt(java.lang.Math.max(0.0f, 1.0f - z * z));
@@ -100,12 +130,24 @@ public final class Warpf {
         return dest.set(r * (float) AccurateMath.cos(phi), r * (float) AccurateMath.sin(phi), z);
     }
 
-    /** Density of {@link #squareToUniformHemisphere}: {@code 1 / (2π)}. */
+    /**
+     * Returns the density of {@link #squareToUniformHemisphere} per unit solid angle.
+     *
+     * @return {@code 1 / (2π)}
+     */
     public static float pdfUniformHemisphere() {
         return 0.5f * INV_PI;
     }
 
-    /** Uniform sphere direction. Density {@code 1 / (4π)}. */
+    /**
+     * Maps a point of the unit square to a uniformly distributed direction on the unit sphere. The density is
+     * {@code 1 / (4π)} per unit solid angle.
+     *
+     * @param u1 the first uniform variate, in {@code [0, 1)}; it sets {@code z = 1 - 2 u1}
+     * @param u2 the second uniform variate, in {@code [0, 1)}; it sets the azimuth {@code 2π u2}
+     * @param dest receives the unit direction
+     * @return {@code dest}
+     */
     public static Vector3f squareToUniformSphere(float u1, float u2, Vector3f dest) {
         float z = 1.0f - 2.0f * u1;
         float r = (float) java.lang.Math.sqrt(java.lang.Math.max(0.0f, 1.0f - z * z));
@@ -113,14 +155,25 @@ public final class Warpf {
         return dest.set(r * (float) AccurateMath.cos(phi), r * (float) AccurateMath.sin(phi), z);
     }
 
-    /** Density of {@link #squareToUniformSphere}: {@code 1 / (4π)}. */
+    /**
+     * Returns the density of {@link #squareToUniformSphere} per unit solid angle.
+     *
+     * @return {@code 1 / (4π)}
+     */
     public static float pdfUniformSphere() {
         return 0.25f * INV_PI;
     }
 
     /**
-     * Uniform direction in the cone around {@code +z} with half-angle {@code acos(cosThetaMax)}, as for sampling a
-     * spherical light seen from outside. Density {@code 1 / (2π (1 - cosThetaMax))}.
+     * Maps a point of the unit square to a uniformly distributed direction in the cone around {@code +z} with
+     * half-angle {@code acos(cosThetaMax)}, as when sampling a spherical light seen from outside. The density is
+     * {@code 1 / (2π (1 - cosThetaMax))} per unit solid angle; see {@link #pdfUniformCone}.
+     *
+     * @param u1 the first uniform variate, in {@code [0, 1)}; it sets {@code z = 1 - u1 (1 - cosThetaMax)}
+     * @param u2 the second uniform variate, in {@code [0, 1)}; it sets the azimuth {@code 2π u2}
+     * @param cosThetaMax the cosine of the cone's half-angle, in {@code [-1, 1]}
+     * @param dest receives the unit direction
+     * @return {@code dest}
      */
     public static Vector3f squareToUniformCone(float u1, float u2, float cosThetaMax, Vector3f dest) {
         float z = 1.0f - u1 * (1.0f - cosThetaMax);
@@ -129,14 +182,27 @@ public final class Warpf {
         return dest.set(r * (float) AccurateMath.cos(phi), r * (float) AccurateMath.sin(phi), z);
     }
 
-    /** Density of {@link #squareToUniformCone} for a direction with {@code cosθ}; 0 outside the cone. */
+    /**
+     * Returns the density of {@link #squareToUniformCone} per unit solid angle for a direction with the given
+     * {@code cosθ}. For {@code cosThetaMax = 1} (a zero-width cone) the result is infinite inside the cone.
+     *
+     * @param cosTheta the cosine of the angle between the direction and {@code +z}
+     * @param cosThetaMax the cosine of the cone's half-angle
+     * @return {@code 1 / (2π (1 - cosThetaMax))} if {@code cosTheta >= cosThetaMax}, else 0
+     */
     public static float pdfUniformCone(float cosTheta, float cosThetaMax) {
         return cosTheta >= cosThetaMax ? 1.0f / (2.0f * PI * (1.0f - cosThetaMax)) : 0.0f;
     }
 
     /**
-     * Balance heuristic weight for a sample drawn from strategy f: {@code nf pf / (nf pf + ng pg)}, with
-     * {@code nf}, {@code ng} the sample counts and {@code pf}, {@code pg} the two densities at the sample.
+     * Returns the balance heuristic weight for a sample drawn from strategy f when strategies f and g are combined
+     * (Veach 1997): {@code nf pf / (nf pf + ng pg)}.
+     *
+     * @param nf the number of samples taken from strategy f
+     * @param pdfF the density of strategy f at the sample
+     * @param ng the number of samples taken from strategy g
+     * @param pdfG the density of strategy g at the sample
+     * @return the weight in {@code [0, 1]}, or 0 when both weighted densities are 0
      */
     public static float balanceHeuristic(int nf, float pdfF, int ng, float pdfG) {
         float f = nf * pdfF;
@@ -144,7 +210,16 @@ public final class Warpf {
         return f + g > 0.0f ? f / (f + g) : 0.0f;
     }
 
-    /** Power heuristic weight with exponent 2 (Veach's recommendation): {@code (nf pf)² / ((nf pf)² + (ng pg)²)}. */
+    /**
+     * Returns the power heuristic weight with exponent 2 (Veach's recommendation) for a sample drawn from strategy f:
+     * {@code (nf pf)² / ((nf pf)² + (ng pg)²)}.
+     *
+     * @param nf the number of samples taken from strategy f
+     * @param pdfF the density of strategy f at the sample
+     * @param ng the number of samples taken from strategy g
+     * @param pdfG the density of strategy g at the sample
+     * @return the weight in {@code [0, 1]}, or 0 when both weighted densities are 0
+     */
     public static float powerHeuristic(int nf, float pdfF, int ng, float pdfG) {
         float f = nf * pdfF;
         float g = ng * pdfG;

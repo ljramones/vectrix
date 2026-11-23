@@ -27,16 +27,68 @@ package org.dynamisengine.vectrix.curve.scalar;
 import org.dynamisengine.vectrix.curve.CubicCurveMath;
 
 /**
+ * A cubic Hermite segment over scalar values: it runs from {@code p0} with tangent {@code m0} to {@code p1} with
+ * tangent {@code m1}. Tangents are derivatives with respect to {@code t}, so they scale with the segment's parameter
+ * range.
+ * <p>
+ * The parameter {@code t} runs over {@code [0, 1]} on the segment and is not clamped: values outside extrapolate the
+ * cubic. The methods are static and stateless. Nothing allocates. {@link Hermite1f} is the float twin.
+ *
  * @since 1.0.0
  */
-
 public final class Hermite1d {
     private Hermite1d() {}
 
+    /**
+     * Evaluates the segment at {@code t}.
+     *
+     * @param p0 the start value
+     * @param m0 the tangent at the start
+     * @param p1 the end value
+     * @param m1 the tangent at the end
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @return the value at {@code t}
+     */
     public static double evaluate(double p0, double m0, double p1, double m1, double t) { return CubicCurveMath.hermite(p0, m0, p1, m1, t); }
+
+    /**
+     * Computes the first derivative with respect to {@code t}.
+     *
+     * @param p0 the start value
+     * @param m0 the tangent at the start
+     * @param p1 the end value
+     * @param m1 the tangent at the end
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @return the derivative at {@code t}
+     */
     public static double derivative(double p0, double m0, double p1, double m1, double t) { return CubicCurveMath.hermiteDerivative(p0, m0, p1, m1, t); }
+
+    /**
+     * Computes the second derivative with respect to {@code t}.
+     *
+     * @param p0 the start value
+     * @param m0 the tangent at the start
+     * @param p1 the end value
+     * @param m1 the tangent at the end
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @return the second derivative at {@code t}
+     */
     public static double secondDerivative(double p0, double m0, double p1, double m1, double t) { return CubicCurveMath.hermiteSecondDerivative(p0, m0, p1, m1, t); }
 
+    /**
+     * Evaluates the segment at {@code length} parameters, writing one value. The arrays are not checked up front; an
+     * output array may be {@code tValues} at the same offset.
+     *
+     * @param p0 the start value
+     * @param m0 the tangent at the start
+     * @param p1 the end value
+     * @param m1 the tangent at the end
+     * @param tValues the curve parameters
+     * @param tOffset the offset of the first parameter in {@code tValues}
+     * @param length the number of parameters to evaluate
+     * @param outValues receives the {@code length} values
+     * @param outOffset the offset of the first value in {@code outValues}
+     */
     public static void evaluateBatch(double p0, double m0, double p1, double m1, double[] tValues, int tOffset, int length, double[] outValues, int outOffset) {
         for (int i = 0; i < length; i++) {
             outValues[outOffset + i] = evaluate(p0, m0, p1, m1, tValues[tOffset + i]);

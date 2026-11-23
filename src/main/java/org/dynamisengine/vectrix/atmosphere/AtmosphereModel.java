@@ -29,13 +29,13 @@ package org.dynamisengine.vectrix.atmosphere;
  * tent profile ({@code max(0, 1 − |h − ozoneCenterAltitude| / ozoneHalfWidth)}). Coefficients are RGB, per metre.
  * Immutable: arrays are copied in and out.
  *
- * @param bottomRadius ground radius
- * @param topRadius radius of the top of the atmosphere
- * @param rayleighScaleHeight Rayleigh density scale height
- * @param mieScaleHeight Mie density scale height
+ * @param bottomRadius ground radius, in metres
+ * @param topRadius radius of the top of the atmosphere, in metres
+ * @param rayleighScaleHeight Rayleigh density scale height, in metres
+ * @param mieScaleHeight Mie density scale height, in metres
  * @param mieAnisotropy Mie phase function asymmetry (Cornette-Shanks {@code g})
- * @param ozoneCenterAltitude altitude of peak ozone density
- * @param ozoneHalfWidth half-width of the ozone tent
+ * @param ozoneCenterAltitude altitude of peak ozone density above the ground, in metres
+ * @param ozoneHalfWidth half-width of the ozone tent, in metres
  * @param rayleighScattering Rayleigh scattering coefficients at sea level (RGB)
  * @param mieScattering Mie scattering coefficients at sea level (RGB)
  * @param mieExtinction Mie extinction (scattering plus absorption) at sea level (RGB)
@@ -48,7 +48,15 @@ public record AtmosphereModel(double bottomRadius, double topRadius, double rayl
         double[] rayleighScattering, double[] mieScattering, double[] mieExtinction, double[] ozoneAbsorption,
         double[] groundAlbedo) {
 
-    /** Validates and copies the arrays. */
+    /**
+     * Creates a model after validating the scalars and copying the arrays. The array components themselves are not
+     * range-checked, except that Mie extinction must not be below Mie scattering.
+     *
+     * @throws IllegalArgumentException if {@code bottomRadius}, either scale height or {@code ozoneHalfWidth} is not
+     *                                  positive, {@code topRadius <= bottomRadius}, {@code mieAnisotropy} is not in
+     *                                  (-1, 1), an array is null or does not have 3 components, or a Mie extinction
+     *                                  component is below the matching Mie scattering component
+     */
     public AtmosphereModel {
         if (!(bottomRadius > 0.0) || !(topRadius > bottomRadius) || !(rayleighScaleHeight > 0.0)
                 || !(mieScaleHeight > 0.0) || !(ozoneHalfWidth > 0.0) || !(mieAnisotropy > -1.0 && mieAnisotropy < 1.0)) {
@@ -76,8 +84,10 @@ public record AtmosphereModel(double bottomRadius, double topRadius, double rayl
     /**
      * Earth, as in Hillaire 2020 ("A Scalable and Production Ready Sky and Atmosphere Rendering Technique") and
      * Bruneton 2017: radii 6360 / 6460 km, Rayleigh (5.802, 13.558, 33.1)·10⁻⁶ m⁻¹ with an 8 km scale height, Mie
-     * scattering 3.996·10⁻⁶ and extinction 4.40·10⁻⁶ m⁻¹ with a 1.2 km scale height and {@code g = 0.8}, ozone
+     * scattering 3.996·10⁻⁶ and extinction 4.440·10⁻⁶ m⁻¹ with a 1.2 km scale height and {@code g = 0.8}, ozone
      * (0.650, 1.881, 0.085)·10⁻⁶ m⁻¹ peaking at 25 km between 10 and 40 km, and ground albedo 0.3.
+     *
+     * @return a new Earth model
      */
     public static AtmosphereModel earth() {
         return new AtmosphereModel(6_360_000.0, 6_460_000.0, 8_000.0, 1_200.0, 0.8, 25_000.0, 15_000.0,
@@ -86,52 +96,102 @@ public record AtmosphereModel(double bottomRadius, double topRadius, double rayl
                 new double[] {0.3, 0.3, 0.3});
     }
 
+    /**
+     * Returns a copy of the Rayleigh scattering coefficients at sea level.
+     *
+     * @return a new RGB array, per metre
+     */
     @Override
     public double[] rayleighScattering() {
         return rayleighScattering.clone();
     }
 
+    /**
+     * Returns a copy of the Mie scattering coefficients at sea level.
+     *
+     * @return a new RGB array, per metre
+     */
     @Override
     public double[] mieScattering() {
         return mieScattering.clone();
     }
 
+    /**
+     * Returns a copy of the Mie extinction coefficients at sea level.
+     *
+     * @return a new RGB array, per metre
+     */
     @Override
     public double[] mieExtinction() {
         return mieExtinction.clone();
     }
 
+    /**
+     * Returns a copy of the ozone absorption coefficients at peak density.
+     *
+     * @return a new RGB array, per metre
+     */
     @Override
     public double[] ozoneAbsorption() {
         return ozoneAbsorption.clone();
     }
 
+    /**
+     * Returns a copy of the ground albedo.
+     *
+     * @return a new RGB array
+     */
     @Override
     public double[] groundAlbedo() {
         return groundAlbedo.clone();
     }
 
-    /** Rayleigh scattering of channel {@code c}. */
+    /**
+     * Returns one channel of the Rayleigh scattering coefficient at sea level, without copying the array.
+     *
+     * @param c the channel: 0 red, 1 green, 2 blue
+     * @return the coefficient, per metre
+     */
     public double rayleighScattering(int c) {
         return rayleighScattering[c];
     }
 
-    /** Mie scattering of channel {@code c}. */
+    /**
+     * Returns one channel of the Mie scattering coefficient at sea level, without copying the array.
+     *
+     * @param c the channel: 0 red, 1 green, 2 blue
+     * @return the coefficient, per metre
+     */
     public double mieScattering(int c) {
         return mieScattering[c];
     }
 
-    /** Mie extinction of channel {@code c}. */
+    /**
+     * Returns one channel of the Mie extinction coefficient at sea level, without copying the array.
+     *
+     * @param c the channel: 0 red, 1 green, 2 blue
+     * @return the coefficient, per metre
+     */
     public double mieExtinction(int c) {
         return mieExtinction[c];
     }
 
-    /** Ozone absorption of channel {@code c}. */
+    /**
+     * Returns one channel of the ozone absorption coefficient at peak density, without copying the array.
+     *
+     * @param c the channel: 0 red, 1 green, 2 blue
+     * @return the coefficient, per metre
+     */
     public double ozoneAbsorption(int c) {
         return ozoneAbsorption[c];
     }
 
-    /** Ground albedo of channel {@code c}. */
+    /**
+     * Returns one channel of the ground albedo, without copying the array.
+     *
+     * @param c the channel: 0 red, 1 green, 2 blue
+     * @return the albedo
+     */
     public double groundAlbedo(int c) {
         return groundAlbedo[c];
     }

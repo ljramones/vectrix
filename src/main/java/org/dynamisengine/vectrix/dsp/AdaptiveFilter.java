@@ -30,7 +30,8 @@ package org.dynamisengine.vectrix.dsp;
  * each sample the weights move to reduce the error {@code e = d - y} against the desired sample {@code d}. Each step
  * shifts the history, filters, adapts and returns {@code e}. LMS converges slowly and cheaply ({@code O(n)} per
  * sample); NLMS normalizes the step by the input power; RLS converges fast at {@code O(n²)} per sample. All
- * arithmetic runs in a fixed order; nothing allocates.
+ * arithmetic runs in a fixed order; nothing allocates. Arrays are used from index 0 and are not validated beyond
+ * Java's bounds checks. Start a stream with {@code u} all zeros.
  *
  * @since 2.5.0
  */
@@ -42,6 +43,7 @@ public final class AdaptiveFilter {
     /**
      * One LMS step: {@code w += μ·e·u}.
      *
+     * @param n the number of taps, at least 1
      * @param w the {@code n} weights, updated
      * @param u the {@code n} newest inputs (newest first), updated with {@code x}
      * @param x the new input sample
@@ -62,6 +64,16 @@ public final class AdaptiveFilter {
     /**
      * One normalized-LMS step: {@code w += μ·e·u / (eps + |u|²)}, which is stable for {@code 0 < μ < 2} whatever
      * the input level.
+     *
+     * @param n the number of taps, at least 1
+     * @param w the {@code n} weights, updated
+     * @param u the {@code n} newest inputs (newest first), updated with {@code x}
+     * @param x the new input sample
+     * @param d the desired output
+     * @param mu the step size, in (0, 2) for stability
+     * @param eps the regularization added to the input power, {@code > 0}, which keeps the step finite for silent
+     *        input
+     * @return the a-priori error {@code d - y}
      */
     public static double nlms(int n, double[] w, double[] u, double x, double d, double mu, double eps) {
         push(n, u, x);
@@ -77,9 +89,15 @@ public final class AdaptiveFilter {
      * One recursive-least-squares step with forgetting factor {@code λ} (exponentially weighted).
      * Initialize {@code p} to {@code δ⁻¹·I} with a small {@code δ}.
      *
-     * @param p the {@code n×n} inverse correlation matrix (row-major), updated
+     * @param n the number of taps, at least 1
+     * @param w the {@code n} weights, updated
+     * @param u the {@code n} newest inputs (newest first), updated with {@code x}
+     * @param p the {@code n×n} inverse correlation matrix (row-major), updated and kept symmetric
+     * @param x the new input sample
+     * @param d the desired output
      * @param lambda the forgetting factor, in (0, 1]
-     * @param scratch {@code 2n} doubles
+     * @param scratch {@code 2n} doubles of working memory
+     * @return the a-priori error {@code d - y}
      */
     public static double rls(int n, double[] w, double[] u, double[] p, double x, double d, double lambda,
             double[] scratch) {

@@ -25,8 +25,8 @@ package org.dynamisengine.vectrix.fft;
 
 /**
  * A precomputed plan for the 2D discrete Fourier transform of a {@code rows × cols} grid of complex floats, any
- * sizes; the single-precision twin of {@link ComplexFft2d}. Data is row-major and interleaved: element {@code (r,
- * c)} is at {@code off + 2·(r·cols + c)}.
+ * sizes; the single-precision twin of {@link ComplexFft2d}. Data is row-major and interleaved: element
+ * {@code (r, c)} is at {@code off + 2·(r·cols + c)}.
  * <p>
  * {@link #forward} is unscaled; {@link #inverse} divides by {@code rows·cols}. The transform is separable: every
  * row, then every column, with {@link ComplexFftf} plans; columns are processed 16 at a time, gathered into
@@ -59,12 +59,13 @@ public final class ComplexFft2f {
     }
 
     /**
-     * Creates a plan.
+     * Creates a plan, with row and column transform plans for these sizes. Allocates the plans' tables.
      *
-     * @param rows the number of rows, at least 1
-     * @param cols the number of columns, at least 1
+     * @param rows the number of rows, at least 1 and at most {@link ComplexFftf#MAX_SIZE}
+     * @param cols the number of columns, at least 1 and at most {@link ComplexFftf#MAX_SIZE}
      * @return the plan
-     * @throws IllegalArgumentException if a size is out of range or the grid exceeds an array
+     * @throws IllegalArgumentException if a size is out of range, the grid or the scratch exceeds an array, or a
+     *         size cannot be planned by {@link ComplexFftf#plan}
      */
     public static ComplexFft2f plan(int rows, int cols) {
         if (rows < 1 || cols < 1 || (long) rows * cols > Integer.MAX_VALUE / 2) {
@@ -73,17 +74,29 @@ public final class ComplexFft2f {
         return new ComplexFft2f(rows, cols);
     }
 
-    /** @return the number of rows */
+    /**
+     * Returns the number of rows.
+     *
+     * @return the number of rows
+     */
     public int rows() {
         return rows;
     }
 
-    /** @return the number of columns */
+    /**
+     * Returns the number of columns.
+     *
+     * @return the number of columns
+     */
     public int cols() {
         return cols;
     }
 
-    /** @return the number of floats the scratch array needs */
+    /**
+     * Returns the number of floats the scratch array needs.
+     *
+     * @return the number of floats the scratch array needs
+     */
     public int scratchSize() {
         return scratchSize;
     }
@@ -94,7 +107,9 @@ public final class ComplexFft2f {
      * @param data the grid, {@code 2·rows·cols} floats from {@code off}
      * @param off the offset of element {@code (0, 0)}
      * @param scratch caller-owned working memory of at least {@link #scratchSize()} floats
-     * @param scratchOff the offset into {@code scratch}
+     * @param scratchOff the offset into {@code scratch}; the scratch must not overlap {@code data}
+     * @throws IllegalArgumentException if {@code data} or {@code scratch} is null or too short from its offset;
+     *         nothing is written then
      */
     public void forward(float[] data, int off, float[] scratch, int scratchOff) {
         transform(data, off, scratch, scratchOff, false);
@@ -106,7 +121,9 @@ public final class ComplexFft2f {
      * @param data the grid, {@code 2·rows·cols} floats from {@code off}
      * @param off the offset of element {@code (0, 0)}
      * @param scratch caller-owned working memory of at least {@link #scratchSize()} floats
-     * @param scratchOff the offset into {@code scratch}
+     * @param scratchOff the offset into {@code scratch}; the scratch must not overlap {@code data}
+     * @throws IllegalArgumentException if {@code data} or {@code scratch} is null or too short from its offset;
+     *         nothing is written then
      */
     public void inverse(float[] data, int off, float[] scratch, int scratchOff) {
         transform(data, off, scratch, scratchOff, true);

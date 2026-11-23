@@ -66,6 +66,8 @@ public final class Correlation {
      * @param nx the length of {@code x}, at least 1
      * @param ny the length of {@code y}, at least 1
      * @return the plan
+     * @throws IllegalArgumentException if a length is less than 1 or {@code nx + ny} exceeds
+     *         {@link ComplexFftd#MAX_SIZE}
      */
     public static Correlation plan(int nx, int ny) {
         if (nx < 1 || ny < 1 || (long) nx + ny > ComplexFftd.MAX_SIZE) {
@@ -74,17 +76,29 @@ public final class Correlation {
         return new Correlation(nx, ny);
     }
 
-    /** @return the number of outputs: {@code nx + ny - 1} */
+    /**
+     * Returns the number of outputs, {@code nx + ny - 1}: one per lag.
+     *
+     * @return the output length
+     */
     public int outputLength() {
         return nx + ny - 1;
     }
 
-    /** @return the doubles of scratch a call needs (0 on the direct path) */
+    /**
+     * Returns the scratch size of {@link #correlate}: 0 on the direct path.
+     *
+     * @return the number of scratch doubles
+     */
     public int scratchSize() {
         return scratchSize;
     }
 
-    /** @return whether FFTs are used */
+    /**
+     * Returns whether this plan uses FFTs rather than direct summation.
+     *
+     * @return {@code true} on the FFT path
+     */
     public boolean usesFft() {
         return fft != null;
     }
@@ -92,7 +106,16 @@ public final class Correlation {
     /**
      * Correlates {@code x} with {@code y}.
      *
-     * @param out receives {@link #outputLength()} values; must not overlap the inputs
+     * @param x the {@code nx} values of the first sequence
+     * @param xOff the offset of the first value of {@code x}
+     * @param y the {@code ny} values of the second sequence
+     * @param yOff the offset of the first value of {@code y}
+     * @param out receives {@link #outputLength()} values, lag {@code -(nx - 1)} first; must not overlap the inputs
+     * @param outOff the offset of the first output
+     * @param scratch working memory of {@link #scratchSize()} doubles; may be {@code null} when that is 0
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
      */
     public void correlate(double[] x, int xOff, double[] y, int yOff, double[] out, int outOff, double[] scratch,
             int scratchOff) {

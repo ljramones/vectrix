@@ -25,7 +25,8 @@ package org.dynamisengine.vectrix.renderingmath;
 
 /**
  * Sum-of-Gaussians diffusion profile for preintegrated SSS.
- * Arrays are flattened RGB per lobe: {@code [l0.r,l0.g,l0.b,l1.r,...]}.
+ * Arrays are flattened RGB per lobe: {@code [l0.r,l0.g,l0.b,l1.r,...]}. Instances are immutable and safe to share
+ * between threads.
   * @since 1.0.0
   */
 public final class SssProfile {
@@ -33,6 +34,16 @@ public final class SssProfile {
     private final float[] weightsRgb;
     private final float[] variancesRgb;
 
+    /**
+     * Creates a profile from per-lobe RGB weights and variances. The arrays are copied. Lobe {@code l} is
+     * {@code w · exp(−r² / (2 v)) / (2π v)} per channel, a normalized 2D Gaussian scaled by its weight.
+     *
+     * @param weightsRgb the weights, three per lobe ({@code [l0.r, l0.g, l0.b, l1.r, ...]})
+     * @param variancesRgb the variances, laid out like {@code weightsRgb}, each greater than 0, in the square of
+     *                     the radius unit (mm² for radii in millimeters)
+     * @throws IllegalArgumentException if an array is null or empty, the lengths differ or are not a multiple of
+     *         3, or a variance is not greater than 0
+     */
     public SssProfile(float[] weightsRgb, float[] variancesRgb) {
         if (weightsRgb == null || variancesRgb == null || weightsRgb.length == 0 || weightsRgb.length != variancesRgb.length || (weightsRgb.length % 3) != 0) {
             throw new IllegalArgumentException("profile arrays");
@@ -48,19 +59,37 @@ public final class SssProfile {
     }
 
     /**
-     * Convenience helper for a single Gaussian with per-channel weights and variances.
+     * Creates a profile of a single Gaussian lobe with per-channel weights and variances.
+     *
+     * @param wr the red weight
+     * @param wg the green weight
+     * @param wb the blue weight
+     * @param vr the red variance, greater than 0
+     * @param vg the green variance, greater than 0
+     * @param vb the blue variance, greater than 0
+     * @return the new profile
+     * @throws IllegalArgumentException if a variance is not greater than 0
      */
     public static SssProfile singleGaussian(float wr, float wg, float wb, float vr, float vg, float vb) {
         return new SssProfile(new float[] {wr, wg, wb}, new float[] {vr, vg, vb});
     }
 
+    /**
+     * Returns the number of Gaussian lobes.
+     *
+     * @return the lobe count, at least 1
+     */
     public int lobes() {
         return lobes;
     }
 
     /**
-     * Evaluate diffusion profile at radial distance (millimeters).
-     * Result is written to {@code destRgb[0..2]}.
+     * Evaluates the diffusion profile, the sum of all lobes, at a radial distance. Does not allocate.
+     *
+     * @param radius the radial distance (millimeters by convention, matching the variances); negative values
+     *               count as 0
+     * @param destRgb receives the red, green and blue values at indices 0..2
+     * @throws IllegalArgumentException if {@code destRgb} is null or shorter than 3
      */
     public void evaluate(float radius, float[] destRgb) {
         if (destRgb == null || destRgb.length < 3) {

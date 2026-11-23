@@ -40,8 +40,14 @@ public final class Svd3d {
     /**
      * {@code a = U diag(σ) Vᵀ} with {@code U} and {@code V} proper rotations and {@code σ0 >= σ1 >= |σ2|}. {@code σ2}
      * is negative exactly when {@code det(a) < 0} (the reflection is carried by the smallest singular value rather than
-     * by a rotation). Any output may alias {@code a}.
+     * by a rotation). Any output may alias {@code a}. {@code V} comes from the eigenvectors of {@code aᵀa} and {@code
+     * U} from a QR decomposition of {@code a V}. Uses a per-thread workspace; does not allocate after the thread's
+     * first call.
      *
+     * @param a the matrix to decompose
+     * @param u receives the left rotation {@code U}
+     * @param sigma receives the signed singular values {@code σ0, σ1, σ2}
+     * @param v receives the right rotation {@code V}
      * @return {@code sigma}
      */
     public static Vector3d decompose(Matrix3dc a, Matrix3d u, Vector3d sigma, Matrix3d v) {
@@ -53,7 +59,12 @@ public final class Svd3d {
         return sigma.set(s[0], s[1], s[2]);
     }
 
-    /** 2-norm condition number {@code σ0 / |σ2|}; infinite for a singular matrix. */
+    /**
+     * 2-norm condition number {@code σ0 / |σ2|}, from {@link #decompose}.
+     *
+     * @param a the matrix
+     * @return the condition number, at least 1, or positive infinity when the smallest singular value is exactly zero
+     */
     public static double condition(Matrix3dc a) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] s = ws.out3a;

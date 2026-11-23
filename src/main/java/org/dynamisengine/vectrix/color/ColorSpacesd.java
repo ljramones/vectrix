@@ -32,8 +32,14 @@ import org.dynamisengine.vectrix.core.Vector3dc;
  * white points (Bradford by default, as in the ACES reference implementation, or CAT16).
  * <p>
  * The matrices are derived from each gamut's primaries. The D65 white is the one implied by
- * {@link ColorMathd#linearSrgbToXyz} (XYZ 0.95047, 1, 1.08883), so sRGB white stays white in every D65 gamut and
- * sRGB conversions match the rest of the library exactly. The ACES white point is x 0.32168, y 0.33767.
+ * {@link ColorMathd#linearSrgbToXyz(double, double, double, Vector3d)} (XYZ 0.95047, 1, 1.08883), so sRGB white
+ * stays white in every D65 gamut and sRGB conversions match the rest of the library exactly. The ACES white point is
+ * x 0.32168, y 0.33767. All matrices are 3×3 row-major: {@code out[i] = m[3i] r + m[3i+1] g + m[3i+2] b}.
+ * <p>
+ * The methods are stateless and safe to call from any thread. Unlike {@link ColorSpacesf}, which uses precomputed
+ * tables, {@link #convert(Vector3dc, ColorGamut, ColorGamut, Vector3d)}, {@link #conversionMatrix} and
+ * {@link #adaptationMatrix} compute their matrices on each call and allocate small temporary arrays; bake the matrix
+ * once with {@link #conversionMatrix} for per-pixel work.
  *
  * @since 2.1.0
  */
@@ -97,9 +103,15 @@ public final class ColorSpacesd {
     }
 
     /**
-     * The 3×3 matrix (row-major) converting linear RGB in {@code from} to linear RGB in {@code to}, for baking into
-     * shaders: {@code fromXyz(to) · adapt(white(from) → white(to)) · toXyz(from)}.
+     * Writes the 3×3 matrix (row-major) converting linear RGB in {@code from} to linear RGB in {@code to}, for baking
+     * into shaders: {@code fromXyz(to) · adapt(white(from) → white(to)) · toXyz(from)}. The adaptation step is skipped
+     * when both gamuts share a white point or {@code adaptation} is {@link Adaptation#NONE}; equal gamuts give the
+     * exact identity. Transpose the result before uploading it as a column-major GLSL {@code mat3}.
      *
+     * @param from the source gamut
+     * @param to the target gamut
+     * @param adaptation the white-point adaptation to use
+     * @param out9 receives the nine matrix elements at indices 0 to 8
      * @return {@code out9}
      */
     public static double[] conversionMatrix(ColorGamut from, ColorGamut to, Adaptation adaptation, double[] out9) {
@@ -119,41 +131,87 @@ public final class ColorSpacesd {
         return out9;
     }
 
-    /** Converts linear RGB between gamuts with Bradford adaptation. {@code dest} may alias {@code rgb}. */
+    /**
+     * Converts linear RGB between gamuts with Bradford adaptation.
+     *
+     * @param rgb the linear color in {@code from}
+     * @param from the source gamut
+     * @param to the target gamut
+     * @param dest receives the linear color in {@code to}; may be {@code rgb}
+     * @return {@code dest}
+     */
     public static Vector3d convert(Vector3dc rgb, ColorGamut from, ColorGamut to, Vector3d dest) {
         return convert(rgb, from, to, Adaptation.BRADFORD, dest);
     }
 
-    /** Converts linear RGB between gamuts. {@code dest} may alias {@code rgb}. */
+    /**
+     * Converts linear RGB between gamuts with the given white-point adaptation, using
+     * {@link #conversionMatrix(ColorGamut, ColorGamut, Adaptation, double[])}. Allocates the matrix on each call.
+     *
+     * @param rgb the linear color in {@code from}
+     * @param from the source gamut
+     * @param to the target gamut
+     * @param adaptation the white-point adaptation to use
+     * @param dest receives the linear color in {@code to}; may be {@code rgb}
+     * @return {@code dest}
+     */
     public static Vector3d convert(Vector3dc rgb, ColorGamut from, ColorGamut to, Adaptation adaptation, Vector3d dest) {
         double[] m = conversionMatrix(from, to, adaptation, new double[9]);
         double r = rgb.x(), g = rgb.y(), b = rgb.z();
         return dest.set(m[0] * r + m[1] * g + m[2] * b, m[3] * r + m[4] * g + m[5] * b, m[6] * r + m[7] * g + m[8] * b);
     }
 
-    /** Linear RGB in {@code gamut} to CIE XYZ (in that gamut's white point, Y = 1 for white). */
+    /**
+     * Converts linear RGB in {@code gamut} to CIE XYZ relative to that gamut's own white point (D65 or the ACES white),
+     * without adaptation; RGB white (1, 1, 1) gives Y = 1.
+     *
+     * @param rgb the linear color
+     * @param gamut the gamut of {@code rgb}
+     * @param dest receives X, Y and Z; may be {@code rgb}
+     * @return {@code dest}
+     */
     public static Vector3d toXyz(Vector3dc rgb, ColorGamut gamut, Vector3d dest) {
         double[] m = TO_XYZ[gamut.ordinal()];
         double r = rgb.x(), g = rgb.y(), b = rgb.z();
         return dest.set(m[0] * r + m[1] * g + m[2] * b, m[3] * r + m[4] * g + m[5] * b, m[6] * r + m[7] * g + m[8] * b);
     }
 
-    /** CIE XYZ (in the gamut's white point) to linear RGB in {@code gamut}. */
+    /**
+     * Converts CIE XYZ, relative to the gamut's own white point, to linear RGB in {@code gamut}; the inverse of
+     * {@link #toXyz}. Out-of-gamut colors give channels outside [0, 1]; nothing is clamped.
+     *
+     * @param xyz the XYZ color
+     * @param gamut the target gamut
+     * @param dest receives the linear color; may be {@code xyz}
+     * @return {@code dest}
+     */
     public static Vector3d fromXyz(Vector3dc xyz, ColorGamut gamut, Vector3d dest) {
         double[] m = FROM_XYZ[gamut.ordinal()];
         double x = xyz.x(), y = xyz.y(), z = xyz.z();
         return dest.set(m[0] * x + m[1] * y + m[2] * z, m[3] * x + m[4] * y + m[5] * z, m[6] * x + m[7] * y + m[8] * z);
     }
 
-    /** Row-major RGB to XYZ matrix of {@code gamut}. */
+    /**
+     * Writes the row-major RGB to XYZ matrix of {@code gamut} (the matrix {@link #toXyz} uses).
+     *
+     * @param gamut the gamut
+     * @param out9 receives the nine matrix elements at indices 0 to 8
+     * @return {@code out9}
+     */
     public static double[] toXyzMatrix(ColorGamut gamut, double[] out9) {
         System.arraycopy(TO_XYZ[gamut.ordinal()], 0, out9, 0, 9);
         return out9;
     }
 
     /**
-     * Chromatic adaptation matrix (row-major) from white {@code srcWhite} to {@code dstWhite} (XYZ), with the given
-     * transform: {@code M⁻¹ diag(M dst / M src) M}.
+     * Writes the chromatic adaptation matrix (row-major) from white {@code srcWhite} to {@code dstWhite}, with the
+     * given transform: {@code M⁻¹ diag(M dst / M src) M}, where {@code M} is the transform's cone-response matrix.
+     *
+     * @param srcWhite the source white point in XYZ
+     * @param dstWhite the target white point in XYZ
+     * @param adaptation the transform; {@link Adaptation#NONE} gives the identity
+     * @param out9 receives the nine matrix elements at indices 0 to 8
+     * @return {@code out9}
      */
     public static double[] adaptationMatrix(Vector3dc srcWhite, Vector3dc dstWhite, Adaptation adaptation,
             double[] out9) {

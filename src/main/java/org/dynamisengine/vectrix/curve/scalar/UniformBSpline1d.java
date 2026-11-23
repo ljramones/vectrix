@@ -27,12 +27,26 @@ package org.dynamisengine.vectrix.curve.scalar;
 import org.dynamisengine.vectrix.curve.CubicCurveMath;
 
 /**
+ * A uniform cubic B-spline over scalar values: segment {@code i} is shaped by control points {@code i .. i + 3}, so
+ * {@code n} points give {@code n - 3} segments. The curve is C² continuous and does not, in general, pass through the
+ * control points.
+ * <p>
+ * The parameter {@code t} runs over {@code [0, 1]} on the segment and is not clamped: values outside extrapolate the
+ * cubic. The constructor keeps the caller's array, so later changes to it change the curve; an instance is safe to
+ * share between threads while nobody writes that array. Nothing allocates.
+ * {@link UniformBSpline1f} is the float twin.
+ *
  * @since 1.0.0
  */
-
 public final class UniformBSpline1d {
     private final double[] controlPoints;
 
+    /**
+     * Creates a spline from {@code controlPoints}, keeping a reference to the array (not a copy).
+     *
+     * @param controlPoints the control points, at least 4
+     * @throws IllegalArgumentException if there are fewer than 4 control points
+     */
     public UniformBSpline1d(double[] controlPoints) {
         if (controlPoints.length < 4) {
             throw new IllegalArgumentException("controlPoints");
@@ -40,25 +54,66 @@ public final class UniformBSpline1d {
         this.controlPoints = controlPoints;
     }
 
+    /**
+     * Returns the number of segments.
+     *
+     * @return the number of control points minus 3
+     */
     public int segmentCount() {
         return controlPoints.length - 3;
     }
 
+    /**
+     * Evaluates the segment {@code segmentIndex} at {@code t}.
+     *
+     * @param segmentIndex the segment, in {@code [0, segmentCount())}
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @return the value at {@code t}
+     * @throws IllegalArgumentException if {@code segmentIndex} is out of range
+     */
     public double evaluate(int segmentIndex, double t) {
         int i = checkedSegment(segmentIndex);
         return CubicCurveMath.bspline(controlPoints[i], controlPoints[i + 1], controlPoints[i + 2], controlPoints[i + 3], t);
     }
 
+    /**
+     * Computes the first derivative with respect to {@code t}.
+     *
+     * @param segmentIndex the segment, in {@code [0, segmentCount())}
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @return the derivative at {@code t}
+     * @throws IllegalArgumentException if {@code segmentIndex} is out of range
+     */
     public double derivative(int segmentIndex, double t) {
         int i = checkedSegment(segmentIndex);
         return CubicCurveMath.bsplineDerivative(controlPoints[i], controlPoints[i + 1], controlPoints[i + 2], controlPoints[i + 3], t);
     }
 
+    /**
+     * Computes the second derivative with respect to {@code t}.
+     *
+     * @param segmentIndex the segment, in {@code [0, segmentCount())}
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @return the second derivative at {@code t}
+     * @throws IllegalArgumentException if {@code segmentIndex} is out of range
+     */
     public double secondDerivative(int segmentIndex, double t) {
         int i = checkedSegment(segmentIndex);
         return CubicCurveMath.bsplineSecondDerivative(controlPoints[i], controlPoints[i + 1], controlPoints[i + 2], controlPoints[i + 3], t);
     }
 
+    /**
+     * Evaluates the segment {@code segmentIndex} at {@code length} parameters, writing one value. The arrays are not
+     * checked up front; an output array may be {@code tValues} at the same offset.
+     *
+     * @param segmentIndex the segment, in {@code [0, segmentCount())}
+     * @param tValues the curve parameters
+     * @param tOffset the offset of the first parameter in {@code tValues}
+     * @param length the number of parameters to evaluate
+     * @param outValues receives the {@code length} values
+     * @param outOffset the offset of the first value in {@code outValues}
+     * @throws IllegalArgumentException if {@code segmentIndex} is out of range
+     */
     public void evaluateBatch(int segmentIndex, double[] tValues, int tOffset, int length, double[] outValues, int outOffset) {
         for (int i = 0; i < length; i++) {
             outValues[outOffset + i] = evaluate(segmentIndex, tValues[tOffset + i]);

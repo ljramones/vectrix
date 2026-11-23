@@ -32,17 +32,31 @@ import org.dynamisengine.vectrix.soa.SkinningKernels;
 import org.dynamisengine.vectrix.soa.TransformSoA;
 
 /**
- * Runtime-oriented transform + skinning + bounds/update + upload preparation path.
- *
- * Default execution path is packed-affine. A matrix fallback is retained behind
- * explicit path selection or a runtime property for compatibility/debugging.
+ * A reference per-frame submission path: rigid skinning, instance transforms, world-space bounds and upload
+ * staging in one call ({@link #processFrame}).
+ * <p>
+ * The default path builds packed 3x4 affine transforms ({@link PackedAffineKernels}). A matrix path that builds
+ * {@link Matrix4f} instances and uploads column-major 4x4 matrices is kept for comparison and debugging; select it
+ * per call with {@link Path#MATRIX_FALLBACK}, or for {@link Path#AUTO} with the system property
+ * {@value #PROP_FORCE_MATRIX_FALLBACK}.
+ * <p>
+ * An instance owns internal scratch (transforms, matrices, a joint palette) and is not thread-safe: use one per
+ * thread. {@code processFrame} does not allocate unless the instance count or the joint count exceeds the capacity
+ * reached so far, in which case it grows the scratch.
  */
 public final class InstanceSubmissionPipeline {
+    /**
+     * System property that, when {@code "true"} at construction time, makes {@link Path#AUTO} take the matrix path.
+     */
     public static final String PROP_FORCE_MATRIX_FALLBACK = "vectrix.runtime.instanceSubmission.forceMatrix";
 
+    /** The transform path {@link #processFrame} takes. */
     public enum Path {
+        /** {@link #PACKED_AFFINE}, unless {@link #PROP_FORCE_MATRIX_FALLBACK} was set when the pipeline was made. */
         AUTO,
+        /** Packed 3x4 affine transforms; uploads 12 floats per instance. */
         PACKED_AFFINE,
+        /** {@link Matrix4f} transforms; uploads 16 floats per instance, column-major. */
         MATRIX_FALLBACK
     }
 
@@ -53,6 +67,12 @@ public final class InstanceSubmissionPipeline {
     private final Vector3f tmpMin = new Vector3f();
     private final Vector3f tmpMax = new Vector3f();
 
+    /**
+     * Creates a pipeline with scratch for {@code initialCapacity} instances and reads
+     * {@link #PROP_FORCE_MATRIX_FALLBACK} once.
+     *
+     * @param initialCapacity the initial instance capacity; values below 1 are treated as 1
+     */
     public InstanceSubmissionPipeline(int initialCapacity) {
         this.forceMatrixFallback = Boolean.getBoolean(PROP_FORCE_MATRIX_FALLBACK);
         int cap = java.lang.Math.max(1, initialCapacity);
@@ -64,6 +84,55 @@ public final class InstanceSubmissionPipeline {
         }
     }
 
+    /**
+     * Runs one frame: skins the vertices, builds the instance transforms, transforms the bounds and stages the
+     * upload.
+     * <ol>
+     * <li>Skinning: builds a rigid palette (rotation and translation; joint scale is ignored) from all
+     * {@code joints.size()} joints, then skins {@code vertexCount} positions with four weighted joints each, from
+     * {@code in*} to {@code out*}.</li>
+     * <li>Transforms: instance {@code j} gets {@code T * R * S} of {@code transforms[j]}, for {@code j} in
+     * {@code [0, instanceCount)}.</li>
+     * <li>Bounds: for each slot {@code i} in {@code [0, instanceCount)}, with {@code j = order[i]}, the local box
+     * {@code (min*[j], max*[j])} is transformed by instance {@code j} and its world-space axis-aligned bounds are
+     * written to {@code outMin*[j]} and {@code outMax*[j]}. The bounds arrays are indexed by instance, not by slot;
+     * instances that {@code order} does not name keep their previous output.</li>
+     * <li>Upload: slot {@code i} of the upload array receives the transform of instance {@code order[i]}.</li>
+     * </ol>
+     *
+     * @param transforms the instance transforms; at least {@code instanceCount} entries
+     * @param order the instance index of each upload slot; at least {@code instanceCount} entries, each in
+     *        {@code [0, instanceCount)}
+     * @param minX the local box minimum x per instance
+     * @param minY the local box minimum y per instance
+     * @param minZ the local box minimum z per instance
+     * @param maxX the local box maximum x per instance
+     * @param maxY the local box maximum y per instance
+     * @param maxZ the local box maximum z per instance
+     * @param outMinX receives the world box minimum x per instance
+     * @param outMinY receives the world box minimum y per instance
+     * @param outMinZ receives the world box minimum z per instance
+     * @param outMaxX receives the world box maximum x per instance
+     * @param outMaxY receives the world box maximum y per instance
+     * @param outMaxZ receives the world box maximum z per instance
+     * @param joints the joint transforms of the skeleton (rotation and translation are used)
+     * @param jointIndices four joint indices per vertex, vertex {@code v} at {@code 4 * v}
+     * @param jointWeights four weights per vertex, matching {@code jointIndices}
+     * @param inX the bind-pose vertex x coordinates
+     * @param inY the bind-pose vertex y coordinates
+     * @param inZ the bind-pose vertex z coordinates
+     * @param outX receives the skinned x coordinates
+     * @param outY receives the skinned y coordinates
+     * @param outZ receives the skinned z coordinates
+     * @param packedUpload receives 12 floats per slot (packed 3x4 affine, row-major) on the packed path; not used
+     *        on the matrix path
+     * @param matrixUpload receives 16 floats per slot (column-major 4x4) on the matrix path; not used on the packed
+     *        path
+     * @param instanceCount the number of instances and upload slots
+     * @param vertexCount the number of vertices to skin
+     * @param path the path to take
+     * @return {@code packedUpload} or {@code matrixUpload}, whichever was written
+     */
     public float[] processFrame(
             Transformf[] transforms,
             int[] order,

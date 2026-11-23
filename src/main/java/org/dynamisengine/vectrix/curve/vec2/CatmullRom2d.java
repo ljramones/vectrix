@@ -29,12 +29,31 @@ import org.dynamisengine.vectrix.core.Vector2dc;
 import org.dynamisengine.vectrix.curve.CubicCurveMath;
 
 /**
+ * A cardinal (Catmull–Rom) spline segment over 2D points: the Hermite segment from {@code p1} to {@code p2} with
+ * tangents {@code (1 - tension)·(p2 - p0)/2} at {@code p1} and {@code (1 - tension)·(p3 - p1)/2} at {@code p2}. Tension
+ * 0 gives the uniform Catmull–Rom spline, which passes through every point; tension 1 gives zero tangents.
+ * <p>
+ * The parameter {@code t} runs over {@code [0, 1]} on the segment and is not clamped: values outside extrapolate the
+ * cubic. The methods are static and stateless. Every {@code dest} may be one of the input points. Nothing allocates.
+ * {@link CatmullRom2f} is the float twin.
+ *
  * @since 1.0.0
  */
-
 public final class CatmullRom2d {
     private CatmullRom2d() {}
 
+    /**
+     * Evaluates the segment at {@code t}.
+     *
+     * @param p0 the point before the segment
+     * @param p1 the start point of the segment
+     * @param p2 the end point of the segment
+     * @param p3 the point after the segment
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @param tension the cardinal tension: 0 for Catmull–Rom, 1 for zero tangents
+     * @param dest receives the result
+     * @return {@code dest}
+     */
     public static Vector2d evaluate(Vector2dc p0, Vector2dc p1, Vector2dc p2, Vector2dc p3, double t, double tension, Vector2d dest) {
         double m1x = CubicCurveMath.cardinalTangent(p0.x(), p2.x(), tension);
         double m1y = CubicCurveMath.cardinalTangent(p0.y(), p2.y(), tension);
@@ -42,6 +61,19 @@ public final class CatmullRom2d {
         double m2y = CubicCurveMath.cardinalTangent(p1.y(), p3.y(), tension);
         return dest.set(CubicCurveMath.hermite(p1.x(), m1x, p2.x(), m2x, t), CubicCurveMath.hermite(p1.y(), m1y, p2.y(), m2y, t));
     }
+
+    /**
+     * Computes the first derivative with respect to {@code t} (the tangent, not normalized).
+     *
+     * @param p0 the point before the segment
+     * @param p1 the start point of the segment
+     * @param p2 the end point of the segment
+     * @param p3 the point after the segment
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @param tension the cardinal tension: 0 for Catmull–Rom, 1 for zero tangents
+     * @param dest receives the result
+     * @return {@code dest}
+     */
     public static Vector2d derivative(Vector2dc p0, Vector2dc p1, Vector2dc p2, Vector2dc p3, double t, double tension, Vector2d dest) {
         double m1x = CubicCurveMath.cardinalTangent(p0.x(), p2.x(), tension);
         double m1y = CubicCurveMath.cardinalTangent(p0.y(), p2.y(), tension);
@@ -49,6 +81,19 @@ public final class CatmullRom2d {
         double m2y = CubicCurveMath.cardinalTangent(p1.y(), p3.y(), tension);
         return dest.set(CubicCurveMath.hermiteDerivative(p1.x(), m1x, p2.x(), m2x, t), CubicCurveMath.hermiteDerivative(p1.y(), m1y, p2.y(), m2y, t));
     }
+
+    /**
+     * Computes the second derivative with respect to {@code t}.
+     *
+     * @param p0 the point before the segment
+     * @param p1 the start point of the segment
+     * @param p2 the end point of the segment
+     * @param p3 the point after the segment
+     * @param t the curve parameter, usually in {@code [0, 1]}; not clamped
+     * @param tension the cardinal tension: 0 for Catmull–Rom, 1 for zero tangents
+     * @param dest receives the result
+     * @return {@code dest}
+     */
     public static Vector2d secondDerivative(Vector2dc p0, Vector2dc p1, Vector2dc p2, Vector2dc p3, double t, double tension, Vector2d dest) {
         double m1x = CubicCurveMath.cardinalTangent(p0.x(), p2.x(), tension);
         double m1y = CubicCurveMath.cardinalTangent(p0.y(), p2.y(), tension);
@@ -56,6 +101,24 @@ public final class CatmullRom2d {
         double m2y = CubicCurveMath.cardinalTangent(p1.y(), p3.y(), tension);
         return dest.set(CubicCurveMath.hermiteSecondDerivative(p1.x(), m1x, p2.x(), m2x, t), CubicCurveMath.hermiteSecondDerivative(p1.y(), m1y, p2.y(), m2y, t));
     }
+
+    /**
+     * Evaluates the segment at {@code length} parameters, writing one point, one array per coordinate. The arrays are
+     * not checked up front; an output array may be {@code tValues} at the same offset.
+     *
+     * @param p0 the point before the segment
+     * @param p1 the start point of the segment
+     * @param p2 the end point of the segment
+     * @param p3 the point after the segment
+     * @param tension the cardinal tension: 0 for Catmull–Rom, 1 for zero tangents
+     * @param tValues the curve parameters
+     * @param tOffset the offset of the first parameter in {@code tValues}
+     * @param length the number of parameters to evaluate
+     * @param outX receives the x coordinates
+     * @param outXOffset the offset of the first coordinate in {@code outX}
+     * @param outY receives the y coordinates
+     * @param outYOffset the offset of the first coordinate in {@code outY}
+     */
     public static void evaluateBatch(Vector2dc p0, Vector2dc p1, Vector2dc p2, Vector2dc p3, double tension, double[] tValues, int tOffset, int length, double[] outX, int outXOffset, double[] outY, int outYOffset) {
         double m1x = CubicCurveMath.cardinalTangent(p0.x(), p2.x(), tension), m2x = CubicCurveMath.cardinalTangent(p1.x(), p3.x(), tension);
         double ax = p1.x(), bx = p2.x();

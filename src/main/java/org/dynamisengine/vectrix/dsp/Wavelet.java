@@ -51,7 +51,11 @@ public final class Wavelet {
         }
     }
 
-    /** The Haar wavelet ({@code db1}). */
+    /**
+     * Returns the Haar wavelet ({@code db1}).
+     *
+     * @return a new plan
+     */
     public static Wavelet haar() {
         return daubechies(1);
     }
@@ -60,6 +64,8 @@ public final class Wavelet {
      * The Daubechies wavelet with {@code p} vanishing moments ({@code 2p} taps).
      *
      * @param p from 1 (Haar) to 10
+     * @return a new plan; computing the filter allocates
+     * @throws IllegalArgumentException if {@code p} is outside [1, 10]
      */
     public static Wavelet daubechies(int p) {
         if (p < 1 || p > 10) {
@@ -114,7 +120,14 @@ public final class Wavelet {
         return new Wavelet(h);
     }
 
-    /** Creates a wavelet from caller-supplied orthonormal low-pass taps (copied). */
+    /**
+     * Creates a wavelet from caller-supplied orthonormal low-pass taps (copied). The taps are not checked for
+     * orthonormality; the inverse reconstructs exactly only if they are orthonormal.
+     *
+     * @param lowpass the low-pass (scaling) filter taps, an even number of at least 2
+     * @return a new plan
+     * @throws IllegalArgumentException if {@code lowpass} is {@code null} or its length is odd or less than 2
+     */
     public static Wavelet fromLowpass(double[] lowpass) {
         if (lowpass == null || lowpass.length < 2 || (lowpass.length & 1) != 0) {
             throw new IllegalArgumentException("an orthogonal low-pass filter has an even number of taps");
@@ -122,12 +135,20 @@ public final class Wavelet {
         return new Wavelet(lowpass.clone());
     }
 
-    /** @return a copy of the low-pass (scaling) filter */
+    /**
+     * Returns a copy of the low-pass (scaling) filter {@code h}.
+     *
+     * @return a new array of the taps
+     */
     public double[] lowpass() {
         return lo.clone();
     }
 
-    /** @return a copy of the high-pass (wavelet) filter, {@code g[m] = (-1)^m·h[L-1-m]} */
+    /**
+     * Returns a copy of the high-pass (wavelet) filter, {@code g[m] = (-1)^m·h[L-1-m]}.
+     *
+     * @return a new array of the taps
+     */
     public double[] highpass() {
         return hi.clone();
     }
@@ -136,8 +157,13 @@ public final class Wavelet {
      * One level: {@code out[0 .. n/2)} receives the approximation {@code a[k] = Σ h[m]·x[(2k + m) mod n]} and
      * {@code out[n/2 .. n)} the detail, with the high-pass filter.
      *
-     * @param n the number of samples, even
+     * @param x the samples
+     * @param xOff the offset of the first sample
+     * @param n the number of samples, even and at least 2
      * @param out receives {@code n} coefficients; must not overlap {@code x}
+     * @param outOff the offset of the first coefficient
+     * @throws IllegalArgumentException if {@code n} is odd or less than 2, or an array does not hold {@code n}
+     *         values from its offset (checked before anything is written)
      */
     public void forward(double[] x, int xOff, int n, double[] out, int outOff) {
         checkLevel(x, xOff, n, out, outOff);
@@ -155,7 +181,18 @@ public final class Wavelet {
         }
     }
 
-    /** The inverse of one {@link #forward} level: {@code x[i] = Σ_k a[k]·h[i - 2k] + d[k]·g[i - 2k]}, periodically. */
+    /**
+     * The inverse of one {@link #forward(double[], int, int, double[], int)} level:
+     * {@code x[i] = Σ_k a[k]·h[i - 2k] + d[k]·g[i - 2k]}, periodically.
+     *
+     * @param coeffs {@code n} coefficients, the approximation followed by the detail
+     * @param cOff the offset of the first coefficient
+     * @param n the number of samples, even and at least 2
+     * @param x receives the {@code n} samples; must not overlap {@code coeffs}
+     * @param xOff the offset of the first sample
+     * @throws IllegalArgumentException if {@code n} is odd or less than 2, or an array does not hold {@code n}
+     *         values from its offset (checked before anything is written)
+     */
     public void inverse(double[] coeffs, int cOff, int n, double[] x, int xOff) {
         checkLevel(coeffs, cOff, n, x, xOff);
         int half = n / 2;
@@ -174,8 +211,16 @@ public final class Wavelet {
      * A multilevel transform: {@code levels} forward levels on successive approximations. The result is laid out as
      * {@code [aL, dL, d(L-1), ..., d1]}, so {@code out[0 .. n/2^L)} is the coarsest approximation.
      *
-     * @param n divisible by {@code 2^levels}
-     * @param scratch {@code n} doubles
+     * @param x the samples
+     * @param xOff the offset of the first sample
+     * @param n the number of samples, at least 2 and divisible by {@code 2^levels}
+     * @param levels the number of levels, at least 1
+     * @param out receives {@code n} coefficients; may be {@code x}, must not overlap {@code scratch}
+     * @param outOff the offset of the first coefficient
+     * @param scratch {@code n} doubles of working memory
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if {@code levels < 1} or {@code n} is not divisible by {@code 2^levels};
+     *         array bounds are left to the per-level checks and {@link System#arraycopy}
      */
     public void forward(double[] x, int xOff, int n, int levels, double[] out, int outOff, double[] scratch,
             int scratchOff) {
@@ -190,7 +235,20 @@ public final class Wavelet {
         System.arraycopy(scratch, scratchOff, out, outOff, len);
     }
 
-    /** The inverse of the multilevel {@link #forward(double[], int, int, int, double[], int, double[], int)}. */
+    /**
+     * The inverse of the multilevel {@link #forward(double[], int, int, int, double[], int, double[], int)}.
+     *
+     * @param coeffs {@code n} coefficients laid out as {@code [aL, dL, d(L-1), ..., d1]}
+     * @param cOff the offset of the first coefficient
+     * @param n the number of samples, at least 2 and divisible by {@code 2^levels}
+     * @param levels the number of levels, at least 1
+     * @param x receives the {@code n} samples; must not overlap {@code coeffs} or {@code scratch}
+     * @param xOff the offset of the first sample
+     * @param scratch {@code n} doubles of working memory
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if {@code levels < 1} or {@code n} is not divisible by {@code 2^levels};
+     *         array bounds are left to the per-level checks and {@link System#arraycopy}
+     */
     public void inverse(double[] coeffs, int cOff, int n, int levels, double[] x, int xOff, double[] scratch,
             int scratchOff) {
         checkLevels(n, levels);

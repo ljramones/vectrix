@@ -24,14 +24,15 @@
 package org.dynamisengine.vectrix.core;
 
 /**
- * Allocation-free fourth-order Runge-Kutta ODE integration for single-precision state arrays.
+ * Allocation-free fourth-order Runge-Kutta ODE integration for single-precision state arrays. The class is
+ * stateless; calls are thread-safe when each thread uses its own scratch and destination arrays.
  */
 public final class IntegratorRK4f {
     private IntegratorRK4f() {
     }
 
     /**
-     * Integrate one RK4 step.
+     * Advances {@code state} by one classical fourth-order Runge-Kutta step of size {@code dt}.
      * <p>
      * Scratch layout is contiguous and fixed:
      * <ul>
@@ -42,7 +43,22 @@ public final class IntegratorRK4f {
      *   <li>{@code scratch[scratchOffset + 4*stateSize .. +5*stateSize)} = temporary state</li>
      * </ul>
      * <p>
-     * {@code dest} may alias {@code state}, including identical array+offset, for in-place integration.
+     * {@code dest} may be the same array region as {@code state} (same array and offset) for in-place integration;
+     * other overlaps between {@code state}, {@code dest} and {@code scratch} are not supported. The method does not
+     * allocate; {@code derivative} is called four times, always writing into {@code scratch}.
+     *
+     * @param derivative computes the time derivative of the state
+     * @param t the time at the start of the step
+     * @param dt the step size, in the same unit as {@code t}
+     * @param state the state at time {@code t}, read from {@code state[stateOffset .. stateOffset + stateSize)}
+     * @param stateOffset the index of the first state element
+     * @param stateSize the number of state elements, at least 1
+     * @param scratch working memory of at least {@code 5 * stateSize} elements from {@code scratchOffset}
+     * @param scratchOffset the index of the first scratch element
+     * @param dest receives the state at time {@code t + dt} in {@code dest[destOffset .. destOffset + stateSize)}
+     * @param destOffset the index of the first destination element
+     * @throws IllegalArgumentException if an array or {@code derivative} is null, {@code stateSize} is not positive,
+     *         or an offset and size do not fit in their array; nothing is written in that case
      */
     public static void step(OdeDerivativef derivative, float t, float dt, float[] state, int stateOffset, int stateSize,
         float[] scratch, int scratchOffset, float[] dest, int destOffset) {

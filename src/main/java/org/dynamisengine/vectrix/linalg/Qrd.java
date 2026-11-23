@@ -38,7 +38,14 @@ public final class Qrd {
     private Qrd() {
     }
 
-    /** 3×3 QR. Outputs may alias {@code a}. */
+    /**
+     * 3×3 QR decomposition {@code a = Q R}. Outputs may alias {@code a}. Uses a per-thread workspace; does not allocate
+     * after the thread's first call.
+     *
+     * @param a the matrix to decompose
+     * @param q receives the orthogonal factor {@code Q}
+     * @param r receives the upper-triangular factor {@code R}, with a non-negative diagonal
+     */
     public static void decompose(Matrix3dc a, Matrix3d q, Matrix3d r) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] qq = ws.out9a, rr = ws.out9b;
@@ -47,7 +54,14 @@ public final class Qrd {
         Conv.set(r, rr);
     }
 
-    /** 4×4 QR. Outputs may alias {@code a}. */
+    /**
+     * 4×4 QR decomposition {@code a = Q R}. Outputs may alias {@code a}. Uses a per-thread workspace; does not allocate
+     * after the thread's first call.
+     *
+     * @param a the matrix to decompose
+     * @param q receives the orthogonal factor {@code Q}
+     * @param r receives the upper-triangular factor {@code R}, with a non-negative diagonal
+     */
     public static void decompose(Matrix4dc a, Matrix4d q, Matrix4d r) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] qq = ws.out9a, rr = ws.out9b;

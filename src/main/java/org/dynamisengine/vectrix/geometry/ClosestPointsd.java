@@ -28,8 +28,9 @@ import org.dynamisengine.vectrix.core.Vector3dc;
 
 /**
  * Closest-point and distance queries that {@link Intersectiond} does not cover (double precision): point to oriented
- * box, triangle to triangle, and ray against capsule. Shapes are passed as plain parameters (vectrix has no shape
- * types; DynamisCollision owns them).
+ * box and to axis-aligned box, segment to axis-aligned box, segment and triangle to triangle, and ray against capsule.
+ * Shapes are passed as plain parameters (vectrix has no shape types; DynamisCollision owns them). The functions are
+ * stateless and safe to call from any thread. Only {@link #distanceSquaredTriangleTriangle} allocates.
  *
  * @since 2.2.0
  */
@@ -38,8 +39,16 @@ public final class ClosestPointsd {
     }
 
     /**
-     * Closest point to {@code p} on (or in) the oriented box with the given center, unit axes and half extents: the
-     * point itself if it is inside. {@code dest} may alias an input.
+     * Returns the point of an oriented box closest to {@code p}: {@code p} itself if it is inside the box.
+     *
+     * @param p the query point
+     * @param center the box center
+     * @param axisX the box's first axis, unit length
+     * @param axisY the box's second axis, unit length and orthogonal to the other two
+     * @param axisZ the box's third axis, unit length and orthogonal to the other two
+     * @param halfExtents the non-negative half extents along {@code axisX}, {@code axisY} and {@code axisZ}
+     * @param dest receives the closest point; may alias an input
+     * @return {@code dest}
      */
     public static Vector3d closestPointObb(Vector3dc p, Vector3dc center, Vector3dc axisX, Vector3dc axisY,
             Vector3dc axisZ, Vector3dc halfExtents, Vector3d dest) {
@@ -57,9 +66,22 @@ public final class ClosestPointsd {
     }
 
     /**
-     * Squared distance between triangles {@code (a0, a1, a2)} and {@code (b0, b1, b2)}, with the closest points in
-     * {@code pointA} and {@code pointB}; 0 (and a common point) if they intersect. The minimum over the six
-     * edge-against-triangle distances, with piercing edges detected explicitly.
+     * Returns the squared distance between triangles {@code (a0, a1, a2)} and {@code (b0, b1, b2)} and writes the
+     * closest points. If the triangles intersect, the result is 0 and both points are one common point. It is the
+     * minimum over the six edge-against-triangle distances of {@link
+     * Intersectiond#findClosestPointsLineSegmentTriangle}, which detects edges that pierce the other triangle.
+     * <p>
+     * This method allocates two temporary vectors and two small arrays per call, so avoid it in hot paths.
+     *
+     * @param a0 the first vertex of triangle A
+     * @param a1 the second vertex of triangle A
+     * @param a2 the third vertex of triangle A
+     * @param b0 the first vertex of triangle B
+     * @param b1 the second vertex of triangle B
+     * @param b2 the third vertex of triangle B
+     * @param pointA receives the closest point on triangle A; must not alias any vertex
+     * @param pointB receives the closest point on triangle B; must not alias any vertex
+     * @return the squared distance, 0 if the triangles intersect
      */
     public static double distanceSquaredTriangleTriangle(Vector3dc a0, Vector3dc a1, Vector3dc a2, Vector3dc b0,
             Vector3dc b1, Vector3dc b2, Vector3d pointA, Vector3d pointB) {
@@ -89,8 +111,18 @@ public final class ClosestPointsd {
     }
 
     /**
-     * Squared distance between segment {@code (p, q)} and triangle {@code (v0, v1, v2)}, with the closest points; 0 if
-     * the segment pierces the triangle (now also detected by {@link Intersectiond#findClosestPointsLineSegmentTriangle}).
+     * Returns the squared distance between segment {@code (p, q)} and triangle {@code (v0, v1, v2)} and writes the
+     * closest points. The result is 0 when the segment touches or pierces the triangle. Delegates to {@link
+     * Intersectiond#findClosestPointsLineSegmentTriangle}.
+     *
+     * @param p the segment's first end point
+     * @param q the segment's second end point
+     * @param v0 the triangle's first vertex
+     * @param v1 the triangle's second vertex
+     * @param v2 the triangle's third vertex
+     * @param segmentPoint receives the closest point on the segment; may alias an input
+     * @param trianglePoint receives the closest point on the triangle; may alias an input
+     * @return the squared distance
      */
     public static double distanceSquaredSegmentTriangle(Vector3dc p, Vector3dc q, Vector3dc v0, Vector3dc v1,
             Vector3dc v2, Vector3d segmentPoint, Vector3d trianglePoint) {
@@ -104,9 +136,16 @@ public final class ClosestPointsd {
     }
 
     /**
-     * First intersection of the ray {@code origin + t dir} ({@code dir} of unit length) with the capsule around segment
-     * {@code (a, b)} of the given radius (Quilez): the smallest {@code t >= 0}, 0 if the origin is inside, or -1 if the
-     * ray misses.
+     * Returns the distance along the ray {@code origin + t dir} to its first intersection with the capsule around
+     * segment {@code (a, b)} (Quilez): the smallest {@code t >= 0}, 0 if the origin is inside or on the capsule, or -1
+     * if the ray misses. A zero-length segment gives a sphere.
+     *
+     * @param origin the ray origin
+     * @param dir the ray direction, unit length
+     * @param a one end of the capsule's segment
+     * @param b the other end of the capsule's segment
+     * @param radius the capsule radius (not squared)
+     * @return the distance {@code t} to the first intersection, 0 if the origin is inside, or -1 on a miss
      */
     public static double intersectRayCapsule(Vector3dc origin, Vector3dc dir, Vector3dc a, Vector3dc b, double radius) {
         double bax = b.x() - a.x(), bay = b.y() - a.y(), baz = b.z() - a.z();
@@ -153,14 +192,29 @@ public final class ClosestPointsd {
         return best;
     }
 
-    /** The point of box {@code [min, max]} closest to {@code p} (that is, {@code p} clamped to the box). */
+    /**
+     * Returns the point of box {@code [min, max]} closest to {@code p}, that is, {@code p} clamped to the box.
+     *
+     * @param p the query point
+     * @param min the box's minimum corner
+     * @param max the box's maximum corner, at least {@code min} on every axis
+     * @param dest receives the closest point; may alias an input
+     * @return {@code dest}
+     */
     public static Vector3d closestPointAab(Vector3dc p, Vector3dc min, Vector3dc max, Vector3d dest) {
         double px = p.x(), py = p.y(), pz = p.z();
         return dest.set(Math.min(Math.max(px, min.x()), max.x()), Math.min(Math.max(py, min.y()), max.y()),
                 Math.min(Math.max(pz, min.z()), max.z()));
     }
 
-    /** Squared distance from {@code p} to box {@code [min, max]}; {@code 0} inside. */
+    /**
+     * Returns the squared distance from {@code p} to box {@code [min, max]}.
+     *
+     * @param p the query point
+     * @param min the box's minimum corner
+     * @param max the box's maximum corner, at least {@code min} on every axis
+     * @return the squared distance, {@code 0} if {@code p} is inside or on the box
+     */
     public static double distanceSquaredPointAab(Vector3dc p, Vector3dc min, Vector3dc max) {
         double dx = axisGap(p.x(), min.x(), max.x()), dy = axisGap(p.y(), min.y(), max.y()), dz = axisGap(p.z(), min.z(), max.z());
         return (dx * dx + dy * dy + dz * dz);
@@ -171,14 +225,20 @@ public final class ClosestPointsd {
     }
 
     /**
-     * Closest points between segment {@code a}–{@code b} and box {@code [min, max]}, exactly.
+     * Finds the closest points between segment {@code a}–{@code b} and box {@code [min, max]}, exactly up to rounding.
      * <p>
-     * The squared distance along the segment is convex and piecewise quadratic, so its minimum lies at an endpoint,
-     * at one of the at most six points where the segment crosses a slab plane, or at the minimizer of one of the
-     * quadratic pieces. Every candidate is evaluated, in double, with no iteration and no allocation. When the
-     * segment meets the box the distance is 0, and the points are one common point. A zero-length segment is a point.
+     * The squared distance along the segment is convex and piecewise quadratic, so its minimum lies at an endpoint, at
+     * one of the at most six points where the segment crosses a slab plane, or at the minimizer of one of the quadratic
+     * pieces. Every candidate is evaluated, in double, with no iteration and no allocation. When the segment meets the
+     * box the distance is 0, and the points are one common point. A zero-length segment is a point.
      *
-     * @return the squared distance
+     * @param a the segment's first end point
+     * @param b the segment's second end point
+     * @param min the box's minimum corner
+     * @param max the box's maximum corner, at least {@code min} on every axis
+     * @param onSegment receives the closest point on the segment; may alias an input
+     * @param onBox receives the closest point on the box; may alias an input
+     * @return the squared distance, 0 if the segment meets the box
      */
     public static double segmentAab(Vector3dc a, Vector3dc b, Vector3dc min, Vector3dc max, Vector3d onSegment,
             Vector3d onBox) {
@@ -186,7 +246,25 @@ public final class ClosestPointsd {
                 onSegment, onBox);
     }
 
-    /** Scalar form of {@link #segmentAab(Vector3dc, Vector3dc, Vector3dc, Vector3dc, Vector3d, Vector3d)}. */
+    /**
+     * Scalar form of {@link #segmentAab(Vector3dc, Vector3dc, Vector3dc, Vector3dc, Vector3d, Vector3d)}.
+     *
+     * @param ax the x coordinate of the segment's first end point
+     * @param ay the y coordinate of the segment's first end point
+     * @param az the z coordinate of the segment's first end point
+     * @param bx the x coordinate of the segment's second end point
+     * @param by the y coordinate of the segment's second end point
+     * @param bz the z coordinate of the segment's second end point
+     * @param minX the x coordinate of the box's minimum corner
+     * @param minY the y coordinate of the box's minimum corner
+     * @param minZ the z coordinate of the box's minimum corner
+     * @param maxX the x coordinate of the box's maximum corner
+     * @param maxY the y coordinate of the box's maximum corner
+     * @param maxZ the z coordinate of the box's maximum corner
+     * @param onSegment receives the closest point on the segment
+     * @param onBox receives the closest point on the box
+     * @return the squared distance, 0 if the segment meets the box
+     */
     public static double segmentAab(double ax, double ay, double az, double bx, double by, double bz, double minX, double minY,
             double minZ, double maxX, double maxY, double maxZ, Vector3d onSegment, Vector3d onBox) {
         double dx = (double) bx - ax, dy = (double) by - ay, dz = (double) bz - az;

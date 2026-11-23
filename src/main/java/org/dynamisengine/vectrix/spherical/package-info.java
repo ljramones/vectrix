@@ -24,5 +24,13 @@
 /**
  * Spherical functions other than SH: spherical Gaussians (isotropic and anisotropic) for lighting lobes, and
  * direction mappings (octahedral, hemi-octahedral, cubemap) with cubemap texel solid angles for probe filtering.
+ * <p>
+ * <b>Contract.</b> Threading: the classes are stateless static functions, safe to call from any thread.
+ * Allocation: no method allocates; results go into the caller's {@code dest} objects. Determinism: transcendentals
+ * use {@code AccurateMath}, so results match across platforms under {@code -Dvectrix.strictMath}. Errors:
+ * {@code DirectionMappings*.cubeDirection} throws {@code IllegalArgumentException} for a face outside 0..5;
+ * {@code SphericalGaussians*.fit} reads its arrays from index 0 and relies on Java's bounds checks; other inputs
+ * are not validated, so a zero direction or NaN gives NaN. Precision and naming: {@code ...d} classes are double,
+ * {@code ...f} twins are float with the same methods ({@code SphericalGaussiansf.fit} sums in double).
  */
 package org.dynamisengine.vectrix.spherical;

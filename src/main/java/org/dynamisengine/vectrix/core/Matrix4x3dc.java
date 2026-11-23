@@ -87,6 +87,10 @@ public interface Matrix4x3dc {
     byte PROPERTY_ORTHONORMAL = 1<<4;
 
     /**
+     * Return the assumed properties of this matrix. This is a bit-combination of
+     * {@link #PROPERTY_IDENTITY}, {@link #PROPERTY_TRANSLATION} and {@link #PROPERTY_ORTHONORMAL},
+     * or {@link #PROPERTY_UNKNOWN} when none of them is known to hold.
+     * 
      * @return the properties of the matrix
      */
     int properties();
@@ -706,7 +710,8 @@ public interface Matrix4x3dc {
      * Store this matrix in column-major order at the given off-heap address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      * 
@@ -720,7 +725,8 @@ public interface Matrix4x3dc {
      * Store this matrix in row-major order at the given off-heap address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      *

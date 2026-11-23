@@ -252,7 +252,10 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <doclint>none</doclint>
+                    <!-- Every public and protected element is documented: a missing comment, @param, @return or @throws,
+                         a broken reference or bad HTML fails the build. -->
+                    <doclint>all</doclint>
+                    <failOnWarnings>true</failOnWarnings>
                     <additionalDependencies>
                         <additionalDependency>
                             <groupId>org.jetbrains</groupId>

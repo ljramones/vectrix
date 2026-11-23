@@ -28,41 +28,75 @@ import org.dynamisengine.vectrix.core.DepthRange;
 import org.dynamisengine.vectrix.core.Matrix4fc;
 
 /**
- * Packed frustum plane storage for batch culling.
+ * Packed frustum plane storage for batch culling: the six planes of a view-projection matrix in structure-of-arrays
+ * form, one array per plane coefficient. Plane {@code i} is {@code x[i] * px + y[i] * py + z[i] * pz + w[i] = 0},
+ * with the normal pointing into the frustum, so a point is inside a plane when that expression is at least zero.
+ * <p>
+ * Instances are mutable and not thread-safe; {@code set} and {@link #getVec4Array} do not allocate.
  */
 public class FrustumPlanes {
 
     /** Creates the six planes, all zero; call {@code set} to extract them from a matrix. */
     public FrustumPlanes() {
     }
+    /** Index of the left plane ({@code x = -w} in clip space). */
     public static final int PLANE_NX = 0;
+    /** Index of the right plane ({@code x = w} in clip space). */
     public static final int PLANE_PX = 1;
+    /** Index of the bottom plane ({@code y = -w} in clip space). */
     public static final int PLANE_NY = 2;
+    /** Index of the top plane ({@code y = w} in clip space). */
     public static final int PLANE_PY = 3;
+    /** Index of the near plane (at the depth range's near NDC depth). */
     public static final int PLANE_NZ = 4;
+    /** Index of the far plane (at the depth range's far NDC depth). */
     public static final int PLANE_PZ = 5;
+    /** The number of planes, 6. */
     public static final int COUNT = 6;
 
+    /** The x component of each plane's normal, indexed by {@code PLANE_NX} to {@code PLANE_PZ}. */
     public final float[] x = new float[COUNT];
+    /** The y component of each plane's normal, indexed by {@code PLANE_NX} to {@code PLANE_PZ}. */
     public final float[] y = new float[COUNT];
+    /** The z component of each plane's normal, indexed by {@code PLANE_NX} to {@code PLANE_PZ}. */
     public final float[] z = new float[COUNT];
+    /** The constant term of each plane, indexed by {@code PLANE_NX} to {@code PLANE_PZ}. */
     public final float[] w = new float[COUNT];
 
+    /**
+     * Extracts the six planes of a view-projection matrix with OpenGL depth ({@code [-1, 1]}), without normalizing
+     * them.
+     *
+     * @param m the view-projection matrix
+     * @return this
+     */
     public FrustumPlanes set(Matrix4fc m) {
         return set(m, false);
     }
 
+    /**
+     * Extracts the six planes of a view-projection matrix with OpenGL depth ({@code [-1, 1]}).
+     *
+     * @param m the view-projection matrix
+     * @param normalize {@code true} to scale each plane so its normal has unit length, making the plane expression
+     *        a signed distance
+     * @return this
+     */
     public FrustumPlanes set(Matrix4fc m, boolean normalize) {
         return set(m, normalize, false);
     }
 
     /**
-     * Extract the six planes of a view-projection matrix.
+     * Extracts the six planes of a view-projection matrix.
      *
+     * @param m the view-projection matrix
+     * @param normalize {@code true} to scale each plane so its normal has unit length, making the plane expression
+     *        a signed distance
      * @param zZeroToOne {@code true} for clip-space depth in [0, 1] (Vulkan, Direct3D, JOML's {@code zZeroToOne}
      *                   projections): the near plane is then {@code z >= 0} rather than {@code z >= -w}. With the
      *                   default [-1, 1] extraction such a frustum gets a near plane behind the real one, which is
      *                   conservative but culls nothing near the camera.
+     * @return this
      */
     public FrustumPlanes set(Matrix4fc m, boolean normalize, boolean zZeroToOne) {
         return set(m, normalize, zZeroToOne ? DepthRange.ZERO_TO_ONE : DepthRange.NEGATIVE_ONE_TO_ONE);
@@ -70,8 +104,14 @@ public class FrustumPlanes {
 
     /**
      * Extracts the planes for {@code depthRange}, including reverse-Z, which the {@code zZeroToOne} flag cannot
-     * express.
+     * express. With {@code normalize}, a plane whose normal is zero (the far plane of an infinite projection) becomes
+     * {@code (0, 0, 0, ±1)}, keeping the sign of its constant term.
      *
+     * @param m the view-projection matrix
+     * @param normalize {@code true} to scale each plane so its normal has unit length, making the plane expression
+     *        a signed distance
+     * @param depthRange the clip-space depth convention of {@code m}
+     * @return this
      * @since 2.5.0
      */
     public FrustumPlanes set(Matrix4fc m, boolean normalize, DepthRange depthRange) {
@@ -110,6 +150,8 @@ public class FrustumPlanes {
      * {@code PLANE_PZ}, into {@code dest} from {@code offset}. This is the GLSL {@code vec4 planes[6]} layout under
      * std140, std430 and scalar alike (stride 16 bytes).
      *
+     * @param dest receives 24 floats starting at {@code offset}
+     * @param offset the index in {@code dest} of the first float
      * @return {@code dest}
      * @since 2.4.0
      */
@@ -124,6 +166,12 @@ public class FrustumPlanes {
     }
 
     /**
+     * Extracts the planes for a depth range given as the deprecated camera-package enum.
+     *
+     * @param m the view-projection matrix
+     * @param normalize {@code true} to scale each plane so its normal has unit length
+     * @param depthRange the clip-space depth convention of {@code m}
+     * @return this
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)

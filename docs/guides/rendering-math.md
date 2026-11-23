@@ -454,8 +454,10 @@ The `renderingmath` package holds small kernels for lookup tables and visibility
   [Determinism](../determinism.md). The `ShProduct` coefficients are identical on every platform in any mode,
   because they are computed with arithmetic only.
 - **Allocation.** Per-pixel and per-probe functions allocate nothing: the BRDF and Fresnel terms, SH projection,
-  evaluation, rotation, windowing, products and `ShL1`, the phase-function samplers, the direction mappings and
-  the color conversions. The SH and LTC table functions take caller-owned scratch and output arrays. The table
+  evaluation, windowing, products and `ShL1`, the phase-function samplers, the direction mappings and the
+  `ColorMathf` conversions. `ShRotation` allocates per-thread scratch on its first call in each thread.
+  `ColorSpacesd.convert`, `ColorSpacesd.conversionMatrix` and `ColorSpacesd.adaptationMatrix` allocate, so compute a
+  conversion matrix once and apply it yourself in hot loops. The SH and LTC table functions take caller-owned scratch and output arrays. The table
   builders (`DfgLutBuilder`, `SssLutBuilder`, `Atmosphere.transmittanceLut`, `Atmosphere.multipleScatteringLut`)
   and the atmosphere integrators allocate small temporaries; run them at load time or offline.
   The Javadoc puts a 32 × 32 `Atmosphere.multipleScatteringLut` at about a second.

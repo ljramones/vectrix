@@ -24,6 +24,12 @@
 package org.dynamisengine.vectrix.hash;
 
 /**
+ * Hashes of integer grid cells, for spatial hash tables (broad-phase collision, particle neighbor search). Reduce
+ * the result to a bucket index with {@code Integer.remainderUnsigned(hash, buckets)} or a power-of-two mask.
+ * <p>
+ * The methods are pure functions of their arguments: they give the same bits on every platform, do not allocate and
+ * are safe to call from any thread.
+ *
  * @since 1.0.0
  */
 
@@ -35,6 +41,16 @@ public final class SpatialHash {
     private SpatialHash() {
     }
 
+    /**
+     * Hashes the 3D cell {@code (x, y, z)}: the coordinates multiplied by three large primes and combined with XOR,
+     * then mixed with {@link PcgHash#hash32(int)}. Different cells can share a hash, so tables must still compare
+     * the cell coordinates.
+     *
+     * @param x the cell's x index
+     * @param y the cell's y index
+     * @param z the cell's z index
+     * @return the hash, any 32-bit value
+     */
     public static int hashCell3i(int x, int y, int z) {
         int mix = x * PRIME_X ^ y * PRIME_Y ^ z * PRIME_Z;
         return PcgHash.hash32(mix);

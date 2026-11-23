@@ -1329,7 +1329,8 @@ public interface Matrix4fc {
      * Store this matrix in column-major order at the given off-heap address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      * 
@@ -1342,7 +1343,8 @@ public interface Matrix4fc {
      * Store this matrix in row-major order at the given off-heap address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      *
@@ -3879,8 +3881,34 @@ public interface Matrix4fc {
     Vector4f unproject(float winX, float winY, float winZ, int[] viewport, Vector4f dest);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Unproject the given window coordinates <code>(winX, winY, winZ)</code> by <code>this</code> matrix using the
+     * specified viewport and depth convention.
+     * <p>
+     * This method converts <code>winX</code> and <code>winY</code> to normalized device coordinates in
+     * <code>[-1..1]</code>, transforms the NDC point by the inverse of <code>this</code> matrix and divides by the
+     * resulting w. The w component of <code>dest</code> is set to <code>1.0</code>.
+     * <p>
+     * For {@link DepthRange#NEGATIVE_ONE_TO_ONE} this method maps <code>winZ</code> from <code>[0..1]</code> to the NDC
+     * depth <code>2 * winZ - 1</code>, as the overload without a depth range does; for the other ranges
+     * <code>winZ</code> is the NDC depth itself, so the near plane is at <code>winZ = 1</code> for {@link
+     * DepthRange#REVERSED_ZERO_TO_ONE}.
+     * <p>
+     * This method computes the inverse of <code>this</code> matrix on every call. If the inverse is already available,
+     * call {@link #unprojectInv(float, float, float, int[], DepthRange, Vector4f) unprojectInv()} on it instead.
      *
+     * @param winX
+     *          the x-coordinate in window coordinates (pixels)
+     * @param winY
+     *          the y-coordinate in window coordinates (pixels)
+     * @param winZ
+     *          the window depth value in <code>[0..1]</code>
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention of the projection, which determines how <code>winZ</code> is read
+     * @param dest
+     *          will hold the unprojected position
+     * @return dest
      * @since 2.5.0
      */
     Vector4f unproject(float winX, float winY, float winZ, int[] viewport, DepthRange depthRange, Vector4f dest);
@@ -3915,8 +3943,34 @@ public interface Matrix4fc {
     Vector3f unproject(float winX, float winY, float winZ, int[] viewport, Vector3f dest);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Unproject the given window coordinates <code>(winX, winY, winZ)</code> by <code>this</code> matrix using the
+     * specified viewport and depth convention.
+     * <p>
+     * This method converts <code>winX</code> and <code>winY</code> to normalized device coordinates in
+     * <code>[-1..1]</code>, transforms the NDC point by the inverse of <code>this</code> matrix and divides by the
+     * resulting w.
+     * <p>
+     * For {@link DepthRange#NEGATIVE_ONE_TO_ONE} this method maps <code>winZ</code> from <code>[0..1]</code> to the NDC
+     * depth <code>2 * winZ - 1</code>, as the overload without a depth range does; for the other ranges
+     * <code>winZ</code> is the NDC depth itself, so the near plane is at <code>winZ = 1</code> for {@link
+     * DepthRange#REVERSED_ZERO_TO_ONE}.
+     * <p>
+     * This method computes the inverse of <code>this</code> matrix on every call. If the inverse is already available,
+     * call {@link #unprojectInv(float, float, float, int[], DepthRange, Vector3f) unprojectInv()} on it instead.
      *
+     * @param winX
+     *          the x-coordinate in window coordinates (pixels)
+     * @param winY
+     *          the y-coordinate in window coordinates (pixels)
+     * @param winZ
+     *          the window depth value in <code>[0..1]</code>
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention of the projection, which determines how <code>winZ</code> is read
+     * @param dest
+     *          will hold the unprojected position
+     * @return dest
      * @since 2.5.0
      */
     Vector3f unproject(float winX, float winY, float winZ, int[] viewport, DepthRange depthRange, Vector3f dest);
@@ -4002,8 +4056,32 @@ public interface Matrix4fc {
     Matrix4f unprojectRay(float winX, float winY, int[] viewport, Vector3f originDest, Vector3f dirDest);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Unproject the given 2D window coordinates <code>(winX, winY)</code> by <code>this</code> matrix using the
+     * specified viewport and compute the origin and the direction of the resulting ray for the given depth convention.
+     * <p>
+     * The origin lies on the near plane, at the NDC depth {@link DepthRange#nearNdc() depthRange.nearNdc()}. The
+     * direction points from the origin to the point halfway between the near and far NDC depths, so it is finite even
+     * for an infinite reverse-Z projection; it is not normalized. Use this method for projections that were not built
+     * for OpenGL's <code>[-1..1]</code> depth range: the overload without a depth range starts the ray at NDC depth
+     * <code>-1</code>, which is not on the near plane of such a projection.
+     * <p>
+     * This method computes the inverse of <code>this</code> matrix on every call. If the inverse is already available,
+     * call {@link #unprojectInvRay(float, float, int[], DepthRange, Vector3f, Vector3f) unprojectInvRay()} on it
+     * instead.
      *
+     * @param winX
+     *          the x-coordinate in window coordinates (pixels)
+     * @param winY
+     *          the y-coordinate in window coordinates (pixels)
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention of the projection, which places the near and far planes
+     * @param originDest
+     *          will hold the ray origin
+     * @param dirDest
+     *          will hold the (unnormalized) ray direction
+     * @return this
      * @since 2.5.0
      */
     Matrix4f unprojectRay(float winX, float winY, int[] viewport, DepthRange depthRange, Vector3f originDest, Vector3f dirDest);
@@ -4084,8 +4162,32 @@ public interface Matrix4fc {
     Vector4f unprojectInv(float winX, float winY, float winZ, int[] viewport, Vector4f dest);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Unproject the given window coordinates <code>(winX, winY, winZ)</code> by <code>this</code> matrix using the
+     * specified viewport and depth convention.
+     * <p>
+     * This method differs from {@link #unproject(float, float, float, int[], DepthRange, Vector4f) unproject()} in that
+     * it assumes that <code>this</code> is already the inverse matrix of the original projection matrix. It exists to
+     * avoid recomputing the matrix inverse with every invocation. The w component of <code>dest</code> is set to
+     * <code>1.0</code>.
+     * <p>
+     * For {@link DepthRange#NEGATIVE_ONE_TO_ONE} this method maps <code>winZ</code> from <code>[0..1]</code> to the NDC
+     * depth <code>2 * winZ - 1</code>, as the overload without a depth range does; for the other ranges
+     * <code>winZ</code> is the NDC depth itself, so the near plane is at <code>winZ = 1</code> for {@link
+     * DepthRange#REVERSED_ZERO_TO_ONE}.
      *
+     * @param winX
+     *          the x-coordinate in window coordinates (pixels)
+     * @param winY
+     *          the y-coordinate in window coordinates (pixels)
+     * @param winZ
+     *          the window depth value in <code>[0..1]</code>
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention of the projection, which determines how <code>winZ</code> is read
+     * @param dest
+     *          will hold the unprojected position
+     * @return dest
      * @since 2.5.0
      */
     Vector4f unprojectInv(float winX, float winY, float winZ, int[] viewport, DepthRange depthRange, Vector4f dest);
@@ -4137,8 +4239,32 @@ public interface Matrix4fc {
     Matrix4f unprojectInvRay(float winX, float winY, int[] viewport, Vector3f originDest, Vector3f dirDest);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Unproject the given 2D window coordinates <code>(winX, winY)</code> by <code>this</code> matrix using the
+     * specified viewport and compute the origin and the direction of the resulting ray for the given depth convention.
+     * <p>
+     * This method differs from {@link #unprojectRay(float, float, int[], DepthRange, Vector3f, Vector3f)
+     * unprojectRay()} in that it assumes that <code>this</code> is already the inverse matrix of the original
+     * projection matrix. It exists to avoid recomputing the matrix inverse with every invocation.
+     * <p>
+     * The origin lies on the near plane, at the NDC depth {@link DepthRange#nearNdc() depthRange.nearNdc()}. The
+     * direction points from the origin to the point halfway between the near and far NDC depths, so it is finite even
+     * for an infinite reverse-Z projection; it is not normalized. Use this method for projections that were not built
+     * for OpenGL's <code>[-1..1]</code> depth range: the overload without a depth range starts the ray at NDC depth
+     * <code>-1</code>, which is not on the near plane of such a projection.
      *
+     * @param winX
+     *          the x-coordinate in window coordinates (pixels)
+     * @param winY
+     *          the y-coordinate in window coordinates (pixels)
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention of the projection, which places the near and far planes
+     * @param originDest
+     *          will hold the ray origin
+     * @param dirDest
+     *          will hold the (unnormalized) ray direction
+     * @return this
      * @since 2.5.0
      */
     Matrix4f unprojectInvRay(float winX, float winY, int[] viewport, DepthRange depthRange, Vector3f originDest, Vector3f dirDest);
@@ -4190,8 +4316,31 @@ public interface Matrix4fc {
     Vector3f unprojectInv(float winX, float winY, float winZ, int[] viewport, Vector3f dest);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Unproject the given window coordinates <code>(winX, winY, winZ)</code> by <code>this</code> matrix using the
+     * specified viewport and depth convention.
+     * <p>
+     * This method differs from {@link #unproject(float, float, float, int[], DepthRange, Vector3f) unproject()} in that
+     * it assumes that <code>this</code> is already the inverse matrix of the original projection matrix. It exists to
+     * avoid recomputing the matrix inverse with every invocation.
+     * <p>
+     * For {@link DepthRange#NEGATIVE_ONE_TO_ONE} this method maps <code>winZ</code> from <code>[0..1]</code> to the NDC
+     * depth <code>2 * winZ - 1</code>, as the overload without a depth range does; for the other ranges
+     * <code>winZ</code> is the NDC depth itself, so the near plane is at <code>winZ = 1</code> for {@link
+     * DepthRange#REVERSED_ZERO_TO_ONE}.
      *
+     * @param winX
+     *          the x-coordinate in window coordinates (pixels)
+     * @param winY
+     *          the y-coordinate in window coordinates (pixels)
+     * @param winZ
+     *          the window depth value in <code>[0..1]</code>
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention of the projection, which determines how <code>winZ</code> is read
+     * @param dest
+     *          will hold the unprojected position
+     * @return dest
      * @since 2.5.0
      */
     Vector3f unprojectInv(float winX, float winY, float winZ, int[] viewport, DepthRange depthRange, Vector3f dest);
@@ -4221,8 +4370,31 @@ public interface Matrix4fc {
     Vector4f project(float x, float y, float z, int[] viewport, Vector4f winCoordsDest);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Project the given <code>(x, y, z)</code> position via <code>this</code> matrix using the specified viewport and
+     * depth convention, and store the resulting window coordinates in <code>winCoordsDest</code>.
+     * <p>
+     * This method transforms the given coordinates by <code>this</code> matrix including perspective division to obtain
+     * normalized device coordinates, and then translates x and y into window coordinates by using the given
+     * <code>viewport</code> settings <code>[x, y, width, height]</code>.
+     * <p>
+     * For {@link DepthRange#NEGATIVE_ONE_TO_ONE} the window depth is <code>0.5 * ndcZ + 0.5</code>, as in the overload
+     * without a depth range; for the other ranges it is the NDC depth itself. Either way it is in <code>[0..1]</code>
+     * for points between the near and far planes, and for {@link DepthRange#REVERSED_ZERO_TO_ONE} the near plane is at
+     * <code>1</code>. The w component of <code>winCoordsDest</code> is set to <code>1.0</code>.
      *
+     * @param x
+     *          the x-coordinate of the position to project
+     * @param y
+     *          the y-coordinate of the position to project
+     * @param z
+     *          the z-coordinate of the position to project
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention of the projection, which determines the window depth
+     * @param winCoordsDest
+     *          will hold the projected window coordinates
+     * @return winCoordsDest
      * @since 2.5.0
      */
     Vector4f project(float x, float y, float z, int[] viewport, DepthRange depthRange, Vector4f winCoordsDest);
@@ -4252,8 +4424,31 @@ public interface Matrix4fc {
     Vector3f project(float x, float y, float z, int[] viewport, Vector3f winCoordsDest);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Project the given <code>(x, y, z)</code> position via <code>this</code> matrix using the specified viewport and
+     * depth convention, and store the resulting window coordinates in <code>winCoordsDest</code>.
+     * <p>
+     * This method transforms the given coordinates by <code>this</code> matrix including perspective division to obtain
+     * normalized device coordinates, and then translates x and y into window coordinates by using the given
+     * <code>viewport</code> settings <code>[x, y, width, height]</code>.
+     * <p>
+     * For {@link DepthRange#NEGATIVE_ONE_TO_ONE} the window depth is <code>0.5 * ndcZ + 0.5</code>, as in the overload
+     * without a depth range; for the other ranges it is the NDC depth itself. Either way it is in <code>[0..1]</code>
+     * for points between the near and far planes, and for {@link DepthRange#REVERSED_ZERO_TO_ONE} the near plane is at
+     * <code>1</code>.
      *
+     * @param x
+     *          the x-coordinate of the position to project
+     * @param y
+     *          the y-coordinate of the position to project
+     * @param z
+     *          the z-coordinate of the position to project
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention of the projection, which determines the window depth
+     * @param winCoordsDest
+     *          will hold the projected window coordinates
+     * @return winCoordsDest
      * @since 2.5.0
      */
     Vector3f project(float x, float y, float z, int[] viewport, DepthRange depthRange, Vector3f winCoordsDest);
@@ -4585,8 +4780,32 @@ public interface Matrix4fc {
     Vector4f frustumPlane(int plane, Vector4f planeEquation);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Calculate a frustum plane of <code>this</code> matrix, which can be a projection matrix or a combined
+     * modelview-projection matrix, with the near and far planes placed for the given depth convention, and store the
+     * result in the given <code>planeEquation</code>.
+     * <p>
+     * The near plane is where the NDC depth equals {@link DepthRange#nearNdc() depthRange.nearNdc()} and the far plane
+     * where it equals {@link DepthRange#farNdc() depthRange.farNdc()}. The other four planes do not depend on the depth
+     * range and are the same as those of {@link #frustumPlane(int, Vector4f)}, which places the near and far planes at
+     * OpenGL's NDC depths <code>-1</code> and <code>+1</code>.
+     * <p>
+     * The plane is given as the <code>(a, b, c, d)</code> of <code>a*x + b*y + c*z + d = 0</code>, normalized so that
+     * <code>(a, b, c)</code> is a unit vector directed "inwards" of the frustum. When <code>(a, b, c)</code> is exactly
+     * zero, as for the far plane of an infinite projection, the result is <code>(0, 0, 0, 1)</code> or
+     * <code>(0, 0, 0, -1)</code>, keeping the sign of <code>d</code>.
      *
+     * @param plane
+     *          one of the six possible planes, given as numeric constants
+     *          {@link #PLANE_NX}, {@link #PLANE_PX},
+     *          {@link #PLANE_NY}, {@link #PLANE_PY},
+     *          {@link #PLANE_NZ} and {@link #PLANE_PZ}
+     * @param depthRange
+     *          the depth convention <code>this</code> projection was built for
+     * @param planeEquation
+     *          will hold the computed plane equation
+     * @return planeEquation
+     * @throws IllegalArgumentException
+     *          if <code>plane</code> is not one of the six plane constants
      * @since 2.5.0
      */
     Vector4f frustumPlane(int plane, DepthRange depthRange, Vector4f planeEquation);
@@ -4616,8 +4835,26 @@ public interface Matrix4fc {
     Vector3f frustumCorner(int corner, Vector3f point);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Compute the corner coordinates of the frustum defined by <code>this</code> matrix, which can be a projection
+     * matrix or a combined modelview-projection matrix, with the near and far planes placed for the given depth
+     * convention, and store the result in the given <code>point</code>.
+     * <p>
+     * The near corners lie at the NDC depth {@link DepthRange#nearNdc() depthRange.nearNdc()} and the far corners at
+     * {@link DepthRange#farNdc() depthRange.farNdc()}. {@link #frustumCorner(int, Vector3f)} assumes OpenGL's
+     * <code>[-1..1]</code>; for a projection built for <code>[0..1]</code> its near corners come out at about half the
+     * near distance. The far corners of an infinite projection are not finite.
      *
+     * @param corner
+     *          one of the eight possible corners, given as numeric constants
+     *          {@link #CORNER_NXNYNZ}, {@link #CORNER_PXNYNZ}, {@link #CORNER_PXPYNZ}, {@link #CORNER_NXPYNZ},
+     *          {@link #CORNER_PXNYPZ}, {@link #CORNER_NXNYPZ}, {@link #CORNER_NXPYPZ}, {@link #CORNER_PXPYPZ}
+     * @param depthRange
+     *          the depth convention <code>this</code> projection was built for
+     * @param point
+     *          will hold the resulting corner point coordinates
+     * @return point
+     * @throws IllegalArgumentException
+     *          if <code>corner</code> is not one of the eight corner constants
      * @since 2.5.0
      */
     Vector3f frustumCorner(int corner, DepthRange depthRange, Vector3f point);
@@ -4706,12 +4943,34 @@ public interface Matrix4fc {
     float perspectiveFar();
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Extract the near clip plane distance from <code>this</code> perspective projection matrix built for the given
+     * depth convention: the view distance whose NDC depth is {@link DepthRange#nearNdc() depthRange.nearNdc()},
+     * computed as <code>m32 / (m22 - nearNdc * m23)</code>.
+     * <p>
+     * This method only works if <code>this</code> is a perspective projection matrix. {@link #perspectiveNear()}
+     * assumes OpenGL's <code>[-1..1]</code>; for a projection built for <code>[0..1]</code> it returns about half the
+     * near distance.
      *
+     * @param depthRange
+     *          the depth convention <code>this</code> projection was built for
+     * @return the near clip plane distance
      * @since 2.5.0
      */
     float perspectiveNear(DepthRange depthRange);
 
+    /**
+     * Extract the far clip plane distance from <code>this</code> perspective projection matrix built for the given
+     * depth convention: the view distance whose NDC depth is {@link DepthRange#farNdc() depthRange.farNdc()}, computed
+     * as <code>m32 / (m22 - farNdc * m23)</code>.
+     * <p>
+     * This method only works if <code>this</code> is a perspective projection matrix. For an infinite projection the
+     * result is infinite, or very large when the depth terms of the matrix are not exact.
+     *
+     * @param depthRange
+     *          the depth convention <code>this</code> projection was built for
+     * @return the far clip plane distance
+     * @since 2.5.0
+     */
     float perspectiveFar(DepthRange depthRange);
 
     /**
@@ -5114,8 +5373,22 @@ public interface Matrix4fc {
     Matrix4f frustumAabb(Vector3f min, Vector3f max);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Compute the axis-aligned bounding box of the frustum described by <code>this</code> matrix, with the near and far
+     * planes placed for the given depth convention, and store the minimum corner coordinates in the given
+     * <code>min</code> and the maximum corner coordinates in the given <code>max</code> vector.
+     * <p>
+     * The matrix <code>this</code> is assumed to be the {@link #invert(Matrix4f) inverse} of the original
+     * view-projection matrix for which to compute the axis-aligned bounding box in world-space. The method transforms
+     * the eight corners of the NDC box <code>[-1..1] x [-1..1] x [nearNdc..farNdc]</code> by <code>this</code> matrix,
+     * with perspective division, and takes their minimum and maximum. For an infinite projection the box is not finite.
      *
+     * @param depthRange
+     *          the depth convention of the view-projection matrix whose inverse is <code>this</code>
+     * @param min
+     *          will hold the minimum corner coordinates of the axis-aligned bounding box
+     * @param max
+     *          will hold the maximum corner coordinates of the axis-aligned bounding box
+     * @return this
      * @since 2.5.0
      */
     Matrix4f frustumAabb(DepthRange depthRange, Vector3f min, Vector3f max);
@@ -5142,8 +5415,34 @@ public interface Matrix4fc {
     Matrix4f projectedGridRange(Matrix4fc projector, float sLower, float sUpper, Matrix4f dest);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Compute the <i>range matrix</i> for the Projected Grid transformation as described in chapter "2.4.2 Creating the
+     * range conversion matrix" of the paper <a
+     * href="http://fileadmin.cs.lth.se/graphics/theses/projects/projgrid/projgrid-lq.pdf">Real-time water rendering -
+     * Introducing the projected grid concept</a> based on the <i>inverse</i> of the view-projection matrix which is
+     * assumed to be <code>this</code>, and store that range matrix into <code>dest</code>.
+     * <p>
+     * The edges of the frustum run between the NDC depths {@link DepthRange#nearNdc() depthRange.nearNdc()} and {@link
+     * DepthRange#farNdc() depthRange.farNdc()}. They are intersected with the planes <code>y = -sLower</code> and
+     * <code>y = -sUpper</code>, and the intersection points, moved to <code>y = 0</code>, are projected by
+     * <code>projector</code>. The range matrix maps the unit square onto the bounding rectangle of the projected
+     * points.
+     * <p>
+     * If the projected grid will not be visible then this method returns <code>null</code> and leaves <code>dest</code>
+     * unchanged.
      *
+     * @param projector
+     *          the projector view-projection transformation
+     * @param sLower
+     *          the lower bound of the grid's vertical displacement; the frustum is intersected with the plane
+     *          <code>y = -sLower</code>
+     * @param sUpper
+     *          the upper bound of the grid's vertical displacement; the frustum is intersected with the plane
+     *          <code>y = -sUpper</code>
+     * @param depthRange
+     *          the depth convention of the view-projection matrix whose inverse is <code>this</code>
+     * @param dest
+     *          will hold the resulting range matrix
+     * @return the computed range matrix; or <code>null</code> if the projected grid will not be visible
      * @since 2.5.0
      */
     Matrix4f projectedGridRange(Matrix4fc projector, float sLower, float sUpper, DepthRange depthRange, Matrix4f dest);
@@ -5169,8 +5468,27 @@ public interface Matrix4fc {
     Matrix4f perspectiveFrustumSlice(float near, float far, Matrix4f dest);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Change the near and far clip plane distances of <code>this</code> perspective frustum transformation matrix, with
+     * the depth terms set for the given depth convention, and store the result in <code>dest</code>.
+     * <p>
+     * Only <code>m22</code> and <code>m32</code> change: <code>m22 = (cn * near - cf * far) / (far - near)</code> and
+     * <code>m32 = (cn - cf) * near * far / (far - near)</code>, where <code>cn</code> and <code>cf</code> are {@link
+     * DepthRange#nearNdc() depthRange.nearNdc()} and {@link DepthRange#farNdc() depthRange.farNdc()}. The field of
+     * view, the aspect ratio and the off-center terms are kept. <code>dest</code> may be <code>this</code>.
+     * <p>
+     * This method only works if <code>this</code> is a perspective projection frustum transformation, for example
+     * obtained via {@link #perspective(float, float, float, float, Matrix4f) perspective()} or {@link #frustum(float,
+     * float, float, float, float, float, Matrix4f) frustum()}.
      *
+     * @param near
+     *          the new near clip plane distance
+     * @param far
+     *          the new far clip plane distance
+     * @param depthRange
+     *          the depth convention of the resulting projection
+     * @param dest
+     *          will hold the resulting matrix
+     * @return dest
      * @since 2.5.0
      */
     Matrix4f perspectiveFrustumSlice(float near, float far, DepthRange depthRange, Matrix4f dest);
@@ -5196,8 +5514,31 @@ public interface Matrix4fc {
     Matrix4f orthoCrop(Matrix4fc view, Matrix4f dest);
 
     /**
-     * The {@link DepthRange} form of the method above.
+     * Build an orthographic projection transformation for the given depth convention that fits the view-projection
+     * transformation represented by <code>this</code> into the given affine <code>view</code> transformation.
+     * <p>
+     * The transformation represented by <code>this</code> must be given as the {@link #invert(Matrix4f) inverse} of a
+     * typical combined camera view-projection transformation built for <code>depthRange</code>, whose projection can be
+     * either orthographic or perspective. Its frustum corners are taken at the NDC depths {@link DepthRange#nearNdc()
+     * depthRange.nearNdc()} and {@link DepthRange#farNdc() depthRange.farNdc()}. The result maps the depth extent of
+     * that frustum in <code>view</code> space to the NDC depth range of <code>depthRange</code>, with the point nearest
+     * to the viewer at the near NDC depth (at <code>1</code> for {@link DepthRange#REVERSED_ZERO_TO_ONE}).
+     * <p>
+     * The <code>view</code> must be an {@link #isAffine() affine} transformation, which in the application of Cascaded
+     * Shadow Maps is usually the light view transformation.
+     * <p>
+     * Reference: <a
+     * href="http://developer.download.nvidia.com/SDK/10.5/opengl/screenshots/samples/cascaded_shadow_maps.html">OpenGL
+     * SDK - Cascaded Shadow Maps</a>
      *
+     * @param view
+     *          the view transformation to build a corresponding orthographic projection to fit the frustum of
+     *          <code>this</code>
+     * @param depthRange
+     *          the depth convention of the view-projection matrix whose inverse is <code>this</code>, and of the result
+     * @param dest
+     *          will hold the crop projection transformation
+     * @return dest
      * @since 2.5.0
      */
     Matrix4f orthoCrop(Matrix4fc view, DepthRange depthRange, Matrix4f dest);
@@ -6300,6 +6641,22 @@ public interface Matrix4fc {
     boolean isFinite();
 
     /**
+     * Same as {@link #unproject(float, float, float, int[], DepthRange, Vector4f)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param winX
+     *          the x-coordinate in window coordinates (pixels)
+     * @param winY
+     *          the y-coordinate in window coordinates (pixels)
+     * @param winZ
+     *          the window depth value in <code>[0..1]</code>
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention
+     * @param dest
+     *          will hold the result
+     * @return dest
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6308,6 +6665,22 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #unproject(float, float, float, int[], DepthRange, Vector3f)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param winX
+     *          the x-coordinate in window coordinates (pixels)
+     * @param winY
+     *          the y-coordinate in window coordinates (pixels)
+     * @param winZ
+     *          the window depth value in <code>[0..1]</code>
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention
+     * @param dest
+     *          will hold the result
+     * @return dest
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6316,6 +6689,22 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #unprojectRay(float, float, int[], DepthRange, Vector3f, Vector3f)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param winX
+     *          the x-coordinate in window coordinates (pixels)
+     * @param winY
+     *          the y-coordinate in window coordinates (pixels)
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention
+     * @param originDest
+     *          will hold the ray origin
+     * @param dirDest
+     *          will hold the (unnormalized) ray direction
+     * @return this
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6324,6 +6713,22 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #unprojectInv(float, float, float, int[], DepthRange, Vector4f)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param winX
+     *          the x-coordinate in window coordinates (pixels)
+     * @param winY
+     *          the y-coordinate in window coordinates (pixels)
+     * @param winZ
+     *          the window depth value in <code>[0..1]</code>
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention
+     * @param dest
+     *          will hold the result
+     * @return dest
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6332,6 +6737,22 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #unprojectInvRay(float, float, int[], DepthRange, Vector3f, Vector3f)}, with
+     * <code>depthRange</code> converted to the core {@link DepthRange}.
+     *
+     * @param winX
+     *          the x-coordinate in window coordinates (pixels)
+     * @param winY
+     *          the y-coordinate in window coordinates (pixels)
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention
+     * @param originDest
+     *          will hold the ray origin
+     * @param dirDest
+     *          will hold the (unnormalized) ray direction
+     * @return this
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6340,6 +6761,22 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #unprojectInv(float, float, float, int[], DepthRange, Vector3f)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param winX
+     *          the x-coordinate in window coordinates (pixels)
+     * @param winY
+     *          the y-coordinate in window coordinates (pixels)
+     * @param winZ
+     *          the window depth value in <code>[0..1]</code>
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention
+     * @param dest
+     *          will hold the result
+     * @return dest
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6348,6 +6785,22 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #project(float, float, float, int[], DepthRange, Vector4f)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param x
+     *          the x-coordinate of the position to project
+     * @param y
+     *          the y-coordinate of the position to project
+     * @param z
+     *          the z-coordinate of the position to project
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention
+     * @param winCoordsDest
+     *          will hold the projected window coordinates
+     * @return winCoordsDest
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6356,6 +6809,22 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #project(float, float, float, int[], DepthRange, Vector3f)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param x
+     *          the x-coordinate of the position to project
+     * @param y
+     *          the y-coordinate of the position to project
+     * @param z
+     *          the z-coordinate of the position to project
+     * @param viewport
+     *          the viewport described by <code>[x, y, width, height]</code>
+     * @param depthRange
+     *          the depth convention
+     * @param winCoordsDest
+     *          will hold the projected window coordinates
+     * @return winCoordsDest
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6364,6 +6833,16 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #frustumPlane(int, DepthRange, Vector4f)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param plane
+     *          one of the six plane constants, such as {@link #PLANE_NX}
+     * @param depthRange
+     *          the depth convention
+     * @param planeEquation
+     *          will hold the computed plane equation
+     * @return planeEquation
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6372,6 +6851,16 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #frustumCorner(int, DepthRange, Vector3f)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param corner
+     *          one of the eight corner constants, such as {@link #CORNER_NXNYNZ}
+     * @param depthRange
+     *          the depth convention
+     * @param point
+     *          will hold the resulting corner point coordinates
+     * @return point
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6380,6 +6869,12 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #perspectiveNear(DepthRange)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param depthRange
+     *          the depth convention
+     * @return the near clip plane distance
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6388,6 +6883,12 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #perspectiveFar(DepthRange)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param depthRange
+     *          the depth convention
+     * @return the far clip plane distance
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6396,6 +6897,16 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #frustumAabb(DepthRange, Vector3f, Vector3f)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param depthRange
+     *          the depth convention
+     * @param min
+     *          will hold the minimum corner coordinates of the axis-aligned bounding box
+     * @param max
+     *          will hold the maximum corner coordinates of the axis-aligned bounding box
+     * @return this
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6404,6 +6915,20 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #projectedGridRange(Matrix4fc, float, float, DepthRange, Matrix4f)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param projector
+     *          the projector view-projection transformation
+     * @param sLower
+     *          the lower bound of the grid's vertical displacement
+     * @param sUpper
+     *          the upper bound of the grid's vertical displacement
+     * @param depthRange
+     *          the depth convention
+     * @param dest
+     *          will hold the result
+     * @return the computed range matrix; or <code>null</code> if the projected grid will not be visible
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6412,6 +6937,18 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #perspectiveFrustumSlice(float, float, DepthRange, Matrix4f)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param near
+     *          the new near clip plane distance
+     * @param far
+     *          the new far clip plane distance
+     * @param depthRange
+     *          the depth convention
+     * @param dest
+     *          will hold the result
+     * @return dest
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)
@@ -6420,6 +6957,16 @@ public interface Matrix4fc {
     }
 
     /**
+     * Same as {@link #orthoCrop(Matrix4fc, DepthRange, Matrix4f)}, with <code>depthRange</code>
+     * converted to the core {@link DepthRange}.
+     *
+     * @param view
+     *          the view transformation to fit the frustum of <code>this</code> into
+     * @param depthRange
+     *          the depth convention
+     * @param dest
+     *          will hold the result
+     * @return dest
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)

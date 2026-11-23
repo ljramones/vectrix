@@ -44,17 +44,31 @@ public final class Attention {
     }
 
     /**
-     * Forward pass.
+     * Forward pass: writes the attention probabilities to {@code p} and the attended value to {@code out}.
+     * {@code p}, {@code out} and {@code scratch} must not overlap each other or the inputs.
      *
      * @param q the query, {@code d} floats
+     * @param qOff the offset of the query in {@code q}
+     * @param d the key dimension, at least 1
      * @param k the keys, {@code t} rows of {@code d} floats with stride {@code ldk}
+     * @param kOff the offset of key row 0 in {@code k}
+     * @param ldk the row stride of the keys
      * @param v the values, {@code t} rows of {@code dv} floats with stride {@code ldv}
+     * @param vOff the offset of value row 0 in {@code v}
+     * @param ldv the row stride of the values
+     * @param dv the value dimension, at least 1
      * @param t the number of keys, at least 1
      * @param scale usually {@code 1/√d}
      * @param mask {@code t} additive biases (for example {@code -∞} for excluded keys), or {@code null}
+     * @param maskOff the offset in {@code mask}; ignored if {@code mask} is null
      * @param p receives the {@code t} attention probabilities
+     * @param pOff the offset in {@code p}
      * @param out receives {@code dv} floats
+     * @param outOff the offset in {@code out}
      * @param scratch {@code t} floats of working memory
+     * @param scratchOff the offset in {@code scratch}
+     * @throws IllegalArgumentException if {@code t}, {@code d} or {@code dv} is below 1, or an array is too short for
+     *         its offset
      */
     public static void forward(float[] q, int qOff, int d, float[] k, int kOff, int ldk, float[] v, int vOff, int ldv,
             int dv, int t, float scale, float[] mask, int maskOff, float[] p, int pOff, float[] out, int outOff,
@@ -82,8 +96,36 @@ public final class Attention {
      * and {@code dv} (keys and values are shared by all queries):
      * {@code dV_j += p_j·dOut}, {@code dp_j = dOut·V_j}, {@code ds = softmax'(p)·dp},
      * {@code dq = scale·Σ ds_j·K_j}, {@code dK_j += scale·ds_j·q}.
+     * <p>
+     * The gradient arrays must not overlap each other, the inputs or {@code scratch}. Only {@code scratch} and
+     * {@code dq} are checked before {@code dV} starts to accumulate; a bad offset in another array throws part way.
      *
+     * @param q the query, {@code d} floats
+     * @param qOff the offset of the query in {@code q}
+     * @param d the key dimension, at least 1
+     * @param k the keys, {@code t} rows of {@code d} floats with stride {@code ldk}
+     * @param kOff the offset of key row 0 in {@code k}
+     * @param ldk the row stride of the keys, also used for {@code dk}
+     * @param v the values, {@code t} rows of {@code dv} floats with stride {@code ldv}
+     * @param vOff the offset of value row 0 in {@code v}
+     * @param ldv the row stride of the values, also used for {@code dV}
+     * @param dv the value dimension, at least 1
+     * @param t the number of keys, at least 1
+     * @param scale the scale used in the forward pass
+     * @param p the {@code t} probabilities from the forward pass
+     * @param pOff the offset in {@code p}
+     * @param dOut the gradient of the output, {@code dv} floats
+     * @param dOutOff the offset in {@code dOut}
+     * @param dq receives the gradient of the query, {@code d} floats
+     * @param dqOff the offset in {@code dq}
+     * @param dk the key gradients, {@code t} rows with stride {@code ldk}, added to
+     * @param dkOff the offset of row 0 in {@code dk}
+     * @param dV the value gradients, {@code t} rows with stride {@code ldv}, added to
+     * @param dvOff the offset of row 0 in {@code dV}
      * @param scratch {@code 2t} floats of working memory
+     * @param scratchOff the offset in {@code scratch}
+     * @throws IllegalArgumentException if {@code t}, {@code d} or {@code dv} is below 1, or an array is too short for
+     *         its offset
      */
     public static void backward(float[] q, int qOff, int d, float[] k, int kOff, int ldk, float[] v, int vOff, int ldv,
             int dv, int t, float scale, float[] p, int pOff, float[] dOut, int dOutOff, float[] dq, int dqOff,
@@ -117,7 +159,28 @@ public final class Attention {
      * {@code heads × t} probabilities for the backward pass. For causal self-attention over a sequence, call this
      * for each position with {@code t = position + 1}.
      *
+     * @param q the queries, {@code heads × d} floats
+     * @param qOff the offset of the queries in {@code q}
+     * @param heads the number of query heads, a positive multiple of {@code kvHeads}
+     * @param d the key dimension per head, at least 1
+     * @param kCache the key cache, {@code t} rows of {@code kvHeads × d} floats
+     * @param kOff the offset of row 0 in {@code kCache}
+     * @param vCache the value cache, {@code t} rows of {@code kvHeads × dv} floats
+     * @param vOff the offset of row 0 in {@code vCache}
+     * @param kvHeads the number of key/value heads, at least 1
+     * @param dv the value dimension per head, at least 1
+     * @param t the number of cached positions, at least 1
+     * @param scale usually {@code 1/√d}
+     * @param mask {@code t} additive biases shared by every head, or {@code null}
+     * @param maskOff the offset in {@code mask}; ignored if {@code mask} is null
+     * @param p receives {@code heads × t} probabilities
+     * @param pOff the offset in {@code p}
+     * @param out receives {@code heads × dv} floats
+     * @param outOff the offset in {@code out}
      * @param scratch {@code t} floats of working memory
+     * @param scratchOff the offset in {@code scratch}
+     * @throws IllegalArgumentException if {@code heads} is not a positive multiple of {@code kvHeads}, a dimension is
+     *         below 1, or an array is too short for its offset
      */
     public static void groupedQuery(float[] q, int qOff, int heads, int d, float[] kCache, int kOff, float[] vCache,
             int vOff, int kvHeads, int dv, int t, float scale, float[] mask, int maskOff, float[] p, int pOff, float[] out,
@@ -135,7 +198,32 @@ public final class Attention {
      * gradients into {@code dk} and {@code dV}, laid out like the caches; query heads that share a key/value head add
      * into it in head order.
      *
+     * @param q the queries, {@code heads × d} floats
+     * @param qOff the offset of the queries in {@code q}
+     * @param heads the number of query heads, a positive multiple of {@code kvHeads}
+     * @param d the key dimension per head, at least 1
+     * @param kCache the key cache, {@code t} rows of {@code kvHeads × d} floats
+     * @param kOff the offset of row 0 in {@code kCache}
+     * @param vCache the value cache, {@code t} rows of {@code kvHeads × dv} floats
+     * @param vOff the offset of row 0 in {@code vCache}
+     * @param kvHeads the number of key/value heads, at least 1
+     * @param dv the value dimension per head, at least 1
+     * @param t the number of cached positions, at least 1
+     * @param scale the scale used in the forward pass
+     * @param p the {@code heads × t} probabilities from the forward pass
+     * @param pOff the offset in {@code p}
+     * @param dOut the gradient of the output, {@code heads × dv} floats
+     * @param dOutOff the offset in {@code dOut}
+     * @param dq receives the query gradients, {@code heads × d} floats
+     * @param dqOff the offset in {@code dq}
+     * @param dk the key gradients, laid out like {@code kCache}, added to
+     * @param dkOff the offset of row 0 in {@code dk}
+     * @param dV the value gradients, laid out like {@code vCache}, added to
+     * @param dvOff the offset of row 0 in {@code dV}
      * @param scratch {@code 2t} floats of working memory
+     * @param scratchOff the offset in {@code scratch}
+     * @throws IllegalArgumentException if {@code heads} is not a positive multiple of {@code kvHeads}, a dimension is
+     *         below 1, or an array is too short for its offset
      */
     public static void groupedQueryBackward(float[] q, int qOff, int heads, int d, float[] kCache, int kOff,
             float[] vCache, int vOff, int kvHeads, int dv, int t, float scale, float[] p, int pOff, float[] dOut,

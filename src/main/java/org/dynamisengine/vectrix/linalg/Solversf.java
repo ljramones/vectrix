@@ -33,8 +33,12 @@ import org.dynamisengine.vectrix.core.Vector4f;
 import org.dynamisengine.vectrix.core.Vector4fc;
 
 /**
- * Small dense linear solvers (single precision; computed in double) for 3×3 and 4×4 systems: Cholesky and LDLᵀ for symmetric matrices,
- * LU with partial pivoting for general ones, and condition-number estimates. Prefer these to forming an inverse.
+ * Small dense linear solvers (single precision; computed in double) for 3×3 and 4×4 systems: Cholesky and LDLᵀ for
+ * symmetric matrices, LU with partial pivoting for general ones, and 1-norm condition numbers. Prefer these to
+ * forming an inverse. Inputs are widened to double and results are rounded to float once.
+ * <p>
+ * Every input is read before an output is written, so outputs may alias inputs. The methods use a per-thread
+ * workspace: they are safe to call from any thread and do not allocate after a thread's first call.
  *
  * @since 2.2.0
  */
@@ -51,7 +55,15 @@ public final class Solversf {
         return b;
     }
 
-    /** Cholesky factor {@code a = L Lᵀ} of a symmetric positive-definite matrix into {@code lower}; false if {@code a} is not. */
+    /**
+     * Computes the Cholesky factor {@code a = L Lᵀ} of a symmetric positive-definite matrix. Only the lower triangle
+     * of {@code a} is read. {@code lower} may be {@code a}.
+     *
+     * @param a the symmetric positive-definite matrix
+     * @param lower receives the lower-triangular factor {@code L} (zeros above the diagonal); unchanged on failure
+     * @return {@code true} on success, {@code false} if a pivot is not positive (the matrix is not positive definite,
+     *         or contains NaN)
+     */
     public static boolean cholesky(Matrix3fc a, Matrix3f lower) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] l = ws.out9a;
@@ -62,7 +74,15 @@ public final class Solversf {
         return true;
     }
 
-    /** Solves {@code L Lᵀ x = b} with a factor from {@link #cholesky(Matrix3fc, Matrix3f)}. */
+    /**
+     * Solves {@code L Lᵀ x = b} with a factor from {@link #cholesky(Matrix3fc, Matrix3f)}. Nothing is checked: a zero
+     * on the diagonal of {@code lower} gives infinite or NaN components. {@code dest} may be {@code b}.
+     *
+     * @param lower the lower-triangular Cholesky factor
+     * @param b the right-hand side
+     * @param dest receives the solution {@code x}
+     * @return {@code dest}
+     */
     public static Vector3f solveCholesky(Matrix3fc lower, Vector3fc b, Vector3f dest) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] x = ws.out3a;
@@ -70,7 +90,16 @@ public final class Solversf {
         return dest.set((float) x[0], (float) x[1], (float) x[2]);
     }
 
-    /** {@code a = L diag(d) Lᵀ} with unit lower-triangular {@code L}, for symmetric (possibly indefinite) {@code a}; false on a zero pivot. */
+    /**
+     * Computes the factorization {@code a = L diag(d) Lᵀ} with unit lower-triangular {@code L}, for a symmetric
+     * (possibly indefinite) matrix, without pivoting. Only the lower triangle of {@code a} is read. {@code unitLower}
+     * may be {@code a}.
+     *
+     * @param a the symmetric matrix
+     * @param unitLower receives {@code L}, with ones on the diagonal; unchanged on failure
+     * @param d receives the diagonal of {@code diag(d)}; unchanged on failure
+     * @return {@code true} on success, {@code false} if a pivot is zero or not finite
+     */
     public static boolean ldlt(Matrix3fc a, Matrix3f unitLower, Vector3f d) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] l = ws.out9a, dd = ws.out3a;
@@ -82,7 +111,16 @@ public final class Solversf {
         return true;
     }
 
-    /** Solves {@code L diag(d) Lᵀ x = b} with factors from {@link #ldlt}. */
+    /**
+     * Solves {@code L diag(d) Lᵀ x = b} with factors from {@link #ldlt}. Nothing is checked: a zero in {@code d}
+     * gives infinite or NaN components. {@code dest} may be any of the inputs.
+     *
+     * @param unitLower the unit lower-triangular factor {@code L}
+     * @param d the diagonal factor
+     * @param b the right-hand side
+     * @param dest receives the solution {@code x}
+     * @return {@code dest}
+     */
     public static Vector3f solveLdlt(Matrix3fc unitLower, Vector3fc d, Vector3fc b, Vector3f dest) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] x = ws.out3a, dd = ws.out3b;
@@ -93,7 +131,16 @@ public final class Solversf {
         return dest.set((float) x[0], (float) x[1], (float) x[2]);
     }
 
-    /** Solves {@code a x = b} by LU with partial pivoting; false (leaving {@code dest} unchanged) if {@code a} is singular. */
+    /**
+     * Solves {@code a x = b} by LU decomposition with partial pivoting. Only an exactly zero pivot counts as
+     * singular; a nearly singular matrix gives a large, inaccurate solution (see {@link #condition1(Matrix3fc)}).
+     * {@code dest} may be {@code b}.
+     *
+     * @param a the matrix
+     * @param b the right-hand side
+     * @param dest receives the solution {@code x}; unchanged if {@code a} is singular
+     * @return {@code true} on success, {@code false} if {@code a} is singular
+     */
     public static boolean solve(Matrix3fc a, Vector3fc b, Vector3f dest) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] lu = ws.lu16, x = ws.out3a;
@@ -106,7 +153,15 @@ public final class Solversf {
         return true;
     }
 
-    /** Solves {@code a x = b} for 4×4 {@code a} by LU with partial pivoting; false if {@code a} is singular. */
+    /**
+     * Solves {@code a x = b} for a 4×4 matrix by LU decomposition with partial pivoting. Only an exactly zero pivot
+     * counts as singular. {@code dest} may be {@code b}.
+     *
+     * @param a the matrix
+     * @param b the right-hand side
+     * @param dest receives the solution {@code x}; unchanged if {@code a} is singular
+     * @return {@code true} on success, {@code false} if {@code a} is singular
+     */
     public static boolean solve(Matrix4fc a, Vector4fc b, Vector4f dest) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] lu = ws.lu16, x = ws.out3a;
@@ -119,7 +174,15 @@ public final class Solversf {
         return true;
     }
 
-    /** Cholesky factor of a symmetric positive-definite 4×4 matrix; false if it is not. */
+    /**
+     * Computes the Cholesky factor {@code a = L Lᵀ} of a symmetric positive-definite 4×4 matrix. Only the lower
+     * triangle of {@code a} is read. {@code lower} may be {@code a}.
+     *
+     * @param a the symmetric positive-definite matrix
+     * @param lower receives the lower-triangular factor {@code L} (zeros above the diagonal); unchanged on failure
+     * @return {@code true} on success, {@code false} if a pivot is not positive (the matrix is not positive definite,
+     *         or contains NaN)
+     */
     public static boolean cholesky(Matrix4fc a, Matrix4f lower) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] l = ws.out9a;
@@ -130,7 +193,15 @@ public final class Solversf {
         return true;
     }
 
-    /** Solves {@code L Lᵀ x = b} with a 4×4 Cholesky factor. */
+    /**
+     * Solves {@code L Lᵀ x = b} with a 4×4 factor from {@link #cholesky(Matrix4fc, Matrix4f)}. Nothing is checked: a
+     * zero on the diagonal of {@code lower} gives infinite or NaN components. {@code dest} may be {@code b}.
+     *
+     * @param lower the lower-triangular Cholesky factor
+     * @param b the right-hand side
+     * @param dest receives the solution {@code x}
+     * @return {@code dest}
+     */
     public static Vector4f solveCholesky(Matrix4fc lower, Vector4fc b, Vector4f dest) {
         LinalgKernels.Workspace ws = LinalgKernels.ws();
         double[] x = ws.out3a;
@@ -138,12 +209,24 @@ public final class Solversf {
         return dest.set((float) x[0], (float) x[1], (float) x[2], (float) x[3]);
     }
 
-    /** 1-norm condition number {@code ||a||₁ ||a⁻¹||₁}; infinite for a singular matrix. */
+    /**
+     * Returns the 1-norm condition number {@code ||a||₁ ||a⁻¹||₁}, computed exactly from an LU decomposition (not
+     * estimated). Large values mean that solving with {@code a} loses about {@code log10} of that many digits.
+     *
+     * @param a the matrix
+     * @return the condition number, at least 1, or {@code POSITIVE_INFINITY} if a pivot is exactly zero
+     */
     public static float condition1(Matrix3fc a) {
         return (float) LinalgKernels.condition1(Conv.rm(a, LinalgKernels.ws().in9), 3);
     }
 
-    /** 1-norm condition number of a 4×4 matrix; infinite for a singular matrix. */
+    /**
+     * Returns the 1-norm condition number {@code ||a||₁ ||a⁻¹||₁} of a 4×4 matrix, computed exactly from an LU
+     * decomposition.
+     *
+     * @param a the matrix
+     * @return the condition number, at least 1, or {@code POSITIVE_INFINITY} if a pivot is exactly zero
+     */
     public static float condition1(Matrix4fc a) {
         return (float) LinalgKernels.condition1(Conv.rm(a, LinalgKernels.ws().in9), 4);
     }

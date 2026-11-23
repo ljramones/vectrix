@@ -71,7 +71,17 @@ public final class ShL1 {
         return r0 * (a + (1.0 - a) * (p + 1.0) * AccurateMath.pow(java.lang.Math.max(q, 0.0), p));
     }
 
-    /** Linear L1 irradiance at unit normal {@code (nx, ny, nz)}. */
+    /**
+     * Returns the linear L1 irradiance {@code R0 + G · n} at a normal (see the class comment); it can be
+     * negative.
+     *
+     * @param radiance radiance coefficients; only coefficients 0..3 are read
+     * @param nx the x component of the unit normal; it is not normalized
+     * @param ny the y component of the unit normal
+     * @param nz the z component of the unit normal
+     * @param dest receives the RGB irradiance
+     * @return {@code dest}
+     */
     public static Vector3f irradianceLinear(ShCoeffs9f radiance, float nx, float ny, float nz, Vector3f dest) {
         float[] c = radiance.c;
         return dest.set((float) linear(c[0], c[3], c[6], c[9], nx, ny, nz),
@@ -79,7 +89,17 @@ public final class ShL1 {
                 (float) linear(c[2], c[5], c[8], c[11], nx, ny, nz));
     }
 
-    /** Non-linear (Hazel) L1 irradiance at unit normal {@code (nx, ny, nz)}. */
+    /**
+     * Returns the non-linear (Hazel) L1 irradiance at a normal (see the class comment); never negative.
+     * Zero for a channel whose {@code R0} is not positive.
+     *
+     * @param radiance radiance coefficients; only coefficients 0..3 are read
+     * @param nx the x component of the unit normal; it is not normalized
+     * @param ny the y component of the unit normal
+     * @param nz the z component of the unit normal
+     * @param dest receives the RGB irradiance
+     * @return {@code dest}
+     */
     public static Vector3f irradianceNonLinear(ShCoeffs9f radiance, float nx, float ny, float nz, Vector3f dest) {
         float[] c = radiance.c;
         return dest.set((float) nonLinear(c[0], c[3], c[6], c[9], nx, ny, nz),
@@ -87,14 +107,34 @@ public final class ShL1 {
                 (float) nonLinear(c[2], c[5], c[8], c[11], nx, ny, nz));
     }
 
-    /** Double-precision {@link #irradianceLinear(ShCoeffs9f, float, float, float, Vector3f)}. */
+    /**
+     * Double-precision version: returns the linear L1 irradiance {@code R0 + G · n} at a normal (see the class
+     * comment); it can be negative.
+     *
+     * @param radiance radiance coefficients; only coefficients 0..3 are read
+     * @param nx the x component of the unit normal; it is not normalized
+     * @param ny the y component of the unit normal
+     * @param nz the z component of the unit normal
+     * @param dest receives the RGB irradiance
+     * @return {@code dest}
+     */
     public static Vector3d irradianceLinear(ShCoeffs9d radiance, double nx, double ny, double nz, Vector3d dest) {
         double[] c = radiance.c;
         return dest.set(linear(c[0], c[3], c[6], c[9], nx, ny, nz), linear(c[1], c[4], c[7], c[10], nx, ny, nz),
                 linear(c[2], c[5], c[8], c[11], nx, ny, nz));
     }
 
-    /** Double-precision {@link #irradianceNonLinear(ShCoeffs9f, float, float, float, Vector3f)}. */
+    /**
+     * Double-precision version: returns the non-linear (Hazel) L1 irradiance at a normal (see the class comment);
+     * never negative. Zero for a channel whose {@code R0} is not positive.
+     *
+     * @param radiance radiance coefficients; only coefficients 0..3 are read
+     * @param nx the x component of the unit normal; it is not normalized
+     * @param ny the y component of the unit normal
+     * @param nz the z component of the unit normal
+     * @param dest receives the RGB irradiance
+     * @return {@code dest}
+     */
     public static Vector3d irradianceNonLinear(ShCoeffs9d radiance, double nx, double ny, double nz, Vector3d dest) {
         double[] c = radiance.c;
         return dest.set(nonLinear(c[0], c[3], c[6], c[9], nx, ny, nz),

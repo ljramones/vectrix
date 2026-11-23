@@ -37,5 +37,10 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 @Target({ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD, ElementType.PACKAGE})
 public @interface Internal {
+    /**
+     * An optional note on why the element is internal or what to use instead.
+     *
+     * @return the note, empty by default
+     */
     String value() default "";
 }

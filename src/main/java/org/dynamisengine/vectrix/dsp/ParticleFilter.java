@@ -35,6 +35,9 @@ import org.dynamisengine.vectrix.core.ReproducibleMath;
  * {@link #normalizeLogWeights}; and when {@link #effectiveSampleSize} falls below about half the particles,
  * {@link #systematicResample} with one uniform number and {@link #gather}. Exponentials and logarithms use
  * {@link org.dynamisengine.vectrix.core.ReproducibleMath}'s reproducible functions; nothing allocates.
+ * <p>
+ * All arrays are used from index 0, and particles are stored contiguously, {@code dim} doubles each. Only
+ * {@link #normalizeLogWeights} validates its arguments; the other methods rely on Java's array bounds checks.
  *
  * @since 2.5.0
  */
@@ -46,10 +49,14 @@ public final class ParticleFilter {
     /**
      * Normalizes log-weights into weights that sum to 1, without underflow (the maximum is subtracted first).
      *
+     * Log-weights more than 700 below the maximum get the weight of {@code exp(-700)} relative to it.
+     *
      * @param logW {@code count} log-weights
+     * @param count the number of particles, at least 1
      * @param w receives {@code count} weights (may be {@code logW})
      * @return {@code log(Σ e^logW) - log(count)}: the step's log-evidence increment (log mean weight), useful for
      *         model comparison
+     * @throws IllegalArgumentException if {@code count < 1} or every log-weight is negative infinity
      */
     public static double normalizeLogWeights(double[] logW, int count, double[] w) {
         if (count < 1) {
@@ -74,7 +81,13 @@ public final class ParticleFilter {
         return mx + ReproducibleMath.log(sum) - ReproducibleMath.log((double) count);
     }
 
-    /** The effective sample size {@code 1 / Σ w²} of normalized weights, between 1 and {@code count}. */
+    /**
+     * The effective sample size {@code 1 / Σ w²} of normalized weights, between 1 and {@code count}.
+     *
+     * @param w {@code count} normalized weights
+     * @param count the number of particles
+     * @return the effective number of particles
+     */
     public static double effectiveSampleSize(double[] w, int count) {
         double s = 0;
         for (int i = 0; i < count; i++) {
@@ -88,6 +101,8 @@ public final class ParticleFilter {
      * weights. Each particle is chosen {@code ⌊count·w⌋} or {@code ⌈count·w⌉} times, with the lowest variance of the
      * standard schemes.
      *
+     * @param w {@code count} normalized weights
+     * @param count the number of particles, at least 1
      * @param u a uniform number in [0, 1)
      * @param indices receives {@code count} particle indices, ascending
      */
@@ -107,6 +122,12 @@ public final class ParticleFilter {
     /**
      * Copies the chosen particles: {@code out[j] = particles[indices[j]]}, each particle {@code dim} doubles.
      * {@code out} must not overlap {@code particles}.
+     *
+     * @param particles the particles, {@code dim} doubles each
+     * @param dim the number of doubles per particle
+     * @param count the number of particles to copy
+     * @param indices {@code count} indices into {@code particles}, as {@link #systematicResample} writes them
+     * @param out receives {@code count·dim} doubles
      */
     public static void gather(double[] particles, int dim, int count, int[] indices, double[] out) {
         for (int j = 0; j < count; j++) {
@@ -114,7 +135,15 @@ public final class ParticleFilter {
         }
     }
 
-    /** The weighted mean of the particles ({@code dim} doubles each) into {@code mean}. */
+    /**
+     * The weighted mean of the particles ({@code dim} doubles each) into {@code mean}.
+     *
+     * @param particles the particles, {@code dim} doubles each
+     * @param dim the number of doubles per particle
+     * @param count the number of particles
+     * @param w {@code count} weights, normally normalized
+     * @param mean receives {@code dim} doubles; must not overlap {@code particles} or {@code w}
+     */
     public static void mean(double[] particles, int dim, int count, double[] w, double[] mean) {
         for (int a = 0; a < dim; a++) {
             double v = 0;

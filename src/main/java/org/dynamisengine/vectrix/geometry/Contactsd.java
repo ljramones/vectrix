@@ -28,20 +28,22 @@ import org.dynamisengine.vectrix.core.Vector3dc;
 
 /**
  * Contact kernels for pairs of primitive volumes (double precision): penetration depth, contact normal and contact
- * point. These are pure functions over coordinates. Shape types, manifolds, contact persistence and solvers belong
- * to the collision library.
+ * point. These are pure functions over coordinates. Shape types, manifolds, contact persistence and solvers belong to
+ * the collision library.
  * <p>
  * Conventions shared by every function:
  * <ul>
- * <li><b>Return value:</b> the signed depth. It is positive when the volumes overlap: the distance to move the
- * second volume along {@code normal} to separate them. It is {@code 0} when they touch, and minus the separation
- * distance when they are apart.</li>
+ * <li><b>Return value:</b> the signed depth. It is positive when the volumes overlap: the distance to move the second
+ * volume along {@code normal} to separate them. It is {@code 0} when they touch, and minus the separation distance when
+ * they are apart.</li>
  * <li><b>{@code normal}:</b> unit length, pointing from the first volume to the second.</li>
- * <li><b>{@code point}:</b> the midpoint between the two volumes' deepest points along the normal (their closest
- * points when apart), except where a function documents otherwise.</li>
+ * <li><b>{@code point}:</b> the midpoint between the two volumes' deepest points along the normal (their closest points
+ * when apart), except where a function documents otherwise.</li>
+ * <li><b>Outputs:</b> {@code normal} and {@code point} must be different objects; either may be one of the input
+ * vectors. No function allocates, and all are safe to call from any thread.</li>
  * </ul>
- * For an oriented box, transform the other volume into the box's frame, call the AABB version, then rotate the
- * normal and point back.
+ * For an oriented box, transform the other volume into the box's frame, call the AABB version, then rotate the normal
+ * and point back.
  *
  * @since 2.4.0
  */
@@ -50,8 +52,15 @@ public final class Contactsd {
     }
 
     /**
-     * Sphere {@code (c0, r0)} against sphere {@code (c1, r1)}. Coincident centers give the normal {@code +X}.
+     * Computes the contact between sphere {@code (c0, r0)} and sphere {@code (c1, r1)}. The point is the midpoint of
+     * {@code c0 + r0 n} and {@code c1 - r1 n}. Coincident centers give the normal {@code +X}.
      *
+     * @param c0 the center of the first sphere
+     * @param r0 the radius of the first sphere (not squared)
+     * @param c1 the center of the second sphere
+     * @param r1 the radius of the second sphere (not squared)
+     * @param normal receives the unit normal from the first sphere to the second
+     * @param point receives the contact point
      * @return the signed depth {@code r0 + r1 - |c1 - c0|}
      */
     public static double sphereSphere(Vector3dc c0, double r0, Vector3dc c1, double r1, Vector3d normal, Vector3d point) {
@@ -70,7 +79,18 @@ public final class Contactsd {
         return r0 + r1 - dist;
     }
 
-    /** Whether the solid spheres overlap or touch. Unlike {@link Intersectiond#testSphereSphere}, this includes containment. */
+    /**
+     * Returns whether the solid spheres overlap or touch, including when one contains the other. The radii are not
+     * squared. This differs from {@link Intersectiond#testSphereSphere(Vector3dc, double, Vector3dc, double)}, which
+     * takes squared radii and tests whether the surfaces meet, so it returns false when one sphere lies strictly inside
+     * the other.
+     *
+     * @param c0 the center of the first sphere
+     * @param r0 the radius of the first sphere
+     * @param c1 the center of the second sphere
+     * @param r1 the radius of the second sphere
+     * @return whether the distance between the centers is at most {@code r0 + r1}, computed in double
+     */
     public static boolean testSphereSphere(Vector3dc c0, double r0, Vector3dc c1, double r1) {
         double dx = (double) c1.x() - c0.x(), dy = (double) c1.y() - c0.y(), dz = (double) c1.z() - c0.z();
         double r = (double) r0 + r1;
@@ -78,9 +98,19 @@ public final class Contactsd {
     }
 
     /**
-     * Box {@code [minA, maxA]} against box {@code [minB, maxB]}. When they overlap, the normal is the axis direction
-     * with the smallest push that separates them (the exact minimum translation), and the point is the center of the
-     * overlap region. When they are apart, the normal and depth come from the closest points.
+     * Computes the contact between box {@code [minA, maxA]} and box {@code [minB, maxB]}. When they overlap or touch,
+     * the normal is the axis direction with the smallest push that separates them (the exact minimum translation; ties
+     * go to the first of +X, -X, +Y, -Y, +Z, -Z), and the point is the center of the overlap region. When they are
+     * apart, the normal and depth come from the closest points, and the point is the midpoint between them.
+     *
+     * @param minA the minimum corner of the first box
+     * @param maxA the maximum corner of the first box
+     * @param minB the minimum corner of the second box
+     * @param maxB the maximum corner of the second box
+     * @param normal receives the unit normal from the first box to the second
+     * @param point receives the contact point
+     * @return the signed depth: the minimum translation when they overlap, minus the distance between the boxes when
+     *        they are apart
      */
     public static double aabbAabb(Vector3dc minA, Vector3dc maxA, Vector3dc minB, Vector3dc maxB, Vector3d normal,
             Vector3d point) {
@@ -146,8 +176,18 @@ public final class Contactsd {
     }
 
     /**
-     * Sphere {@code (c, r)} against box {@code [min, max]}. When the center is inside the box, the normal comes from
-     * the box face nearest to the center.
+     * Computes the contact between sphere {@code (c, r)} and box {@code [min, max]}. When the center is inside the box
+     * or on its surface, the normal comes from the box face nearest to the center (see {@link #nearestFace}), and the
+     * box must move against that face's outward normal.
+     *
+     * @param c the sphere center
+     * @param r the sphere radius (not squared)
+     * @param min the box's minimum corner
+     * @param max the box's maximum corner
+     * @param normal receives the unit normal from the sphere to the box
+     * @param point receives the contact point
+     * @return the signed depth: {@code r} minus the distance from the center to the box, or, for a center inside the
+     *        box, {@code r} plus the center's distance to the nearest face
      */
     public static double sphereAabb(Vector3dc c, double r, Vector3dc min, Vector3dc max, Vector3d normal, Vector3d point) {
         double x = c.x(), y = c.y(), z = c.z();
@@ -170,10 +210,14 @@ public final class Contactsd {
     }
 
     /**
-     * The face of box {@code [min, max]} nearest to point {@code p}.
+     * Returns the face of box {@code [min, max]} nearest to point {@code p}, for a point inside the box. For a point
+     * outside, the face chosen is the one whose plane {@code p} lies farthest beyond. Ties go to the first of -X, +X,
+     * -Y, +Y, -Z, +Z.
      *
-     * @param outwardNormal
-     *            receives that face's outward unit normal
+     * @param p the point
+     * @param min the box's minimum corner
+     * @param max the box's maximum corner
+     * @param outwardNormal receives that face's outward unit normal; may alias an input
      * @return the signed distance from {@code p} to that face: positive inside the box, negative outside
      */
     public static double nearestFace(Vector3dc p, Vector3dc min, Vector3dc max, Vector3d outwardNormal) {
@@ -220,15 +264,25 @@ public final class Contactsd {
     }
 
     /**
-     * Capsule (segment {@code a}–{@code b}, radius {@code r}) against box {@code [min, max]}.
+     * Computes the contact between a capsule (segment {@code a}–{@code b}, radius {@code r}) and box
+     * {@code [min, max]}.
      * <ul>
-     * <li><b>Segment outside the box:</b> the result comes from the exact closest points
-     * ({@link ClosestPointsd#segmentAab}).</li>
+     * <li><b>Segment outside the box:</b> the result comes from the exact closest points ({@link
+     * ClosestPointsd#segmentAab(Vector3dc, Vector3dc, Vector3dc, Vector3dc, Vector3d, Vector3d)}).</li>
      * <li><b>Segment touching or inside the box:</b> the depth is the exact minimum translation of the segment out of
      * the box, plus {@code r}. It comes from the separating-axis test over the three box axes and the three
      * {@code (b − a) × axis} directions, which is exact for a segment against a box. The point is then the segment
      * point inside the box that the closest-point search found.</li>
      * </ul>
+     *
+     * @param a one end of the capsule's segment
+     * @param b the other end of the capsule's segment
+     * @param r the capsule radius (not squared)
+     * @param min the box's minimum corner
+     * @param max the box's maximum corner
+     * @param normal receives the unit normal from the capsule to the box
+     * @param point receives the contact point
+     * @return the signed depth
      */
     public static double capsuleAabb(Vector3dc a, Vector3dc b, double r, Vector3dc min, Vector3dc max, Vector3d normal,
             Vector3d point) {

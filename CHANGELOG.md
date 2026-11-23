@@ -35,6 +35,22 @@ Structure and documentation release. Nothing is removed. Every moved or replaced
   - `PackageDependencyTest`: the top-level packages form a DAG, with `core` and `hash` at the bottom.
   - `PackageExportsTest`: module-info, the OSGi `Export-Package` and the source packages agree.
 
+### Changed
+- Every public and protected type, member, parameter and return value is now documented. About 6,300 gaps were
+  filled. The build enforces doclint (`all`, warnings fail), so a gap can no longer be merged.
+- Every package description ends with a contract paragraph covering threading, allocation, determinism, errors,
+  and precision and naming.
+- Documentation that contradicted the code is corrected, including:
+  - `ShRotation` and several IK solvers claimed not to allocate, but they allocate per-thread scratch on the
+    first call;
+  - `DfgLutBuilder` claimed identical tables on every platform, true only under `vectrix.strictMath`;
+  - `Intersectionf.testCircleCircle` called its squared-radius arguments radii;
+  - `WorldPos` misquoted its resolution;
+  - `CameraRelative.modelMatrix` described its order of rotation and scale backwards;
+  - `AtmosphereModel.earth()` gave a Mie extinction that did not match the code.
+- The BLAS and GEMM generators keep the hand-written Javadoc of the files they regenerate
+  (`scripts/javadoc_overlay.py`).
+
 ### Fixed
 - `SimdSupport.backend()` reported `VECTOR_API` for the plain jar when `jdk.incubator.vector` was present, though
   that jar has no Vector API code.

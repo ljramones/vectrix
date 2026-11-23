@@ -25,5 +25,20 @@
  * BRDF building blocks for physically based shading: microfacet specular terms (GGX, Smith, Schlick, sheen,
  * clearcoat), diffuse lobes, the split-sum DFG lookup table, and LightEngine-compatible variants of the current shader
  * formulas.
+ * <p>
+ * All functions take cosines (dot products of unit vectors), not vectors. The GGX functions in
+ * {@link org.dynamisengine.vectrix.brdf.Microfacetf} take the width {@code alpha}, while the diffuse and
+ * LightEngine-compatible functions take perceptual roughness. Excluding back-facing directions is the caller's job.
+ * <p>
+ * <b>Contract.</b> Threading: every class is a stateless set of static functions, safe to call from any thread.
+ * Allocation: no function allocates, except {@link org.dynamisengine.vectrix.brdf.DfgLutBuilder#build}, which
+ * allocates a two-element scratch array once per call. Determinism: transcendentals go through
+ * {@link org.dynamisengine.vectrix.core.AccurateMath} (and square roots are exact), so results match across platforms
+ * under {@code -Dvectrix.strictMath=true}; the DFG tables use a fixed Hammersley sequence, not random numbers.
+ * Errors: the shading functions do not validate their inputs and do not throw; degenerate inputs give 0, infinity or
+ * NaN as each method states. {@code DfgLutBuilder.build} throws {@code IllegalArgumentException} for a non-positive
+ * size or sample count, a null model or a too-small output array; the other {@code DfgLutBuilder} methods do not
+ * validate. Precision and naming: {@code ...f} classes are float, {@code ...d} classes are double;
+ * {@code DfgLutBuilder} integrates in double and stores float tables.
  */
 package org.dynamisengine.vectrix.brdf;

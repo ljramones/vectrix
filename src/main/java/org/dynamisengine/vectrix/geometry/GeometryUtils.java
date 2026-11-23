@@ -27,7 +27,10 @@ import org.dynamisengine.vectrix.core.*;
 import org.dynamisengine.vectrix.core.Math;
 
 /**
- * Useful geometry methods.
+ * Static helpers for building orthonormal bases, triangle normals and per-triangle tangent frames.
+ * <p>
+ * The methods are stateless, do not allocate and are safe to call from any thread. Every input is read before a
+ * destination is written, so destinations may alias inputs.
  * 
  * @author Kai Burjack
  * @author Richard Greenlees
@@ -44,11 +47,11 @@ public class GeometryUtils {
     }
 
     /**
-     * Compute two arbitrary vectors perpendicular to the given normalized vector <code>(x, y, z)</code>, and store them in <code>dest1</code> and <code>dest2</code>,
-     * respectively.
+     * Compute two arbitrary vectors perpendicular to the given normalized vector <code>(x, y, z)</code>, and store them
+     * in <code>dest1</code> and <code>dest2</code>, respectively.
      * <p>
-     * The computed vectors will themselves be perpendicular to each another and normalized. So the tree vectors <code>(x, y, z)</code>, <code>dest1</code> and
-     * <code>dest2</code> form an orthonormal basis.
+     * The computed vectors will themselves be perpendicular to each other and normalized. So the three vectors
+     * <code>(x, y, z)</code>, <code>dest1</code> and <code>dest2</code> form an orthonormal basis.
      * 
      * @param x
      *            the x coordinate of the normalized input vector
@@ -92,11 +95,11 @@ public class GeometryUtils {
     }
 
     /**
-     * Compute two arbitrary vectors perpendicular to the given normalized vector <code>v</code>, and store them in <code>dest1</code> and <code>dest2</code>,
-     * respectively.
+     * Compute two arbitrary vectors perpendicular to the given normalized vector <code>v</code>, and store them in
+     * <code>dest1</code> and <code>dest2</code>, respectively.
      * <p>
-     * The computed vectors will themselves be perpendicular to each another and normalized. So the tree vectors <code>v</code>, <code>dest1</code> and
-     * <code>dest2</code> form an orthonormal basis.
+     * The computed vectors will themselves be perpendicular to each other and normalized. So the three vectors
+     * <code>v</code>, <code>dest1</code> and <code>dest2</code> form an orthonormal basis.
      * 
      * @param v
      *            the {@link Vector3f#normalize() normalized} input vector
@@ -113,6 +116,11 @@ public class GeometryUtils {
      * Double-precision form of {@link #perpendicular(float, float, float, Vector3f, Vector3f)}: two unit vectors that
      * form an orthonormal basis with the unit vector {@code (x, y, z)}.
      *
+     * @param x the x coordinate of the normalized input vector
+     * @param y the y coordinate of the normalized input vector
+     * @param z the z coordinate of the normalized input vector
+     * @param dest1 will hold the first perpendicular vector
+     * @param dest2 will hold the second perpendicular vector
      * @since 2.4.0
      */
     public static void perpendicular(double x, double y, double z, Vector3d dest1, Vector3d dest2) {
@@ -147,6 +155,9 @@ public class GeometryUtils {
     /**
      * Double-precision form of {@link #perpendicular(Vector3fc, Vector3f, Vector3f)}.
      *
+     * @param v the normalized input vector
+     * @param dest1 will hold the first perpendicular vector
+     * @param dest2 will hold the second perpendicular vector
      * @since 2.4.0
      */
     public static void perpendicular(Vector3dc v, Vector3d dest1, Vector3d dest2) {
@@ -154,20 +165,20 @@ public class GeometryUtils {
     }
 
     /**
-     * Calculate the normal of a surface defined by points <code>v1</code>, <code>v2</code> and <code>v3</code> and store it in <code>dest</code>.
-     * 
-     * @param v0
-     *            the first position
-     * @param v1
-     *            the second position
-     * @param v2
-     *            the third position
-     * @param dest
-     *            will hold the result
-     */
-    /**
-     * Double-precision triangle normal: the unit cross product {@code (v1 - v0) × (v2 - v0)}.
+     * Double-precision triangle normal: the unit cross product {@code (v1 - v0) × (v2 - v0)}. Each edge is first
+     * scaled by a power of two, so very large or very small triangles neither overflow nor underflow. A degenerate
+     * triangle gives NaN components.
      *
+     * @param v0X the x coordinate of the first position
+     * @param v0Y the y coordinate of the first position
+     * @param v0Z the z coordinate of the first position
+     * @param v1X the x coordinate of the second position
+     * @param v1Y the y coordinate of the second position
+     * @param v1Z the z coordinate of the second position
+     * @param v2X the x coordinate of the third position
+     * @param v2Y the y coordinate of the third position
+     * @param v2Z the z coordinate of the third position
+     * @param dest will hold the result
      * @since 2.5.0
      */
     public static void normal(double v0X, double v0Y, double v0Z, double v1X, double v1Y, double v1Z, double v2X, double v2Y,
@@ -191,19 +202,37 @@ public class GeometryUtils {
     /**
      * Double-precision form of {@link #normal(Vector3fc, Vector3fc, Vector3fc, Vector3f)}.
      *
+     * @param v0 the first position
+     * @param v1 the second position
+     * @param v2 the third position
+     * @param dest will hold the result
      * @since 2.5.0
      */
     public static void normal(Vector3dc v0, Vector3dc v1, Vector3dc v2, Vector3d dest) {
         normal(v0.x(), v0.y(), v0.z(), v1.x(), v1.y(), v1.z(), v2.x(), v2.y(), v2.z(), dest);
     }
 
+    /**
+     * Calculate the unit normal {@code (v1 - v0) × (v2 - v0)} of the triangle {@code v0, v1, v2} and store it in
+     * {@code dest}. The normal is computed in double and rounded once. A degenerate triangle gives NaN components.
+     *
+     * @param v0
+     *            the first position
+     * @param v1
+     *            the second position
+     * @param v2
+     *            the third position
+     * @param dest
+     *            will hold the result
+     */
     public static void normal(Vector3fc v0, Vector3fc v1, Vector3fc v2, Vector3f dest) {
         normal(v0.x(), v0.y(), v0.z(), v1.x(), v1.y(), v1.z(), v2.x(), v2.y(), v2.z(), dest);
     }
 
     /**
-     * Calculate the normal of a surface defined by points <code>(v1X, v1Y, v1Z)</code>, <code>(v2X, v2Y, v2Z)</code> and <code>(v3X, v3Y, v3Z)</code>
-     * and store it in <code>dest</code>.
+     * Calculate the unit normal {@code (v1 - v0) × (v2 - v0)} of the triangle with corners <code>(v0X, v0Y,
+     * v0Z)</code>, <code>(v1X, v1Y, v1Z)</code> and <code>(v2X, v2Y, v2Z)</code> and store it in <code>dest</code>. The
+     * normal is computed in double and rounded once. A degenerate triangle gives NaN components.
      * 
      * @param v0X
      *            the x coordinate of the first position
@@ -236,7 +265,9 @@ public class GeometryUtils {
     }
 
     /**
-     * Calculate the surface tangent for the three supplied vertices and UV coordinates and store the result in <code>dest</code>.
+     * Calculate the unit surface tangent (the direction of increasing U) for the three supplied vertices and UV
+     * coordinates and store the result in <code>dest</code>. The tangent is computed in double and is not
+     * orthogonalized against the normal. A degenerate UV mapping gives NaN components.
      *
      * @param v1
      *            XYZ of first vertex
@@ -266,7 +297,9 @@ public class GeometryUtils {
     }
 
     /**
-     * Calculate the surface bitangent for the three supplied vertices and UV coordinates and store the result in <code>dest</code>.
+     * Calculate the unit surface bitangent (the direction of increasing V) for the three supplied vertices and UV
+     * coordinates and store the result in <code>dest</code>. The bitangent is computed in double. A degenerate UV
+     * mapping gives NaN components.
      *
      * @param v1
      *            XYZ of first vertex
@@ -296,7 +329,9 @@ public class GeometryUtils {
     }
 
     /**
-     * Calculate the surface tangent and bitangent for the three supplied vertices and UV coordinates and store the result in <code>dest</code>.
+     * Calculate the unit surface tangent and bitangent (the directions of increasing U and V) for the three supplied
+     * vertices and UV coordinates and store them in <code>destTangent</code> and <code>destBitangent</code>. A
+     * degenerate UV mapping gives NaN components.
      *
      * @param v1
      *            XYZ of first vertex

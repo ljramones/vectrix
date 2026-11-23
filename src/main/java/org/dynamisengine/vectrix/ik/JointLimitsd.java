@@ -40,7 +40,14 @@ public final class JointLimitsd {
     private JointLimitsd() {
     }
 
-    /** The signed twist angle of {@code q} about unit {@code axis}, in (−π, π]. */
+    /**
+     * Returns the signed twist angle of {@code q} about {@code axis}: the angle of the twist part of its swing-twist
+     * decomposition. {@code q} and {@code −q} give the same angle.
+     *
+     * @param q the rotation, unit length
+     * @param axis the twist axis, unit length
+     * @return the twist angle in radians, in [−π, π]
+     */
     public static double twistAngle(Quaterniondc q, Vector3dc axis) {
         double p = q.x() * (double) axis.x() + q.y() * (double) axis.y() + q.z() * (double) axis.z();
         double w = q.w();
@@ -55,7 +62,18 @@ public final class JointLimitsd {
      * Clamps {@code q} to an elliptical swing cone and a twist range about unit bone axis {@code axis}:
      * {@code swingAxisA} (unit, perpendicular to {@code axis}) is the direction with swing limit {@code limitA}, and
      * {@code axis × swingAxisA} has {@code limitB} (radians); the twist angle is clamped to
-     * {@code [minTwist, maxTwist]}. Returns whether anything was clamped. {@code dest} may alias {@code q}.
+     * {@code [minTwist, maxTwist]}. When nothing is clamped, {@code dest} receives {@code q} recomposed from its
+     * parts, possibly negated (the same rotation).
+     *
+     * @param q the joint's local rotation, unit length
+     * @param axis the bone axis, unit length
+     * @param swingAxisA the direction of limit {@code limitA}, unit length and perpendicular to {@code axis}
+     * @param limitA the largest swing angle toward {@code swingAxisA}, in radians, greater than 0
+     * @param limitB the largest swing angle toward {@code axis × swingAxisA}, in radians, greater than 0
+     * @param minTwist the smallest twist angle, in radians
+     * @param maxTwist the largest twist angle, in radians
+     * @param dest receives the clamped rotation; may be {@code q}
+     * @return {@code true} if the swing or the twist was clamped
      */
     public static boolean clampSwingTwist(Quaterniondc q, Vector3dc axis, Vector3dc swingAxisA, double limitA,
             double limitB, double minTwist, double maxTwist, Quaterniond dest) {
@@ -133,7 +151,17 @@ public final class JointLimitsd {
         return clamped;
     }
 
-    /** Circular cone of half-angle {@code maxSwing} about unit {@code axis}, twist unlimited. */
+    /**
+     * Clamps {@code q} to a circular swing cone of half-angle {@code maxSwing} about {@code axis}, with unlimited
+     * twist: {@link #clampSwingTwist} with equal limits.
+     *
+     * @param q the joint's local rotation, unit length
+     * @param axis the bone axis, unit length
+     * @param anyPerpendicular any unit vector perpendicular to {@code axis}
+     * @param maxSwing the cone half-angle in radians, greater than 0
+     * @param dest receives the clamped rotation; may be {@code q}
+     * @return {@code true} if the swing was clamped
+     */
     public static boolean clampCone(Quaterniondc q, Vector3dc axis, Vector3dc anyPerpendicular, double maxSwing,
             Quaterniond dest) {
         return clampSwingTwist(q, axis, anyPerpendicular, maxSwing, maxSwing, -java.lang.Math.PI,
@@ -142,7 +170,14 @@ public final class JointLimitsd {
 
     /**
      * Hinge about unit {@code axis}: removes all swing and clamps the remaining rotation angle to
-     * {@code [minAngle, maxAngle]}. Returns whether the rotation changed. {@code dest} may alias {@code q}.
+     * {@code [minAngle, maxAngle]}. The result is always a pure rotation about {@code axis}.
+     *
+     * @param q the joint's local rotation, unit length
+     * @param axis the hinge axis, unit length
+     * @param minAngle the smallest hinge angle, in radians
+     * @param maxAngle the largest hinge angle, in radians
+     * @param dest receives the clamped rotation; may be {@code q}
+     * @return {@code true} if the result differs from {@code q} ({@code |q · dest| < 1 − 1e-6})
      */
     public static boolean clampHinge(Quaterniondc q, Vector3dc axis, double minAngle, double maxAngle, Quaterniond dest) {
         double p = q.x() * (double) axis.x() + q.y() * (double) axis.y() + q.z() * (double) axis.z();

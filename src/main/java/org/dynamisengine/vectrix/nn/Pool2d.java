@@ -58,7 +58,14 @@ public final class Pool2d {
     /**
      * Describes a pooling layer.
      *
-     * @param pad padding on every side, at most {@code k/2}
+     * @param c the number of channels
+     * @param h input height
+     * @param w input width
+     * @param k the window size, at least 1
+     * @param stride the step between windows, at least 1
+     * @param pad padding on every side, at least 0 and at most {@code k/2}
+     * @return the shape
+     * @throws IllegalArgumentException if a size is out of range or the window does not fit the padded input
      */
     public static Pool2d of(int c, int h, int w, int k, int stride, int pad) {
         if (c < 1 || h < 1 || w < 1 || k < 1 || stride < 1 || pad < 0 || 2 * pad > k) {
@@ -71,12 +78,20 @@ public final class Pool2d {
         return p;
     }
 
-    /** @return the output height */
+    /**
+     * Returns the output height, {@code (h + 2·pad - k) / stride + 1}.
+     *
+     * @return the output height, at least 1
+     */
     public int outHeight() {
         return hout;
     }
 
-    /** @return the output width */
+    /**
+     * Returns the output width, {@code (w + 2·pad - k) / stride + 1}.
+     *
+     * @return the output width, at least 1
+     */
     public int outWidth() {
         return wout;
     }
@@ -84,7 +99,13 @@ public final class Pool2d {
     /**
      * Max pooling. NaN wins over numbers.
      *
-     * @param argmax receives the flat input index of each output's maximum, or {@code null}
+     * @param in the input image, {@code c·h·w} floats, channel-major
+     * @param inOff the offset in {@code in}
+     * @param out receives {@code c·outHeight·outWidth} floats; must not overlap {@code in}
+     * @param outOff the offset in {@code out}
+     * @param argmax receives the flat input index of each output's maximum (relative to {@code inOff}), or {@code null}
+     * @param argOff the offset in {@code argmax}
+     * @throws IllegalArgumentException if an array is too short for its offset
      */
     public void max(float[] in, int inOff, float[] out, int outOff, int[] argmax, int argOff) {
         range(in == null ? -1 : in.length, inOff, c * h * w, "in");
@@ -125,7 +146,18 @@ public final class Pool2d {
         }
     }
 
-    /** Max-pooling backward: {@code dIn} is cleared, then each {@code dOut} adds to its window's maximum. */
+    /**
+     * Max-pooling backward: {@code dIn} is cleared, then each {@code dOut} adds to its window's maximum. The indices
+     * in {@code argmax} are not validated.
+     *
+     * @param argmax the indices {@link #max} recorded
+     * @param argOff the offset in {@code argmax}
+     * @param dOut the gradient of the output, {@code c·outHeight·outWidth} floats
+     * @param dOutOff the offset in {@code dOut}
+     * @param dIn receives the gradient of the input, {@code c·h·w} floats; must not overlap {@code dOut}
+     * @param dInOff the offset in {@code dIn}
+     * @throws IllegalArgumentException if an array is null or too short for its offset
+     */
     public void maxBackward(int[] argmax, int argOff, float[] dOut, int dOutOff, float[] dIn, int dInOff) {
         if (dIn == null || dOut == null) {
             throw new IllegalArgumentException("dIn and dOut must not be null");
@@ -140,7 +172,15 @@ public final class Pool2d {
         }
     }
 
-    /** Average pooling over the in-bounds cells of each window. */
+    /**
+     * Average pooling over the in-bounds cells of each window; padding cells are not counted.
+     *
+     * @param in the input image, {@code c·h·w} floats, channel-major
+     * @param inOff the offset in {@code in}
+     * @param out receives {@code c·outHeight·outWidth} floats; must not overlap {@code in}
+     * @param outOff the offset in {@code out}
+     * @throws IllegalArgumentException if an array is too short for its offset
+     */
     public void average(float[] in, int inOff, float[] out, int outOff) {
         range(in == null ? -1 : in.length, inOff, c * h * w, "in");
         range(out == null ? -1 : out.length, outOff, c * hout * wout, "out");
@@ -168,7 +208,15 @@ public final class Pool2d {
         }
     }
 
-    /** Average-pooling backward: {@code dIn} is cleared, then each {@code dOut/count} spreads over its window. */
+    /**
+     * Average-pooling backward: {@code dIn} is cleared, then each {@code dOut/count} spreads over its window.
+     *
+     * @param dOut the gradient of the output, {@code c·outHeight·outWidth} floats
+     * @param dOutOff the offset in {@code dOut}
+     * @param dIn receives the gradient of the input, {@code c·h·w} floats; must not overlap {@code dOut}
+     * @param dInOff the offset in {@code dIn}
+     * @throws IllegalArgumentException if an array is null or too short for its offset
+     */
     public void averageBackward(float[] dOut, int dOutOff, float[] dIn, int dInOff) {
         if (dIn == null || dOut == null) {
             throw new IllegalArgumentException("dIn and dOut must not be null");

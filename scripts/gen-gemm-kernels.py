@@ -10,6 +10,7 @@ kernel per element; the Vector API path computes an MR x NR tile of those dot pr
 so rows and columns are contiguous along k, and reduces the 8 lanes with three shift-and-add steps that reproduce the
 fixed lane tree. Both give the same bits.
 """
+import os
 import sys
 
 CFG = {
@@ -385,6 +386,10 @@ def simd(T, c):
 
 
 if __name__ == '__main__':
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from javadoc_overlay import overlay
     target, header = sys.argv[1], open(sys.argv[2]).read().rstrip('\n')
     for T in ('float', 'double'):
-        open(f'{target}/{CFG[T]["cls"]}.java', 'w').write(gen(T, header))
+        path = f'{target}/{CFG[T]["cls"]}.java'
+        text = overlay(gen(T, header), path)  # read the existing docs before the file is truncated
+        open(path, 'w').write(text)

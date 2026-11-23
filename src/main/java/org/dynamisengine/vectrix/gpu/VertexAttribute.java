@@ -24,14 +24,29 @@
 package org.dynamisengine.vectrix.gpu;
 
 /**
- * Descriptor for one vertex input attribute inside an interleaved stream.
+ * One vertex input attribute inside an interleaved stream: a name, a component count, a per-component format and
+ * a byte offset within the vertex. Immutable.
  */
 public final class VertexAttribute {
+    /** The attribute name, unique within a {@link VertexLayout}. */
     public final String name;
+    /** The number of components, 1 to 4. */
     public final int components;
+    /** The format of each component. */
     public final VertexAttributeFormat format;
+    /** The byte offset of the attribute from the start of the vertex. */
     public final int offsetBytes;
 
+    /**
+     * Creates an attribute.
+     *
+     * @param name the attribute name, not empty
+     * @param components the number of components, 1 to 4
+     * @param format the format of each component
+     * @param offsetBytes the byte offset within the vertex, at least 0
+     * @throws IllegalArgumentException if {@code name} is null or empty, {@code components} is outside
+     *         {@code [1, 4]}, {@code format} is null or {@code offsetBytes} is negative
+     */
     public VertexAttribute(String name, int components, VertexAttributeFormat format, int offsetBytes) {
         if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException("name");
@@ -51,6 +66,11 @@ public final class VertexAttribute {
         this.offsetBytes = offsetBytes;
     }
 
+    /**
+     * The attribute size in bytes: {@code components * format.byteSize()}, with no padding.
+     *
+     * @return the size in bytes
+     */
     public int byteSize() {
         return components * format.byteSize();
     }

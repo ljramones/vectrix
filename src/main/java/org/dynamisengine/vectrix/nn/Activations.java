@@ -37,9 +37,11 @@ import org.dynamisengine.vectrix.simd.SimdSupport;
  * Element-wise activation functions over float arrays, forward and backward.
  * <p>
  * Forward kernels write {@code y[i] = f(x[i])}; backward kernels write {@code dx[i] = dy[i]·f'(x[i])}, from the
- * forward input, except sigmoid and tanh, whose derivatives are cheaper and more accurate from the forward output. Outputs may alias their inputs at the same offset. The transcendental parts are {@link org.dynamisengine.vectrix.core.ReproducibleMath}'s,
- * so results are the same bits everywhere; ReLU, sigmoid and SiLU also have Vector API paths that perform the same
- * operations. Nothing allocates.
+ * forward input, except sigmoid and tanh, whose derivatives are cheaper and more accurate from the forward output.
+ * Outputs may alias their inputs at the same offset. The transcendental parts are
+ * {@link org.dynamisengine.vectrix.core.ReproducibleMath}'s, so results are the same bits everywhere; the forward
+ * ReLU, sigmoid, SiLU, tanh and tanh-approximated GELU also have Vector API paths that perform the same operations.
+ * Nothing allocates.
  *
  * @since 2.5.0
  */
@@ -51,7 +53,16 @@ public final class Activations {
     private Activations() {
     }
 
-    /** {@code max(x, 0)}; NaN stays NaN. */
+    /**
+     * ReLU: {@code y[i] = max(x[i], 0)}; NaN stays NaN.
+     *
+     * @param x the input
+     * @param xOff the offset in {@code x}
+     * @param y receives the output; may be {@code x} at the same offset
+     * @param yOff the offset in {@code y}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void relu(float[] x, int xOff, float[] y, int yOff, int n) {
         check(x, xOff, n, "x");
         check(y, yOff, n, "y");
@@ -68,7 +79,18 @@ public final class Activations {
         }
     }
 
-    /** ReLU backward: {@code dy} where {@code x > 0}, else 0. */
+    /**
+     * ReLU backward: {@code dx[i] = dy[i]} where {@code x[i] > 0}, else 0 (also for NaN {@code x[i]}).
+     *
+     * @param x the forward input
+     * @param xOff the offset in {@code x}
+     * @param dy the gradient of the output
+     * @param dyOff the offset in {@code dy}
+     * @param dx receives the gradient of the input; may be {@code x} or {@code dy} at the same offset
+     * @param dxOff the offset in {@code dx}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void reluBackward(float[] x, int xOff, float[] dy, int dyOff, float[] dx, int dxOff, int n) {
         check(x, xOff, n, "x");
         check(dy, dyOff, n, "dy");
@@ -78,7 +100,16 @@ public final class Activations {
         }
     }
 
-    /** The logistic function {@code 1 / (1 + e^-x)}. */
+    /**
+     * The logistic function {@code y[i] = 1 / (1 + e^-x[i])}.
+     *
+     * @param x the input
+     * @param xOff the offset in {@code x}
+     * @param y receives the output; may be {@code x} at the same offset
+     * @param yOff the offset in {@code y}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void sigmoid(float[] x, int xOff, float[] y, int yOff, int n) {
         check(x, xOff, n, "x");
         check(y, yOff, n, "y");
@@ -93,7 +124,16 @@ public final class Activations {
         }
     }
 
-    /** SiLU (swish): {@code x·sigmoid(x)}. */
+    /**
+     * SiLU (swish): {@code y[i] = x[i]·sigmoid(x[i])}.
+     *
+     * @param x the input
+     * @param xOff the offset in {@code x}
+     * @param y receives the output; may be {@code x} at the same offset
+     * @param yOff the offset in {@code y}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void silu(float[] x, int xOff, float[] y, int yOff, int n) {
         check(x, xOff, n, "x");
         check(y, yOff, n, "y");
@@ -109,7 +149,18 @@ public final class Activations {
         }
     }
 
-    /** SiLU backward: {@code dy·(s + x·s·(1 - s))}, {@code s = sigmoid(x)}. */
+    /**
+     * SiLU backward from its input: {@code dx = dy·(s + x·s·(1 - s))}, {@code s = sigmoid(x)}.
+     *
+     * @param x the forward input
+     * @param xOff the offset in {@code x}
+     * @param dy the gradient of the output
+     * @param dyOff the offset in {@code dy}
+     * @param dx receives the gradient of the input; may be {@code x} or {@code dy} at the same offset
+     * @param dxOff the offset in {@code dx}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void siluBackward(float[] x, int xOff, float[] dy, int dyOff, float[] dx, int dxOff, int n) {
         check(x, xOff, n, "x");
         check(dy, dyOff, n, "dy");
@@ -121,7 +172,16 @@ public final class Activations {
         }
     }
 
-    /** {@code tanh x}. */
+    /**
+     * The hyperbolic tangent {@code y[i] = tanh x[i]}.
+     *
+     * @param x the input
+     * @param xOff the offset in {@code x}
+     * @param y receives the output; may be {@code x} at the same offset
+     * @param yOff the offset in {@code y}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void tanh(float[] x, int xOff, float[] y, int yOff, int n) {
         check(x, xOff, n, "x");
         check(y, yOff, n, "y");
@@ -137,8 +197,16 @@ public final class Activations {
     }
 
     /**
-     * GELU, exact form: {@code x·Φ(x)} with {@link org.dynamisengine.vectrix.core.ReproducibleMath#normalCdf}, which keeps its relative accuracy for negative
+     * GELU, exact form: {@code y = x·Φ(x)} with
+     * {@link org.dynamisengine.vectrix.core.ReproducibleMath#normalCdf}, which keeps its relative accuracy for negative
      * {@code x}, where {@code (1 + erf(x/√2))/2} would cancel.
+     *
+     * @param x the input
+     * @param xOff the offset in {@code x}
+     * @param y receives the output; may be {@code x} at the same offset
+     * @param yOff the offset in {@code y}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
      */
     public static void gelu(float[] x, int xOff, float[] y, int yOff, int n) {
         check(x, xOff, n, "x");
@@ -149,7 +217,18 @@ public final class Activations {
         }
     }
 
-    /** GELU backward: {@code dy·(Φ(x) + x·φ(x))}, {@code φ} the standard normal density. */
+    /**
+     * GELU backward from its input: {@code dx = dy·(Φ(x) + x·φ(x))}, {@code φ} the standard normal density.
+     *
+     * @param x the forward input
+     * @param xOff the offset in {@code x}
+     * @param dy the gradient of the output
+     * @param dyOff the offset in {@code dy}
+     * @param dx receives the gradient of the input; may be {@code x} or {@code dy} at the same offset
+     * @param dxOff the offset in {@code dx}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void geluBackward(float[] x, int xOff, float[] dy, int dyOff, float[] dx, int dxOff, int n) {
         check(x, xOff, n, "x");
         check(dy, dyOff, n, "dy");
@@ -162,7 +241,16 @@ public final class Activations {
         }
     }
 
-    /** GELU, tanh approximation: {@code x·(1 + tanh(√(2/π)·(x + 0.044715·x³)))/2} (as in GPT-2). */
+    /**
+     * GELU, tanh approximation: {@code y = x·(1 + tanh(√(2/π)·(x + 0.044715·x³)))/2} (as in GPT-2).
+     *
+     * @param x the input
+     * @param xOff the offset in {@code x}
+     * @param y receives the output; may be {@code x} at the same offset
+     * @param yOff the offset in {@code y}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void geluTanh(float[] x, int xOff, float[] y, int yOff, int n) {
         check(x, xOff, n, "x");
         check(y, yOff, n, "y");
@@ -179,7 +267,16 @@ public final class Activations {
         }
     }
 
-    /** Softplus {@code log(1 + e^x)}, computed as {@code max(x, 0) + log1p(e^-|x|)} without overflow. */
+    /**
+     * Softplus {@code y = log(1 + e^x)}, computed as {@code max(x, 0) + log1p(e^-|x|)} without overflow.
+     *
+     * @param x the input
+     * @param xOff the offset in {@code x}
+     * @param y receives the output; may be {@code x} at the same offset
+     * @param yOff the offset in {@code y}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void softplus(float[] x, int xOff, float[] y, int yOff, int n) {
         check(x, xOff, n, "x");
         check(y, yOff, n, "y");
@@ -189,7 +286,18 @@ public final class Activations {
         }
     }
 
-    /** Sigmoid backward from its <i>output</i> {@code y = sigmoid(x)}: {@code dy·y·(1 - y)}. */
+    /**
+     * Sigmoid backward from its <i>output</i> {@code y = sigmoid(x)}: {@code dx = dy·y·(1 - y)}.
+     *
+     * @param y the forward output
+     * @param yOff the offset in {@code y}
+     * @param dy the gradient of the output
+     * @param dyOff the offset in {@code dy}
+     * @param dx receives the gradient of the input; may be {@code y} or {@code dy} at the same offset
+     * @param dxOff the offset in {@code dx}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void sigmoidBackward(float[] y, int yOff, float[] dy, int dyOff, float[] dx, int dxOff, int n) {
         check(y, yOff, n, "y");
         check(dy, dyOff, n, "dy");
@@ -201,8 +309,17 @@ public final class Activations {
     }
 
     /**
-     * Tanh backward from its <i>output</i> {@code y = tanh(x)}: {@code dy·(1 - y)(1 + y)}, which unlike
+     * Tanh backward from its <i>output</i> {@code y = tanh(x)}: {@code dx = dy·(1 - y)(1 + y)}, which unlike
      * {@code 1 - y²} keeps its relative accuracy as {@code |y|} approaches 1.
+     *
+     * @param y the forward output
+     * @param yOff the offset in {@code y}
+     * @param dy the gradient of the output
+     * @param dyOff the offset in {@code dy}
+     * @param dx receives the gradient of the input; may be {@code y} or {@code dy} at the same offset
+     * @param dxOff the offset in {@code dx}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
      */
     public static void tanhBackward(float[] y, int yOff, float[] dy, int dyOff, float[] dx, int dxOff, int n) {
         check(y, yOff, n, "y");
@@ -216,7 +333,16 @@ public final class Activations {
 
     /**
      * Backward of the tanh-approximated GELU, from its input:
-     * {@code dy·((1 + t)/2 + x·(1 - t)(1 + t)/2·√(2/π)·(1 + 3·0.044715·x²))}, {@code t = tanh(u)}.
+     * {@code dx = dy·((1 + t)/2 + x·(1 - t)(1 + t)/2·√(2/π)·(1 + 3·0.044715·x²))}, {@code t = tanh(u)}.
+     *
+     * @param x the forward input
+     * @param xOff the offset in {@code x}
+     * @param dy the gradient of the output
+     * @param dyOff the offset in {@code dy}
+     * @param dx receives the gradient of the input; may be {@code x} or {@code dy} at the same offset
+     * @param dxOff the offset in {@code dx}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
      */
     public static void geluTanhBackward(float[] x, int xOff, float[] dy, int dyOff, float[] dx, int dxOff, int n) {
         check(x, xOff, n, "x");
@@ -232,7 +358,18 @@ public final class Activations {
         }
     }
 
-    /** Softplus backward from its input: {@code dy·sigmoid(x)}. */
+    /**
+     * Softplus backward from its input: {@code dx = dy·sigmoid(x)}.
+     *
+     * @param x the forward input
+     * @param xOff the offset in {@code x}
+     * @param dy the gradient of the output
+     * @param dyOff the offset in {@code dy}
+     * @param dx receives the gradient of the input; may be {@code x} or {@code dy} at the same offset
+     * @param dxOff the offset in {@code dx}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset
+     */
     public static void softplusBackward(float[] x, int xOff, float[] dy, int dyOff, float[] dx, int dxOff, int n) {
         check(x, xOff, n, "x");
         check(dy, dyOff, n, "dy");
@@ -273,7 +410,10 @@ public final class Activations {
         static final FloatVector E3V = FloatVector.broadcast(S, NnConstants.E3);
         static final FloatVector E2V = FloatVector.broadcast(S, NnConstants.E2);
 
-        /** Sigmoid ({@code silu} false) or SiLU on whole vectors, with {@link org.dynamisengine.vectrix.core.ReproducibleMath#exp(float)} expanded inline. */
+        /**
+         * Sigmoid ({@code silu} false) or SiLU on whole vectors, with
+         * {@link org.dynamisengine.vectrix.core.ReproducibleMath#exp(float)} expanded inline.
+         */
         static int logistic(float[] x, int xOff, float[] y, int yOff, int n, boolean silu) {
             int i = 0;
             for (int b = n - n % LANES; i < b; i += LANES) {
@@ -298,7 +438,10 @@ public final class Activations {
             }
             return i;
         }
-        /** {@link org.dynamisengine.vectrix.core.ReproducibleMath#tanh} on whole vectors, with expm1 and exp expanded inline; returns the index reached. */
+        /**
+         * {@link org.dynamisengine.vectrix.core.ReproducibleMath#tanh} on whole vectors, with expm1 and exp expanded inline; returns
+         * the index reached.
+         */
         static int tanh(float[] x, int xOff, float[] y, int yOff, int n) {
             int i = 0;
             for (int b = n - n % LANES; i < b; i += LANES) {
@@ -383,10 +526,20 @@ public final class Activations {
     }
 
     /**
-     * Inverted dropout: keeps element {@code i} when {@code org.dynamisengine.vectrix.hash.Philox.uniform(seed, start + i) >= p} and scales it by
-     * {@code 1/(1 - p)}, else writes 0. The same call on the upstream gradient is the backward pass.
+     * Inverted dropout: keeps element {@code i} when
+     * {@code org.dynamisengine.vectrix.hash.Philox.uniform(seed, start + i) >= p} and scales it by {@code 1/(1 - p)},
+     * else writes 0. The same call on the upstream gradient is the backward pass.
      *
+     * @param seed the random stream
+     * @param start the stream position of element 0; use disjoint ranges for different tensors
      * @param p the drop probability, in [0, 1)
+     * @param x the input
+     * @param xOff the offset in {@code x}
+     * @param y receives the output; may be {@code x} at the same offset
+     * @param yOff the offset in {@code y}
+     * @param n the number of elements
+     * @throws IllegalArgumentException if {@code p} is outside [0, 1) or NaN, {@code n < 0}, or an array is too
+     *         short for its offset
      * @since 2.6.0 (2.5.0 as {@code Philox.dropout})
      */
     public static void dropout(long seed, long start, float p, float[] x, int xOff, float[] y, int yOff, int n) {

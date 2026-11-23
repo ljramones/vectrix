@@ -41,17 +41,38 @@ public final class R2Sequence {
     private R2Sequence() {
     }
 
-    /** Point {@code index} (index ≥ 0), components in {@code [0, 1)}; computed in double precision. */
+    /**
+     * Writes point {@code index} of the sequence into {@code dest}, computed in double precision. The fraction keeps
+     * about {@code 53 - log2(index)} bits, so resolution drops slowly for very large indices.
+     *
+     * @param index the point index; any value, normally non-negative
+     * @param dest receives the point, in {@code [0, 1)²}
+     * @return {@code dest}
+     */
     public static Vector2d r2(long index, Vector2d dest) {
         return dest.set(frac(0.5 + index * A1), frac(0.5 + index * A2));
     }
 
-    /** Point {@code index} in single precision (computed in double, then rounded down into {@code [0, 1)}). */
+    /**
+     * Writes point {@code index} of the sequence into {@code dest} in single precision. The point is computed in double
+     * and rounded to float; a value that would round to 1 is clamped to the largest float below 1.
+     *
+     * @param index the point index; any value, normally non-negative
+     * @param dest receives the point, in {@code [0, 1)²}
+     * @return {@code dest}
+     */
     public static Vector2f r2(long index, Vector2f dest) {
         return dest.set(toUnitFloat(frac(0.5 + index * A1)), toUnitFloat(frac(0.5 + index * A2)));
     }
 
-    /** One component of point {@code index}: {@code dimension} 0 or 1. */
+    /**
+     * Returns one coordinate of point {@code index}, computed in double precision.
+     *
+     * @param index the point index; any value, normally non-negative
+     * @param dimension 0 for x or 1 for y
+     * @return the coordinate, in {@code [0, 1)}
+     * @throws IllegalArgumentException if {@code dimension} is not 0 or 1
+     */
     public static double r2(long index, int dimension) {
         if (dimension != 0 && dimension != 1) {
             throw new IllegalArgumentException("dimension must be 0 or 1");

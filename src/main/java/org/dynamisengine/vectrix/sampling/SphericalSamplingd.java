@@ -39,8 +39,13 @@ public final class SphericalSamplingd {
     }
 
     /**
-     * Solid angle of the spherical triangle with unit-vector vertices {@code a, b, c} (Van Oosterom and Strackee
-     * 1983): {@code 2 atan2(|a·(b×c)|, 1 + a·b + b·c + c·a)}.
+     * Returns the solid angle of the spherical triangle with unit-vector vertices {@code a, b, c} (Van Oosterom and
+     * Strackee 1983): {@code 2 atan2(|a·(b×c)|, 1 + a·b + b·c + c·a)}.
+     *
+     * @param a the first vertex, a unit vector
+     * @param b the second vertex, a unit vector
+     * @param c the third vertex, a unit vector
+     * @return the solid angle in steradians, in {@code [0, 2π]}
      */
     public static double solidAngleTriangle(Vector3dc a, Vector3dc b, Vector3dc c) {
         double tx = b.y() * c.z() - b.z() * c.y();
@@ -52,8 +57,17 @@ public final class SphericalSamplingd {
     }
 
     /**
-     * Uniform direction inside the spherical triangle with unit-vector vertices {@code a, b, c} (Arvo 1995).
-     * Returns a unit vector; its density is {@code 1 / solidAngleTriangle(a, b, c)}. {@code dest} may alias an input.
+     * Returns a uniformly distributed direction inside the spherical triangle with unit-vector vertices
+     * {@code a, b, c} (Arvo 1995). The density of the direction is {@code 1 / solidAngleTriangle(a, b, c)}. A
+     * degenerate triangle (zero area) gives NaN components.
+     *
+     * @param a the first vertex, a unit vector
+     * @param b the second vertex, a unit vector
+     * @param c the third vertex, a unit vector
+     * @param u1 the first uniform variate, in {@code [0, 1)}; it selects the sub-triangle area
+     * @param u2 the second uniform variate, in {@code [0, 1)}; it selects the point along the arc from {@code b}
+     * @param dest receives the unit direction; may alias an input
+     * @return {@code dest}
      */
     public static Vector3d sampleTriangle(Vector3dc a, Vector3dc b, Vector3dc c, double u1, double u2, Vector3d dest) {
         double ax = a.x(), ay = a.y(), az = a.z();
@@ -102,8 +116,14 @@ public final class SphericalSamplingd {
     }
 
     /**
-     * Solid angle subtended from the origin by the rectangle with corner {@code s} and edges {@code ex}, {@code ey}
-     * (orthogonal), as in Ureña et al.
+     * Returns the solid angle subtended from the origin by the rectangle with corner {@code s} and orthogonal edges
+     * {@code ex}, {@code ey}, as in Ureña, Fajardo and King (2013). Place the shading point at the origin by passing
+     * {@code s} relative to it. The side of the rectangle that faces the origin does not matter.
+     *
+     * @param s the rectangle's corner, relative to the shading point
+     * @param ex the first edge vector, orthogonal to {@code ey}
+     * @param ey the second edge vector, orthogonal to {@code ex}
+     * @return the solid angle in steradians
      */
     public static double solidAngleRectangle(Vector3dc s, Vector3dc ex, Vector3dc ey) {
         double exl = length(ex.x(), ex.y(), ex.z());
@@ -139,9 +159,17 @@ public final class SphericalSamplingd {
     }
 
     /**
-     * Uniform direction towards the rectangle with corner {@code s} and orthogonal edges {@code ex}, {@code ey}
-     * (relative to the shading point) by the method of Ureña, Fajardo and King (2013). Returns a unit vector; its
-     * density is {@code 1 / solidAngleRectangle(s, ex, ey)}.
+     * Returns a uniformly distributed direction towards the rectangle with corner {@code s} and orthogonal edges
+     * {@code ex}, {@code ey}, by the method of Ureña, Fajardo and King (2013). The density of the direction is
+     * {@code 1 / solidAngleRectangle(s, ex, ey)}.
+     *
+     * @param s the rectangle's corner, relative to the shading point
+     * @param ex the first edge vector, orthogonal to {@code ey}
+     * @param ey the second edge vector, orthogonal to {@code ex}
+     * @param u1 the first uniform variate, in {@code [0, 1)}; it selects the coordinate along {@code ex}
+     * @param u2 the second uniform variate, in {@code [0, 1)}; it selects the coordinate along {@code ey}
+     * @param dest receives the unit direction from the shading point; may alias an input
+     * @return {@code dest}
      */
     public static Vector3d sampleRectangle(Vector3dc s, Vector3dc ex, Vector3dc ey, double u1, double u2, Vector3d dest) {
         double exl = length(ex.x(), ex.y(), ex.z());

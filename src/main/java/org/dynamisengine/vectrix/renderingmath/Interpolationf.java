@@ -33,12 +33,37 @@ public final class Interpolationf {
     private Interpolationf() {
     }
 
+    /**
+     * Interpolates bilinearly between four corner values: first along x, then along y. {@code tx} and {@code ty}
+     * are not clamped, so values outside {@code [0, 1]} extrapolate.
+     *
+     * @param q00 the value at {@code (0, 0)}
+     * @param q10 the value at {@code (1, 0)}
+     * @param q01 the value at {@code (0, 1)}
+     * @param q11 the value at {@code (1, 1)}
+     * @param tx the position along x
+     * @param ty the position along y
+     * @return the interpolated value
+     */
     public static float bilinear(float q00, float q10, float q01, float q11, float tx, float ty) {
         float x0 = lerp(q00, q10, tx);
         float x1 = lerp(q01, q11, tx);
         return lerp(x0, x1, ty);
     }
 
+    /**
+     * Interpolates four corner vectors bilinearly, component by component, as {@link #bilinear}. {@code dest} may
+     * be any of the inputs.
+     *
+     * @param q00 the vector at {@code (0, 0)}
+     * @param q10 the vector at {@code (1, 0)}
+     * @param q01 the vector at {@code (0, 1)}
+     * @param q11 the vector at {@code (1, 1)}
+     * @param tx the position along x
+     * @param ty the position along y
+     * @param dest receives the result
+     * @return {@code dest}
+     */
     public static Vector3f bilinearVec3(Vector3f q00, Vector3f q10, Vector3f q01, Vector3f q11, float tx, float ty, Vector3f dest) {
         float x = bilinear(q00.x, q10.x, q01.x, q11.x, tx, ty);
         float y = bilinear(q00.y, q10.y, q01.y, q11.y, tx, ty);
@@ -47,7 +72,15 @@ public final class Interpolationf {
     }
 
     /**
-     * Catmull-Rom cubic Hermite interpolation of four samples.
+     * Interpolates four evenly spaced samples with the Catmull-Rom spline, which passes through {@code p1} at
+     * {@code t = 0} and {@code p2} at {@code t = 1}.
+     *
+     * @param p0 the sample before {@code p1}
+     * @param p1 the sample at {@code t = 0}
+     * @param p2 the sample at {@code t = 1}
+     * @param p3 the sample after {@code p2}
+     * @param t the position between {@code p1} and {@code p2}, normally in {@code [0, 1]} (not clamped)
+     * @return the interpolated value
      */
     public static float cubicHermite(float p0, float p1, float p2, float p3, float t) {
         float t2 = t * t;
@@ -56,6 +89,18 @@ public final class Interpolationf {
             + (-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3);
     }
 
+    /**
+     * Evaluates the uniform cubic B-spline of four evenly spaced samples. It is smoother than
+     * {@link #cubicHermite} but approximates: at {@code t = 0} it gives {@code (p0 + 4 p1 + p2) / 6}, not
+     * {@code p1}.
+     *
+     * @param p0 the sample before {@code p1}
+     * @param p1 the sample at {@code t = 0}
+     * @param p2 the sample at {@code t = 1}
+     * @param p3 the sample after {@code p2}
+     * @param t the position between {@code p1} and {@code p2}, normally in {@code [0, 1]} (not clamped)
+     * @return the spline value
+     */
     public static float cubicBSpline(float p0, float p1, float p2, float p3, float t) {
         float t2 = t * t;
         float t3 = t2 * t;
@@ -65,6 +110,20 @@ public final class Interpolationf {
             + (p0 + 4.0f * p1 + p2)) / 6.0f;
     }
 
+    /**
+     * Filters four evenly spaced samples with the Mitchell-Netravali cubic of parameters {@code (b, c)}. Common
+     * choices are {@code b = c = 1/3} (Mitchell-Netravali's recommendation), {@code (0, 0.5)} (Catmull-Rom, same
+     * as {@link #cubicHermite}) and {@code (1, 0)} (B-spline, same as {@link #cubicBSpline}).
+     *
+     * @param p0 the sample before {@code p1}
+     * @param p1 the sample at {@code t = 0}
+     * @param p2 the sample at {@code t = 1}
+     * @param p3 the sample after {@code p2}
+     * @param t the position between {@code p1} and {@code p2}, normally in {@code [0, 1]} (not clamped)
+     * @param b the B parameter
+     * @param c the C parameter
+     * @return the filtered value
+     */
     public static float cubicMitchellNetravali(float p0, float p1, float p2, float p3, float t, float b, float c) {
         float w0 = mnWeight(1.0f + t, b, c);
         float w1 = mnWeight(t, b, c);
@@ -73,6 +132,17 @@ public final class Interpolationf {
         return p0 * w0 + p1 * w1 + p2 * w2 + p3 * w3;
     }
 
+    /**
+     * Interpolates a 4×4 neighbourhood with {@link #cubicHermite}: each row along x, then the four row results
+     * along y.
+     *
+     * @param samples4x4 the 4×4 neighbourhood, row-major: sample {@code (column i, row j)} at index {@code 4 j + i},
+     *                   rows along y; at least 16 elements, starting at index 0
+     * @param tx the position along x between columns 1 and 2, normally in {@code [0, 1]} (not clamped)
+     * @param ty the position along y between rows 1 and 2, normally in {@code [0, 1]} (not clamped)
+     * @return the interpolated value
+     * @throws IllegalArgumentException if {@code samples4x4} is null or shorter than 16
+     */
     public static float bicubicHermite(float[] samples4x4, float tx, float ty) {
         check4x4(samples4x4);
         float r0 = cubicHermite(samples4x4[0], samples4x4[1], samples4x4[2], samples4x4[3], tx);
@@ -82,6 +152,17 @@ public final class Interpolationf {
         return cubicHermite(r0, r1, r2, r3, ty);
     }
 
+    /**
+     * Evaluates the bicubic B-spline of a 4×4 neighbourhood with {@link #cubicBSpline}: each row along x, then the
+     * four row results along y.
+     *
+     * @param samples4x4 the 4×4 neighbourhood, row-major: sample {@code (column i, row j)} at index {@code 4 j + i},
+     *                   rows along y; at least 16 elements, starting at index 0
+     * @param tx the position along x between columns 1 and 2, normally in {@code [0, 1]} (not clamped)
+     * @param ty the position along y between rows 1 and 2, normally in {@code [0, 1]} (not clamped)
+     * @return the spline value
+     * @throws IllegalArgumentException if {@code samples4x4} is null or shorter than 16
+     */
     public static float bicubicBSpline(float[] samples4x4, float tx, float ty) {
         check4x4(samples4x4);
         float r0 = cubicBSpline(samples4x4[0], samples4x4[1], samples4x4[2], samples4x4[3], tx);
@@ -91,6 +172,19 @@ public final class Interpolationf {
         return cubicBSpline(r0, r1, r2, r3, ty);
     }
 
+    /**
+     * Filters a 4×4 neighbourhood with {@link #cubicMitchellNetravali}: each row along x, then the four row results
+     * along y.
+     *
+     * @param samples4x4 the 4×4 neighbourhood, row-major: sample {@code (column i, row j)} at index {@code 4 j + i},
+     *                   rows along y; at least 16 elements, starting at index 0
+     * @param tx the position along x between columns 1 and 2, normally in {@code [0, 1]} (not clamped)
+     * @param ty the position along y between rows 1 and 2, normally in {@code [0, 1]} (not clamped)
+     * @param b the B parameter
+     * @param c the C parameter
+     * @return the filtered value
+     * @throws IllegalArgumentException if {@code samples4x4} is null or shorter than 16
+     */
     public static float bicubicMitchellNetravali(float[] samples4x4, float tx, float ty, float b, float c) {
         check4x4(samples4x4);
         float r0 = cubicMitchellNetravali(samples4x4[0], samples4x4[1], samples4x4[2], samples4x4[3], tx, b, c);

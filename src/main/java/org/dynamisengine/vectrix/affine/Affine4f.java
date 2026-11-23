@@ -32,26 +32,53 @@ import org.dynamisengine.vectrix.core.Vector3f;
 import org.dynamisengine.vectrix.core.Vector3fc;
 
 /**
- * Affine 3x4 transform matrix in column-major layout.
+ * Affine 3x4 transform matrix in column-major layout: a 4x4 matrix whose last row is implicitly {@code (0, 0, 0, 1)}.
+ * Field {@code mCR} is column C, row R, as in {@link org.dynamisengine.vectrix.core.Matrix4x3f}; columns 0 to 2 hold
+ * the linear part and column 3 the translation. A point maps as {@code x' = m00*x + m10*y + m20*z + m30}, and so on.
+ * <p>
+ * Instances are mutable and not thread-safe. Methods with a {@code dest} parameter allow {@code dest} to be
+ * {@code this} or an argument.
+ * <p>
+ * The double-precision twin is {@link Affine4d}.
  */
 public class Affine4f {
+    /** Column 0 (the image of the x axis): rows 0, 1 and 2. */
     public float m00, m01, m02;
+    /** Column 1 (the image of the y axis): rows 0, 1 and 2. */
     public float m10, m11, m12;
+    /** Column 2 (the image of the z axis): rows 0, 1 and 2. */
     public float m20, m21, m22;
+    /** Column 3: the translation x, y and z. */
     public float m30, m31, m32;
 
+    /** Creates the identity transform. */
     public Affine4f() {
         identity();
     }
 
+    /**
+     * Creates a copy of {@code other}.
+     *
+     * @param other the transform to copy
+     */
     public Affine4f(Affine4f other) {
         set(other);
     }
 
+    /**
+     * Creates a transform with the twelve elements of {@code other}.
+     *
+     * @param other the matrix to copy
+     */
     public Affine4f(Matrix4x3fc other) {
         set(other);
     }
 
+    /**
+     * Sets this to the identity transform.
+     *
+     * @return this
+     */
     public Affine4f identity() {
         m00 = 1.0f;
         m01 = 0.0f;
@@ -68,6 +95,12 @@ public class Affine4f {
         return this;
     }
 
+    /**
+     * Copies {@code other} into this.
+     *
+     * @param other the transform to copy
+     * @return this
+     */
     public Affine4f set(Affine4f other) {
         m00 = other.m00;
         m01 = other.m01;
@@ -84,6 +117,12 @@ public class Affine4f {
         return this;
     }
 
+    /**
+     * Copies the twelve elements of {@code other} into this.
+     *
+     * @param other the matrix to copy
+     * @return this
+     */
     public Affine4f set(Matrix4x3fc other) {
         m00 = other.m00();
         m01 = other.m01();
@@ -100,6 +139,13 @@ public class Affine4f {
         return this;
     }
 
+    /**
+     * Copies the upper 3x4 part of {@code other} into this. The last row of {@code other} is ignored, so a
+     * projective matrix loses its projective part.
+     *
+     * @param other the matrix to copy
+     * @return this
+     */
     public Affine4f set(Matrix4fc other) {
         m00 = other.m00();
         m01 = other.m01();
@@ -116,6 +162,15 @@ public class Affine4f {
         return this;
     }
 
+    /**
+     * Sets this to {@code T * R * S}: scale first, then rotate, then translate. See
+     * {@link #translationRotateScale(float, float, float, float, float, float, float, float, float, float)}.
+     *
+     * @param translation the translation
+     * @param rotation the rotation; must be a unit quaternion
+     * @param scale the scale factors along the local x, y and z axes
+     * @return this
+     */
     public Affine4f translationRotateScale(Vector3fc translation, Quaternionfc rotation, Vector3fc scale) {
         return translationRotateScale(
                 translation.x(), translation.y(), translation.z(),
@@ -123,6 +178,23 @@ public class Affine4f {
                 scale.x(), scale.y(), scale.z());
     }
 
+    /**
+     * Sets this to {@code T * R * S}: scale first, then rotate, then translate, the same matrix as
+     * {@code Matrix4x3f.translationRotateScale}. The quaternion is not normalized: a non-unit quaternion gives a
+     * matrix that also scales.
+     *
+     * @param tx the translation x
+     * @param ty the translation y
+     * @param tz the translation z
+     * @param qx the rotation quaternion x
+     * @param qy the rotation quaternion y
+     * @param qz the rotation quaternion z
+     * @param qw the rotation quaternion w (scalar part)
+     * @param sx the scale along the local x axis
+     * @param sy the scale along the local y axis
+     * @param sz the scale along the local z axis
+     * @return this
+     */
     public Affine4f translationRotateScale(float tx, float ty, float tz, float qx, float qy, float qz, float qw, float sx, float sy, float sz) {
         float dqx = qx + qx;
         float dqy = qy + qy;
@@ -152,7 +224,12 @@ public class Affine4f {
     }
 
     /**
-     * Compute {@code dest = this * right}.
+     * Computes {@code dest = this * right}: applied to a point, {@code right} acts first. The sums use
+     * {@link org.dynamisengine.vectrix.core.Math#fma}, so they round as {@code -Dvectrix.useMathFma} selects.
+     *
+     * @param right the right operand
+     * @param dest receives the product; may be {@code this} or {@code right}
+     * @return {@code dest}
      */
     public Affine4f mul(Affine4f right, Affine4f dest) {
         float nm00 = org.dynamisengine.vectrix.core.Math.fma(m00, right.m00, org.dynamisengine.vectrix.core.Math.fma(m10, right.m01, m20 * right.m02));
@@ -183,7 +260,12 @@ public class Affine4f {
     }
 
     /**
-     * Fast inverse for rigid affine transforms (orthonormal basis + translation).
+     * Inverts a rigid transform: transposes the 3x3 part and sets the translation to {@code -R^T t}. The result is
+     * the inverse only if the 3x3 part is a rotation (orthonormal columns); with scale or shear it is wrong, and
+     * nothing checks this.
+     *
+     * @param dest receives the inverse; may be {@code this}
+     * @return {@code dest}
      */
     public Affine4f invertRigid(Affine4f dest) {
         float nm30 = -(m00 * m30 + m01 * m31 + m02 * m32);
@@ -207,6 +289,15 @@ public class Affine4f {
         return dest;
     }
 
+    /**
+     * Transforms the point {@code (x, y, z)}, translation included.
+     *
+     * @param x the point x
+     * @param y the point y
+     * @param z the point z
+     * @param dest receives the transformed point
+     * @return {@code dest}
+     */
     public Vector3f transformPoint(float x, float y, float z, Vector3f dest) {
         dest.x = org.dynamisengine.vectrix.core.Math.fma(m00, x, org.dynamisengine.vectrix.core.Math.fma(m10, y, org.dynamisengine.vectrix.core.Math.fma(m20, z, m30)));
         dest.y = org.dynamisengine.vectrix.core.Math.fma(m01, x, org.dynamisengine.vectrix.core.Math.fma(m11, y, org.dynamisengine.vectrix.core.Math.fma(m21, z, m31)));
@@ -214,6 +305,16 @@ public class Affine4f {
         return dest;
     }
 
+    /**
+     * Transforms the direction {@code (x, y, z)} by the 3x3 part only, without translation. For a transform with
+     * non-uniform scale this is not the right transform for normals.
+     *
+     * @param x the vector x
+     * @param y the vector y
+     * @param z the vector z
+     * @param dest receives the transformed vector
+     * @return {@code dest}
+     */
     public Vector3f transformVector(float x, float y, float z, Vector3f dest) {
         dest.x = org.dynamisengine.vectrix.core.Math.fma(m00, x, org.dynamisengine.vectrix.core.Math.fma(m10, y, m20 * z));
         dest.y = org.dynamisengine.vectrix.core.Math.fma(m01, x, org.dynamisengine.vectrix.core.Math.fma(m11, y, m21 * z));
@@ -221,10 +322,22 @@ public class Affine4f {
         return dest;
     }
 
+    /**
+     * Copies the twelve elements into {@code dest}, which uses the same column-major element names.
+     *
+     * @param dest receives the matrix
+     * @return {@code dest}
+     */
     public Matrix4x3f toMatrix4x3f(Matrix4x3f dest) {
         return dest.set(m00, m01, m02, m10, m11, m12, m20, m21, m22, m30, m31, m32);
     }
 
+    /**
+     * Writes this into a 4x4 matrix with last row {@code (0, 0, 0, 1)}.
+     *
+     * @param dest receives the matrix
+     * @return {@code dest}
+     */
     public Matrix4f toMatrix4f(Matrix4f dest) {
         return dest.set(
                 m00, m01, m02, 0.0f,
@@ -234,7 +347,15 @@ public class Affine4f {
     }
 
     /**
-     * Decompose this affine transform into TRS.
+     * Decomposes this transform into translation, rotation and scale, the inverse of
+     * {@link #translationRotateScale(Vector3fc, Quaternionfc, Vector3fc)}. Each scale factor is the
+     * length of a column, so it is never negative, and the rotation is read from the columns divided by those
+     * lengths. The result reproduces this matrix only if it has no shear and a positive determinant; a reflection
+     * or shear gives a rotation that is not a unit quaternion. A zero-length column gives scale 0 and a zero column
+     * in the rotation matrix the quaternion is read from.
+     *
+     * @param dest receives the translation, rotation and scale
+     * @return {@code dest}
      */
     public Transformf getTransform(Transformf dest) {
         float sx = (float) java.lang.Math.sqrt(m00 * m00 + m01 * m01 + m02 * m02);

@@ -41,7 +41,16 @@ public final class Aimf {
     /**
      * The delta rotation {@code R} with {@code R · aimAxis ∥ toTarget}, and {@code R · upAxis} in the half-plane of
      * {@code worldUp} about the new aim direction. If {@code toTarget} is parallel to {@code worldUp}, the roll is the
-     * minimal one (shortest arc from the current aim). All vectors in world space; none need be unit.
+     * minimal one (shortest arc from the current aim); the same fallback applies when {@code upAxis} is parallel to
+     * {@code aimAxis}, and a zero {@code aimAxis} or {@code toTarget} gives the identity. All vectors in world space;
+     * none need be unit. Uses per-thread scratch arrays, which are allocated on the first call in each thread.
+     *
+     * @param aimAxis the object's current aim direction
+     * @param upAxis the object's current up direction, not parallel to {@code aimAxis}
+     * @param toTarget the direction from the object to the target
+     * @param worldUp the world up direction to keep {@code upAxis} close to
+     * @param dest receives the unit delta rotation, to pre-multiply onto the object's world rotation
+     * @return {@code dest}
      */
     public static Quaternionf aim(Vector3fc aimAxis, Vector3fc upAxis, Vector3fc toTarget, Vector3fc worldUp,
             Quaternionf dest) {

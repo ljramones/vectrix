@@ -25,5 +25,14 @@
  * Large-world precision: {@link org.dynamisengine.vectrix.world.WorldPos} (an integer cell plus a local offset, exact
  * at any distance from the origin) and camera-relative conversion of world transforms to single precision for GPU
  * upload, rounding only once.
+ * <p>
+ * <b>Contract.</b> Threading: {@code WorldPos} is mutable and not thread-safe; the {@code CameraRelative} functions
+ * are static and stateless, safe from any thread on separate outputs. Allocation: nothing allocates except the
+ * {@code WorldPos} constructors. Determinism: only exact integer arithmetic and basic floating-point operations are
+ * used, with no transcendental functions, so results are the same bits on every platform. Errors: positions with
+ * different cell sizes throw {@code IllegalArgumentException}; cell overflow and offsets that cannot be rebased
+ * throw {@code ArithmeticException}; the {@code CameraRelative} array functions take a count, start at index 0 and
+ * rely on the array bounds checks. Precision and naming: positions are a {@code long} cell plus a double offset; the
+ * camera-relative outputs are float, in the row-major packed 3×4 layout.
  */
 package org.dynamisengine.vectrix.world;

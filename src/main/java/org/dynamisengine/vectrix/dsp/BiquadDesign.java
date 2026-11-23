@@ -45,7 +45,16 @@ public final class BiquadDesign {
     private BiquadDesign() {
     }
 
-    /** Low-pass; {@code |H(f0)| = q}, so {@code q = 1/√2} is Butterworth. */
+    /**
+     * Low-pass; {@code |H(f0)| = q}, so {@code q = 1/√2} is Butterworth.
+     *
+     * @param dest receives the section, {@link #STRIDE} doubles
+     * @param off the offset of the section in {@code dest}
+     * @param f0 the frequency in cycles per sample, in (0, 0.5)
+     * @param q the quality factor, {@code > 0}
+     * @throws IllegalArgumentException if {@code dest} cannot hold a section from {@code off}, {@code f0} is outside
+     *         (0, 0.5) or {@code q} is not positive (checked before anything is written)
+     */
     public static void lowpass(double[] dest, int off, double f0, double q) {
         check(dest, off, 1, f0, q);
         double h = halfAngleSin2(f0); // (1 - cos w)/2
@@ -54,7 +63,16 @@ public final class BiquadDesign {
         set(dest, off, h, 2 * h, h, 1 + alpha, -2 * c, 1 - alpha);
     }
 
-    /** High-pass; {@code |H(f0)| = q}. */
+    /**
+     * High-pass; {@code |H(f0)| = q}.
+     *
+     * @param dest receives the section, {@link #STRIDE} doubles
+     * @param off the offset of the section in {@code dest}
+     * @param f0 the frequency in cycles per sample, in (0, 0.5)
+     * @param q the quality factor, {@code > 0}
+     * @throws IllegalArgumentException if {@code dest} cannot hold a section from {@code off}, {@code f0} is outside
+     *         (0, 0.5) or {@code q} is not positive (checked before anything is written)
+     */
     public static void highpass(double[] dest, int off, double f0, double q) {
         check(dest, off, 1, f0, q);
         double h = halfAngleCos2(f0); // (1 + cos w)/2
@@ -63,7 +81,16 @@ public final class BiquadDesign {
         set(dest, off, h, -2 * h, h, 1 + alpha, -2 * c, 1 - alpha);
     }
 
-    /** Band-pass with unit gain at {@code f0}; {@code q} sets the bandwidth ({@code f0 / q}). */
+    /**
+     * Band-pass with unit gain at {@code f0}; {@code q} sets the bandwidth ({@code f0 / q}).
+     *
+     * @param dest receives the section, {@link #STRIDE} doubles
+     * @param off the offset of the section in {@code dest}
+     * @param f0 the frequency in cycles per sample, in (0, 0.5)
+     * @param q the quality factor, {@code > 0}
+     * @throws IllegalArgumentException if {@code dest} cannot hold a section from {@code off}, {@code f0} is outside
+     *         (0, 0.5) or {@code q} is not positive (checked before anything is written)
+     */
     public static void bandpass(double[] dest, int off, double f0, double q) {
         check(dest, off, 1, f0, q);
         double c = cosW(f0);
@@ -71,7 +98,16 @@ public final class BiquadDesign {
         set(dest, off, alpha, 0, -alpha, 1 + alpha, -2 * c, 1 - alpha);
     }
 
-    /** Notch: zero gain at {@code f0}, unit gain at DC and Nyquist. */
+    /**
+     * Notch: zero gain at {@code f0}, unit gain at DC and Nyquist.
+     *
+     * @param dest receives the section, {@link #STRIDE} doubles
+     * @param off the offset of the section in {@code dest}
+     * @param f0 the frequency in cycles per sample, in (0, 0.5)
+     * @param q the quality factor, {@code > 0}
+     * @throws IllegalArgumentException if {@code dest} cannot hold a section from {@code off}, {@code f0} is outside
+     *         (0, 0.5) or {@code q} is not positive (checked before anything is written)
+     */
     public static void notch(double[] dest, int off, double f0, double q) {
         check(dest, off, 1, f0, q);
         double c = cosW(f0);
@@ -79,7 +115,16 @@ public final class BiquadDesign {
         set(dest, off, 1, -2 * c, 1, 1 + alpha, -2 * c, 1 - alpha);
     }
 
-    /** All-pass: unit gain everywhere, phase −π at {@code f0}. */
+    /**
+     * All-pass: unit gain everywhere, phase −π at {@code f0}.
+     *
+     * @param dest receives the section, {@link #STRIDE} doubles
+     * @param off the offset of the section in {@code dest}
+     * @param f0 the frequency in cycles per sample, in (0, 0.5)
+     * @param q the quality factor, {@code > 0}
+     * @throws IllegalArgumentException if {@code dest} cannot hold a section from {@code off}, {@code f0} is outside
+     *         (0, 0.5) or {@code q} is not positive (checked before anything is written)
+     */
     public static void allpass(double[] dest, int off, double f0, double q) {
         check(dest, off, 1, f0, q);
         double c = cosW(f0);
@@ -87,7 +132,17 @@ public final class BiquadDesign {
         set(dest, off, 1 - alpha, -2 * c, 1 + alpha, 1 + alpha, -2 * c, 1 - alpha);
     }
 
-    /** Peaking EQ: gain {@code gainDb} at {@code f0}, unit gain far from it. */
+    /**
+     * Peaking EQ: gain {@code gainDb} at {@code f0}, unit gain far from it.
+     *
+     * @param dest receives the section, {@link #STRIDE} doubles
+     * @param off the offset of the section in {@code dest}
+     * @param f0 the frequency in cycles per sample, in (0, 0.5)
+     * @param q the quality factor, {@code > 0}
+     * @param gainDb the gain in dB
+     * @throws IllegalArgumentException if {@code dest} cannot hold a section from {@code off}, {@code f0} is outside
+     *         (0, 0.5) or {@code q} is not positive (checked before anything is written)
+     */
     public static void peaking(double[] dest, int off, double f0, double q, double gainDb) {
         check(dest, off, 1, f0, q);
         double a = AccurateMath.pow(10.0, gainDb / 40.0);
@@ -96,7 +151,17 @@ public final class BiquadDesign {
         set(dest, off, 1 + alpha * a, -2 * c, 1 - alpha * a, 1 + alpha / a, -2 * c, 1 - alpha / a);
     }
 
-    /** Low shelf: gain {@code gainDb} at DC, unit gain at Nyquist, half the gain (in dB) at {@code f0}. */
+    /**
+     * Low shelf: gain {@code gainDb} at DC, unit gain at Nyquist, half the gain (in dB) at {@code f0}.
+     *
+     * @param dest receives the section, {@link #STRIDE} doubles
+     * @param off the offset of the section in {@code dest}
+     * @param f0 the frequency in cycles per sample, in (0, 0.5)
+     * @param q the quality factor, {@code > 0}
+     * @param gainDb the gain in dB
+     * @throws IllegalArgumentException if {@code dest} cannot hold a section from {@code off}, {@code f0} is outside
+     *         (0, 0.5) or {@code q} is not positive (checked before anything is written)
+     */
     public static void lowShelf(double[] dest, int off, double f0, double q, double gainDb) {
         check(dest, off, 1, f0, q);
         double a = AccurateMath.pow(10.0, gainDb / 40.0);
@@ -108,7 +173,17 @@ public final class BiquadDesign {
                 ap + am * c + s, -2 * (am + ap * c), ap + am * c - s);
     }
 
-    /** High shelf: gain {@code gainDb} at Nyquist, unit gain at DC, half the gain (in dB) at {@code f0}. */
+    /**
+     * High shelf: gain {@code gainDb} at Nyquist, unit gain at DC, half the gain (in dB) at {@code f0}.
+     *
+     * @param dest receives the section, {@link #STRIDE} doubles
+     * @param off the offset of the section in {@code dest}
+     * @param f0 the frequency in cycles per sample, in (0, 0.5)
+     * @param q the quality factor, {@code > 0}
+     * @param gainDb the gain in dB
+     * @throws IllegalArgumentException if {@code dest} cannot hold a section from {@code off}, {@code f0} is outside
+     *         (0, 0.5) or {@code q} is not positive (checked before anything is written)
+     */
     public static void highShelf(double[] dest, int off, double f0, double q, double gainDb) {
         check(dest, off, 1, f0, q);
         double a = AccurateMath.pow(10.0, gainDb / 40.0);
@@ -125,19 +200,39 @@ public final class BiquadDesign {
      * first-order section (with {@code b2 = a2 = 0}) when the order is odd. {@code |H(f0)|² = 1/2}.
      *
      * @param dest receives {@link #butterworthSections(int)} sections
+     * @param off the offset of the first section in {@code dest}
      * @param order the order, at least 1
+     * @param f0 the cutoff frequency in cycles per sample, in (0, 0.5)
      * @return the number of sections written
+     * @throws IllegalArgumentException if {@code order < 1}, {@code dest} cannot hold the sections from {@code off}
+     *         or {@code f0} is outside (0, 0.5) (checked before anything is written)
      */
     public static int butterworthLowpass(double[] dest, int off, int order, double f0) {
         return butterworth(dest, off, order, f0, false);
     }
 
-    /** A Butterworth high-pass of any order; see {@link #butterworthLowpass}. */
+    /**
+     * A Butterworth high-pass of any order, as a cascade laid out like {@link #butterworthLowpass}.
+     * {@code |H(f0)|² = 1/2}.
+     *
+     * @param dest receives {@link #butterworthSections(int)} sections
+     * @param off the offset of the first section in {@code dest}
+     * @param order the order, at least 1
+     * @param f0 the cutoff frequency in cycles per sample, in (0, 0.5)
+     * @return the number of sections written
+     * @throws IllegalArgumentException if {@code order < 1}, {@code dest} cannot hold the sections from {@code off}
+     *         or {@code f0} is outside (0, 0.5) (checked before anything is written)
+     */
     public static int butterworthHighpass(double[] dest, int off, int order, double f0) {
         return butterworth(dest, off, order, f0, true);
     }
 
-    /** @return the number of sections of a Butterworth filter of this order: {@code ceil(order / 2)} */
+    /**
+     * Returns the number of sections of a Butterworth filter of this order, {@code ceil(order / 2)}.
+     *
+     * @param order the filter order, at least 1
+     * @return the number of sections
+     */
     public static int butterworthSections(int order) {
         return (order + 1) / 2;
     }
@@ -173,7 +268,7 @@ public final class BiquadDesign {
         return sections;
     }
 
-    /** {@code cos(2π f0)} with exact reduction of the turn fraction. */
+    /** {@code cos(2π f0)}. */
     private static double cosW(double f0) {
         return AccurateMath.cos(2 * java.lang.Math.PI * f0);
     }

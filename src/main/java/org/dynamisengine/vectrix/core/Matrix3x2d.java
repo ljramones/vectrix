@@ -51,8 +51,11 @@ public class Matrix3x2d implements Matrix3x2dc, Cloneable, Externalizable {
      */
     public static final int BYTES = 6*Double.BYTES;
 
+    /** Column 0: {@code m00} is row 0, {@code m01} is row 1. */
     public double m00, m01;
+    /** Column 1: {@code m10} is row 0, {@code m11} is row 1. */
     public double m10, m11;
+    /** Column 2: {@code m20} is row 0, {@code m21} is row 1. */
     public double m20, m21;
 
     /**
@@ -1267,7 +1270,8 @@ public class Matrix3x2d implements Matrix3x2dc, Cloneable, Externalizable {
      * starting at the given address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      * 
@@ -1286,7 +1290,8 @@ public class Matrix3x2d implements Matrix3x2dc, Cloneable, Externalizable {
      * starting at the given address.
      * <p>
      * It needs native access ({@code --enable-native-access}) or, as a fallback, {@code sun.misc.Unsafe}; it throws
-     * {@link UnsupportedOperationException} when neither is available (see {@code MemUtil.addressApi()}).
+     * {@link UnsupportedOperationException} when neither is available: native access is denied and
+     * {@code sun.misc.Unsafe} is disabled ({@code -Dvectrix.nounsafe}) or denied.
      * <p>
      * <em>This method is unsafe as it can result in a crash of the JVM process when the specified address range does not belong to this process.</em>
      *

@@ -100,27 +100,48 @@ public final class Stftd {
         return new Stftd(n, hop, analysisWindow, analysisOff, synthesisWindow, synthesisOff);
     }
 
-    /** @return the frame length */
+    /**
+     * Returns the frame length {@code n}, which is also the FFT size.
+     *
+     * @return the frame length in samples
+     */
     public int frameLength() {
         return n;
     }
 
-    /** @return the frame advance */
+    /**
+     * Returns the frame advance: the number of samples between frame starts and emitted per synthesized frame.
+     *
+     * @return the hop in samples
+     */
     public int hop() {
         return hop;
     }
 
-    /** @return the doubles in one frame's half spectrum: {@code 2·(n/2 + 1)} */
+    /**
+     * Returns the length of one frame's half spectrum, {@code 2·(n/2 + 1)}: {@code n/2 + 1} interleaved complex
+     * values from DC to Nyquist.
+     *
+     * @return the number of doubles
+     */
     public int spectrumLength() {
         return fft.spectrumLength();
     }
 
-    /** @return the doubles of overlap state a synthesis stream carries: {@code n} */
+    /**
+     * Returns the size of the overlap state a synthesis stream carries, {@code n}.
+     *
+     * @return the number of doubles
+     */
     public int stateSize() {
         return n;
     }
 
-    /** @return the doubles of scratch a call needs */
+    /**
+     * Returns the scratch size of {@link #analyze} and {@link #synthesize}.
+     *
+     * @return the number of doubles
+     */
     public int scratchSize() {
         return scratchSize;
     }
@@ -128,7 +149,14 @@ public final class Stftd {
     /**
      * Windows the frame {@code in[inOff .. inOff + n)} and transforms it.
      *
-     * @param out receives {@link #spectrumLength()} doubles; must not overlap {@code in}
+     * @param in the samples
+     * @param inOff the offset of the frame's first sample
+     * @param out receives {@link #spectrumLength()} doubles; must not overlap {@code in} or {@code scratch}
+     * @param outOff the offset of the spectrum
+     * @param scratch working memory of {@link #scratchSize()} doubles
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
      */
     public void analyze(double[] in, int inOff, double[] out, int outOff, double[] scratch, int scratchOff) {
         check(in, inOff, n, "in");
@@ -145,8 +173,15 @@ public final class Stftd {
      * writes the {@code hop} completed samples to {@code out}. {@code spectrum} is not modified.
      *
      * @param spectrum the frame's half spectrum, {@link #spectrumLength()} doubles
-     * @param out receives {@code hop} samples
+     * @param spectrumOff the offset of the spectrum
+     * @param out receives {@code hop} samples; must not overlap {@code state} or {@code scratch}
+     * @param outOff the offset of the first output sample
      * @param state the {@link #stateSize()} doubles of overlap state, zero at the start of a stream
+     * @param stateOff the offset of the state
+     * @param scratch working memory of {@link #scratchSize()} doubles
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
      */
     public void synthesize(double[] spectrum, int spectrumOff, double[] out, int outOff, double[] state,
             int stateOff, double[] scratch, int scratchOff) {

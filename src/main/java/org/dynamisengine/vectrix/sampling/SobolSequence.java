@@ -29,9 +29,13 @@ import org.dynamisengine.vectrix.core.Vector3d;
 import org.dynamisengine.vectrix.core.Vector3f;
 
 /**
- * Deterministic Sobol low-discrepancy sequence utilities for dimensions 0..3.
-  * @since 1.0.0
-  */
+ * Sobol low-discrepancy sequence for dimensions 0 to 3, with optional XOR scrambling or Owen scrambling by a seed.
+ * All functions are pure and stateless: the same index, dimension and seed always give the same value, and no
+ * method allocates. Values are in {@code [0, 1)} with 32 bits of resolution; the float variants are clamped to the
+ * largest float below 1.
+ *
+ * @since 1.0.0
+ */
 public final class SobolSequence {
     private static final double TO_UNIT_D = 1.0 / 4294967296.0;
     private static final float TO_UNIT_F = 1.0f / 4294967296.0f;
@@ -53,20 +57,59 @@ public final class SobolSequence {
     private SobolSequence() {
     }
 
+    /**
+     * Returns one coordinate of the unscrambled Sobol point at {@code index}, in single precision.
+     *
+     * @param index the sample index, non-negative
+     * @param dimension the dimension, 0 to 3
+     * @return the coordinate, in {@code [0, 1)}
+     * @throws IllegalArgumentException if {@code index} is negative or {@code dimension} is outside 0 to 3
+     */
     public static float sobol(int index, int dimension) {
         return toUnitFloat(sobolDouble(index, dimension));
     }
 
+    /**
+     * Returns one coordinate of the unscrambled Sobol point at {@code index}, in double precision. The value has 32
+     * bits of resolution.
+     *
+     * @param index the sample index, non-negative
+     * @param dimension the dimension, 0 to 3
+     * @return the coordinate, in {@code [0, 1)}
+     * @throws IllegalArgumentException if {@code index} is negative or {@code dimension} is outside 0 to 3
+     */
     public static double sobolDouble(int index, int dimension) {
         checkIndexDimension(index, dimension);
         int bits = sobolBits(index, dimension);
         return (bits & 0xFFFFFFFFL) * TO_UNIT_D;
     }
 
+    /**
+     * Returns one coordinate of the XOR-scrambled Sobol point at {@code index}, in single precision. See
+     * {@link #sobolScrambledDouble}.
+     *
+     * @param index the sample index, non-negative
+     * @param dimension the dimension, 0 to 3
+     * @param seed the scrambling seed; any value
+     * @return the coordinate, in {@code [0, 1)}
+     * @throws IllegalArgumentException if {@code index} is negative or {@code dimension} is outside 0 to 3
+     */
     public static float sobolScrambled(int index, int dimension, int seed) {
         return toUnitFloat(sobolScrambledDouble(index, dimension, seed));
     }
 
+    /**
+     * Returns one coordinate of the XOR-scrambled Sobol point at {@code index}, in double precision: the Sobol bits are
+     * XORed with a hash of {@code seed} and {@code dimension} (a random digital shift). Each seed gives a different,
+     * equally well distributed point set. For decorrelated seeds without structured artefacts, prefer
+     * {@link #sobolOwenDouble}.
+     *
+     * @param index the sample index, non-negative
+     * @param dimension the dimension, 0 to 3
+     * @param seed the scrambling seed; any value
+     * @return the coordinate, in {@code [0, 1)}
+     * @throws IllegalArgumentException if {@code index} is negative or {@code dimension} is outside 0 to 3
+     */
     public static double sobolScrambledDouble(int index, int dimension, int seed) {
         checkIndexDimension(index, dimension);
         int bits = sobolBits(index, dimension);
@@ -75,38 +118,126 @@ public final class SobolSequence {
         return (bits & 0xFFFFFFFFL) * TO_UNIT_D;
     }
 
+    /**
+     * Writes dimensions 0 and 1 of the unscrambled Sobol point at {@code index} into {@code dest}, in single precision.
+     *
+     * @param index the sample index, non-negative
+     * @param dest receives the point, in {@code [0, 1)²}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector2f sobol2D(int index, Vector2f dest) {
         return dest.set(sobol(index, 0), sobol(index, 1));
     }
 
+    /**
+     * Writes dimensions 0 and 1 of the unscrambled Sobol point at {@code index} into {@code dest}, in double precision.
+     *
+     * @param index the sample index, non-negative
+     * @param dest receives the point, in {@code [0, 1)²}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector2d sobol2D(int index, Vector2d dest) {
         return dest.set(sobolDouble(index, 0), sobolDouble(index, 1));
     }
 
+    /**
+     * Writes dimensions 0, 1 and 2 of the unscrambled Sobol point at {@code index} into {@code dest}, in single
+     * precision.
+     *
+     * @param index the sample index, non-negative
+     * @param dest receives the point, in {@code [0, 1)³}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector3f sobol3D(int index, Vector3f dest) {
         return dest.set(sobol(index, 0), sobol(index, 1), sobol(index, 2));
     }
 
+    /**
+     * Writes dimensions 0, 1 and 2 of the unscrambled Sobol point at {@code index} into {@code dest}, in double
+     * precision.
+     *
+     * @param index the sample index, non-negative
+     * @param dest receives the point, in {@code [0, 1)³}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector3d sobol3D(int index, Vector3d dest) {
         return dest.set(sobolDouble(index, 0), sobolDouble(index, 1), sobolDouble(index, 2));
     }
 
+    /**
+     * Writes dimensions 0 and 1 of the XOR-scrambled Sobol point at {@code index} into {@code dest}, in single
+     * precision. See {@link #sobolScrambledDouble}.
+     *
+     * @param index the sample index, non-negative
+     * @param seed the scrambling seed; any value
+     * @param dest receives the point, in {@code [0, 1)²}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector2f sobolScrambled2D(int index, int seed, Vector2f dest) {
         return dest.set(sobolScrambled(index, 0, seed), sobolScrambled(index, 1, seed));
     }
 
+    /**
+     * Writes dimensions 0 and 1 of the XOR-scrambled Sobol point at {@code index} into {@code dest}, in double
+     * precision. See {@link #sobolScrambledDouble}.
+     *
+     * @param index the sample index, non-negative
+     * @param seed the scrambling seed; any value
+     * @param dest receives the point, in {@code [0, 1)²}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector2d sobolScrambled2D(int index, int seed, Vector2d dest) {
         return dest.set(sobolScrambledDouble(index, 0, seed), sobolScrambledDouble(index, 1, seed));
     }
 
+    /**
+     * Writes dimensions 0, 1 and 2 of the XOR-scrambled Sobol point at {@code index} into {@code dest}, in single
+     * precision. See {@link #sobolScrambledDouble}.
+     *
+     * @param index the sample index, non-negative
+     * @param seed the scrambling seed; any value
+     * @param dest receives the point, in {@code [0, 1)³}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector3f sobolScrambled3D(int index, int seed, Vector3f dest) {
         return dest.set(sobolScrambled(index, 0, seed), sobolScrambled(index, 1, seed), sobolScrambled(index, 2, seed));
     }
 
+    /**
+     * Writes dimensions 0, 1 and 2 of the XOR-scrambled Sobol point at {@code index} into {@code dest}, in double
+     * precision. See {@link #sobolScrambledDouble}.
+     *
+     * @param index the sample index, non-negative
+     * @param seed the scrambling seed; any value
+     * @param dest receives the point, in {@code [0, 1)³}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector3d sobolScrambled3D(int index, int seed, Vector3d dest) {
         return dest.set(sobolScrambledDouble(index, 0, seed), sobolScrambledDouble(index, 1, seed), sobolScrambledDouble(index, 2, seed));
     }
 
+    /**
+     * Writes dimensions 0 and 1 of the unscrambled Sobol points {@code startIndex} to {@code startIndex + count - 1}
+     * into two float arrays: point {@code i} goes to {@code outX[outXOffset + i]} and {@code outY[outYOffset + i]}.
+     * The arguments are checked before any element is written.
+     *
+     * @param startIndex the index of the first point, non-negative
+     * @param count the number of points, non-negative
+     * @param outX receives the x coordinates
+     * @param outXOffset the first index written in {@code outX}
+     * @param outY receives the y coordinates
+     * @param outYOffset the first index written in {@code outY}
+     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, or an output range is
+     *         outside its array
+     */
     public static void sobolBatch2D(int startIndex, int count, float[] outX, int outXOffset, float[] outY, int outYOffset) {
         checkBatch(startIndex, count, outX.length, outXOffset, outY.length, outYOffset);
         for (int i = 0; i < count; i++) {
@@ -116,6 +247,20 @@ public final class SobolSequence {
         }
     }
 
+    /**
+     * Writes dimensions 0 and 1 of the unscrambled Sobol points {@code startIndex} to {@code startIndex + count - 1}
+     * into two double arrays: point {@code i} goes to {@code outX[outXOffset + i]} and {@code outY[outYOffset + i]}.
+     * The arguments are checked before any element is written.
+     *
+     * @param startIndex the index of the first point, non-negative
+     * @param count the number of points, non-negative
+     * @param outX receives the x coordinates
+     * @param outXOffset the first index written in {@code outX}
+     * @param outY receives the y coordinates
+     * @param outYOffset the first index written in {@code outY}
+     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, or an output range is
+     *         outside its array
+     */
     public static void sobolBatch2D(int startIndex, int count, double[] outX, int outXOffset, double[] outY, int outYOffset) {
         checkBatch(startIndex, count, outX.length, outXOffset, outY.length, outYOffset);
         for (int i = 0; i < count; i++) {
@@ -125,6 +270,22 @@ public final class SobolSequence {
         }
     }
 
+    /**
+     * Writes dimensions 0 and 1 of the XOR-scrambled Sobol points {@code startIndex} to
+     * {@code startIndex + count - 1} into two float arrays: point {@code i} goes to {@code outX[outXOffset + i]} and
+     * {@code outY[outYOffset + i]}. See {@link #sobolScrambledDouble}. The arguments are checked before any element is
+     * written.
+     *
+     * @param startIndex the index of the first point, non-negative
+     * @param count the number of points, non-negative
+     * @param seed the scrambling seed; any value
+     * @param outX receives the x coordinates
+     * @param outXOffset the first index written in {@code outX}
+     * @param outY receives the y coordinates
+     * @param outYOffset the first index written in {@code outY}
+     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, or an output range is
+     *         outside its array
+     */
     public static void sobolScrambledBatch2D(int startIndex, int count, int seed, float[] outX, int outXOffset, float[] outY, int outYOffset) {
         checkBatch(startIndex, count, outX.length, outXOffset, outY.length, outYOffset);
         for (int i = 0; i < count; i++) {
@@ -134,6 +295,22 @@ public final class SobolSequence {
         }
     }
 
+    /**
+     * Writes dimensions 0 and 1 of the XOR-scrambled Sobol points {@code startIndex} to
+     * {@code startIndex + count - 1} into two double arrays: point {@code i} goes to {@code outX[outXOffset + i]} and
+     * {@code outY[outYOffset + i]}. See {@link #sobolScrambledDouble}. The arguments are checked before any element is
+     * written.
+     *
+     * @param startIndex the index of the first point, non-negative
+     * @param count the number of points, non-negative
+     * @param seed the scrambling seed; any value
+     * @param outX receives the x coordinates
+     * @param outXOffset the first index written in {@code outX}
+     * @param outY receives the y coordinates
+     * @param outYOffset the first index written in {@code outY}
+     * @throws IllegalArgumentException if {@code startIndex} or {@code count} is negative, or an output range is
+     *         outside its array
+     */
     public static void sobolScrambledBatch2D(int startIndex, int count, int seed, double[] outX, int outXOffset, double[] outY, int outYOffset) {
         checkBatch(startIndex, count, outX.length, outXOffset, outY.length, outYOffset);
         for (int i = 0; i < count; i++) {
@@ -144,12 +321,17 @@ public final class SobolSequence {
     }
 
     /**
-     * Owen-scrambled Sobol (Burley 2020, "Practical Hash-based Owen Scrambling"): the index is shuffled and each
-     * coordinate is nested-uniform scrambled with a hash of {@code seed} and the dimension. Unlike
-     * {@link #sobolScrambledDouble} (a random XOR), this keeps the (0, m, 2)-net structure of dimensions 0 and 1 and
-     * decorrelates seeds, which removes the structured artefacts of unscrambled Sobol in rendering.
+     * Returns one coordinate of the Owen-scrambled Sobol point at {@code index}, in double precision (Burley 2020,
+     * "Practical Hash-based Owen Scrambling"). The index is shuffled and each coordinate is nested-uniform scrambled
+     * with a hash of {@code seed} and the dimension. Unlike {@link #sobolScrambledDouble} (a random XOR), this keeps
+     * the (0, m, 2)-net structure of dimensions 0 and 1 and decorrelates seeds, which removes the structured
+     * artifacts of unscrambled Sobol in rendering.
      *
-     * @param index sample index (any non-negative int)
+     * @param index the sample index, non-negative
+     * @param dimension the dimension, 0 to 3
+     * @param seed the scrambling seed; any value
+     * @return the coordinate, in {@code [0, 1)}
+     * @throws IllegalArgumentException if {@code index} is negative or {@code dimension} is outside 0 to 3
      */
     public static double sobolOwenDouble(int index, int dimension, int seed) {
         checkIndexDimension(index, dimension);
@@ -159,17 +341,44 @@ public final class SobolSequence {
         return (bits & 0xFFFFFFFFL) * TO_UNIT_D;
     }
 
-    /** Single-precision {@link #sobolOwenDouble}, in {@code [0, 1)}. */
+    /**
+     * Returns one coordinate of the Owen-scrambled Sobol point at {@code index}, in single precision. See
+     * {@link #sobolOwenDouble}.
+     *
+     * @param index the sample index, non-negative
+     * @param dimension the dimension, 0 to 3
+     * @param seed the scrambling seed; any value
+     * @return the coordinate, in {@code [0, 1)}
+     * @throws IllegalArgumentException if {@code index} is negative or {@code dimension} is outside 0 to 3
+     */
     public static float sobolOwen(int index, int dimension, int seed) {
         return toUnitFloat(sobolOwenDouble(index, dimension, seed));
     }
 
-    /** Dimensions 0 and 1 of {@link #sobolOwenDouble}. */
+    /**
+     * Writes dimensions 0 and 1 of the Owen-scrambled Sobol point at {@code index} into {@code dest}, in double
+     * precision. See {@link #sobolOwenDouble}.
+     *
+     * @param index the sample index, non-negative
+     * @param seed the scrambling seed; any value
+     * @param dest receives the point, in {@code [0, 1)²}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector2d sobolOwen2D(int index, int seed, Vector2d dest) {
         return dest.set(sobolOwenDouble(index, 0, seed), sobolOwenDouble(index, 1, seed));
     }
 
-    /** Dimensions 0 and 1 of {@link #sobolOwen}. */
+    /**
+     * Writes dimensions 0 and 1 of the Owen-scrambled Sobol point at {@code index} into {@code dest}, in single
+     * precision. See {@link #sobolOwenDouble}.
+     *
+     * @param index the sample index, non-negative
+     * @param seed the scrambling seed; any value
+     * @param dest receives the point, in {@code [0, 1)²}
+     * @return {@code dest}
+     * @throws IllegalArgumentException if {@code index} is negative
+     */
     public static Vector2f sobolOwen2D(int index, int seed, Vector2f dest) {
         return dest.set(sobolOwen(index, 0, seed), sobolOwen(index, 1, seed));
     }

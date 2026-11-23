@@ -135,11 +135,6 @@ public class FrustumIntersection {
         }
     }
 
-    /**
-     * Create a new {@link FrustumIntersection} with undefined frustum planes.
-     * <p>
-     * Before using any of the frustum culling methods, make sure to define the frustum planes using {@link #set(Matrix4fc)}.
-     */
     /** Whether the planes are normalized; if not, sphere and distance queries scale by the normal lengths. */
     private boolean normalized;
     private float lnx = 1, lpx = 1, lny = 1, lpy = 1, lnz = 1, lpz = 1;
@@ -158,6 +153,11 @@ public class FrustumIntersection {
         lpz = (float) Math.sqrt(pzX * pzX + pzY * pzY + pzZ * pzZ);
     }
 
+    /**
+     * Create a new {@link FrustumIntersection} with all frustum planes zero.
+     * <p>
+     * Before using any of the frustum culling methods, make sure to define the frustum planes using {@link #set(Matrix4fc)}.
+     */
     public FrustumIntersection() {
     }
 
@@ -185,9 +185,9 @@ public class FrustumIntersection {
      * @param m
      *          the {@link Matrix4fc} to create the frustum culler from
      * @param allowTestSpheres
-     *          whether the methods {@link #testSphere(Vector3fc, float)}, {@link #testSphere(float, float, float, float)},
-     *          {@link #intersectSphere(Vector3fc, float)} or {@link #intersectSphere(float, float, float, float)} will used.
-     *          If no spheres need to be tested, then <code>false</code> should be used 
+     *          whether to normalize the planes. The sphere and distance queries, such as
+     *          {@link #testSphere(Vector3fc, float)} and {@link #intersectSphere(Vector3fc, float)}, are correct either
+     *          way: with <code>false</code> they scale by the lengths of the plane normals
      */
     public FrustumIntersection(Matrix4fc m, boolean allowTestSpheres) {
         set(m, allowTestSpheres);
@@ -217,9 +217,9 @@ public class FrustumIntersection {
      * @param m
      *          the {@link Matrix4fc matrix} to update <code>this</code> frustum culler's frustum planes from
      * @param allowTestSpheres
-     *          whether the methods {@link #testSphere(Vector3fc, float)}, {@link #testSphere(float, float, float, float)},
-     *          {@link #intersectSphere(Vector3fc, float)} or {@link #intersectSphere(float, float, float, float)} will be used.
-     *          If no spheres need to be tested, then <code>false</code> should be used
+     *          whether to normalize the planes. The sphere and distance queries, such as
+     *          {@link #testSphere(Vector3fc, float)} and {@link #intersectSphere(Vector3fc, float)}, are correct either
+     *          way: with <code>false</code> they scale by the lengths of the plane normals
      * @return this
      */
     public FrustumIntersection set(Matrix4fc m, boolean allowTestSpheres) {
@@ -231,6 +231,13 @@ public class FrustumIntersection {
      * OpenGL form places a {@code zZeroToOne} projection's near plane at about half the near distance (it culls too
      * little), and a reverse-Z projection's near and far planes wrongly.
      *
+     * @param m
+     *          the {@link Matrix4fc matrix} to update <code>this</code> frustum culler's frustum planes from
+     * @param allowTestSpheres
+     *          whether to normalize the planes; the sphere and distance queries are correct either way
+     * @param depthRange
+     *          the clip-space depth convention of {@code m}
+     * @return this
      * @since 2.5.0
      */
     public FrustumIntersection set(Matrix4fc m, boolean allowTestSpheres, DepthRange depthRange) {
@@ -1034,6 +1041,15 @@ public class FrustumIntersection {
     }
 
     /**
+     * Updates the frustum planes for a depth range given as the deprecated camera-package enum.
+     *
+     * @param m
+     *          the {@link Matrix4fc matrix} to update <code>this</code> frustum culler's frustum planes from
+     * @param allowTestSpheres
+     *          whether to normalize the planes; the sphere and distance queries are correct either way
+     * @param depthRange
+     *          the clip-space depth convention of {@code m}
+     * @return this
      * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
      */
     @Deprecated(since = "2.6.0", forRemoval = true)

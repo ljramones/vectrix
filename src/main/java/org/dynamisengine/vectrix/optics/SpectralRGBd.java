@@ -28,8 +28,11 @@ package org.dynamisengine.vectrix.optics;
   * @since 1.0.0
   */
 public final class SpectralRGBd {
+    /** Wavelength representing the red channel, in nanometers. */
     public static final double LAMBDA_R_NM = 650.0;
+    /** Wavelength representing the green channel, in nanometers. */
     public static final double LAMBDA_G_NM = 550.0;
+    /** Wavelength representing the blue channel, in nanometers. */
     public static final double LAMBDA_B_NM = 450.0;
 
     private SpectralRGBd() {

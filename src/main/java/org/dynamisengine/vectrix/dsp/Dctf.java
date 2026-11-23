@@ -88,6 +88,7 @@ public final class Dctf {
      *
      * @param n the transform size, {@code 1 <= n <= ComplexFftf.MAX_SIZE}
      * @return the plan
+     * @throws IllegalArgumentException if {@code n} is out of range
      */
     public static Dctf plan(int n) {
         if (n < 1 || n > ComplexFftf.MAX_SIZE) {
@@ -96,17 +97,37 @@ public final class Dctf {
         return new Dctf(n);
     }
 
-    /** @return the transform size */
+    /**
+     * Returns the transform size {@code n}.
+     *
+     * @return the number of values per transform
+     */
     public int size() {
         return n;
     }
 
-    /** @return the floats of scratch a call needs */
+    /**
+     * Returns the scratch size of every transform of this plan.
+     *
+     * @return the number of floats
+     */
     public int scratchSize() {
         return scratchSize;
     }
 
-    /** DCT-II of {@code in[inOff .. inOff + n)} into {@code out}. */
+    /**
+     * DCT-II of {@code in[inOff .. inOff + n)} into {@code out}.
+     *
+     * @param in the input values
+     * @param inOff the offset of the first input
+     * @param out receives {@code n} coefficients; may be {@code in} at the same offset, must not overlap
+     *        {@code scratch}
+     * @param outOff the offset of the first output
+     * @param scratch working memory of {@link #scratchSize()} floats
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
+     */
     public void forward(float[] in, int inOff, float[] out, int outOff, float[] scratch, int scratchOff) {
         check(in, inOff, out, outOff, scratch, scratchOff);
         int b = scratchOff;
@@ -133,7 +154,19 @@ public final class Dctf {
         }
     }
 
-    /** The inverse of {@link #forward}: the DCT-III divided by {@code 2n}. */
+    /**
+     * The inverse of {@link #forward}: the DCT-III divided by {@code 2n}.
+     *
+     * @param in the {@code n} DCT-II coefficients
+     * @param inOff the offset of the first coefficient
+     * @param out receives the {@code n} values; may be {@code in} at the same offset, must not overlap
+     *        {@code scratch}
+     * @param outOff the offset of the first output
+     * @param scratch working memory of {@link #scratchSize()} floats
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
+     */
     public void inverse(float[] in, int inOff, float[] out, int outOff, float[] scratch, int scratchOff) {
         check(in, inOff, out, outOff, scratch, scratchOff);
         int b = scratchOff;
@@ -158,7 +191,19 @@ public final class Dctf {
         }
     }
 
-    /** DCT-IV ({@code n} even) of {@code in} into {@code out}. */
+    /**
+     * DCT-IV ({@code n} even) of {@code in[inOff .. inOff + n)} into {@code out}.
+     *
+     * @param in the input values
+     * @param inOff the offset of the first input
+     * @param out receives {@code n} coefficients; may be {@code in} at the same offset, must not overlap
+     *        {@code scratch}
+     * @param outOff the offset of the first output
+     * @param scratch working memory of {@link #scratchSize()} floats
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset
+     * @throws IllegalStateException if the plan's size is odd (checked before anything is written)
+     */
     public void forwardIV(float[] in, int inOff, float[] out, int outOff, float[] scratch, int scratchOff) {
         check(in, inOff, out, outOff, scratch, scratchOff);
         if (half == null) {
@@ -187,7 +232,19 @@ public final class Dctf {
         }
     }
 
-    /** The inverse of {@link #forwardIV}: the DCT-IV divided by {@code 2n}. */
+    /**
+     * The inverse of {@link #forwardIV}: the DCT-IV divided by {@code 2n}.
+     *
+     * @param in the {@code n} DCT-IV coefficients
+     * @param inOff the offset of the first coefficient
+     * @param out receives the {@code n} values; may be {@code in} at the same offset, must not overlap
+     *        {@code scratch}
+     * @param outOff the offset of the first output
+     * @param scratch working memory of {@link #scratchSize()} floats
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset
+     * @throws IllegalStateException if the plan's size is odd (checked before anything is written)
+     */
     public void inverseIV(float[] in, int inOff, float[] out, int outOff, float[] scratch, int scratchOff) {
         forwardIV(in, inOff, out, outOff, scratch, scratchOff);
         double d = 2.0 * n;

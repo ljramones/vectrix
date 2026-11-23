@@ -45,21 +45,40 @@ public final class Spectra {
     private Spectra() {
     }
 
-    /** @return the scratch doubles {@link #periodogram} and {@link #welch} need with this plan */
+    /**
+     * Returns the scratch size of {@link #periodogram} and {@link #welch} for this plan.
+     *
+     * @param plan the real FFT plan of the segment length
+     * @return the number of scratch doubles
+     */
     public static int scratchSize(RealFftd plan) {
         return plan.spectrumLength() + plan.scratchSize();
     }
 
-    /** @return the scratch doubles {@link #analytic} needs with this plan */
+    /**
+     * Returns the scratch size of {@link #analytic} for this plan.
+     *
+     * @param plan the complex FFT plan of the signal length
+     * @return the number of scratch doubles
+     */
     public static int scratchSize(ComplexFftd plan) {
         return plan.scratchSize();
     }
 
     /**
-     * The periodogram of one windowed segment of {@code plan.size()} samples.
+     * The periodogram of one windowed segment of {@code n = plan.size()} samples.
      *
+     * @param plan the real FFT plan; its size is the segment length {@code n}
      * @param window {@code n} window values from {@code windowOff}, or {@code null} for rectangular
-     * @param psd receives {@code n/2 + 1} densities
+     * @param windowOff the offset of the window values
+     * @param x the samples
+     * @param xOff the offset of the first sample
+     * @param psd receives {@code n/2 + 1} densities, from DC to Nyquist; must not overlap {@code scratch}
+     * @param psdOff the offset of the first density
+     * @param scratch working memory of {@link #scratchSize(RealFftd)} doubles
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset; when {@code window}
+     *         or {@code scratch} is the short one, {@code psd} has already been zeroed
      */
     public static void periodogram(RealFftd plan, double[] window, int windowOff, double[] x, int xOff,
             double[] psd, int psdOff, double[] scratch, int scratchOff) {
@@ -75,9 +94,21 @@ public final class Spectra {
      * Welch's estimate: the average of the periodograms of segments of {@code plan.size()} samples, advancing by
      * {@code hop}; the samples after the last whole segment are ignored.
      *
+     * @param plan the real FFT plan; its size is the segment length {@code n}
+     * @param window {@code n} window values from {@code windowOff}, or {@code null} for rectangular
+     * @param windowOff the offset of the window values
+     * @param hop the distance between segment starts in samples, at least 1
+     * @param x the samples
+     * @param xOff the offset of the first sample
      * @param length the number of samples, at least {@code plan.size()}
-     * @param psd receives {@code n/2 + 1} densities
+     * @param psd receives {@code n/2 + 1} densities, from DC to Nyquist; must not overlap {@code scratch}
+     * @param psdOff the offset of the first density
+     * @param scratch working memory of {@link #scratchSize(RealFftd)} doubles
+     * @param scratchOff the offset into {@code scratch}
      * @return the number of segments averaged
+     * @throws IllegalArgumentException if {@code hop < 1}, {@code length < plan.size()}, or an array does not hold
+     *         its values from its offset; when {@code window} or {@code scratch} is the short one, {@code psd} has
+     *         already been zeroed
      */
     public static int welch(RealFftd plan, double[] window, int windowOff, int hop, double[] x, int xOff,
             int length, double[] psd, int psdOff, double[] scratch, int scratchOff) {
@@ -97,7 +128,12 @@ public final class Spectra {
         return segments;
     }
 
-    /** @return the scratch doubles {@link #crossWelch} needs with this plan */
+    /**
+     * Returns the scratch size of {@link #crossWelch} for this plan.
+     *
+     * @param plan the real FFT plan of the segment length
+     * @return the number of scratch doubles
+     */
     public static int crossScratchSize(RealFftd plan) {
         return 2 * plan.spectrumLength() + plan.scratchSize();
     }
@@ -106,8 +142,23 @@ public final class Spectra {
      * Welch's estimate of the one-sided cross power spectral density {@code P_xy[k] = c·conj(X[k])·Y[k] / Σw²},
      * averaged over segments, scaled like {@link #welch} (so {@code P_xx} is the PSD of {@code x}).
      *
-     * @param out receives {@code n/2 + 1} complex values, interleaved
+     * @param plan the real FFT plan; its size is the segment length {@code n}
+     * @param window {@code n} window values from {@code windowOff}, or {@code null} for rectangular
+     * @param windowOff the offset of the window values
+     * @param hop the distance between segment starts in samples, at least 1
+     * @param x the first signal
+     * @param xOff the offset of the first sample of {@code x}
+     * @param y the second signal
+     * @param yOff the offset of the first sample of {@code y}
+     * @param length the number of samples of each signal, at least {@code plan.size()}
+     * @param out receives {@code n/2 + 1} complex values (real, imaginary) interleaved, from DC to Nyquist; must
+     *        not overlap {@code scratch}
+     * @param outOff the offset of the first value
+     * @param scratch working memory of {@link #crossScratchSize(RealFftd)} doubles
+     * @param scratchOff the offset into {@code scratch}
      * @return the number of segments averaged
+     * @throws IllegalArgumentException if {@code hop < 1}, {@code length < plan.size()}, or an array does not hold
+     *         its values from its offset (checked before anything is written)
      */
     public static int crossWelch(RealFftd plan, double[] window, int windowOff, int hop, double[] x, int xOff,
             double[] y, int yOff, int length, double[] out, int outOff, double[] scratch, int scratchOff) {
@@ -198,7 +249,15 @@ public final class Spectra {
      * transform (computed with the FFT, so the signal is treated as periodic). Its magnitude is the envelope and
      * its argument the instantaneous phase.
      *
-     * @param out receives {@code 2n} interleaved values; must not overlap {@code x}
+     * @param plan the complex FFT plan; its size is the signal length {@code n}
+     * @param x the real samples
+     * @param xOff the offset of the first sample
+     * @param out receives {@code n} complex values, interleaved (real, imaginary); must not overlap {@code x}
+     * @param outOff the offset of the first value
+     * @param scratch working memory of {@link #scratchSize(ComplexFftd)} doubles
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
      */
     public static void analytic(ComplexFftd plan, double[] x, int xOff, double[] out, int outOff, double[] scratch,
             int scratchOff) {

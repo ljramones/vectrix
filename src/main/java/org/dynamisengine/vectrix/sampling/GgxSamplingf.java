@@ -40,8 +40,19 @@ public final class GgxSamplingf {
     }
 
     /**
-     * Samples a visible microfacet normal for anisotropic GGX widths {@code alphaX}, {@code alphaY}
-     * ({@code alphaX == alphaY} for isotropic GGX). The reflected direction is {@code 2 (v·h) h - v}.
+     * Samples a visible microfacet normal for anisotropic GGX with widths {@code alphaX}, {@code alphaY}
+     * ({@code alphaX == alphaY} for isotropic GGX). The density over half vectors is {@link #pdfVisibleNormal}
+     * (isotropic) or {@link #pdfVisibleNormalAnisotropic}; the reflected direction is {@code 2 (v·h) h - v}.
+     *
+     * @param vx the x component of the unit view direction in the shading frame
+     * @param vy the y component of the unit view direction
+     * @param vz the z component of the unit view direction, positive
+     * @param alphaX the GGX width along x (the tangent), positive
+     * @param alphaY the GGX width along y (the bitangent), positive
+     * @param u1 the first uniform variate, in {@code [0, 1)}; it sets the azimuth on the spherical cap
+     * @param u2 the second uniform variate, in {@code [0, 1)}; it sets the height on the spherical cap
+     * @param dest receives the unit half vector, with {@code z >= 0}
+     * @return {@code dest}
      */
     public static Vector3f sampleVisibleNormal(float vx, float vy, float vz, float alphaX, float alphaY, float u1,
             float u2, Vector3f dest) {
@@ -69,8 +80,14 @@ public final class GgxSamplingf {
     }
 
     /**
-     * Density over half vectors of {@link #sampleVisibleNormal} for isotropic GGX:
+     * Returns the density over half vectors of {@link #sampleVisibleNormal} for isotropic GGX:
      * {@code G1(v) max(0, v·h) D(h) / (n·v)}.
+     *
+     * @param nDotV the cosine between the normal and the view direction
+     * @param vDotH the cosine between the view direction and the half vector
+     * @param nDotH the cosine between the normal and the half vector
+     * @param alpha the GGX width
+     * @return the density per unit solid angle, or 0 when {@code nDotV <= 0} or {@code vDotH <= 0}
      */
     public static float pdfVisibleNormal(float nDotV, float vDotH, float nDotH, float alpha) {
         if (nDotV <= 0.0f || vDotH <= 0.0f) {
@@ -80,8 +97,14 @@ public final class GgxSamplingf {
     }
 
     /**
-     * Density over reflected directions {@code l = 2 (v·h) h - v} when {@code h} comes from
+     * Returns the density over reflected directions {@code l = 2 (v·h) h - v} when {@code h} comes from
      * {@link #sampleVisibleNormal} (isotropic): {@code D_v(h) / (4 v·h) = G1(v) D(h) / (4 n·v)}.
+     *
+     * @param nDotV the cosine between the normal and the view direction
+     * @param vDotH the cosine between the view direction and the half vector
+     * @param nDotH the cosine between the normal and the half vector
+     * @param alpha the GGX width
+     * @return the density per unit solid angle of {@code l}, or 0 when {@code nDotV <= 0} or {@code vDotH <= 0}
      */
     public static float pdfReflected(float nDotV, float vDotH, float nDotH, float alpha) {
         if (vDotH <= 0.0f) {
@@ -91,8 +114,19 @@ public final class GgxSamplingf {
     }
 
     /**
-     * Density over half vectors for anisotropic GGX, with {@code (hx, hy, hz)} the unit half vector and
-     * {@code (vx, vy, vz)} the unit view direction in the tangent frame.
+     * Returns the density over half vectors of {@link #sampleVisibleNormal} for anisotropic GGX:
+     * {@code G1(v) max(0, v·h) D(h) / (n·v)}, with all vectors in the tangent frame (tangent on x, bitangent on y,
+     * normal on z).
+     *
+     * @param vx the x component of the unit view direction
+     * @param vy the y component of the unit view direction
+     * @param vz the z component of the unit view direction
+     * @param hx the x component of the unit half vector
+     * @param hy the y component of the unit half vector
+     * @param hz the z component of the unit half vector
+     * @param alphaX the GGX width along x, positive
+     * @param alphaY the GGX width along y, positive
+     * @return the density per unit solid angle, or 0 when {@code vz <= 0} or {@code v·h <= 0}
      */
     public static float pdfVisibleNormalAnisotropic(float vx, float vy, float vz, float hx, float hy, float hz,
             float alphaX, float alphaY) {

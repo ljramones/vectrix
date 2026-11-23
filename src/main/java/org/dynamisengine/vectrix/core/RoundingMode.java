@@ -49,12 +49,12 @@ public class RoundingMode {
     public static final int HALF_EVEN = 3;
     /**
      * Round towards the nearest neighbor. If both neighbors are equidistant, round
-     * down.
+     * toward zero.
      */
     public static final int HALF_DOWN = 4;
     /**
      * Round towards the nearest neighbor. If both neighbors are equidistant, round
-     * up.
+     * away from zero.
      */
     public static final int HALF_UP = 5;
 }

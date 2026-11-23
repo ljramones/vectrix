@@ -39,6 +39,14 @@ public final class Pacejkad {
      * The magic formula {@code y = D sin(C atan(B x − E (B x − atan(B x))))}. The coefficients are stiffness
      * {@code B}, shape {@code C}, peak {@code D} and curvature {@code E}. Multiply {@code D} by the normal load for
      * a force. Evaluated in double.
+     *
+     * @param slip the slip {@code x}: a slip ratio from {@link #slipRatio} or a slip angle in radians from
+     *             {@link #slipAngle}
+     * @param b the stiffness factor {@code B}
+     * @param c the shape factor {@code C}
+     * @param d the peak value {@code D}
+     * @param e the curvature factor {@code E}
+     * @return the curve value {@code y}
      */
     public static double magicFormula(double slip, double b, double c, double d, double e) {
         double bx = (double) b * slip;
@@ -48,6 +56,15 @@ public final class Pacejkad {
     /**
      * The magic formula with horizontal and vertical shifts: {@code y = D sin(C atan(B x' − E (B x' − atan(B x'))))
      * + Sv}, with {@code x' = slip + Sh}.
+     *
+     * @param slip the slip {@code x}
+     * @param b the stiffness factor {@code B}
+     * @param c the shape factor {@code C}
+     * @param d the peak value {@code D}
+     * @param e the curvature factor {@code E}
+     * @param horizontalShift the shift {@code Sh} added to the slip
+     * @param verticalShift the shift {@code Sv} added to the result
+     * @return the curve value {@code y}
      */
     public static double magicFormula(double slip, double b, double c, double d, double e, double horizontalShift,
             double verticalShift) {
@@ -62,9 +79,14 @@ public final class Pacejkad {
      * bounds the ratio near standstill.
      *
      * @param wheelAngularVelocity
-     *            the wheel's spin, positive rolling forward
+     *            the wheel's spin, in radians per unit time, positive rolling forward
+     * @param wheelRadius
+     *            the wheel's rolling radius
      * @param longitudinalVelocity
      *            the contact patch's ground speed along the wheel's forward axis, signed
+     * @param minSpeed
+     *            the smallest denominator, greater than 0, in the unit of {@code longitudinalVelocity}
+     * @return the slip ratio
      */
     public static double slipRatio(double wheelAngularVelocity, double wheelRadius, double longitudinalVelocity,
             double minSpeed) {
@@ -77,6 +99,10 @@ public final class Pacejkad {
      * heading and the contact patch's velocity, positive when the patch slides toward the wheel's positive lateral
      * axis. It is exact at every speed, including sideways sliding ({@code ±π/2}), and {@code 0} at rest. The
      * lateral force opposes it, for example {@code F_y = −F_z · magicFormula(α, …)}.
+     *
+     * @param lateralVelocity the contact patch's velocity along the wheel's lateral axis
+     * @param longitudinalVelocity the contact patch's velocity along the wheel's forward axis; its sign is ignored
+     * @return the slip angle, in radians
      */
     public static double slipAngle(double lateralVelocity, double longitudinalVelocity) {
         return AccurateMath.atan2(lateralVelocity, Math.abs((double) longitudinalVelocity));

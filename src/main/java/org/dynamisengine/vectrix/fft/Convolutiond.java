@@ -24,10 +24,12 @@
 package org.dynamisengine.vectrix.fft;
 
 /**
- * FFT-based convolution for interleaved complex sequences.
-  * @since 1.0.0
-  *
- * @deprecated use a {@link ComplexFftd} plan (forward, multiply, inverse), {@link BlockConvolverd} for streaming real filters, or {@code dsp.Correlation}
+ * FFT-based convolution for interleaved complex sequences ({@code data[2*i]} real, {@code data[2*i+1]}
+ * imaginary). Both methods allocate their FFT buffers on every call.
+ *
+ * @since 1.0.0
+ * @deprecated use a {@link ComplexFftd} plan (forward, multiply, inverse), {@link BlockConvolverd} for streaming
+ *             real filters, or {@code dsp.Correlation}
  */
 @Deprecated(since = "2.6.0", forRemoval = true)
 public final class Convolutiond {
@@ -35,7 +37,14 @@ public final class Convolutiond {
     }
 
     /**
-     * Circular convolution. All inputs must have equal interleaved length and power-of-two complex count.
+     * Circular convolution {@code dest[k] = Σ a[j]·b[(k - j) mod n]}. All inputs must have equal interleaved length
+     * and power-of-two complex count. {@code dest} may be {@code a} or {@code b}.
+     *
+     * @param a the first sequence, interleaved
+     * @param b the second sequence, interleaved
+     * @param dest receives the result, interleaved
+     * @throws IllegalArgumentException if an array is null or of odd length, the lengths differ, or the complex
+     *         count is not a power of two
      */
     public static void circular(double[] a, double[] b, double[] dest) {
         checkInterleaved(a, "a");
@@ -58,8 +67,16 @@ public final class Convolutiond {
     }
 
     /**
-     * Linear convolution. Inputs may have arbitrary complex length; zero-padding is internal.
-     * Destination must be at least {@code 2*(na+nb-1)}.
+     * Linear convolution of {@code na} and {@code nb} complex values into {@code na + nb - 1} complex values.
+     * Inputs may have any nonzero complex length; zero-padding is internal. {@code dest} must hold at least
+     * {@code 2*(na+nb-1)} values; only that many are written. {@code dest} may be {@code a} or {@code b} if it is
+     * long enough.
+     *
+     * @param a the first sequence, interleaved
+     * @param b the second sequence, interleaved
+     * @param dest receives the result, interleaved
+     * @throws IllegalArgumentException if an array is null or of odd length, an input is empty, or {@code dest} is
+     *         too short
      */
     public static void linear(double[] a, double[] b, double[] dest) {
         checkInterleaved(a, "a");
