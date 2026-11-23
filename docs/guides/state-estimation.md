@@ -81,8 +81,6 @@ double[] q = {q0 * DT * DT * DT / 3, q0 * DT * DT / 2, q0 * DT * DT / 2, q0 * DT
 double[] h = {1, 0};                     // we measure the position only
 double[] r = {NOISE * NOISE};
 double[] scratch = new double[Kalman.scratchSize(n, m)];
-double[] xBefore = new double[n];
-double[] pBefore = new double[n * n];
 ```
 
 `Kalman.scratchSize(n, m)` gives the number of doubles of scratch that `Kalman.predict` and `Kalman.update` need.
@@ -91,14 +89,11 @@ Allocate it once per thread. Each step then predicts with the motion model and c
 <!-- snippet: KalmanTracking#loop -->
 ```java
 Kalman.predict(n, x, p, f, q, scratch);
-// Gate on the innovation before trusting the measurement: update returns its squared Mahalanobis
-// distance, so save the state first and restore it when the measurement is implausible.
-System.arraycopy(x, 0, xBefore, 0, n);
-System.arraycopy(p, 0, pBefore, 0, n * n);
-double d2 = Kalman.update(n, m, x, p, h, r, z, scratch);
-if (d2 > GATE) {
-    System.arraycopy(xBefore, 0, x, 0, n);
-    System.arraycopy(pBefore, 0, p, 0, n * n);
+// Gate before updating: innovationDistance gives the squared Mahalanobis distance of the measurement
+// without changing the state, so an implausible measurement is simply skipped.
+if (Kalman.innovationDistance(n, m, x, p, h, r, z, scratch) <= GATE) {
+    Kalman.update(n, m, x, p, h, r, z, scratch);
+} else {
     rejected++;
 }
 ```
@@ -106,7 +101,7 @@ if (d2 > GATE) {
 - `Kalman.predict(n, x, p, f, q, scratch)` computes `x = F·x` and `P = F·P·Fᵀ + Q`.
 - `Kalman.update(n, m, x, p, h, r, z, scratch)` computes the innovation `y = z - H·x`, the gain
   `K = P·Hᵀ·S⁻¹` with `S = H·P·Hᵀ + R`, then `x += K·y` and the new covariance. It returns the squared Mahalanobis
-  distance `yᵀ·S⁻¹·y` of the innovation, which the loop above uses for gating (see below).
+  distance `yᵀ·S⁻¹·y` of the innovation.
 - `Kalman.innovationDistance(n, m, x, p, h, r, z, scratch)` returns the same distance without changing `x` and `p`.
 
 If several sensors measure at different times, call `update` once per measurement with that sensor's `h`, `r` and
@@ -162,17 +157,8 @@ degrees of freedom, so you can reject measurements whose `d²` exceeds a thresho
 | 3 | 7.81 | 11.34 |
 
 To gate, compute the distance first with `Kalman.innovationDistance`, which leaves `x` and `p` unchanged and returns
-exactly what `update` would, and call `update` only when the measurement passes:
-
-```java
-double d2 = Kalman.innovationDistance(n, m, x, p, h, r, z, scratch);
-if (d2 <= GATE) {
-    Kalman.update(n, m, x, p, h, r, z, scratch);
-}
-```
-
-The example loop above instead copies `x` and `p` before `update` and restores them when the distance is too large,
-with a threshold of 16 (four standard deviations for one measured value); both give the same result.
+exactly what `update` would, and call `update` only when the measurement passes. The example loop above does this
+with a threshold of 16, four standard deviations for one measured value.
 `ExtendedKalman.innovationDistance` and `UnscentedKalman.innovationDistance` do the same for the nonlinear filters,
 whose `update` returns the same distance.
 

@@ -38,8 +38,6 @@ public final class KalmanTracking {
         double[] h = {1, 0};                     // we measure the position only
         double[] r = {NOISE * NOISE};
         double[] scratch = new double[Kalman.scratchSize(n, m)];
-        double[] xBefore = new double[n];
-        double[] pBefore = new double[n * n];
         // end::model[]
 
         float[] noise = new float[STEPS];
@@ -56,14 +54,11 @@ public final class KalmanTracking {
             }
             // tag::loop[]
             Kalman.predict(n, x, p, f, q, scratch);
-            // Gate on the innovation before trusting the measurement: update returns its squared Mahalanobis
-            // distance, so save the state first and restore it when the measurement is implausible.
-            System.arraycopy(x, 0, xBefore, 0, n);
-            System.arraycopy(p, 0, pBefore, 0, n * n);
-            double d2 = Kalman.update(n, m, x, p, h, r, z, scratch);
-            if (d2 > GATE) {
-                System.arraycopy(xBefore, 0, x, 0, n);
-                System.arraycopy(pBefore, 0, p, 0, n * n);
+            // Gate before updating: innovationDistance gives the squared Mahalanobis distance of the measurement
+            // without changing the state, so an implausible measurement is simply skipped.
+            if (Kalman.innovationDistance(n, m, x, p, h, r, z, scratch) <= GATE) {
+                Kalman.update(n, m, x, p, h, r, z, scratch);
+            } else {
                 rejected++;
             }
             // end::loop[]
