@@ -24,133 +24,45 @@
 package org.dynamisengine.vectrix.nn;
 
 /**
- * Philox4x32-10, the counter-based random number generator of Salmon et al. (Random123): the {@code n}-th random
- * number of a stream is a pure function of {@code (seed, n)}.
- * <p>
- * There is no generator state, so any element can be drawn in any order by any thread with the same result: a
- * dropout mask or a weight initialization is reproducible however the work is split, and a backward pass can
- * regenerate its forward mask instead of storing it. Index {@code n} uses word {@code n mod 4} of the block for
- * counter {@code n / 4}; the 64-bit seed is the key. Outputs match the Random123 known-answer vectors. Nothing
- * allocates.
+ * Philox4x32-10 counter-based random numbers.
  *
  * @since 2.5.0
+ * @deprecated moved to {@link org.dynamisengine.vectrix.hash.Philox}; {@code dropout} is now
+ *             {@link Activations#dropout}
  */
+@Deprecated(since = "2.6.0", forRemoval = true)
 public final class Philox {
-
-    private static final int M0 = 0xD2511F53;
-    private static final int M1 = 0xCD9E8D57;
-    private static final int W0 = 0x9E3779B9;
-    private static final int W1 = 0xBB67AE85;
 
     private Philox() {
     }
 
-    /**
-     * The block for a 128-bit counter {@code (c0, c1, c2, c3)} and key {@code (k0, k1)}, as four 32-bit words.
-     *
-     * @param out receives four words at {@code out[off .. off + 4)}
-     */
+    /** Forwards to {@link org.dynamisengine.vectrix.hash.Philox#block}. */
     public static void block(int c0, int c1, int c2, int c3, int k0, int k1, int[] out, int off) {
-        for (int r = 0; r < 10; r++) {
-            long p0 = (M0 & 0xffffffffL) * (c0 & 0xffffffffL);
-            long p1 = (M1 & 0xffffffffL) * (c2 & 0xffffffffL);
-            int n0 = (int) (p1 >>> 32) ^ c1 ^ k0;
-            int n2 = (int) (p0 >>> 32) ^ c3 ^ k1;
-            c0 = n0;
-            c1 = (int) p1;
-            c2 = n2;
-            c3 = (int) p0;
-            k0 += W0;
-            k1 += W1;
-        }
-        out[off] = c0;
-        out[off + 1] = c1;
-        out[off + 2] = c2;
-        out[off + 3] = c3;
+        org.dynamisengine.vectrix.hash.Philox.block(c0, c1, c2, c3, k0, k1, out, off);
     }
 
-    /** The 32-bit word number {@code index} of the stream {@code seed}. */
+    /** Forwards to {@link org.dynamisengine.vectrix.hash.Philox#word}. */
     public static int word(long seed, long index) {
-        long counter = index >>> 2;
-        int c0 = (int) counter;
-        int c1 = (int) (counter >>> 32);
-        int k0 = (int) seed;
-        int k1 = (int) (seed >>> 32);
-        int c2 = 0;
-        int c3 = 0;
-        int w = (int) (index & 3);
-        int r0 = c0;
-        int r1 = c1;
-        int r2 = c2;
-        int r3 = c3;
-        for (int r = 0; r < 10; r++) {
-            long p0 = (M0 & 0xffffffffL) * (r0 & 0xffffffffL);
-            long p1 = (M1 & 0xffffffffL) * (r2 & 0xffffffffL);
-            int n0 = (int) (p1 >>> 32) ^ r1 ^ k0;
-            int n2 = (int) (p0 >>> 32) ^ r3 ^ k1;
-            r0 = n0;
-            r1 = (int) p1;
-            r2 = n2;
-            r3 = (int) p0;
-            k0 += W0;
-            k1 += W1;
-        }
-        return w == 0 ? r0 : w == 1 ? r1 : w == 2 ? r2 : r3;
+        return org.dynamisengine.vectrix.hash.Philox.word(seed, index);
     }
 
-    /** A uniform float in [0, 1) with 24 random bits: number {@code index} of stream {@code seed}. */
+    /** Forwards to {@link org.dynamisengine.vectrix.hash.Philox#uniform}. */
     public static float uniform(long seed, long index) {
-        return (word(seed, index) >>> 8) * 0x1p-24f;
+        return org.dynamisengine.vectrix.hash.Philox.uniform(seed, index);
     }
 
-    /** {@code dest[off + i] = uniform(seed, start + i)}. */
+    /** Forwards to {@link org.dynamisengine.vectrix.hash.Philox#fillUniform}. */
     public static void fillUniform(long seed, long start, float[] dest, int off, int n) {
-        check(dest, off, n);
-        for (int i = 0; i < n; i++) {
-            dest[off + i] = uniform(seed, start + i);
-        }
+        org.dynamisengine.vectrix.hash.Philox.fillUniform(seed, start, dest, off, n);
     }
 
-    /**
-     * Normally distributed floats by the Box–Muller transform: element {@code i} uses the uniforms
-     * {@code 2·⌊(start + i)/2⌋} and the next one, taking the cosine for even and the sine for odd stream positions,
-     * all computed in double with {@link NnMath}'s reproducible functions and rounded once.
-     */
+    /** Forwards to {@link org.dynamisengine.vectrix.hash.Philox#fillNormal}. */
     public static void fillNormal(long seed, long start, float mean, float std, float[] dest, int off, int n) {
-        check(dest, off, n);
-        for (int i = 0; i < n; i++) {
-            long j = start + i;
-            long pair = j & ~1L;
-            double u1 = ((word(seed, pair) >>> 8) + 1) * 0x1p-24; // (0, 1]: log is finite
-            double u2 = (word(seed, pair + 1) >>> 8) * 0x1p-24;
-            double rad = Math.sqrt(-2.0 * NnMath.logD(u1));
-            double a = 2 * Math.PI * u2;
-            double z = (j & 1) == 0 ? rad * NnMath.cosD(a) : rad * NnMath.sinD(a);
-            dest[off + i] = (float) Math.fma(z, std, mean);
-        }
+        org.dynamisengine.vectrix.hash.Philox.fillNormal(seed, start, mean, std, dest, off, n);
     }
 
-    /**
-     * Inverted dropout: keeps element {@code i} when {@code uniform(seed, start + i) >= p} and scales it by
-     * {@code 1/(1 - p)}, else writes 0. The same call on the upstream gradient is the backward pass.
-     *
-     * @param p the drop probability, in [0, 1)
-     */
+    /** Forwards to {@link Activations#dropout}. */
     public static void dropout(long seed, long start, float p, float[] x, int xOff, float[] y, int yOff, int n) {
-        if (!(p >= 0f && p < 1f)) {
-            throw new IllegalArgumentException("p must be in [0, 1): " + p);
-        }
-        check(x, xOff, n);
-        check(y, yOff, n);
-        float scale = 1f / (1f - p);
-        for (int i = 0; i < n; i++) {
-            y[yOff + i] = uniform(seed, start + i) >= p ? x[xOff + i] * scale : 0f;
-        }
-    }
-
-    private static void check(float[] a, int off, int n) {
-        if (a == null || n < 0 || off < 0 || off > a.length - n) {
-            throw new IllegalArgumentException("array must hold " + n + " values from offset " + off);
-        }
+        Activations.dropout(seed, start, p, x, xOff, y, yOff, n);
     }
 }

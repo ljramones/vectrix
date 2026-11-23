@@ -23,7 +23,7 @@
  */
 package org.dynamisengine.vectrix.optics;
 
-import org.dynamisengine.vectrix.fft.Complexd;
+import org.dynamisengine.vectrix.core.Complexd;
 
 /**
  * Fresnel reflectance helpers (double-precision).
@@ -105,5 +105,13 @@ public final class Fresneld {
 
     static double clamp01(double v) {
         return java.lang.Math.max(0.0, java.lang.Math.min(1.0, v));
+    }
+
+    /**
+     * @deprecated use the overload taking {@link Complexd} from {@code core}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public static double conductor(double cosThetaI, org.dynamisengine.vectrix.fft.Complexd eta) {
+        return conductor(cosThetaI, new Complexd(eta.real, eta.imag));
     }
 }

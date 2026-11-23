@@ -48,7 +48,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.dynamisengine.vectrix.affine.TransformKernels;
+import org.dynamisengine.vectrix.soa.TransformKernels;
 import org.dynamisengine.vectrix.core.CoreConfig;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.core.Matrix4f;
@@ -181,7 +181,7 @@ public final class DeterminismDigest {
         for (Method m : methods) {
             if (m.getDeclaringClass() == Object.class || m.isSynthetic() || m.getName().contains("Address")
                     // deprecated overloads forward to their replacements; hashing both would collide on simple names
-                    || m.isAnnotationPresent(Deprecated.class)
+                    || m.isAnnotationPresent(Deprecated.class) || c.isAnnotationPresent(Deprecated.class)
                     || EXCLUDED_METHODS.contains(m.getName())
                     || EXCLUDED_METHODS.contains(c.getSimpleName() + "." + m.getName())
                     || !m.getDeclaringClass().getName().startsWith(ROOT)

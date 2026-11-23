@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.nn;
 
+import org.dynamisengine.vectrix.core.ReproducibleMath;
 /**
  * Rotary position embeddings (RoPE): each pair of features of a head vector is rotated by the angle
  * {@code position·θ_i}, {@code θ_i = base^(-2i/dim)}.
@@ -69,7 +70,7 @@ public final class Rope {
         }
         double[] f = new double[dim / 2];
         for (int i = 0; i < f.length; i++) {
-            f[i] = NnMath.powD(base, -2.0 * i / dim);
+            f[i] = ReproducibleMath.pow(base, -2.0 * i / dim);
         }
         return new Rope(dim, f, layout);
     }
@@ -109,23 +110,23 @@ public final class Rope {
         double pos = position;
         for (int i = 0; i < half; i++) {
             double a = pos * invFreq[i];
-            // NnMath.sinD/cosD expanded inline, sharing one argument reduction (RopeTest checks they agree bitwise)
+            // ReproducibleMath.sin/cos expanded inline, sharing one argument reduction (RopeTest checks they agree bitwise)
             double s;
             double c;
             {
-                double kf = (a * NnMath.TWO_OVER_PI_D + NnMath.ROUND_D) - NnMath.ROUND_D;
-                double r = Math.fma(kf, -NnMath.PIO2_1, a);
-                r = Math.fma(kf, -NnMath.PIO2_2, r);
-                r = Math.fma(kf, -NnMath.PIO2_3, r);
-                r = Math.fma(kf, -NnMath.PIO2_3T, r);
+                double kf = (a * NnConstants.TWO_OVER_PI_D + NnConstants.ROUND_D) - NnConstants.ROUND_D;
+                double r = Math.fma(kf, -NnConstants.PIO2_1, a);
+                r = Math.fma(kf, -NnConstants.PIO2_2, r);
+                r = Math.fma(kf, -NnConstants.PIO2_3, r);
+                r = Math.fma(kf, -NnConstants.PIO2_3T, r);
                 double z = r * r;
-                double ps = NnMath.SIN_D[NnMath.SIN_D.length - 1];
-                for (int n = NnMath.SIN_D.length - 2; n >= 0; n--) {
-                    ps = Math.fma(ps, z, NnMath.SIN_D[n]);
+                double ps = NnConstants.SIN_D[NnConstants.SIN_D.length - 1];
+                for (int n = NnConstants.SIN_D.length - 2; n >= 0; n--) {
+                    ps = Math.fma(ps, z, NnConstants.SIN_D[n]);
                 }
-                double pc = NnMath.COS_D[NnMath.COS_D.length - 1];
-                for (int n = NnMath.COS_D.length - 2; n >= 0; n--) {
-                    pc = Math.fma(pc, z, NnMath.COS_D[n]);
+                double pc = NnConstants.COS_D[NnConstants.COS_D.length - 1];
+                for (int n = NnConstants.COS_D.length - 2; n >= 0; n--) {
+                    pc = Math.fma(pc, z, NnConstants.COS_D[n]);
                 }
                 double sn = Math.fma(r * z, ps, r);
                 double cs = Math.fma(z, pc, 1.0);

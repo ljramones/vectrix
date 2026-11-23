@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.nn;
 
+import org.dynamisengine.vectrix.core.ReproducibleMath;
 /**
  * Parameter updates: AdamW and SGD with momentum, element-wise over a parameter range, and gradient-norm clipping.
  * <p>
@@ -53,8 +54,8 @@ public final class Optim {
         range(g, gOff, n, "g");
         range(m, mOff, n, "m");
         range(v, vOff, n, "v");
-        float bc1 = (float) (1.0 - NnMath.powD(beta1, step));
-        float bc2 = (float) (1.0 - NnMath.powD(beta2, step));
+        float bc1 = (float) (1.0 - ReproducibleMath.pow(beta1, step));
+        float bc2 = (float) (1.0 - ReproducibleMath.pow(beta2, step));
         float a1 = 1f - beta1;
         float a2 = 1f - beta2;
         float decay = 1f - lr * weightDecay;

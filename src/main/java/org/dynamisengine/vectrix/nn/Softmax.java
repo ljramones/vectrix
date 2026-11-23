@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.nn;
 
+import org.dynamisengine.vectrix.core.ReproducibleMath;
 import org.dynamisengine.vectrix.blas.Blasf;
 //#ifdef __HAS_VECTOR_API__
 import jdk.incubator.vector.FloatVector;
@@ -72,7 +73,7 @@ public final class Softmax {
         }
         float m = max(x, xOff, n);
         expShifted(x, xOff, scratch, scratchOff, n, m);
-        float lse = NnMath.log(Blasf.sum(scratch, scratchOff, n));
+        float lse = ReproducibleMath.log(Blasf.sum(scratch, scratchOff, n));
         for (int i = 0; i < n; i++) {
             y[yOff + i] = (x[xOff + i] - m) - lse;
         }
@@ -94,7 +95,7 @@ public final class Softmax {
             return m;
         }
         expShifted(x, xOff, scratch, scratchOff, n, m);
-        return m + NnMath.log(Blasf.sum(scratch, scratchOff, n));
+        return m + ReproducibleMath.log(Blasf.sum(scratch, scratchOff, n));
     }
 
     /** Softmax backward from its output: {@code dx[i] = y[i]·(dy[i] - Σ dy[j]·y[j])}. */
@@ -115,7 +116,7 @@ public final class Softmax {
         check(dx, dxOff, n, "dx");
         float s = Blasf.sum(dy, dyOff, n);
         for (int i = 0; i < n; i++) {
-            dx[dxOff + i] = Math.fma(-NnMath.exp(y[yOff + i]), s, dy[dyOff + i]);
+            dx[dxOff + i] = Math.fma(-ReproducibleMath.exp(y[yOff + i]), s, dy[dyOff + i]);
         }
     }
 
@@ -146,7 +147,7 @@ public final class Softmax {
             float bv = s - a;
             float av = s - bv;
             float err = (a - av) + (-bv - m);
-            float e = NnMath.exp(s);
+            float e = ReproducibleMath.exp(s);
             y[yOff + i] = Math.fma(e, err, e);
         }
     }
@@ -171,12 +172,12 @@ public final class Softmax {
             return AVAILABLE && SimdSupport.backend() == SimdSupport.Backend.VECTOR_API;
         }
 
-        static final FloatVector MLN2_HI = FloatVector.broadcast(S, -NnMath.LN2_HI);
-        static final FloatVector MLN2_LO = FloatVector.broadcast(S, -NnMath.LN2_LO);
-        static final FloatVector E5V = FloatVector.broadcast(S, NnMath.E5);
-        static final FloatVector E4V = FloatVector.broadcast(S, NnMath.E4);
-        static final FloatVector E3V = FloatVector.broadcast(S, NnMath.E3);
-        static final FloatVector E2V = FloatVector.broadcast(S, NnMath.E2);
+        static final FloatVector MLN2_HI = FloatVector.broadcast(S, -NnConstants.LN2_HI);
+        static final FloatVector MLN2_LO = FloatVector.broadcast(S, -NnConstants.LN2_LO);
+        static final FloatVector E5V = FloatVector.broadcast(S, NnConstants.E5);
+        static final FloatVector E4V = FloatVector.broadcast(S, NnConstants.E4);
+        static final FloatVector E3V = FloatVector.broadcast(S, NnConstants.E3);
+        static final FloatVector E2V = FloatVector.broadcast(S, NnConstants.E2);
 
         /** {@link Softmax#expShifted} on whole vectors, with {@link NnMath#exp} expanded inline; returns the index reached. */
         static int expShifted(float[] x, int xOff, float[] y, int yOff, int n, float m) {
@@ -189,10 +190,10 @@ public final class Softmax {
                 FloatVector av = s.sub(bv);
                 FloatVector err = a.sub(av).add(bv.neg().sub(m));
                 FloatVector ec = s.max(-104f).min(89f);
-                FloatVector ek = ec.mul(NnMath.LOG2E).add(NnMath.ROUND).sub(NnMath.ROUND);
+                FloatVector ek = ec.mul(NnConstants.LOG2E).add(NnConstants.ROUND).sub(NnConstants.ROUND);
                 FloatVector er = ek.fma(MLN2_HI, ec);
                 er = ek.fma(MLN2_LO, er);
-                FloatVector ep = er.fma(NnMath.E7, NnMath.E6);
+                FloatVector ep = er.fma(NnConstants.E7, NnConstants.E6);
                 ep = er.fma(ep, E5V);
                 ep = er.fma(ep, E4V);
                 ep = er.fma(ep, E3V);

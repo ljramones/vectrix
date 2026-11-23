@@ -23,7 +23,7 @@
  */
 package org.dynamisengine.vectrix.optics;
 
-import org.dynamisengine.vectrix.fft.Complexf;
+import org.dynamisengine.vectrix.core.Complexf;
 
 /**
  * Fresnel reflectance helpers (single-precision).
@@ -105,5 +105,13 @@ public final class Fresnelf {
 
     static float clamp01(float v) {
         return java.lang.Math.max(0.0f, java.lang.Math.min(1.0f, v));
+    }
+
+    /**
+     * @deprecated use the overload taking {@link Complexf} from {@code core}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public static float conductor(float cosThetaI, org.dynamisengine.vectrix.fft.Complexf eta) {
+        return conductor(cosThetaI, new Complexf(eta.real, eta.imag));
     }
 }

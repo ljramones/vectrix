@@ -311,7 +311,7 @@ class EstimationTest {
         double[] xk = {0};
         double[] pk = {1};
         double[] sc = new double[Kalman.scratchSize(1, 1)];
-        org.dynamisengine.vectrix.nn.Philox.fillNormal(11, 0, 0f, 1f, noise, 0, count);
+        org.dynamisengine.vectrix.hash.Philox.fillNormal(11, 0, 0f, 1f, noise, 0, count);
         for (int i = 0; i < count; i++) {
             parts[i] = noise[i]; // prior N(0, 1)
         }
@@ -320,7 +320,7 @@ class EstimationTest {
         for (int t = 1; t <= 30; t++) {
             truth += java.lang.Math.sqrt(q) * r.nextGaussian();
             double z = truth + java.lang.Math.sqrt(rv) * r.nextGaussian();
-            org.dynamisengine.vectrix.nn.Philox.fillNormal(11, (long) t * count, 0f, 1f, noise, 0, count);
+            org.dynamisengine.vectrix.hash.Philox.fillNormal(11, (long) t * count, 0f, 1f, noise, 0, count);
             for (int i = 0; i < count; i++) {
                 parts[i] += java.lang.Math.sqrt(q) * noise[i];
                 double e = z - parts[i];
@@ -333,7 +333,7 @@ class EstimationTest {
             Kalman.update(1, 1, xk, pk, new double[] {1}, new double[] {rv}, new double[] {z}, sc);
             assertEquals(xk[0], mean[0], 0.05, "posterior mean at step " + t);
             assertTrue(ParticleFilter.effectiveSampleSize(w, count) > 1);
-            ParticleFilter.systematicResample(w, count, org.dynamisengine.vectrix.nn.Philox.uniform(12, t), idx);
+            ParticleFilter.systematicResample(w, count, org.dynamisengine.vectrix.hash.Philox.uniform(12, t), idx);
             ParticleFilter.gather(parts, 1, count, idx, next);
             double[] tmp = parts;
             parts = next;

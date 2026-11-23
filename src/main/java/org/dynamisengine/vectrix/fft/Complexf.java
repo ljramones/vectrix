@@ -26,7 +26,10 @@ package org.dynamisengine.vectrix.fft;
 /**
  * Mutable complex number value type (single-precision).
   * @since 1.0.0
-  */
+  *
+ * @deprecated moved to {@link org.dynamisengine.vectrix.core.Complexf}
+ */
+@Deprecated(since = "2.6.0", forRemoval = true)
 public final class Complexf {
     public float real;
     public float imag;
@@ -69,5 +72,13 @@ public final class Complexf {
 
     public Complexf conjugate(Complexf dest) {
         return dest.set(real, -imag);
+    }
+
+    /**
+     * @param dest receives this number
+     * @return {@code dest}
+     */
+    public org.dynamisengine.vectrix.core.Complexf get(org.dynamisengine.vectrix.core.Complexf dest) {
+        return dest.set(real, imag);
     }
 }

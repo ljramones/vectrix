@@ -34,7 +34,7 @@ import java.util.SplittableRandom;
 
 import org.junit.jupiter.api.Test;
 import org.dynamisengine.vectrix.core.MathMode;
-import org.dynamisengine.vectrix.affine.TransformKernels;
+import org.dynamisengine.vectrix.soa.TransformKernels;
 import org.dynamisengine.vectrix.affine.Transformf;
 import org.dynamisengine.vectrix.core.Matrix4x3f;
 import org.dynamisengine.vectrix.core.Vector3f;

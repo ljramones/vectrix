@@ -15,7 +15,7 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.dynamisengine.vectrix.affine.Affine4f;
-import org.dynamisengine.vectrix.affine.TransformKernels;
+import org.dynamisengine.vectrix.soa.TransformKernels;
 import org.dynamisengine.vectrix.affine.Transformf;
 import org.dynamisengine.vectrix.core.Matrix4f;
 import org.dynamisengine.vectrix.soa.TransformSoA;

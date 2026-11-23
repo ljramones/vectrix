@@ -391,7 +391,7 @@ class HotPathAllocationTest {
         org.dynamisengine.vectrix.nn.Rope rope = org.dynamisengine.vectrix.nn.Rope.plan(128, 10000,
             org.dynamisengine.vectrix.nn.Rope.Layout.HALF);
         assertNoAllocation("Rope.apply", () -> rope.apply(nx, 0, 123_456L));
-        assertNoAllocation("Philox.fillNormal", () -> org.dynamisengine.vectrix.nn.Philox.fillNormal(5, 0, 0f, 1f, ny, 0,
+        assertNoAllocation("Philox.fillNormal", () -> org.dynamisengine.vectrix.hash.Philox.fillNormal(5, 0, 0f, 1f, ny, 0,
             256));
         int[] sorder = new int[1024];
         assertNoAllocation("Sampler.sample", () -> org.dynamisengine.vectrix.nn.Sampler.sample(nx, 0, 1024, 0.7f, 40,

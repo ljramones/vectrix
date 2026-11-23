@@ -51,7 +51,7 @@ import org.junit.jupiter.api.Test;
  * <li>float vs double types ({@code Matrix4f}/{@code Matrix4d}, {@code Sdf3f}/{@code Sdf3d}, ...): within float
  * precision;</li>
  * <li>int vs long vectors ({@code Vector3i}/{@code Vector3L}): exactly, for small values that cannot overflow;</li>
- * <li>float vs double overloads inside one class ({@code core.Math}, {@code CubicCurveMath}, the SH classes).</li>
+ * <li>float vs double overloads inside one class ({@code core.Math}, {@code ReproducibleMath}, {@code CubicCurveMath}, the SH classes).</li>
  * </ul>
  * Parameters may be primitives, arrays of them, Vectrix value types and arrays of those; arrays and objects are
  * compared after the call as well, since they are often outputs. Methods whose inputs have documented domains that
@@ -84,7 +84,7 @@ class TwinParityTest {
         "physics.PbdConstraints",
     };
     private static final String[] INT_LONG = {"core.Vector2", "core.Vector3", "core.Vector4"};
-    private static final String[] OVERLOADS = {"core.Math", "curve.CubicCurveMath", "sh.ShBasis", "sh.ShProjection",
+    private static final String[] OVERLOADS = {"core.Math", "core.ReproducibleMath", "curve.CubicCurveMath", "sh.ShBasis", "sh.ShProjection",
         "sh.ShConvolution", "sh.ShRotation", "sh.ShWindowing", "sh.ShProduct", "sh.ShL1"};
 
     /**

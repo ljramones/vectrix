@@ -26,7 +26,7 @@ package org.dynamisengine.vectrix.nn;
 /**
  * Picks a token from a row of logits: greedy, or random with temperature, top-k and top-p (nucleus) filtering.
  * <p>
- * The randomness is the caller's uniform number {@code u} in [0, 1) (for example from {@link Philox}), so sampling is
+ * The randomness is the caller's uniform number {@code u} in [0, 1) (for example from {@link org.dynamisengine.vectrix.hash.Philox}), so sampling is
  * reproducible. Candidates are ranked by probability with ties broken by the lower index, top-k keeps the first
  * {@code k}, top-p the shortest prefix whose probability reaches {@code p}, and {@code u} selects within the kept
  * mass by cumulative probability in rank order. Nothing allocates: the caller passes {@code n} floats and

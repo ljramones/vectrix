@@ -23,14 +23,14 @@
  */
 package org.dynamisengine.vectrix.dsp;
 
-import org.dynamisengine.vectrix.nn.NnMath;
+import org.dynamisengine.vectrix.core.ReproducibleMath;
 
 /**
  * Building blocks of a particle filter (sequential Monte Carlo): weight normalization in log space, the effective
  * sample size, systematic resampling, and weighted estimates.
  * <p>
  * A bootstrap filter step is: move every particle through the transition with process noise (draw it from
- * {@link org.dynamisengine.vectrix.nn.Philox} with an index derived from the step and particle, so the filter is
+ * {@link org.dynamisengine.vectrix.hash.Philox} with an index derived from the step and particle, so the filter is
  * reproducible and parallel-safe); add each particle's measurement log-likelihood to its log-weight;
  * {@link #normalizeLogWeights}; and when {@link #effectiveSampleSize} falls below about half the particles,
  * {@link #systematicResample} with one uniform number and {@link #gather}. Exponentials and logarithms use
@@ -64,14 +64,14 @@ public final class ParticleFilter {
         }
         double sum = 0;
         for (int i = 0; i < count; i++) {
-            double e = NnMath.expD(Math.max(logW[i] - mx, -700));
+            double e = ReproducibleMath.exp(Math.max(logW[i] - mx, -700));
             w[i] = e;
             sum += e;
         }
         for (int i = 0; i < count; i++) {
             w[i] /= sum;
         }
-        return mx + NnMath.logD(sum) - NnMath.logD(count);
+        return mx + ReproducibleMath.log(sum) - ReproducibleMath.log((double) count);
     }
 
     /** The effective sample size {@code 1 / Σ w²} of normalized weights, between 1 and {@code count}. */

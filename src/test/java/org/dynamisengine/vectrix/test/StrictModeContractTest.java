@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.math.BigDecimal;
 import java.util.SplittableRandom;
 
-import org.dynamisengine.vectrix.affine.TransformKernels;
+import org.dynamisengine.vectrix.soa.TransformKernels;
 import org.dynamisengine.vectrix.core.CoreConfig;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.core.Quaternionf;

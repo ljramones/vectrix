@@ -30,8 +30,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.SplittableRandom;
 
 import org.dynamisengine.vectrix.nn.Loss;
-import org.dynamisengine.vectrix.nn.NnMath;
-import org.dynamisengine.vectrix.nn.Philox;
+import org.dynamisengine.vectrix.core.ReproducibleMath;
+import org.dynamisengine.vectrix.hash.Philox;
+import org.dynamisengine.vectrix.nn.Activations;
 import org.dynamisengine.vectrix.nn.Rope;
 import org.dynamisengine.vectrix.nn.Sampler;
 import org.junit.jupiter.api.Test;
@@ -84,7 +85,7 @@ class NnBatch4Test {
         float[] x = new float[n];
         java.util.Arrays.fill(x, 2f);
         float[] y = new float[n];
-        Philox.dropout(99, 0, 0.25f, x, 0, y, 0, n);
+        Activations.dropout(99, 0, 0.25f, x, 0, y, 0, n);
         int dropped = 0;
         for (float v : y) {
             if (v == 0f) {
@@ -95,7 +96,7 @@ class NnBatch4Test {
         }
         assertEquals(0.25, dropped / (double) n, 2e-3);
         float[] y2 = new float[n];
-        Philox.dropout(99, 0, 0.25f, x, 0, y2, 0, n);
+        Activations.dropout(99, 0, 0.25f, x, 0, y2, 0, n);
         assertArrayEquals(y, y2, 0f);
     }
 
@@ -124,13 +125,13 @@ class NnBatch4Test {
                     assertEquals(want0, x[i0], tol, layout + " pos " + pos + " pair " + i);
                     assertEquals(want1, x[i1], tol);
                 }
-                // the inline sine and cosine are exactly NnMath.sinD/cosD
+                // the inline sine and cosine are exactly ReproducibleMath.sin/cos
                 for (int i = 0; i < dim / 2; i++) {
-                    double a = pos * NnMath.powD(10000, -2.0 * i / dim);
+                    double a = pos * ReproducibleMath.pow(10000, -2.0 * i / dim);
                     int i0 = layout == Rope.Layout.INTERLEAVED ? 2 * i : i;
                     int i1 = layout == Rope.Layout.INTERLEAVED ? 2 * i + 1 : i + dim / 2;
-                    double c = NnMath.cosD(a);
-                    double sn = NnMath.sinD(a);
+                    double c = ReproducibleMath.cos(a);
+                    double sn = ReproducibleMath.sin(a);
                     assertEquals((float) (q[i0] * c - q[i1] * sn), x[i0], 0f);
                     assertEquals((float) (q[i0] * sn + q[i1] * c), x[i1], 0f);
                 }

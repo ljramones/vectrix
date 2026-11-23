@@ -32,7 +32,7 @@ import java.util.SplittableRandom;
 import java.util.function.DoubleUnaryOperator;
 
 import org.dynamisengine.vectrix.nn.Activations;
-import org.dynamisengine.vectrix.nn.NnMath;
+import org.dynamisengine.vectrix.core.ReproducibleMath;
 import org.dynamisengine.vectrix.nn.Norms;
 import org.dynamisengine.vectrix.nn.Softmax;
 import org.junit.jupiter.api.Test;
@@ -83,30 +83,30 @@ class NnKernelsTest {
 
     @Test
     void mathIsWithinItsDocumentedBounds() {
-        ulps("exp", NnMath::exp, StrictMath::exp, -87.3, 88.7, 1.1);
-        ulps("expm1", NnMath::expm1, StrictMath::expm1, -20, 20, 2);
-        ulps("expm1 small", NnMath::expm1, StrictMath::expm1, -1e-3, 1e-3, 2);
-        ulps("tanh", NnMath::tanh, StrictMath::tanh, -10, 10, 2.5);
-        ulps("tanh small", NnMath::tanh, StrictMath::tanh, -1e-3, 1e-3, 2.5);
-        ulps("sigmoid", NnMath::sigmoid, x -> 1 / (1 + StrictMath.exp(-x)), -80, 30, 2.5);
-        ulps("log", NnMath::log, StrictMath::log, 1e-30, 1e30, 2);
-        ulps("log near 1", NnMath::log, StrictMath::log, 0.5, 2, 2);
-        ulps("log1p", NnMath::log1p, StrictMath::log1p, -0.999, 1e6, 3);
-        ulps("erf", NnMath::erf, NnKernelsTest::erf, -4, 4, 2.5);
-        ulps("erfc", NnMath::erfc, v -> 1 - erf(v), -4, 1, 2.5);
-        ulps("erfc tail", NnMath::erfc, NnKernelsTest::erfcTail, 1, 9.5, 2.5);
-        ulps("normalCdf lower", NnMath::normalCdf, v -> 0.5 * erfcTail(-v / java.lang.Math.sqrt(2)), -13, -1.42, 2.5);
-        ulps("normalPdf", NnMath::normalPdf, v -> StrictMath.exp(-v * v / 2) / java.lang.Math.sqrt(2 * java.lang.Math.PI), -13,
+        ulps("exp", ReproducibleMath::exp, StrictMath::exp, -87.3, 88.7, 1.1);
+        ulps("expm1", ReproducibleMath::expm1, StrictMath::expm1, -20, 20, 2);
+        ulps("expm1 small", ReproducibleMath::expm1, StrictMath::expm1, -1e-3, 1e-3, 2);
+        ulps("tanh", ReproducibleMath::tanh, StrictMath::tanh, -10, 10, 2.5);
+        ulps("tanh small", ReproducibleMath::tanh, StrictMath::tanh, -1e-3, 1e-3, 2.5);
+        ulps("sigmoid", ReproducibleMath::sigmoid, x -> 1 / (1 + StrictMath.exp(-x)), -80, 30, 2.5);
+        ulps("log", ReproducibleMath::log, StrictMath::log, 1e-30, 1e30, 2);
+        ulps("log near 1", ReproducibleMath::log, StrictMath::log, 0.5, 2, 2);
+        ulps("log1p", ReproducibleMath::log1p, StrictMath::log1p, -0.999, 1e6, 3);
+        ulps("erf", ReproducibleMath::erf, NnKernelsTest::erf, -4, 4, 2.5);
+        ulps("erfc", ReproducibleMath::erfc, v -> 1 - erf(v), -4, 1, 2.5);
+        ulps("erfc tail", ReproducibleMath::erfc, NnKernelsTest::erfcTail, 1, 9.5, 2.5);
+        ulps("normalCdf lower", ReproducibleMath::normalCdf, v -> 0.5 * erfcTail(-v / java.lang.Math.sqrt(2)), -13, -1.42, 2.5);
+        ulps("normalPdf", ReproducibleMath::normalPdf, v -> StrictMath.exp(-v * v / 2) / java.lang.Math.sqrt(2 * java.lang.Math.PI), -13,
             13, 1);
-        ulps("normalCdf", NnMath::normalCdf, v -> 0.5 * (1 + erf(v / java.lang.Math.sqrt(2))), -1.41, 6, 2.5);
-        assertEquals(Float.POSITIVE_INFINITY, NnMath.exp(89f), 0f);
-        assertEquals(0f, NnMath.exp(-104f), 0f);
-        assertTrue(Float.isNaN(NnMath.exp(Float.NaN)) && Float.isNaN(NnMath.log(-1f)) && Float.isNaN(NnMath.erf(Float.NaN)));
-        assertEquals(Float.NEGATIVE_INFINITY, NnMath.log(0f), 0f);
-        assertEquals(1f, NnMath.tanh(50f), 0f);
-        assertEquals(-1f, NnMath.erf(-5f), 0f);
-        assertEquals(Float.floatToRawIntBits(-0f), Float.floatToRawIntBits(NnMath.tanh(-0f)));
-        assertEquals(NnMath.log(Float.MIN_VALUE), (float) StrictMath.log(Float.MIN_VALUE), 2e-5f);
+        ulps("normalCdf", ReproducibleMath::normalCdf, v -> 0.5 * (1 + erf(v / java.lang.Math.sqrt(2))), -1.41, 6, 2.5);
+        assertEquals(Float.POSITIVE_INFINITY, ReproducibleMath.exp(89f), 0f);
+        assertEquals(0f, ReproducibleMath.exp(-104f), 0f);
+        assertTrue(Float.isNaN(ReproducibleMath.exp(Float.NaN)) && Float.isNaN(ReproducibleMath.log(-1f)) && Float.isNaN(ReproducibleMath.erf(Float.NaN)));
+        assertEquals(Float.NEGATIVE_INFINITY, ReproducibleMath.log(0f), 0f);
+        assertEquals(1f, ReproducibleMath.tanh(50f), 0f);
+        assertEquals(-1f, ReproducibleMath.erf(-5f), 0f);
+        assertEquals(Float.floatToRawIntBits(-0f), Float.floatToRawIntBits(ReproducibleMath.tanh(-0f)));
+        assertEquals(ReproducibleMath.log(Float.MIN_VALUE), (float) StrictMath.log(Float.MIN_VALUE), 2e-5f);
     }
 
     private static float[] floats(SplittableRandom r, int n, double scale) {
@@ -152,8 +152,8 @@ class NnKernelsTest {
                     assertArrayEquals(out[0][k], out[1][k], 0f, "kernel " + k + " n " + n);
                 }
                 for (int i = 1; i < n; i++) {
-                    assertEquals(NnMath.sigmoid(x[i]), out[0][0][i], 0f);
-                    assertEquals(NnMath.tanh(x[i]), out[0][4][i], 0f);
+                    assertEquals(ReproducibleMath.sigmoid(x[i]), out[0][0][i], 0f);
+                    assertEquals(ReproducibleMath.tanh(x[i]), out[0][4][i], 0f);
                 }
             }
         } finally {

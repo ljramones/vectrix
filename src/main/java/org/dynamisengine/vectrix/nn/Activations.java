@@ -23,6 +23,8 @@
  */
 package org.dynamisengine.vectrix.nn;
 
+import org.dynamisengine.vectrix.hash.Philox;
+import org.dynamisengine.vectrix.core.ReproducibleMath;
 //#ifdef __HAS_VECTOR_API__
 import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.IntVector;
@@ -87,7 +89,7 @@ public final class Activations {
         }
 //#endif
         for (; i < n; i++) {
-            y[yOff + i] = NnMath.sigmoid(x[xOff + i]);
+            y[yOff + i] = ReproducibleMath.sigmoid(x[xOff + i]);
         }
     }
 
@@ -103,7 +105,7 @@ public final class Activations {
 //#endif
         for (; i < n; i++) {
             float v = x[xOff + i];
-            y[yOff + i] = v * NnMath.sigmoid(v);
+            y[yOff + i] = v * ReproducibleMath.sigmoid(v);
         }
     }
 
@@ -114,7 +116,7 @@ public final class Activations {
         check(dx, dxOff, n, "dx");
         for (int i = 0; i < n; i++) {
             float v = x[xOff + i];
-            float s = NnMath.sigmoid(v);
+            float s = ReproducibleMath.sigmoid(v);
             dx[dxOff + i] = dy[dyOff + i] * Math.fma(v * s, 1f - s, s);
         }
     }
@@ -130,7 +132,7 @@ public final class Activations {
         }
 //#endif
         for (; i < n; i++) {
-            y[yOff + i] = NnMath.tanh(x[xOff + i]);
+            y[yOff + i] = ReproducibleMath.tanh(x[xOff + i]);
         }
     }
 
@@ -143,7 +145,7 @@ public final class Activations {
         check(y, yOff, n, "y");
         for (int i = 0; i < n; i++) {
             float v = x[xOff + i];
-            y[yOff + i] = v * NnMath.normalCdf(v);
+            y[yOff + i] = v * ReproducibleMath.normalCdf(v);
         }
     }
 
@@ -154,8 +156,8 @@ public final class Activations {
         check(dx, dxOff, n, "dx");
         for (int i = 0; i < n; i++) {
             float v = x[xOff + i];
-            float cdf = NnMath.normalCdf(v);
-            float pdf = NnMath.normalPdf(v);
+            float cdf = ReproducibleMath.normalCdf(v);
+            float pdf = ReproducibleMath.normalPdf(v);
             dx[dxOff + i] = dy[dyOff + i] * Math.fma(v, pdf, cdf);
         }
     }
@@ -173,7 +175,7 @@ public final class Activations {
         for (; i < n; i++) {
             float v = x[xOff + i];
             float u = GELU_TANH_K * Math.fma(GELU_TANH_C * v, v * v, v);
-            y[yOff + i] = 0.5f * v * (1f + NnMath.tanh(u));
+            y[yOff + i] = 0.5f * v * (1f + ReproducibleMath.tanh(u));
         }
     }
 
@@ -183,7 +185,7 @@ public final class Activations {
         check(y, yOff, n, "y");
         for (int i = 0; i < n; i++) {
             float v = x[xOff + i];
-            y[yOff + i] = Math.max(v, 0f) + NnMath.log1p(NnMath.exp(-Math.abs(v)));
+            y[yOff + i] = Math.max(v, 0f) + ReproducibleMath.log1p(ReproducibleMath.exp(-Math.abs(v)));
         }
     }
 
@@ -223,7 +225,7 @@ public final class Activations {
         for (int i = 0; i < n; i++) {
             float v = x[xOff + i];
             float v2 = v * v;
-            float t = NnMath.tanh(GELU_TANH_K * Math.fma(GELU_TANH_C * v, v2, v));
+            float t = ReproducibleMath.tanh(GELU_TANH_K * Math.fma(GELU_TANH_C * v, v2, v));
             float du = GELU_TANH_K * Math.fma(3f * GELU_TANH_C, v2, 1f);
             float d = Math.fma(0.5f * v * ((1f - t) * (1f + t)), du, 0.5f * (1f + t));
             dx[dxOff + i] = dy[dyOff + i] * d;
@@ -236,7 +238,7 @@ public final class Activations {
         check(dy, dyOff, n, "dy");
         check(dx, dxOff, n, "dx");
         for (int i = 0; i < n; i++) {
-            dx[dxOff + i] = dy[dyOff + i] * NnMath.sigmoid(x[xOff + i]);
+            dx[dxOff + i] = dy[dyOff + i] * ReproducibleMath.sigmoid(x[xOff + i]);
         }
     }
 
@@ -261,15 +263,15 @@ public final class Activations {
         }
 
         static final FloatVector ONE = FloatVector.broadcast(S, 1f);
-        static final FloatVector E8V = FloatVector.broadcast(S, NnMath.E8);
-        static final FloatVector E7V = FloatVector.broadcast(S, NnMath.E7);
-        static final FloatVector E6V = FloatVector.broadcast(S, NnMath.E6);
-        static final FloatVector MLN2_HI = FloatVector.broadcast(S, -NnMath.LN2_HI);
-        static final FloatVector MLN2_LO = FloatVector.broadcast(S, -NnMath.LN2_LO);
-        static final FloatVector E5V = FloatVector.broadcast(S, NnMath.E5);
-        static final FloatVector E4V = FloatVector.broadcast(S, NnMath.E4);
-        static final FloatVector E3V = FloatVector.broadcast(S, NnMath.E3);
-        static final FloatVector E2V = FloatVector.broadcast(S, NnMath.E2);
+        static final FloatVector E8V = FloatVector.broadcast(S, NnConstants.E8);
+        static final FloatVector E7V = FloatVector.broadcast(S, NnConstants.E7);
+        static final FloatVector E6V = FloatVector.broadcast(S, NnConstants.E6);
+        static final FloatVector MLN2_HI = FloatVector.broadcast(S, -NnConstants.LN2_HI);
+        static final FloatVector MLN2_LO = FloatVector.broadcast(S, -NnConstants.LN2_LO);
+        static final FloatVector E5V = FloatVector.broadcast(S, NnConstants.E5);
+        static final FloatVector E4V = FloatVector.broadcast(S, NnConstants.E4);
+        static final FloatVector E3V = FloatVector.broadcast(S, NnConstants.E3);
+        static final FloatVector E2V = FloatVector.broadcast(S, NnConstants.E2);
 
         /** Sigmoid ({@code silu} false) or SiLU on whole vectors, with {@link NnMath#exp} expanded inline. */
         static int logistic(float[] x, int xOff, float[] y, int yOff, int n, boolean silu) {
@@ -278,10 +280,10 @@ public final class Activations {
                 FloatVector v = FloatVector.fromArray(S, x, xOff + i);
                 FloatVector nv = v.neg();
                 FloatVector ec = nv.max(-104f).min(89f);
-                FloatVector ek = ec.mul(NnMath.LOG2E).add(NnMath.ROUND).sub(NnMath.ROUND);
+                FloatVector ek = ec.mul(NnConstants.LOG2E).add(NnConstants.ROUND).sub(NnConstants.ROUND);
                 FloatVector er = ek.fma(MLN2_HI, ec);
                 er = ek.fma(MLN2_LO, er);
-                FloatVector ep = er.fma(NnMath.E7, NnMath.E6);
+                FloatVector ep = er.fma(NnConstants.E7, NnConstants.E6);
                 ep = er.fma(ep, E5V);
                 ep = er.fma(ep, E4V);
                 ep = er.fma(ep, E3V);
@@ -303,7 +305,7 @@ public final class Activations {
                 FloatVector v = FloatVector.fromArray(S, x, xOff + i);
                 FloatVector ha = v.abs().min(9.1f);
                 FloatVector hy = ha.mul(2f);
-                FloatVector hq = hy.fma(NnMath.E10, NnMath.E9);
+                FloatVector hq = hy.fma(NnConstants.E10, NnConstants.E9);
                 hq = hy.fma(hq, E8V);
                 hq = hy.fma(hq, E7V);
                 hq = hy.fma(hq, E6V);
@@ -313,10 +315,10 @@ public final class Activations {
                 hq = hy.fma(hq, E2V);
                 FloatVector hsmall = hq.fma(hy.mul(hy), hy);
                 FloatVector hxc = hy.max(-104f).min(89f);
-                FloatVector hxk = hxc.mul(NnMath.LOG2E).add(NnMath.ROUND).sub(NnMath.ROUND);
+                FloatVector hxk = hxc.mul(NnConstants.LOG2E).add(NnConstants.ROUND).sub(NnConstants.ROUND);
                 FloatVector hxr = hxk.fma(MLN2_HI, hxc);
                 hxr = hxk.fma(MLN2_LO, hxr);
-                FloatVector hxp = hxr.fma(NnMath.E7, NnMath.E6);
+                FloatVector hxp = hxr.fma(NnConstants.E7, NnConstants.E6);
                 hxp = hxr.fma(hxp, E5V);
                 hxp = hxr.fma(hxp, E4V);
                 hxp = hxr.fma(hxp, E3V);
@@ -343,7 +345,7 @@ public final class Activations {
                 FloatVector u = v.mul(GELU_TANH_C).fma(v.mul(v), v).mul(GELU_TANH_K);
                 FloatVector ha = u.abs().min(9.1f);
                 FloatVector hy = ha.mul(2f);
-                FloatVector hq = hy.fma(NnMath.E10, NnMath.E9);
+                FloatVector hq = hy.fma(NnConstants.E10, NnConstants.E9);
                 hq = hy.fma(hq, E8V);
                 hq = hy.fma(hq, E7V);
                 hq = hy.fma(hq, E6V);
@@ -353,10 +355,10 @@ public final class Activations {
                 hq = hy.fma(hq, E2V);
                 FloatVector hsmall = hq.fma(hy.mul(hy), hy);
                 FloatVector hxc = hy.max(-104f).min(89f);
-                FloatVector hxk = hxc.mul(NnMath.LOG2E).add(NnMath.ROUND).sub(NnMath.ROUND);
+                FloatVector hxk = hxc.mul(NnConstants.LOG2E).add(NnConstants.ROUND).sub(NnConstants.ROUND);
                 FloatVector hxr = hxk.fma(MLN2_HI, hxc);
                 hxr = hxk.fma(MLN2_LO, hxr);
-                FloatVector hxp = hxr.fma(NnMath.E7, NnMath.E6);
+                FloatVector hxp = hxr.fma(NnConstants.E7, NnConstants.E6);
                 hxp = hxr.fma(hxp, E5V);
                 hxp = hxr.fma(hxp, E4V);
                 hxp = hxr.fma(hxp, E3V);
@@ -378,5 +380,24 @@ public final class Activations {
         private Simd() {
         }
 //#endif
+    }
+
+    /**
+     * Inverted dropout: keeps element {@code i} when {@code org.dynamisengine.vectrix.hash.Philox.uniform(seed, start + i) >= p} and scales it by
+     * {@code 1/(1 - p)}, else writes 0. The same call on the upstream gradient is the backward pass.
+     *
+     * @param p the drop probability, in [0, 1)
+     * @since 2.6.0 (2.5.0 as {@code Philox.dropout})
+     */
+    public static void dropout(long seed, long start, float p, float[] x, int xOff, float[] y, int yOff, int n) {
+        if (!(p >= 0f && p < 1f)) {
+            throw new IllegalArgumentException("p must be in [0, 1): " + p);
+        }
+        check(x, xOff, n, "x");
+        check(y, yOff, n, "y");
+        float scale = 1f / (1f - p);
+        for (int i = 0; i < n; i++) {
+            y[yOff + i] = org.dynamisengine.vectrix.hash.Philox.uniform(seed, start + i) >= p ? x[xOff + i] * scale : 0f;
+        }
     }
 }
