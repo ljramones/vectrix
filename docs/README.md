@@ -34,5 +34,6 @@ pages is quoted from the tested programs in [`../examples`](../examples/README.m
 ## For maintainers
 
 - [Release checklist](maintainers/release-cut-checklist.md)
+- [Known issues](maintainers/known-issues.md): defects and API oddities found by code reading, with their status
 - [Benchmarking guide](maintainers/benchmarking-guide.md) and [benchmark environment](maintainers/benchmark-environment.md)
 - [Benchmark policy](../benchmarks/POLICY.md)
