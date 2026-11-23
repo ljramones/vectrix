@@ -31,3 +31,6 @@ Thumbs.db
 
 # Claude Code agent worktrees
 /.claude/
+
+# Python bytecode from the generator scripts
+__pycache__/
