@@ -140,6 +140,24 @@ public class FrustumIntersection {
      * <p>
      * Before using any of the frustum culling methods, make sure to define the frustum planes using {@link #set(Matrix4fc)}.
      */
+    /** Whether the planes are normalized; if not, sphere and distance queries scale by the normal lengths. */
+    private boolean normalized;
+    private float lnx = 1, lpx = 1, lny = 1, lpy = 1, lnz = 1, lpz = 1;
+
+    /** Plane normal lengths for the sphere and distance queries; 1 for normalized planes. */
+    private void lengths() {
+        if (normalized) {
+            lnx = lpx = lny = lpy = lnz = lpz = 1;
+            return;
+        }
+        lnx = (float) Math.sqrt(nxX * nxX + nxY * nxY + nxZ * nxZ);
+        lpx = (float) Math.sqrt(pxX * pxX + pxY * pxY + pxZ * pxZ);
+        lny = (float) Math.sqrt(nyX * nyX + nyY * nyY + nyZ * nyZ);
+        lpy = (float) Math.sqrt(pyX * pyX + pyY * pyY + pyZ * pyZ);
+        lnz = (float) Math.sqrt(nzX * nzX + nzY * nzY + nzZ * nzZ);
+        lpz = (float) Math.sqrt(pzX * pzX + pzY * pzY + pzZ * pzZ);
+    }
+
     public FrustumIntersection() {
     }
 
@@ -216,6 +234,7 @@ public class FrustumIntersection {
      * @since 2.5.0
      */
     public FrustumIntersection set(Matrix4fc m, boolean allowTestSpheres, DepthRange depthRange) {
+        normalized = allowTestSpheres;
         float invl;
         nxX = m.m03() + m.m00(); nxY = m.m13() + m.m10(); nxZ = m.m23() + m.m20(); nxW = m.m33() + m.m30();
         if (allowTestSpheres) {
@@ -249,8 +268,13 @@ public class FrustumIntersection {
         nzZ = sn * (m.m22() - cn * m.m23());
         nzW = sn * (m.m32() - cn * m.m33());
         if (allowTestSpheres) {
-            invl = Math.invsqrt(nzX * nzX + nzY * nzY + nzZ * nzZ);
-            nzX *= invl; nzY *= invl; nzZ *= invl; nzW *= invl;
+            float l2nz = nzX * nzX + nzY * nzY + nzZ * nzZ;
+            if (l2nz > 0) {
+                invl = Math.invsqrt(l2nz);
+                nzX *= invl; nzY *= invl; nzZ *= invl; nzW *= invl;
+            } else { // the plane at infinity: everything is on one side
+                nzW = nzW >= 0 ? 1 : -1;
+            }
         }
         planes[4].set(nzX, nzY, nzZ, nzW);
         pzX = -sn * (m.m02() - cf * m.m03());
@@ -258,10 +282,16 @@ public class FrustumIntersection {
         pzZ = -sn * (m.m22() - cf * m.m23());
         pzW = -sn * (m.m32() - cf * m.m33());
         if (allowTestSpheres) {
-            invl = Math.invsqrt(pzX * pzX + pzY * pzY + pzZ * pzZ);
-            pzX *= invl; pzY *= invl; pzZ *= invl; pzW *= invl;
+            float l2pz = pzX * pzX + pzY * pzY + pzZ * pzZ;
+            if (l2pz > 0) {
+                invl = Math.invsqrt(l2pz);
+                pzX *= invl; pzY *= invl; pzZ *= invl; pzW *= invl;
+            } else { // the plane at infinity: everything is on one side
+                pzW = pzW >= 0 ? 1 : -1;
+            }
         }
         planes[5].set(pzX, pzY, pzZ, pzW);
+        lengths();
         return this;
     }
 
@@ -333,12 +363,12 @@ public class FrustumIntersection {
      *         <code>false</code> otherwise
      */
     public boolean testSphere(float x, float y, float z, float r) {
-        return nxX * x + nxY * y + nxZ * z + nxW >= -r &&
-               pxX * x + pxY * y + pxZ * z + pxW >= -r &&
-               nyX * x + nyY * y + nyZ * z + nyW >= -r &&
-               pyX * x + pyY * y + pyZ * z + pyW >= -r &&
-               nzX * x + nzY * y + nzZ * z + nzW >= -r &&
-               pzX * x + pzY * y + pzZ * z + pzW >= -r;
+        return nxX * x + nxY * y + nxZ * z + nxW >= -r * lnx &&
+               pxX * x + pxY * y + pxZ * z + pxW >= -r * lpx &&
+               nyX * x + nyY * y + nyZ * z + nyW >= -r * lny &&
+               pyX * x + pyY * y + pyZ * z + pyW >= -r * lpy &&
+               nzX * x + nzY * y + nzZ * z + nzW >= -r * lnz &&
+               pzX * x + pzY * y + pzZ * z + pzW >= -r * lpz;
     }
 
     /**
@@ -380,22 +410,22 @@ public class FrustumIntersection {
     public int intersectSphere(float x, float y, float z, float r) {
         boolean inside = true;
         float dist;
-        dist = nxX * x + nxY * y + nxZ * z + nxW;
+        dist = (nxX * x + nxY * y + nxZ * z + nxW) / lnx;
         if (dist >= -r) {
             inside &= dist >= r;
-            dist = pxX * x + pxY * y + pxZ * z + pxW;
+            dist = (pxX * x + pxY * y + pxZ * z + pxW) / lpx;
             if (dist >= -r) {
                 inside &= dist >= r;
-                dist = nyX * x + nyY * y + nyZ * z + nyW;
+                dist = (nyX * x + nyY * y + nyZ * z + nyW) / lny;
                 if (dist >= -r) {
                     inside &= dist >= r;
-                    dist = pyX * x + pyY * y + pyZ * z + pyW;
+                    dist = (pyX * x + pyY * y + pyZ * z + pyW) / lpy;
                     if (dist >= -r) {
                         inside &= dist >= r;
-                        dist = nzX * x + nzY * y + nzZ * z + nzW;
+                        dist = (nzX * x + nzY * y + nzZ * z + nzW) / lnz;
                         if (dist >= -r) {
                             inside &= dist >= r;
-                            dist = pzX * x + pzY * y + pzZ * z + pzW;
+                            dist = (pzX * x + pzY * y + pzZ * z + pzW) / lpz;
                             if (dist >= -r) {
                                 inside &= dist >= r;
                                 return inside ? INSIDE : INTERSECT;
@@ -653,8 +683,10 @@ public class FrustumIntersection {
      * @return the signed distance of the axis-aligned box to the plane
      */
     public float distanceToPlane(float minX, float minY, float minZ, float maxX, float maxY, float maxZ, int plane) {
-        return planes[plane].x * (planes[plane].x < 0 ? maxX : minX) + planes[plane].y * (planes[plane].y < 0 ? maxY : minY)
-                + planes[plane].z * (planes[plane].z < 0 ? maxZ : minZ) + planes[plane].w;
+        float l = plane == PLANE_NX ? lnx : plane == PLANE_PX ? lpx : plane == PLANE_NY ? lny : plane == PLANE_PY ? lpy
+                : plane == PLANE_NZ ? lnz : lpz;
+        return (planes[plane].x * (planes[plane].x < 0 ? maxX : minX) + planes[plane].y * (planes[plane].y < 0 ? maxY : minY)
+                + planes[plane].z * (planes[plane].z < 0 ? maxZ : minZ) + planes[plane].w) / l;
     }
 
     /**
@@ -726,6 +758,10 @@ public class FrustumIntersection {
      * @return the index of the first plane that culled the box, if the box does not intersect the frustum,
      *         or {@link #INTERSECT} if the box intersects the frustum, or {@link #INSIDE} if the box is fully inside of the frustum.
      *         The plane index is one of {@link #PLANE_NX}, {@link #PLANE_PX}, {@link #PLANE_NY}, {@link #PLANE_PY}, {@link #PLANE_NZ} and {@link #PLANE_PZ}
+     * <p>
+     * The mask only skips planes for culling, as in hierarchical culling where a parent was already found inside
+     * them. {@link #INSIDE} still means inside all six planes, so a box outside a masked plane is reported as
+     * {@link #INTERSECT}, never wrongly as {@link #INSIDE}.
      */
     public int intersectAab(float minX, float minY, float minZ, float maxX, float maxY, float maxZ, int mask) {
         /*
@@ -847,6 +883,10 @@ public class FrustumIntersection {
      * @return the index of the first plane that culled the box, if the box does not intersect the frustum,
      *         or {@link #INTERSECT} if the box intersects the frustum, or {@link #INSIDE} if the box is fully inside of the frustum.
      *         The plane index is one of {@link #PLANE_NX}, {@link #PLANE_PX}, {@link #PLANE_NY}, {@link #PLANE_PY}, {@link #PLANE_NZ} and {@link #PLANE_PZ}
+     * <p>
+     * The mask only skips planes for culling, as in hierarchical culling where a parent was already found inside
+     * them. {@link #INSIDE} still means inside all six planes, so a box outside a masked plane is reported as
+     * {@link #INTERSECT}, never wrongly as {@link #INSIDE}.
      */
     public int intersectAab(float minX, float minY, float minZ, float maxX, float maxY, float maxZ, int mask, int startPlane) {
         /*

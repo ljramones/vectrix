@@ -14544,8 +14544,11 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         boolean near = plane == PLANE_NZ;
         double c = (double) (near ? depthRange.nearNdc() : depthRange.farNdc());
         double sgn = (depthRange.farNdc() > depthRange.nearNdc()) == near ? 1 : -1;
-        return dest.set(sgn * (m02() - c * m03()), sgn * (m12() - c * m13()), sgn * (m22() - c * m23()),
-                sgn * (m32() - c * m33())).normalize3();
+        dest.set(sgn * (m02() - c * m03()), sgn * (m12() - c * m13()), sgn * (m22() - c * m23()), sgn * (m32() - c * m33()));
+        if (dest.x == 0 && dest.y == 0 && dest.z == 0) { // the plane at infinity of an infinite projection
+            return dest.set(0, 0, 0, dest.w >= 0 ? 1 : -1);
+        }
+        return dest.normalize3();
     }
 
     public Vector3d frustumCorner(int corner, Vector3d dest) {

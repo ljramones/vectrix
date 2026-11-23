@@ -151,6 +151,19 @@ public class PolygonsIntersection {
      *            the number of vertices to use from the <code>verticesXY</code> array, staring with index 0
      */
     public PolygonsIntersection(float[] verticesXY, int[] polygons, int count) {
+        // every polygon needs at least 3 vertices: the starts increase strictly and leave 3 vertices for the last one.
+        // Before 2.5.0 a start of 0 silently merged every polygon into one, a start at the last vertex threw an
+        // ArrayIndexOutOfBoundsException, and a one-vertex polygon swallowed the next start.
+        if (polygons != null) {
+            int prev = 0;
+            for (int start : polygons) {
+                if (start - prev < 3 || start > count - 3) {
+                    throw new IllegalArgumentException("polygon start " + start + ": starts must increase, and every polygon needs at"
+                            + " least 3 vertices (count " + count + ")");
+                }
+                prev = start;
+            }
+        }
         this.verticesXY = verticesXY;
         // Do all the allocations and initializations during this constructor
         preprocess(count, polygons);
@@ -282,7 +295,10 @@ public class PolygonsIntersection {
     }
     
     /**
-     * Test whether the given point <code>(x, y)</code> lies inside any polygon stored in this {@link PolygonsIntersection} object.
+     * Test whether the given point <code>(x, y)</code> lies inside the region the polygons of this
+     * {@link PolygonsIntersection} define. The rule is even-odd over all polygons together, not "inside any polygon".
+     * A polygon inside another is a hole; where two polygons overlap, they cancel. A point exactly on an edge counts as
+     * inside for right and top edges and outside for left and bottom ones (half-open).
      * <p>
      * This method is thread-safe and can be used to test many points concurrently.
      * <p>
@@ -301,7 +317,10 @@ public class PolygonsIntersection {
     }
 
     /**
-     * Test whether the given point <code>(x, y)</code> lies inside any polygon stored in this {@link PolygonsIntersection} object.
+     * Test whether the given point <code>(x, y)</code> lies inside the region the polygons of this
+     * {@link PolygonsIntersection} define. The rule is even-odd over all polygons together, not "inside any polygon".
+     * A polygon inside another is a hole; where two polygons overlap, they cancel. A point exactly on an edge counts as
+     * inside for right and top edges and outside for left and bottom ones (half-open).
      * <p>
      * This method is thread-safe and can be used to test many points concurrently.
      * 

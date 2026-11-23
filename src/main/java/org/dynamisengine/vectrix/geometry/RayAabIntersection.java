@@ -42,6 +42,7 @@ public class RayAabIntersection {
     private float c_xy, c_yx, c_zy, c_yz, c_xz, c_zx;
     private float s_xy, s_yx, s_zy, s_yz, s_xz, s_zx;
     private byte classification;
+    private boolean slab;
 
     /**
      * Create a new {@link RayAabIntersection} without initializing a ray.
@@ -107,8 +108,12 @@ public class RayAabIntersection {
         precomputeSlope();
     }
 
+    private static boolean finite(float a, float b) {
+        return Float.isFinite(a) && Float.isFinite(b);
+    }
+
     private static int signum(float f) {
-        return (f == 0.0f || Float.isNaN(f)) ? 0 : ((1 - Float.floatToIntBits(f) >>> 31) << 1) - 1;
+        return f > 0.0f ? 1 : f < 0.0f ? -1 : 0; // NaN and both zeros give 0
     }
 
     /**
@@ -134,6 +139,13 @@ public class RayAabIntersection {
         int sgnY = signum(dirY);
         int sgnZ = signum(dirZ);
         classification = (byte) ((sgnZ+1) << 4 | (sgnY+1) << 2 | (sgnX+1));
+        // The slope method needs finite slopes between every pair of non-zero components; a tiny component overflows
+        // them (and an all-zero direction has no slope at all). Such rays use the slab test instead.
+        slab = (sgnX == 0 && sgnY == 0 && sgnZ == 0)
+                || (sgnX != 0 && sgnY != 0 && !(finite(s_yx, s_xy) && finite(c_xy, c_yx)))
+                || (sgnY != 0 && sgnZ != 0 && !(finite(s_zy, s_yz) && finite(c_zy, c_yz)))
+                || (sgnX != 0 && sgnZ != 0 && !(finite(s_xz, s_zx) && finite(c_xz, c_zx)))
+                || !(finite(originX, originY) && Float.isFinite(originZ));
     }
 
     /**
@@ -159,6 +171,9 @@ public class RayAabIntersection {
      * @return <code>true</code> iff the ray intersects the given axis-aligned box; <code>false</code> otherwise
      */
     public boolean test(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+        if (slab) {
+            return Intersectionf.testRayAab(originX, originY, originZ, dirX, dirY, dirZ, minX, minY, minZ, maxX, maxY, maxZ);
+        }
         // tableswitch with dense and consecutive cases (will be a simple jump based on the switch argument)
         switch (classification) {
         case 0: // 0b000000: // MMM

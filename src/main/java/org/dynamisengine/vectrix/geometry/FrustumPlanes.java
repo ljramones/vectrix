@@ -86,7 +86,9 @@ public class FrustumPlanes {
     }
 
     private void setPlane(int i, float px, float py, float pz, float pw, boolean normalize) {
-        if (normalize) {
+        if (normalize && px == 0 && py == 0 && pz == 0) { // the plane at infinity
+            pw = pw >= 0 ? 1 : -1;
+        } else if (normalize) {
             float inv = org.dynamisengine.vectrix.core.Math.invsqrt(px * px + py * py + pz * pz);
             px *= inv;
             py *= inv;

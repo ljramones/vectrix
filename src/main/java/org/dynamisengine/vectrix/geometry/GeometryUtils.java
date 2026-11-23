@@ -156,6 +156,38 @@ public class GeometryUtils {
      * @param dest
      *            will hold the result
      */
+    /**
+     * Double-precision triangle normal: the unit cross product {@code (v1 - v0) × (v2 - v0)}.
+     *
+     * @since 2.5.0
+     */
+    public static void normal(double v0X, double v0Y, double v0Z, double v1X, double v1Y, double v1Z, double v2X, double v2Y,
+            double v2Z, Vector3d dest) {
+        double ax = v1X - v0X, ay = v1Y - v0Y, az = v1Z - v0Z;
+        double bx = v2X - v0X, by = v2Y - v0Y, bz = v2Z - v0Z;
+        // scale each edge by a power of two (exact) so neither the cross product nor its square can overflow or
+        // underflow; the direction is unchanged
+        double sa = pow2Scale(ax, ay, az), sb = pow2Scale(bx, by, bz);
+        ax *= sa;
+        ay *= sa;
+        az *= sa;
+        bx *= sb;
+        by *= sb;
+        bz *= sb;
+        double nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+        double l = Math.sqrt(nx * nx + ny * ny + nz * nz);
+        dest.set(nx / l, ny / l, nz / l);
+    }
+
+    /**
+     * Double-precision form of {@link #normal(Vector3fc, Vector3fc, Vector3fc, Vector3f)}.
+     *
+     * @since 2.5.0
+     */
+    public static void normal(Vector3dc v0, Vector3dc v1, Vector3dc v2, Vector3d dest) {
+        normal(v0.x(), v0.y(), v0.z(), v1.x(), v1.y(), v1.z(), v2.x(), v2.y(), v2.z(), dest);
+    }
+
     public static void normal(Vector3fc v0, Vector3fc v1, Vector3fc v2, Vector3f dest) {
         normal(v0.x(), v0.y(), v0.z(), v1.x(), v1.y(), v1.z(), v2.x(), v2.y(), v2.z(), dest);
     }
@@ -186,10 +218,12 @@ public class GeometryUtils {
      *            will hold the result
      */
     public static void normal(float v0X, float v0Y, float v0Z, float v1X, float v1Y, float v1Z, float v2X, float v2Y, float v2Z, Vector3f dest) {
-        dest.x = ((v1Y - v0Y) * (v2Z - v0Z)) - ((v1Z - v0Z) * (v2Y - v0Y));
-        dest.y = ((v1Z - v0Z) * (v2X - v0X)) - ((v1X - v0X) * (v2Z - v0Z));
-        dest.z = ((v1X - v0X) * (v2Y - v0Y)) - ((v1Y - v0Y) * (v2X - v0X));
-        dest.normalize();
+        // in double, rounded once: the float cross product of float differences lost up to 0.086 rad on thin triangles
+        double ax = (double) v1X - v0X, ay = (double) v1Y - v0Y, az = (double) v1Z - v0Z;
+        double bx = (double) v2X - v0X, by = (double) v2Y - v0Y, bz = (double) v2Z - v0Z;
+        double nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+        double l = Math.sqrt(nx * nx + ny * ny + nz * nz);
+        dest.set((float) (nx / l), (float) (ny / l), (float) (nz / l));
     }
 
     /**
@@ -211,15 +245,15 @@ public class GeometryUtils {
      *            the tangent will be stored here
      */
     public static void tangent(Vector3fc v1, Vector2fc uv1, Vector3fc v2, Vector2fc uv2, Vector3fc v3, Vector2fc uv3, Vector3f dest) {
-        float DeltaV1 = uv2.y() - uv1.y();
-        float DeltaV2 = uv3.y() - uv1.y();
-
-        float f = 1.0f / ((uv2.x() - uv1.x()) * DeltaV2 - (uv3.x() - uv1.x()) * DeltaV1);
-
-        dest.x = f * (DeltaV2 * (v2.x() - v1.x()) - DeltaV1 * (v3.x() - v1.x()));
-        dest.y = f * (DeltaV2 * (v2.y() - v1.y()) - DeltaV1 * (v3.y() - v1.y()));
-        dest.z = f * (DeltaV2 * (v2.z() - v1.z()) - DeltaV1 * (v3.z() - v1.z()));
-        dest.normalize();
+        // read every input first: the destinations may alias the inputs; computed in double
+        double dv1 = (double) uv2.y() - uv1.y(), dv2 = (double) uv3.y() - uv1.y();
+        double du1 = (double) uv2.x() - uv1.x(), du2 = (double) uv3.x() - uv1.x();
+        double e1x = (double) v2.x() - v1.x(), e1y = (double) v2.y() - v1.y(), e1z = (double) v2.z() - v1.z();
+        double e2x = (double) v3.x() - v1.x(), e2y = (double) v3.y() - v1.y(), e2z = (double) v3.z() - v1.z();
+        double f = 1.0 / (du1 * dv2 - du2 * dv1);
+        double tx = f * (dv2 * e1x - dv1 * e2x), ty = f * (dv2 * e1y - dv1 * e2y), tz = f * (dv2 * e1z - dv1 * e2z);
+        double tl = Math.sqrt(tx * tx + ty * ty + tz * tz);
+        dest.set((float) (tx / tl), (float) (ty / tl), (float) (tz / tl));
     }
 
     /**
@@ -241,15 +275,15 @@ public class GeometryUtils {
      *            the binormal will be stored here
      */
     public static void bitangent(Vector3fc v1, Vector2fc uv1, Vector3fc v2, Vector2fc uv2, Vector3fc v3, Vector2fc uv3, Vector3f dest) {
-        float DeltaU1 = uv2.x() - uv1.x();
-        float DeltaU2 = uv3.x() - uv1.x();
-
-        float f = 1.0f / (DeltaU1 * (uv3.y() - uv1.y()) - DeltaU2 * (uv2.y() - uv1.y()));
-
-        dest.x = f * (-DeltaU2 * (v2.x() - v1.x()) + DeltaU1 * (v3.x() - v1.x()));
-        dest.y = f * (-DeltaU2 * (v2.y() - v1.y()) + DeltaU1 * (v3.y() - v1.y()));
-        dest.z = f * (-DeltaU2 * (v2.z() - v1.z()) + DeltaU1 * (v3.z() - v1.z()));
-        dest.normalize();
+        // read every input first: the destinations may alias the inputs; computed in double
+        double dv1 = (double) uv2.y() - uv1.y(), dv2 = (double) uv3.y() - uv1.y();
+        double du1 = (double) uv2.x() - uv1.x(), du2 = (double) uv3.x() - uv1.x();
+        double e1x = (double) v2.x() - v1.x(), e1y = (double) v2.y() - v1.y(), e1z = (double) v2.z() - v1.z();
+        double e2x = (double) v3.x() - v1.x(), e2y = (double) v3.y() - v1.y(), e2z = (double) v3.z() - v1.z();
+        double f = 1.0 / (du1 * dv2 - du2 * dv1);
+        double bx = f * (-du2 * e1x + du1 * e2x), by = f * (-du2 * e1y + du1 * e2y), bz = f * (-du2 * e1z + du1 * e2z);
+        double bl = Math.sqrt(bx * bx + by * by + bz * bz);
+        dest.set((float) (bx / bl), (float) (by / bl), (float) (bz / bl));
     }
 
     /**
@@ -273,22 +307,25 @@ public class GeometryUtils {
      *            the bitangent will be stored here
      */
     public static void tangentBitangent(Vector3fc v1, Vector2fc uv1, Vector3fc v2, Vector2fc uv2, Vector3fc v3, Vector2fc uv3, Vector3f destTangent, Vector3f destBitangent) {
-        float DeltaV1 = uv2.y() - uv1.y();
-        float DeltaV2 = uv3.y() - uv1.y();
-        float DeltaU1 = uv2.x() - uv1.x();
-        float DeltaU2 = uv3.x() - uv1.x();
+        // read every input first: the destinations may alias the inputs; computed in double
+        double dv1 = (double) uv2.y() - uv1.y(), dv2 = (double) uv3.y() - uv1.y();
+        double du1 = (double) uv2.x() - uv1.x(), du2 = (double) uv3.x() - uv1.x();
+        double e1x = (double) v2.x() - v1.x(), e1y = (double) v2.y() - v1.y(), e1z = (double) v2.z() - v1.z();
+        double e2x = (double) v3.x() - v1.x(), e2y = (double) v3.y() - v1.y(), e2z = (double) v3.z() - v1.z();
+        double f = 1.0 / (du1 * dv2 - du2 * dv1);
+        double tx = f * (dv2 * e1x - dv1 * e2x), ty = f * (dv2 * e1y - dv1 * e2y), tz = f * (dv2 * e1z - dv1 * e2z);
+        double tl = Math.sqrt(tx * tx + ty * ty + tz * tz);
+        double bx = f * (-du2 * e1x + du1 * e2x), by = f * (-du2 * e1y + du1 * e2y), bz = f * (-du2 * e1z + du1 * e2z);
+        double bl = Math.sqrt(bx * bx + by * by + bz * bz);
+        destTangent.set((float) (tx / tl), (float) (ty / tl), (float) (tz / tl));
+        destBitangent.set((float) (bx / bl), (float) (by / bl), (float) (bz / bl));
+    }
 
-        float f = 1.0f / (DeltaU1 * DeltaV2 - DeltaU2 * DeltaV1);
 
-        destTangent.x = f * (DeltaV2 * (v2.x() - v1.x()) - DeltaV1 * (v3.x() - v1.x()));
-        destTangent.y = f * (DeltaV2 * (v2.y() - v1.y()) - DeltaV1 * (v3.y() - v1.y()));
-        destTangent.z = f * (DeltaV2 * (v2.z() - v1.z()) - DeltaV1 * (v3.z() - v1.z()));
-        destTangent.normalize();
-
-        destBitangent.x = f * (-DeltaU2 * (v2.x() - v1.x()) + DeltaU1 * (v3.x() - v1.x()));
-        destBitangent.y = f * (-DeltaU2 * (v2.y() - v1.y()) + DeltaU1 * (v3.y() - v1.y()));
-        destBitangent.z = f * (-DeltaU2 * (v2.z() - v1.z()) + DeltaU1 * (v3.z() - v1.z()));
-        destBitangent.normalize();
+    /** A power of two bringing the largest component of (x, y, z) into [1, 2); 1 for zero or non-finite input. */
+    private static double pow2Scale(double x, double y, double z) {
+        double m = java.lang.Math.max(java.lang.Math.abs(x), java.lang.Math.max(java.lang.Math.abs(y), java.lang.Math.abs(z)));
+        return m > 0 && m < Double.POSITIVE_INFINITY ? java.lang.Math.scalb(1.0, -java.lang.Math.getExponent(m)) : 1.0;
     }
 
 }

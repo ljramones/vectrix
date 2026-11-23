@@ -1510,66 +1510,53 @@ public class Intersectiond {
             double v2X, double v2Y, double v2Z,
             double pX, double pY, double pZ,
             Vector3d result) {
-        double abX = v1X - v0X, abY = v1Y - v0Y, abZ = v1Z - v0Z;
-        double acX = v2X - v0X, acY = v2Y - v0Y, acZ = v2Z - v0Z;
-        double apX = pX - v0X, apY = pY - v0Y, apZ = pZ - v0Z;
-        double d1 = abX * apX + abY * apY + abZ * apZ;
-        double d2 = acX * apX + acY * apY + acZ * apZ;
-        if (d1 <= 0.0 && d2 <= 0.0) {
-            result.x = v0X;
-            result.y = v0Y;
-            result.z = v0Z;
-            return POINT_ON_TRIANGLE_VERTEX_0;
+        // face region: the projection of p along the normal lies in the closed triangle (the projected edge-side
+        // test); the projection is then the closest point. Otherwise the closest point is on the boundary.
+        double nX = ((double) v1Y - v0Y) * ((double) v2Z - v0Z) - ((double) v1Z - v0Z) * ((double) v2Y - v0Y);
+        double nY = ((double) v1Z - v0Z) * ((double) v2X - v0X) - ((double) v1X - v0X) * ((double) v2Z - v0Z);
+        double nZ = ((double) v1X - v0X) * ((double) v2Y - v0Y) - ((double) v1Y - v0Y) * ((double) v2X - v0X);
+        double nn = nX * nX + nY * nY + nZ * nZ;
+        if (nn > 0 && Intersectiond.insideTriangle(pX, pY, pZ, v0X, v0Y, v0Z, v1X, v1Y, v1Z, v2X, v2Y, v2Z, nX, nY, nZ)) {
+            double d = (((double) pX - v0X) * nX + ((double) pY - v0Y) * nY + ((double) pZ - v0Z) * nZ) / nn;
+            result.x = (pX - d * nX);
+            result.y = (pY - d * nY);
+            result.z = (pZ - d * nZ);
+            return POINT_ON_TRIANGLE_FACE;
         }
-        double bpX = pX - v1X, bpY = pY - v1Y, bpZ = pZ - v1Z;
-        double d3 = abX * bpX + abY * bpY + abZ * bpZ;
-        double d4 = acX * bpX + acY * bpY + acZ * bpZ;
-        if (d3 >= 0.0 && d4 <= d3) {
-            result.x = v1X;
-            result.y = v1Y;
-            result.z = v1Z;
-            return POINT_ON_TRIANGLE_VERTEX_1;
+        double ta = Intersectiond.segmentParam(v0X, v0Y, v0Z, v1X, v1Y, v1Z, pX, pY, pZ);
+        double qaX = ta >= 1 ? v1X : v0X + ta * (v1X - v0X);
+        double qaY = ta >= 1 ? v1Y : v0Y + ta * (v1Y - v0Y);
+        double qaZ = ta >= 1 ? v1Z : v0Z + ta * (v1Z - v0Z);
+        double da = (pX - qaX) * (pX - qaX) + (pY - qaY) * (pY - qaY) + (pZ - qaZ) * (pZ - qaZ);
+        int ca = ta <= 0 ? POINT_ON_TRIANGLE_VERTEX_0 : ta >= 1 ? POINT_ON_TRIANGLE_VERTEX_1 : POINT_ON_TRIANGLE_EDGE_01;
+        double tb = Intersectiond.segmentParam(v1X, v1Y, v1Z, v2X, v2Y, v2Z, pX, pY, pZ);
+        double qbX = tb >= 1 ? v2X : v1X + tb * (v2X - v1X);
+        double qbY = tb >= 1 ? v2Y : v1Y + tb * (v2Y - v1Y);
+        double qbZ = tb >= 1 ? v2Z : v1Z + tb * (v2Z - v1Z);
+        double db = (pX - qbX) * (pX - qbX) + (pY - qbY) * (pY - qbY) + (pZ - qbZ) * (pZ - qbZ);
+        int cb = tb <= 0 ? POINT_ON_TRIANGLE_VERTEX_1 : tb >= 1 ? POINT_ON_TRIANGLE_VERTEX_2 : POINT_ON_TRIANGLE_EDGE_12;
+        double tc = Intersectiond.segmentParam(v2X, v2Y, v2Z, v0X, v0Y, v0Z, pX, pY, pZ);
+        double qcX = tc >= 1 ? v0X : v2X + tc * (v0X - v2X);
+        double qcY = tc >= 1 ? v0Y : v2Y + tc * (v0Y - v2Y);
+        double qcZ = tc >= 1 ? v0Z : v2Z + tc * (v0Z - v2Z);
+        double dc = (pX - qcX) * (pX - qcX) + (pY - qcY) * (pY - qcY) + (pZ - qcZ) * (pZ - qcZ);
+        int cc = tc <= 0 ? POINT_ON_TRIANGLE_VERTEX_2 : tc >= 1 ? POINT_ON_TRIANGLE_VERTEX_0 : POINT_ON_TRIANGLE_EDGE_20;
+        if (da <= db && da <= dc) {
+            result.x = qaX;
+            result.y = qaY;
+            result.z = qaZ;
+            return ca;
         }
-        double vc = d1 * d4 - d3 * d2;
-        if (vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0) {
-            double v = d1 / (d1 - d3);
-            result.x = v0X + v * abX;
-            result.y = v0Y + v * abY;
-            result.z = v0Z + v * abZ;
-            return POINT_ON_TRIANGLE_EDGE_01;
+        if (db <= dc) {
+            result.x = qbX;
+            result.y = qbY;
+            result.z = qbZ;
+            return cb;
         }
-        double cpX = pX - v2X, cpY = pY - v2Y, cpZ = pZ - v2Z;
-        double d5 = abX * cpX + abY * cpY + abZ * cpZ;
-        double d6 = acX * cpX + acY * cpY + acZ * cpZ;
-        if (d6 >= 0.0 && d5 <= d6) {
-            result.x = v2X;
-            result.y = v2Y;
-            result.z = v2Z;
-            return POINT_ON_TRIANGLE_VERTEX_2;
-        }
-        double vb = d5 * d2 - d1 * d6;
-        if (vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0) {
-            double w = d2 / (d2 - d6);
-            result.x = v0X + w * acX;
-            result.y = v0Y + w * acY;
-            result.z = v0Z + w * acZ;
-            return POINT_ON_TRIANGLE_EDGE_20;
-        }
-        double va = d3 * d6 - d5 * d4;
-        if (va <= 0.0 && d4 - d3 >= 0.0 && d5 - d6 >= 0.0) {
-            double w = (d4 - d3) / (d4 - d3 + d5 - d6);
-            result.x = v1X + w * (v2X - v1X);
-            result.y = v1Y + w * (v2Y - v1Y);
-            result.z = v1Z + w * (v2Z - v1Z);
-            return POINT_ON_TRIANGLE_EDGE_12;
-        }
-        double denom = 1.0 / (va + vb + vc);
-        double v = vb * denom;
-        double w = vc * denom;
-        result.x = v0X + abX * v + acX * w;
-        result.y = v0Y + abY * v + acY * w;
-        result.z = v0Z + abZ * v + acZ * w;
-        return POINT_ON_TRIANGLE_FACE;
+        result.x = qcX;
+        result.y = qcY;
+        result.z = qcZ;
+        return cc;
     }
 
     /**
@@ -1951,7 +1938,7 @@ public class Intersectiond {
     }
 
     /** Whether the projection of <code>p</code> along <code>n = (v1 − v0) × (v2 − v0)</code> lies in the closed triangle. */
-    private static boolean insideTriangle(double pX, double pY, double pZ, double v0X, double v0Y, double v0Z, double v1X, double v1Y, double v1Z,
+    static boolean insideTriangle(double pX, double pY, double pZ, double v0X, double v0Y, double v0Z, double v1X, double v1Y, double v1Z,
             double v2X, double v2Y, double v2Z, double nX, double nY, double nZ) {
         return edgeSide(v0X, v0Y, v0Z, v1X, v1Y, v1Z, pX, pY, pZ, nX, nY, nZ) >= 0.0
                 && edgeSide(v1X, v1Y, v1Z, v2X, v2Y, v2Z, pX, pY, pZ, nX, nY, nZ) >= 0.0
@@ -2293,6 +2280,9 @@ public class Intersectiond {
      */
     public static boolean intersectRayAab(double originX, double originY, double originZ, double dirX, double dirY, double dirZ,
             double minX, double minY, double minZ, double maxX, double maxY, double maxZ, Vector2d result) {
+        if (originX != originX || originY != originY || originZ != originZ || dirX != dirX || dirY != dirY || dirZ != dirZ) {
+            return false; // NaN never hits
+        }
         double invDirX = 1.0 / dirX, invDirY = 1.0 / dirY, invDirZ = 1.0 / dirZ;
         double tNear, tFar, tymin, tymax, tzmin, tzmax;
         if (invDirX >= 0.0) {
@@ -2536,6 +2526,9 @@ public class Intersectiond {
      */
     public static boolean testRayAab(double originX, double originY, double originZ, double dirX, double dirY, double dirZ,
             double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
+        if (originX != originX || originY != originY || originZ != originZ || dirX != dirX || dirY != dirY || dirZ != dirZ) {
+            return false; // NaN never hits
+        }
         // Fast miss rejection when the ray starts outside and points away from a slab.
         if ((originX < minX && dirX <= 0.0) || (originX > maxX && dirX >= 0.0)
                 || (originY < minY && dirY <= 0.0) || (originY > maxY && dirY >= 0.0)
@@ -3924,59 +3917,46 @@ public class Intersectiond {
      *                {@link #POINT_ON_TRIANGLE_FACE}
      */
     public static int findClosestPointOnTriangle(double v0X, double v0Y, double v1X, double v1Y, double v2X, double v2Y, double pX, double pY, Vector2d result) {
-        double abX = v1X - v0X, abY = v1Y - v0Y;
-        double acX = v2X - v0X, acY = v2Y - v0Y;
-        double apX = pX - v0X, apY = pY - v0Y;
-        double d1 = abX * apX + abY * apY;
-        double d2 = acX * apX + acY * apY;
-        if (d1 <= 0.0 && d2 <= 0.0) {
-            result.x = v0X;
-            result.y = v0Y;
-            return POINT_ON_TRIANGLE_VERTEX_0;
+        // inside the closed triangle (exact orientation signs, either winding): p is its own closest point
+        double area = RobustPredicates.orient2d(v0X, v0Y, v1X, v1Y, v2X, v2Y);
+        if (area != 0) {
+            double o1 = RobustPredicates.orient2d(v0X, v0Y, v1X, v1Y, pX, pY);
+            double o2 = RobustPredicates.orient2d(v1X, v1Y, v2X, v2Y, pX, pY);
+            double o3 = RobustPredicates.orient2d(v2X, v2Y, v0X, v0Y, pX, pY);
+            if (area > 0 ? o1 >= 0 && o2 >= 0 && o3 >= 0 : o1 <= 0 && o2 <= 0 && o3 <= 0) {
+                result.x = pX;
+                result.y = pY;
+                return POINT_ON_TRIANGLE_FACE;
+            }
         }
-        double bpX = pX - v1X, bpY = pY - v1Y;
-        double d3 = abX * bpX + abY * bpY;
-        double d4 = acX * bpX + acY * bpY;
-        if (d3 >= 0.0 && d4 <= d3) {
-            result.x = v1X;
-            result.y = v1Y;
-            return POINT_ON_TRIANGLE_VERTEX_1;
+        double ta = Intersectiond.segmentParam(v0X, v0Y, 0, v1X, v1Y, 0, pX, pY, 0);
+        double qaX = ta >= 1 ? v1X : v0X + ta * (v1X - v0X);
+        double qaY = ta >= 1 ? v1Y : v0Y + ta * (v1Y - v0Y);
+        double da = (pX - qaX) * (pX - qaX) + (pY - qaY) * (pY - qaY);
+        int ca = ta <= 0 ? POINT_ON_TRIANGLE_VERTEX_0 : ta >= 1 ? POINT_ON_TRIANGLE_VERTEX_1 : POINT_ON_TRIANGLE_EDGE_01;
+        double tb = Intersectiond.segmentParam(v1X, v1Y, 0, v2X, v2Y, 0, pX, pY, 0);
+        double qbX = tb >= 1 ? v2X : v1X + tb * (v2X - v1X);
+        double qbY = tb >= 1 ? v2Y : v1Y + tb * (v2Y - v1Y);
+        double db = (pX - qbX) * (pX - qbX) + (pY - qbY) * (pY - qbY);
+        int cb = tb <= 0 ? POINT_ON_TRIANGLE_VERTEX_1 : tb >= 1 ? POINT_ON_TRIANGLE_VERTEX_2 : POINT_ON_TRIANGLE_EDGE_12;
+        double tc = Intersectiond.segmentParam(v2X, v2Y, 0, v0X, v0Y, 0, pX, pY, 0);
+        double qcX = tc >= 1 ? v0X : v2X + tc * (v0X - v2X);
+        double qcY = tc >= 1 ? v0Y : v2Y + tc * (v0Y - v2Y);
+        double dc = (pX - qcX) * (pX - qcX) + (pY - qcY) * (pY - qcY);
+        int cc = tc <= 0 ? POINT_ON_TRIANGLE_VERTEX_2 : tc >= 1 ? POINT_ON_TRIANGLE_VERTEX_0 : POINT_ON_TRIANGLE_EDGE_20;
+        if (da <= db && da <= dc) {
+            result.x = qaX;
+            result.y = qaY;
+            return ca;
         }
-        double vc = d1 * d4 - d3 * d2;
-        if (vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0) {
-            double v = d1 / (d1 - d3);
-            result.x = v0X + v * abX;
-            result.y = v0Y + v * abY;
-            return POINT_ON_TRIANGLE_EDGE_01;
+        if (db <= dc) {
+            result.x = qbX;
+            result.y = qbY;
+            return cb;
         }
-        double cpX = pX - v2X, cpY = pY - v2Y;
-        double d5 = abX * cpX + abY * cpY;
-        double d6 = acX * cpX + acY * cpY;
-        if (d6 >= 0.0 && d5 <= d6) {
-            result.x = v2X;
-            result.y = v2Y;
-            return POINT_ON_TRIANGLE_VERTEX_2;
-        }
-        double vb = d5 * d2 - d1 * d6;
-        if (vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0) {
-            double w = d2 / (d2 - d6);
-            result.x = v0X + w * acX;
-            result.y = v0Y + w * acY;
-            return POINT_ON_TRIANGLE_EDGE_20;
-        }
-        double va = d3 * d6 - d5 * d4;
-        if (va <= 0.0 && d4 - d3 >= 0.0 && d5 - d6 >= 0.0) {
-            double w = (d4 - d3) / (d4 - d3 + d5 - d6);
-            result.x = v1X + w * (v2X - v1X);
-            result.y = v1Y + w * (v2Y - v1Y);
-            return POINT_ON_TRIANGLE_EDGE_12;
-        }
-        double denom = 1.0 / (va + vb + vc);
-        double v = vb * denom;
-        double w = vc * denom;
-        result.x = v0X + abX * v + acX * w;
-        result.y = v0Y + abY * v + acY * w;
-        return POINT_ON_TRIANGLE_FACE;
+        result.x = qcX;
+        result.y = qcY;
+        return cc;
     }
 
     /**
@@ -4194,6 +4174,9 @@ public class Intersectiond {
      */
     public static int intersectRayAar(double originX, double originY, double dirX, double dirY, 
             double minX, double minY, double maxX, double maxY, Vector2d result) {
+        if (originX != originX || originY != originY || dirX != dirX || dirY != dirY) {
+            return -1; // NaN never hits
+        }
         double invDirX = 1.0 / dirX, invDirY = 1.0 / dirY;
         double tNear, tFar, tymin, tymax;
         if (invDirX >= 0.0) {
@@ -4410,6 +4393,9 @@ public class Intersectiond {
      * @return <code>true</code> if the given ray intersects the axis-aligned rectangle; <code>false</code> otherwise
      */
     public static boolean testRayAar(double originX, double originY, double dirX, double dirY, double minX, double minY, double maxX, double maxY) {
+        if (originX != originX || originY != originY || dirX != dirX || dirY != dirY) {
+            return false; // NaN never hits
+        }
         double invDirX = 1.0 / dirX, invDirY = 1.0 / dirY;
         double tNear, tFar, tymin, tymax;
         if (invDirX >= 0.0) {
@@ -4894,4 +4880,17 @@ public class Intersectiond {
     private static double comp(double x, double y, double z, int k) {
         return k == 0 ? x : k == 1 ? y : z;
     }
+
+    /** The parameter in [0, 1] of the point of segment ab closest to p; 0 for a zero-length segment. */
+    static double segmentParam(double aX, double aY, double aZ, double bX, double bY, double bZ, double pX, double pY,
+            double pZ) {
+        double abX = bX - aX, abY = bY - aY, abZ = bZ - aZ;
+        double l2 = abX * abX + abY * abY + abZ * abZ;
+        if (!(l2 > 0)) {
+            return 0;
+        }
+        double t = ((pX - aX) * abX + (pY - aY) * abY + (pZ - aZ) * abZ) / l2;
+        return t < 0 ? 0 : t > 1 ? 1 : t;
+    }
+
 }

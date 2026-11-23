@@ -78,6 +78,32 @@ Each fix has a regression test in `MatrixAudit2Test`, `VectorQuatAudit2Test` or 
 - **`Math.invsqrt`:** it rounded twice, with errors up to 1.47 ulp in float and 1.45 ulp in double. Float now
   rounds once from double; double adds one Newton step on the exactly evaluated residual, which makes it correctly
   rounded in practice. This changes the last bits of the many results that normalize through it.
+- **Geometry:**
+  - `findClosestPointOnTriangle` (2D and 3D, both twins) rebuilt the point from dot-product determinants that
+    cancel on slivers. A point inside a sliver triangle came back 1.2 units away in float, so `intersectSphereTriangle`
+    missed. Now the face region is decided by an exact inside test, and the point is `p` (2D) or its projection
+    (3D); otherwise it is the nearest clamped edge projection.
+  - `FrustumIntersection`, `FrustumPlanes` and `frustumPlane(…, DepthRange)` normalized the far plane of an
+    infinite reverse-Z projection, which is the plane at infinity with a zero normal. The result was NaN, and every
+    test culled. That plane is now stored as `(0, 0, 0, ±1)`.
+  - `RayAabIntersection`:
+    - Its sign test classified `±Float.MIN_VALUE` backwards.
+    - Its slopes overflowed for tiny direction components, and a zero direction never hit.
+    - Rays whose slopes are not finite now use the slab test.
+  - `FrustumIntersection` built with `allowTestSpheres = false` gave wrong sphere and distance answers, because its
+    planes are unnormalized. Those queries now scale by the plane lengths, computed once.
+  - `testRayAab`, `intersectRayAab`, `testRayAar` and `intersectRayAar` reported NaN rays as hits.
+  - `GeometryUtils`:
+    - `tangentBitangent` corrupted the bitangent when `destTangent` aliased an input.
+    - `normal`, `tangent` and `bitangent` lost up to 0.086 rad on thin triangles in float. They now compute in
+      double, and `normal` has double overloads.
+  - `PolygonsIntersection` accepted invalid polygon starts: `0` merged everything, and a start at the last vertex
+    threw. Starts are now validated, and `testPoint` documents its even-odd rule over all polygons, which is how
+    holes work.
+  - Float `intersectRayLineSegment`, `intersectPolygonRay` and `intersectLineLine` compute in double. Errors were up
+    to 200 ulp.
+  - The masked `intersectAab` forms are documented: `INSIDE` always refers to all six planes. Masked planes are
+    skipped only for culling; this is conservative and unchanged.
 - **Documentation:**
   - `obliqueZ` documented `y' = y + a·z`; the code correctly uses `b`.
 
