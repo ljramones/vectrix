@@ -68,18 +68,28 @@ class HotPathAllocationTest {
         }
     }
 
+    /**
+     * Bytes allocated per call once the JIT has settled: the lowest of up to six rounds of 20,000 calls. Code that
+     * only C2's escape analysis keeps allocation-free (the Vector API kernels) allocates while it still runs in C1,
+     * and a kernel called a few times per measured call can reach C2 only after several rounds. A real per-call
+     * allocation never drops, so taking the minimum does not hide it.
+     */
     private static double bytesPerCall(Runnable r) {
         try {
             for (int i = 0; i < 2000; i++) {
                 r.run();
             }
             int n = 20000;
-            long before = (Long) ALLOCATED.invoke(THREADS);
-            for (int i = 0; i < n; i++) {
-                r.run();
+            double best = Double.MAX_VALUE;
+            for (int round = 0; round < 6 && best >= 1.0; round++) {
+                long before = (Long) ALLOCATED.invoke(THREADS);
+                for (int i = 0; i < n; i++) {
+                    r.run();
+                }
+                long after = (Long) ALLOCATED.invoke(THREADS);
+                best = java.lang.Math.min(best, (double) (after - before) / n);
             }
-            long after = (Long) ALLOCATED.invoke(THREADS);
-            return (double) (after - before) / n;
+            return best;
         } catch (ReflectiveOperationException e) {
             throw new AssertionError(e);
         }
