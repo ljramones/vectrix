@@ -99,7 +99,7 @@ public final class LtcEvald {
 
     /**
      * Returns the form factor of a quadrilateral light clipped to the upper hemisphere ({@code z >= 0}), as
-     * {@link #formFactorPolygonClipped} with four vertices. Allocates a small clipping object per call.
+     * {@link #formFactorPolygonClipped} with four vertices. Does not allocate.
      *
      * @param v0 the direction to the first vertex
      * @param v1 the direction to the second vertex
@@ -109,16 +109,14 @@ public final class LtcEvald {
      * @since 1.0.0
      */
     public static double formFactorRectClipped(Vector3dc v0, Vector3dc v1, Vector3dc v2, Vector3dc v3) {
-        Clip c = new Clip();
-        c.add(v0); c.add(v1); c.add(v2); c.add(v3);
-        return c.finish();
+        return clipped(null, 4, v0, v1, v2, v3);
     }
 
     /**
      * Polygon form factor, clipped to the upper hemisphere ({@code z >= 0}) before integration. Each edge
      * crossing the horizon is cut where its chord meets the plane {@code z = 0}. That point lies on the edge's
      * great circle, so the clipped spherical polygon is exact. Winding and one-sidedness are as in
-     * {@link #formFactorRect}. Allocates a small clipping object per call.
+     * {@link #formFactorRect}. Does not allocate.
      *
      * @param vertices direction vectors to the polygon vertices (need not be unit length), in order
      * @param count number of vertices to integrate, starting at index 0, at least 3
@@ -131,11 +129,7 @@ public final class LtcEvald {
         if (vertices == null || count < 3 || count > vertices.length) {
             throw new IllegalArgumentException("vertices/count");
         }
-        Clip c = new Clip();
-        for (int i = 0; i < count; i++) {
-            c.add(vertices[i]);
-        }
-        return c.finish();
+        return clipped(vertices, count, null, null, null, null);
     }
 
     /**
@@ -208,55 +202,65 @@ public final class LtcEvald {
         return cz * (angle / len);
     }
 
-    /** Streaming Sutherland-Hodgman clip against z >= 0 that accumulates the edge integral of the output. */
-    private static final class Clip {
-        private double firstX, firstY, firstZ, prevInX, prevInY, prevInZ, outX, outY, outZ, outFirstX, outFirstY, outFirstZ;
-        private boolean hasIn, hasOut;
-        private int emitted;
-        private double sum;
-
-        void add(Vector3dc v) {
-            double x = v.x(), y = v.y(), z = v.z();
-            if (!hasIn) {
-                firstX = x; firstY = y; firstZ = z;
-                hasIn = true;
-            } else {
-                edge(prevInX, prevInY, prevInZ, x, y, z);
-            }
-            prevInX = x; prevInY = y; prevInZ = z;
+    /** Vertex {@code i} of {@code vertices}, or of {@code (v0, v1, v2, v3)} when {@code vertices} is null. */
+    private static Vector3dc vertex(Vector3dc[] vertices, int i, Vector3dc v0, Vector3dc v1, Vector3dc v2, Vector3dc v3) {
+        if (vertices != null) {
+            return vertices[i];
         }
+        return i == 0 ? v0 : i == 1 ? v1 : i == 2 ? v2 : v3;
+    }
 
-        double finish() {
-            if (hasIn) {
-                edge(prevInX, prevInY, prevInZ, firstX, firstY, firstZ);
-            }
-            if (emitted >= 3) {
-                sum += edgeZ(outX, outY, outZ, outFirstX, outFirstY, outFirstZ);
-            }
-            return emitted >= 3 ? clamp01(sum * INV_TWO_PI) : 0.0;
-        }
-
-        private void edge(double ax, double ay, double az, double bx, double by, double bz) {
+    /**
+     * Sutherland-Hodgman clip of the polygon against {@code z >= 0}, accumulating the edge integral of the clipped
+     * polygon as its vertices are produced; all state is in locals, so nothing is allocated.
+     */
+    private static double clipped(Vector3dc[] vertices, int count, Vector3dc v0, Vector3dc v1, Vector3dc v2, Vector3dc v3) {
+        double outFirstX = 0.0, outFirstY = 0.0, outFirstZ = 0.0, outX = 0.0, outY = 0.0, outZ = 0.0;
+        int emitted = 0;
+        double sum = 0.0;
+        for (int i = 0; i < count; i++) {
+            Vector3dc a = vertex(vertices, i, v0, v1, v2, v3);
+            Vector3dc b = vertex(vertices, i + 1 == count ? 0 : i + 1, v0, v1, v2, v3);
+            double ax = a.x(), ay = a.y(), az = a.z();
+            double bx = b.x(), by = b.y(), bz = b.z();
             boolean aIn = az >= 0.0, bIn = bz >= 0.0;
-            if (aIn != bIn) {
-                double t = az / (az - bz);
-                emit(ax + t * (bx - ax), ay + t * (by - ay), 0.0);
-            }
-            if (bIn) {
-                emit(bx, by, bz);
+            // up to two output vertices per edge: the horizon crossing, then b if it is above the horizon
+            for (int k = 0; k < 2; k++) {
+                double x, y, zz;
+                if (k == 0) {
+                    if (aIn == bIn) {
+                        continue;
+                    }
+                    double t = az / (az - bz);
+                    x = ax + t * (bx - ax);
+                    y = ay + t * (by - ay);
+                    zz = 0.0;
+                } else {
+                    if (!bIn) {
+                        continue;
+                    }
+                    x = bx;
+                    y = by;
+                    zz = bz;
+                }
+                if (emitted > 0) {
+                    sum += edgeZ(outX, outY, outZ, x, y, zz);
+                } else {
+                    outFirstX = x;
+                    outFirstY = y;
+                    outFirstZ = zz;
+                }
+                outX = x;
+                outY = y;
+                outZ = zz;
+                emitted++;
             }
         }
-
-        private void emit(double x, double y, double z) {
-            if (hasOut) {
-                sum += edgeZ(outX, outY, outZ, x, y, z);
-            } else {
-                outFirstX = x; outFirstY = y; outFirstZ = z;
-                hasOut = true;
-            }
-            outX = x; outY = y; outZ = z;
-            emitted++;
+        if (emitted < 3) {
+            return 0.0;
         }
+        sum += edgeZ(outX, outY, outZ, outFirstX, outFirstY, outFirstZ);
+        return clamp01(sum * INV_TWO_PI);
     }
 
     private static double clamp01(double v) {

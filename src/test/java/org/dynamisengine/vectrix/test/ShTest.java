@@ -110,7 +110,7 @@ class ShTest {
 
         Vector3f expected = ShConvolution.evaluateL2(sh, n, new Vector3f());
         float[] out = new float[3];
-        ShConvolution.evaluateIrradiance(sh, n.x, n.y, n.z, new float[9], out);
+        ShConvolution.evaluateL2(sh, n.x, n.y, n.z, new float[9], out);
 
         assertEquals(expected.x, out[0], 1E-7f);
         assertEquals(expected.y, out[1], 1E-7f);

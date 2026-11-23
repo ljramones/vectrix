@@ -57,14 +57,15 @@ public final class TransferFunctionsf {
     }
 
     /**
-     * Applies the SMPTE ST 2084 (PQ) EOTF: signal to normalized luminance; the inverse of {@link #pqEncode}. Negative
-     * inputs count as 0.
+     * Applies the SMPTE ST 2084 (PQ) EOTF: signal to normalized luminance; the inverse of {@link #pqEncode}. The
+     * signal is clamped to [0, 1]: negative inputs count as 0 and inputs above 1 as 1 (beyond about 1.99 the curve
+     * itself has no real value).
      *
      * @param signal the PQ signal, in [0, 1]
-     * @return the luminance divided by 10000 cd/m²
+     * @return the luminance divided by 10000 cd/m², in [0, 1]
      */
     public static float pqDecode(float signal) {
-        float ep = (float) AccurateMath.pow(java.lang.Math.max(signal, 0.0f), 1.0f / PQ_M2);
+        float ep = (float) AccurateMath.pow(java.lang.Math.max(java.lang.Math.min(signal, 1.0f), 0.0f), 1.0f / PQ_M2);
         return (float) AccurateMath.pow(java.lang.Math.max(ep - PQ_C1, 0.0f) / (PQ_C2 - PQ_C3 * ep), 1.0f / PQ_M1);
     }
 

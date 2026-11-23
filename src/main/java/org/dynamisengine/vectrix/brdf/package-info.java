@@ -36,9 +36,9 @@
  * {@link org.dynamisengine.vectrix.core.AccurateMath} (and square roots are exact), so results match across platforms
  * under {@code -Dvectrix.strictMath=true}; the DFG tables use a fixed Hammersley sequence, not random numbers.
  * Errors: the shading functions do not validate their inputs and do not throw; degenerate inputs give 0, infinity or
- * NaN as each method states. {@code DfgLutBuilder.build} throws {@code IllegalArgumentException} for a non-positive
- * size or sample count, a null model or a too-small output array; the other {@code DfgLutBuilder} methods do not
- * validate. Precision and naming: {@code ...f} classes are float, {@code ...d} classes are double;
+ * NaN as each method states. The {@code DfgLutBuilder} methods check their arguments up front and throw
+ * {@code IllegalArgumentException} for a non-positive size or sample count, a null model, a cosine or roughness
+ * outside its range, or a too-small output array. Precision and naming: {@code ...f} classes are float, {@code ...d} classes are double;
  * {@code DfgLutBuilder} integrates in double and stores float tables.
  */
 package org.dynamisengine.vectrix.brdf;

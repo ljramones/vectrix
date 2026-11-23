@@ -71,7 +71,7 @@ public class ShHotPathBenchmark extends ThroughputBenchmark {
     public float evaluateIrradianceZeroAllocLoop() {
         float sum = 0.0f;
         for (int i = 0; i < count; i++) {
-            ShConvolution.evaluateIrradiance(coeffs, dirX[i], dirY[i], dirZ[i], scratch, rgbOut);
+            ShConvolution.evaluateL2(coeffs, dirX[i], dirY[i], dirZ[i], scratch, rgbOut);
             sum += rgbOut[0] + rgbOut[1] + rgbOut[2];
         }
         return sum;

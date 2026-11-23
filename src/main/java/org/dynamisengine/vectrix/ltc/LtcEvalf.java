@@ -33,6 +33,8 @@ import org.dynamisengine.vectrix.core.Vector3fc;
  * the shading point to the light's vertices, transformed by the matrix read from an {@link LtcTablef} table with
  * {@link #transformDirection}. The form-factor routines normalize each vertex direction themselves, so the
  * transformed vectors need not be unit length. Results are the cosine-weighted form factor, in {@code [0, 1]}.
+ *
+ * @since 1.0.0
  */
 public final class LtcEvalf {
     private static final float INV_TWO_PI = (float) (1.0 / (2.0 * java.lang.Math.PI));
@@ -97,7 +99,7 @@ public final class LtcEvalf {
 
     /**
      * Returns the form factor of a quadrilateral light clipped to the upper hemisphere ({@code z >= 0}), as
-     * {@link #formFactorPolygonClipped} with four vertices. Allocates a small clipping object per call.
+     * {@link #formFactorPolygonClipped} with four vertices. Does not allocate.
      *
      * @param v0 the direction to the first vertex
      * @param v1 the direction to the second vertex
@@ -107,16 +109,14 @@ public final class LtcEvalf {
      * @since 1.0.0
      */
     public static float formFactorRectClipped(Vector3fc v0, Vector3fc v1, Vector3fc v2, Vector3fc v3) {
-        Clip c = new Clip();
-        c.add(v0); c.add(v1); c.add(v2); c.add(v3);
-        return c.finish();
+        return clipped(null, 4, v0, v1, v2, v3);
     }
 
     /**
      * Polygon form factor, clipped to the upper hemisphere ({@code z >= 0}) before integration. Each edge
      * crossing the horizon is cut where its chord meets the plane {@code z = 0}. That point lies on the edge's
      * great circle, so the clipped spherical polygon is exact. Winding and one-sidedness are as in
-     * {@link #formFactorRect}. Allocates a small clipping object per call.
+     * {@link #formFactorRect}. Does not allocate.
      *
      * @param vertices direction vectors to the polygon vertices (need not be unit length), in order
      * @param count number of vertices to integrate, starting at index 0, at least 3
@@ -129,11 +129,7 @@ public final class LtcEvalf {
         if (vertices == null || count < 3 || count > vertices.length) {
             throw new IllegalArgumentException("vertices/count");
         }
-        Clip c = new Clip();
-        for (int i = 0; i < count; i++) {
-            c.add(vertices[i]);
-        }
-        return c.finish();
+        return clipped(vertices, count, null, null, null, null);
     }
 
     /**
@@ -206,55 +202,65 @@ public final class LtcEvalf {
         return cz * (angle / len);
     }
 
-    /** Streaming Sutherland-Hodgman clip against z >= 0 that accumulates the edge integral of the output. */
-    private static final class Clip {
-        private float firstX, firstY, firstZ, prevInX, prevInY, prevInZ, outX, outY, outZ, outFirstX, outFirstY, outFirstZ;
-        private boolean hasIn, hasOut;
-        private int emitted;
-        private float sum;
-
-        void add(Vector3fc v) {
-            float x = v.x(), y = v.y(), z = v.z();
-            if (!hasIn) {
-                firstX = x; firstY = y; firstZ = z;
-                hasIn = true;
-            } else {
-                edge(prevInX, prevInY, prevInZ, x, y, z);
-            }
-            prevInX = x; prevInY = y; prevInZ = z;
+    /** Vertex {@code i} of {@code vertices}, or of {@code (v0, v1, v2, v3)} when {@code vertices} is null. */
+    private static Vector3fc vertex(Vector3fc[] vertices, int i, Vector3fc v0, Vector3fc v1, Vector3fc v2, Vector3fc v3) {
+        if (vertices != null) {
+            return vertices[i];
         }
+        return i == 0 ? v0 : i == 1 ? v1 : i == 2 ? v2 : v3;
+    }
 
-        float finish() {
-            if (hasIn) {
-                edge(prevInX, prevInY, prevInZ, firstX, firstY, firstZ);
-            }
-            if (emitted >= 3) {
-                sum += edgeZ(outX, outY, outZ, outFirstX, outFirstY, outFirstZ);
-            }
-            return emitted >= 3 ? clamp01(sum * INV_TWO_PI) : 0.0f;
-        }
-
-        private void edge(float ax, float ay, float az, float bx, float by, float bz) {
+    /**
+     * Sutherland-Hodgman clip of the polygon against {@code z >= 0}, accumulating the edge integral of the clipped
+     * polygon as its vertices are produced; all state is in locals, so nothing is allocated.
+     */
+    private static float clipped(Vector3fc[] vertices, int count, Vector3fc v0, Vector3fc v1, Vector3fc v2, Vector3fc v3) {
+        float outFirstX = 0.0f, outFirstY = 0.0f, outFirstZ = 0.0f, outX = 0.0f, outY = 0.0f, outZ = 0.0f;
+        int emitted = 0;
+        float sum = 0.0f;
+        for (int i = 0; i < count; i++) {
+            Vector3fc a = vertex(vertices, i, v0, v1, v2, v3);
+            Vector3fc b = vertex(vertices, i + 1 == count ? 0 : i + 1, v0, v1, v2, v3);
+            float ax = a.x(), ay = a.y(), az = a.z();
+            float bx = b.x(), by = b.y(), bz = b.z();
             boolean aIn = az >= 0.0f, bIn = bz >= 0.0f;
-            if (aIn != bIn) {
-                float t = az / (az - bz);
-                emit(ax + t * (bx - ax), ay + t * (by - ay), 0.0f);
-            }
-            if (bIn) {
-                emit(bx, by, bz);
+            // up to two output vertices per edge: the horizon crossing, then b if it is above the horizon
+            for (int k = 0; k < 2; k++) {
+                float x, y, zz;
+                if (k == 0) {
+                    if (aIn == bIn) {
+                        continue;
+                    }
+                    float t = az / (az - bz);
+                    x = ax + t * (bx - ax);
+                    y = ay + t * (by - ay);
+                    zz = 0.0f;
+                } else {
+                    if (!bIn) {
+                        continue;
+                    }
+                    x = bx;
+                    y = by;
+                    zz = bz;
+                }
+                if (emitted > 0) {
+                    sum += edgeZ(outX, outY, outZ, x, y, zz);
+                } else {
+                    outFirstX = x;
+                    outFirstY = y;
+                    outFirstZ = zz;
+                }
+                outX = x;
+                outY = y;
+                outZ = zz;
+                emitted++;
             }
         }
-
-        private void emit(float x, float y, float z) {
-            if (hasOut) {
-                sum += edgeZ(outX, outY, outZ, x, y, z);
-            } else {
-                outFirstX = x; outFirstY = y; outFirstZ = z;
-                hasOut = true;
-            }
-            outX = x; outY = y; outZ = z;
-            emitted++;
+        if (emitted < 3) {
+            return 0.0f;
         }
+        sum += edgeZ(outX, outY, outZ, outFirstX, outFirstY, outFirstZ);
+        return clamp01(sum * INV_TWO_PI);
     }
 
     private static float clamp01(float v) {

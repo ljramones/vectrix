@@ -29,7 +29,10 @@ import org.dynamisengine.vectrix.core.AccurateMath;
  * Atmosphere math in double precision (precomputation; DynamisSky owns rendering policy). Positions are given as
  * {@code (r, mu)}: distance {@code r} from the planet center and {@code mu}, the cosine between the ray direction and
  * the local zenith. Distances, radii and altitudes are in metres; RGB results go into the first three elements of the
- * caller's {@code out} array, which is also returned. Inputs are not validated.
+ * caller's {@code out} array, which is also returned. The ray-geometry and density functions do not validate their
+ * inputs; the integrals and tables check their lengths, sizes and counts up front and throw
+ * {@code IllegalArgumentException}. The integrals use a per-thread scratch area, so after the first call on a thread
+ * they do not allocate.
  * <ul>
  * <li>Geometry without cancellation: distances to the top and the ground use the product forms of the quadratic's
  * roots, and altitudes along a ray use {@code h = (r(t)² − R²) / (r(t) + R)}, so a ray grazing the ground at 1 mm
@@ -220,42 +223,69 @@ public final class Atmosphere {
     /** Absolute error floor per metre of ray for the O(1) normalized densities: a few ulps. */
     private static final double NOISE_PER_METRE = 4.0 * 0x1.0p-52;
 
+    /** Per-thread working memory of the integrals, so they do not allocate after the first call on a thread. */
+    private static final class Scratch {
+        final double[] cuts = new double[8];
+        final double[] kg = new double[6];
+        final double[] floor = new double[3];
+        final double[] sum = new double[7];
+        final double[] depth = new double[3];
+        final double[] ext = new double[3];
+        final double[] sca = new double[3];
+        final double[] tSun = new double[3];
+        final double[] uv = new double[2];
+    }
+
+    private static final ThreadLocal<Scratch> SCRATCH = ThreadLocal.withInitial(Scratch::new);
+
     /**
      * Integrates the relative densities {@code ∫ρ dt} (Rayleigh, Mie, ozone) along the ray from {@code (r, mu)} for a
      * length {@code length} and adds them to {@code acc[0..2]}, by the adaptive Gauss-Kronrod scheme described on the
-     * class. Allocates several small scratch arrays per call and one per quadrature panel.
+     * class. A length of 0 adds nothing. Uses a per-thread scratch area, so it does not allocate after the first call
+     * on a thread.
      *
      * @param m the atmosphere
      * @param r the distance from the planet center at the ray's start, in metres
      * @param mu the cosine between the ray direction and the local zenith, in [-1, 1]
-     * @param length the length of the ray segment, in metres, at least 0
+     * @param length the length of the ray segment, in metres, at least 0 and finite
      * @param acc the Rayleigh, Mie and ozone integrals (in metres) are added to elements 0, 1 and 2
      * @return {@code acc}
+     * @throws IllegalArgumentException if {@code length} is negative, NaN or infinite, or {@code acc} has fewer than
+     *         3 elements (checked before anything is written)
      */
     public static double[] densityIntegrals(AtmosphereModel m, double r, double mu, double length, double[] acc) {
+        if (!(length >= 0.0) || length == Double.POSITIVE_INFINITY) {
+            throw new IllegalArgumentException("length must be finite and at least 0: " + length);
+        }
+        checkLength(acc, 3, "acc");
+        Scratch sc = SCRATCH.get();
         // breakpoints where the ray crosses the ozone profile's kinks (bottom, center, top of the tent)
-        double[] cuts = new double[8];
+        double[] cuts = sc.cuts;
         int n = 0;
         cuts[n++] = 0.0;
-        double[] levels = {m.ozoneCenterAltitude() - m.ozoneHalfWidth(), m.ozoneCenterAltitude(),
-            m.ozoneCenterAltitude() + m.ozoneHalfWidth()};
-        for (double level : levels) {
+        for (int k = -1; k <= 1; k++) {
+            double level = k == 0 ? m.ozoneCenterAltitude()
+                    : k < 0 ? m.ozoneCenterAltitude() - m.ozoneHalfWidth() : m.ozoneCenterAltitude() + m.ozoneHalfWidth();
             double rad = m.bottomRadius() + level;
             double disc = discriminant(r, mu, rad);
             if (disc < 0.0) {
                 continue;
             }
             double s = java.lang.Math.sqrt(disc);
-            for (double t : new double[] {-r * mu - s, -r * mu + s}) {
-                if (t > 0.0 && t < length) {
-                    cuts[n++] = t;
-                }
+            double t0 = -r * mu - s, t1 = -r * mu + s;
+            if (t0 > 0.0 && t0 < length) {
+                cuts[n++] = t0;
+            }
+            if (t1 > 0.0 && t1 < length) {
+                cuts[n++] = t1;
             }
         }
         cuts[n++] = length;
         java.util.Arrays.sort(cuts, 0, n);
         // a coarse first pass sets each component's global error floor (per metre of ray)
-        double[] kg = new double[6], floor = new double[3];
+        double[] kg = sc.kg, floor = sc.floor, sum = sc.sum;
+        java.util.Arrays.fill(floor, 0.0);
+        java.util.Arrays.fill(sum, 0.0);
         for (int i = 0; i + 1 < n; i++) {
             if (cuts[i + 1] > cuts[i]) {
                 kronrod(m, r, mu, cuts[i], cuts[i + 1], kg);
@@ -269,7 +299,7 @@ public final class Atmosphere {
             // are O(1) and the altitude carries an absolute error of about 1e-11 m on Earth-sized radii
             floor[c] = java.lang.Math.max(length > 0.0 ? REL_TOL * floor[c] / length : 0.0, NOISE_PER_METRE);
         }
-        double[] sum = new double[7]; // Neumaier-compensated sums: values, compensations, panel count
+        // sum holds Neumaier-compensated sums: values, compensations, panel count
         for (int i = 0; i + 1 < n; i++) {
             if (cuts[i + 1] > cuts[i]) {
                 adaptive(m, r, mu, cuts[i], cuts[i + 1], 0, floor, kg, sum);
@@ -281,35 +311,37 @@ public final class Atmosphere {
         return acc;
     }
 
-    private static void densities(AtmosphereModel m, double r, double mu, double t, double[] d) {
-        double h = altitudeAt(m, r, mu, t);
-        d[0] = rayleighDensity(m, h);
-        d[1] = mieDensity(m, h);
-        d[2] = ozoneDensity(m, h);
+    private static void checkLength(double[] a, int needed, String name) {
+        if (a.length < needed) {
+            throw new IllegalArgumentException(name + " needs at least " + needed + " elements: " + a.length);
+        }
     }
 
     /** Gauss-Kronrod 15 (into {@code out[0..2]}) and embedded Gauss 7 ({@code out[3..5]}) on [a, b]. */
     private static void kronrod(AtmosphereModel m, double r, double mu, double a, double b, double[] out) {
         double c = 0.5 * (a + b), hw = 0.5 * (b - a);
-        double[] d = new double[3];
         double k0 = 0, k1 = 0, k2 = 0, g0 = 0, g1 = 0, g2 = 0;
-        densities(m, r, mu, c, d);
-        k0 += WGK[7] * d[0];
-        k1 += WGK[7] * d[1];
-        k2 += WGK[7] * d[2];
-        g0 += WG[3] * d[0];
-        g1 += WG[3] * d[1];
-        g2 += WG[3] * d[2];
+        double h = altitudeAt(m, r, mu, c);
+        double d0 = rayleighDensity(m, h), d1 = mieDensity(m, h), d2 = ozoneDensity(m, h);
+        k0 += WGK[7] * d0;
+        k1 += WGK[7] * d1;
+        k2 += WGK[7] * d2;
+        g0 += WG[3] * d0;
+        g1 += WG[3] * d1;
+        g2 += WG[3] * d2;
         for (int j = 0; j < 7; j++) {
             for (int sgn = -1; sgn <= 1; sgn += 2) {
-                densities(m, r, mu, c + sgn * hw * XGK[j], d);
-                k0 += WGK[j] * d[0];
-                k1 += WGK[j] * d[1];
-                k2 += WGK[j] * d[2];
+                h = altitudeAt(m, r, mu, c + sgn * hw * XGK[j]);
+                d0 = rayleighDensity(m, h);
+                d1 = mieDensity(m, h);
+                d2 = ozoneDensity(m, h);
+                k0 += WGK[j] * d0;
+                k1 += WGK[j] * d1;
+                k2 += WGK[j] * d2;
                 if ((j & 1) == 1) {
-                    g0 += WG[j >> 1] * d[0];
-                    g1 += WG[j >> 1] * d[1];
-                    g2 += WG[j >> 1] * d[2];
+                    g0 += WG[j >> 1] * d0;
+                    g1 += WG[j >> 1] * d1;
+                    g2 += WG[j >> 1] * d2;
                 }
             }
         }
@@ -354,31 +386,40 @@ public final class Atmosphere {
 
     /**
      * Computes the optical depth from {@code (r, mu)} to the atmosphere's boundary (the ground if the ray hits it).
-     * Allocates like {@link #densityIntegrals}.
+     * Does not allocate after the first call on a thread, like {@link #densityIntegrals}.
      *
      * @param m the atmosphere
      * @param r the distance from the planet center, in metres, in [{@code bottomRadius}, {@code topRadius}]
      * @param mu the cosine between the ray direction and the local zenith, in [-1, 1]
      * @param out receives the dimensionless RGB optical depth in elements 0 to 2
      * @return {@code out}
+     * @throws IllegalArgumentException if {@code out} has fewer than 3 elements, or the distance to the boundary is
+     *         NaN (an {@code r} or {@code mu} that is NaN)
      */
     public static double[] opticalDepth(AtmosphereModel m, double r, double mu, double[] out) {
         return opticalDepth(m, r, mu, distanceToBoundary(m, r, mu), out);
     }
 
     /**
-     * Computes the optical depth along the first {@code length} metres of the ray from {@code (r, mu)}. Allocates
-     * like {@link #densityIntegrals}, plus a three-element array.
+     * Computes the optical depth along the first {@code length} metres of the ray from {@code (r, mu)}. Does not
+     * allocate after the first call on a thread, like {@link #densityIntegrals}.
      *
      * @param m the atmosphere
      * @param r the distance from the planet center, in metres
      * @param mu the cosine between the ray direction and the local zenith, in [-1, 1]
-     * @param length the length of the ray segment, in metres, at least 0
+     * @param length the length of the ray segment, in metres, at least 0 and finite
      * @param out receives the dimensionless RGB optical depth in elements 0 to 2
      * @return {@code out}
+     * @throws IllegalArgumentException if {@code length} is negative, NaN or infinite, or {@code out} has fewer than 3
+     *         elements (checked before anything is written)
      */
     public static double[] opticalDepth(AtmosphereModel m, double r, double mu, double length, double[] out) {
-        double[] acc = densityIntegrals(m, r, mu, length, new double[3]);
+        checkLength(out, 3, "out");
+        double[] acc = SCRATCH.get().depth;
+        acc[0] = 0.0;
+        acc[1] = 0.0;
+        acc[2] = 0.0;
+        densityIntegrals(m, r, mu, length, acc);
         for (int c = 0; c < 3; c++) {
             out[c] = m.rayleighScattering(c) * acc[0] + m.mieExtinction(c) * acc[1] + m.ozoneAbsorption(c) * acc[2];
         }
@@ -387,15 +428,19 @@ public final class Atmosphere {
 
     /**
      * Computes the transmittance from {@code (r, mu)} to the top of the atmosphere; 0 if the ray hits the ground.
-     * Allocates like {@link #opticalDepth(AtmosphereModel, double, double, double, double[])}.
+     * Does not allocate after the first call on a thread, like
+     * {@link #opticalDepth(AtmosphereModel, double, double, double, double[])}.
      *
      * @param m the atmosphere
      * @param r the distance from the planet center, in metres, in [{@code bottomRadius}, {@code topRadius}]
      * @param mu the cosine between the ray direction and the local zenith, in [-1, 1]
      * @param out receives the RGB transmittance, in [0, 1], in elements 0 to 2
      * @return {@code out}
+     * @throws IllegalArgumentException if {@code out} has fewer than 3 elements, or the distance to the top is NaN
+     *         (an {@code r} or {@code mu} that is NaN)
      */
     public static double[] transmittanceToTop(AtmosphereModel m, double r, double mu, double[] out) {
+        checkLength(out, 3, "out");
         if (intersectsGround(m, r, mu)) {
             out[0] = out[1] = out[2] = 0.0;
             return out;
@@ -408,6 +453,18 @@ public final class Atmosphere {
     }
 
     // ---------------------------------------------------------------- transmittance LUT (Bruneton mapping)
+
+    private static void checkTableSize(int width, int height) {
+        if (width < 2 || height < 2) {
+            throw new IllegalArgumentException("table width and height must be at least 2: " + width + " x " + height);
+        }
+    }
+
+    private static void checkTableOut(float[] outRgb, int width, int height) {
+        if (outRgb.length < 3L * width * height) {
+            throw new IllegalArgumentException("outRgb must hold 3 * width * height floats: " + outRgb.length);
+        }
+    }
 
     private static double texCoord(double x, int size) {
         return 0.5 / size + x * (1.0 - 1.0 / size);
@@ -430,9 +487,13 @@ public final class Atmosphere {
      * @param height the table height in texels, at least 2
      * @param out receives {@code u} in element 0 and {@code v} in element 1
      * @return {@code out}
+     * @throws IllegalArgumentException if {@code width} or {@code height} is below 2 or {@code out} has fewer than 2
+     *         elements
      */
     public static double[] transmittanceLutUv(AtmosphereModel m, double r, double mu, int width, int height,
             double[] out) {
+        checkTableSize(width, height);
+        checkLength(out, 2, "out");
         double b = m.bottomRadius(), top = m.topRadius();
         double hh = java.lang.Math.sqrt((top - b) * (top + b));
         double rho = java.lang.Math.sqrt(java.lang.Math.max((r - b) * (r + b), 0.0));
@@ -455,9 +516,13 @@ public final class Atmosphere {
      * @param height the table height in texels, at least 2
      * @param out receives {@code r} (metres) in element 0 and {@code mu} in element 1
      * @return {@code out}
+     * @throws IllegalArgumentException if {@code width} or {@code height} is below 2 or {@code out} has fewer than 2
+     *         elements
      */
     public static double[] transmittanceLutRMu(AtmosphereModel m, double u, double v, int width, int height,
             double[] out) {
+        checkTableSize(width, height);
+        checkLength(out, 2, "out");
         double b = m.bottomRadius(), top = m.topRadius();
         double hh = java.lang.Math.sqrt((top - b) * (top + b));
         double xMu = unitFromTexCoord(u, width), xR = unitFromTexCoord(v, height);
@@ -474,15 +539,19 @@ public final class Atmosphere {
     /**
      * Builds the transmittance LUT: {@code width × height} texels of interleaved RGB floats, texel {@code (x, y)} at
      * index {@code 3 (y width + x)}, each the {@link #transmittanceToTop} of the {@code (r, mu)} that
-     * {@link #transmittanceLutRMu} gives for its center. Allocates per texel like {@link #transmittanceToTop}.
+     * {@link #transmittanceLutRMu} gives for its center. Allocates two small arrays per call.
      *
      * @param m the atmosphere
      * @param width the table width in texels, at least 2
      * @param height the table height in texels, at least 2
      * @param outRgb receives the table, starting at index 0; length at least {@code 3 width height}
      * @return {@code outRgb}
+     * @throws IllegalArgumentException if {@code width} or {@code height} is below 2 or {@code outRgb} is too small
+     *         (checked before anything is written)
      */
     public static float[] transmittanceLut(AtmosphereModel m, int width, int height, float[] outRgb) {
+        checkTableSize(width, height);
+        checkTableOut(outRgb, width, height);
         double[] rm = new double[2], t = new double[3];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -499,49 +568,55 @@ public final class Atmosphere {
 
     // ---------------------------------------------------------------- multiple scattering (Hillaire 2020)
 
-    /** A double-precision transmittance table for the sun lookups of the multiple-scattering integration. */
-    private static final class SunTable {
-        final AtmosphereModel m;
-        final int w;
-        final int h;
-        final double[] t;
+    /** Width of the internal sun-transmittance table of {@link #multipleScatteringLut}. */
+    private static final int SUN_W = 256;
+    /** Height of the internal sun-transmittance table of {@link #multipleScatteringLut}. */
+    private static final int SUN_H = 128;
 
-        SunTable(AtmosphereModel m, int w, int h) {
-            this.m = m;
-            this.w = w;
-            this.h = h;
-            this.t = new double[3 * w * h];
-            double[] rm = new double[2], tr = new double[3];
-            for (int y = 0; y < h; y++) {
-                for (int x = 0; x < w; x++) {
-                    transmittanceLutRMu(m, (x + 0.5) / w, (y + 0.5) / h, w, h, rm);
-                    transmittanceToTop(m, rm[0], rm[1], tr);
-                    System.arraycopy(tr, 0, t, 3 * (y * w + x), 3);
-                }
-            }
-        }
-
-        void lookup(double r, double mu, double[] uv, double[] out) {
-            if (intersectsGround(m, r, mu)) {
-                out[0] = out[1] = out[2] = 0.0;
-                return;
-            }
-            transmittanceLutUv(m, java.lang.Math.min(r, m.topRadius()), mu, w, h, uv);
-            double fx = java.lang.Math.max(0.0, java.lang.Math.min(uv[0] * w - 0.5, w - 1.0));
-            double fy = java.lang.Math.max(0.0, java.lang.Math.min(uv[1] * h - 0.5, h - 1.0));
-            int x0 = java.lang.Math.min((int) fx, w - 2), y0 = java.lang.Math.min((int) fy, h - 2);
-            double ax = fx - x0, ay = fy - y0;
-            for (int c = 0; c < 3; c++) {
-                double t00 = t[3 * (y0 * w + x0) + c], t10 = t[3 * (y0 * w + x0 + 1) + c];
-                double t01 = t[3 * ((y0 + 1) * w + x0) + c], t11 = t[3 * ((y0 + 1) * w + x0 + 1) + c];
-                out[c] = (t00 * (1 - ax) + t10 * ax) * (1 - ay) + (t01 * (1 - ax) + t11 * ax) * ay;
+    /** Fills {@code t[off ..]} with the double-precision sun-transmittance table, RGB interleaved. */
+    private static void buildSunTable(AtmosphereModel m, double[] t, int off) {
+        Scratch sc = SCRATCH.get();
+        double[] rm = sc.uv, tr = sc.tSun;
+        for (int y = 0; y < SUN_H; y++) {
+            for (int x = 0; x < SUN_W; x++) {
+                transmittanceLutRMu(m, (x + 0.5) / SUN_W, (y + 0.5) / SUN_H, SUN_W, SUN_H, rm);
+                transmittanceToTop(m, rm[0], rm[1], tr);
+                System.arraycopy(tr, 0, t, off + 3 * (y * SUN_W + x), 3);
             }
         }
     }
 
-    /** Sun transmittance: exact integration, or a table lookup when building whole LUTs. */
-    private interface SunTransmittance {
-        void at(double r, double mu, double[] uv, double[] out);
+    /**
+     * Sun transmittance at {@code (r, mu)}: integrated exactly when {@code t} is null, else looked up (bilinear) in
+     * the table at {@code t[off ..]}.
+     */
+    private static void sunTransmittance(AtmosphereModel m, double[] t, int off, double r, double mu, double[] uv,
+            double[] out) {
+        if (t == null) {
+            transmittanceToTop(m, r, mu, out);
+            return;
+        }
+        if (intersectsGround(m, r, mu)) {
+            out[0] = out[1] = out[2] = 0.0;
+            return;
+        }
+        int w = SUN_W, h = SUN_H;
+        transmittanceLutUv(m, java.lang.Math.min(r, m.topRadius()), mu, w, h, uv);
+        double fx = java.lang.Math.max(0.0, java.lang.Math.min(uv[0] * w - 0.5, w - 1.0));
+        double fy = java.lang.Math.max(0.0, java.lang.Math.min(uv[1] * h - 0.5, h - 1.0));
+        int x0 = java.lang.Math.min((int) fx, w - 2), y0 = java.lang.Math.min((int) fy, h - 2);
+        double ax = fx - x0, ay = fy - y0;
+        for (int c = 0; c < 3; c++) {
+            double t00 = t[off + 3 * (y0 * w + x0) + c], t10 = t[off + 3 * (y0 * w + x0 + 1) + c];
+            double t01 = t[off + 3 * ((y0 + 1) * w + x0) + c], t11 = t[off + 3 * ((y0 + 1) * w + x0 + 1) + c];
+            out[c] = (t00 * (1 - ax) + t10 * ax) * (1 - ay) + (t01 * (1 - ax) + t11 * ax) * ay;
+        }
+    }
+
+    private static void checkCounts(int directions, int steps) {
+        if (directions <= 0 || steps <= 0) {
+            throw new IllegalArgumentException("directions and steps must be positive: " + directions + ", " + steps);
+        }
     }
 
     /**
@@ -549,8 +624,8 @@ public final class Atmosphere {
      * {@code muSun} and unit illuminance (Hillaire 2020, eq. 10): second-order isotropic scattering {@code L₂}
      * including the Lambertian ground bounce, divided by {@code 1 − f_ms}. Integrated over {@code directions}
      * Fibonacci-sphere directions with {@code steps} ray-march steps each; sun transmittance is integrated exactly.
-     * Multiply by the local scattering coefficient and the sun illuminance to get radiance. Allocates scratch arrays
-     * per call and per sun-transmittance evaluation.
+     * Multiply by the local scattering coefficient and the sun illuminance to get radiance. Uses a per-thread scratch
+     * area, so it does not allocate after the first call on a thread.
      *
      * @param m the atmosphere
      * @param r the distance from the planet center, in metres, in [{@code bottomRadius}, {@code topRadius}]
@@ -559,17 +634,21 @@ public final class Atmosphere {
      * @param steps the number of ray-march steps per direction, positive
      * @param out receives the RGB transfer in elements 0 to 2
      * @return {@code out}
+     * @throws IllegalArgumentException if {@code directions} or {@code steps} is not positive or {@code out} has fewer
+     *         than 3 elements (checked before anything is written)
      */
     public static double[] multipleScattering(AtmosphereModel m, double r, double muSun, int directions, int steps,
             double[] out) {
-        return multipleScattering(m, r, muSun, directions, steps,
-                (rr, mu, uv, o) -> transmittanceToTop(m, rr, mu, o), out);
+        checkCounts(directions, steps);
+        checkLength(out, 3, "out");
+        return multipleScattering(m, r, muSun, directions, steps, null, 0, out);
     }
 
     private static double[] multipleScattering(AtmosphereModel m, double r, double muSun, int directions, int steps,
-            SunTransmittance sun, double[] out) {
+            double[] sunTable, int sunOff, double[] out) {
         double sx = java.lang.Math.sqrt(java.lang.Math.max(0.0, 1.0 - muSun * muSun)), sz = muSun;
-        double[] ext = new double[3], sca = new double[3], tSun = new double[3], uv = new double[2];
+        Scratch sc = SCRATCH.get();
+        double[] ext = sc.ext, sca = sc.sca, tSun = sc.tSun, uv = sc.uv;
         double l0 = 0, l1 = 0, l2 = 0, f0 = 0, f1 = 0, f2 = 0;
         double golden = java.lang.Math.PI * (3.0 - java.lang.Math.sqrt(5.0));
         for (int i = 0; i < directions; i++) {
@@ -590,7 +669,7 @@ public final class Atmosphere {
                 double h = altitudeAt(m, r, wz, t);
                 extinction(m, h, ext);
                 scattering(m, h, sca);
-                sun.at(rp, (px * sx + pz * sz) / rp, uv, tSun);
+                sunTransmittance(m, sunTable, sunOff, rp, (px * sx + pz * sz) / rp, uv, tSun);
                 double s0 = segment(ext[0], dt), s1 = segment(ext[1], dt), s2 = segment(ext[2], dt);
                 double pu = 1.0 / (4.0 * java.lang.Math.PI);
                 dl0 += tr0 * sca[0] * tSun[0] * pu * s0;
@@ -607,7 +686,7 @@ public final class Atmosphere {
                 double px = wx * tEnd, py = wy * tEnd, pz = r + wz * tEnd;
                 double rp = java.lang.Math.sqrt(px * px + py * py + pz * pz);
                 double cosSun = (px * sx + pz * sz) / rp;
-                sun.at(rp, cosSun, uv, tSun);
+                sunTransmittance(m, sunTable, sunOff, rp, cosSun, uv, tSun);
                 double lambert = java.lang.Math.max(cosSun, 0.0) / java.lang.Math.PI;
                 dl0 += tr0 * tSun[0] * lambert * m.groundAlbedo(0);
                 dl1 += tr1 * tSun[1] * lambert * m.groundAlbedo(1);
@@ -638,31 +717,59 @@ public final class Atmosphere {
     }
 
     /**
+     * Returns the number of doubles of scratch that {@link #multipleScatteringLut} needs: room for its internal
+     * 256 × 128 RGB sun-transmittance table (98 304 doubles, about 0.8 MB).
+     *
+     * @return the scratch size, in doubles
+     * @since 3.0.0
+     */
+    public static int multipleScatteringLutScratchSize() {
+        return 3 * SUN_W * SUN_H;
+    }
+
+    /**
      * Builds Hillaire's multiple-scattering LUT ({@code width} over {@code muSun} in [−1, 1], {@code height} over
      * altitude from ground to top; texel centers; RGB interleaved). Sun transmittance comes from an internal
      * 256 × 128 double-precision transmittance table (bilinear) instead of per-sample integration, which keeps a
      * 32 × 32 table at about a second; {@link #multipleScattering} integrates it exactly. Texel {@code (x, y)} is at
      * index {@code 3 (y width + x)} and covers {@code muSun = −1 + 2 (x + 0.5) / width} and
-     * {@code r = bottomRadius + (topRadius − bottomRadius) (y + 0.5) / height}. Allocates the internal table (about
-     * 0.8 MB, built with {@link #transmittanceToTop}) on every call, and scratch arrays per texel.
+     * {@code r = bottomRadius + (topRadius − bottomRadius) (y + 0.5) / height}. The internal table is built (with
+     * {@link #transmittanceToTop}) into the caller's {@code scratch} on every call, so the call does not allocate after
+     * the first call on a thread; reuse the scratch array across calls.
      *
      * @param m the atmosphere
-     * @param width the number of texels over {@code muSun}
-     * @param height the number of texels over altitude
+     * @param width the number of texels over {@code muSun}, positive
+     * @param height the number of texels over altitude, positive
      * @param directions the number of sphere directions per texel, positive
      * @param steps the number of ray-march steps per direction, positive
+     * @param scratch working memory; its contents are overwritten
+     * @param scratchOffset the first element of {@code scratch} to use; {@link #multipleScatteringLutScratchSize()}
+     *                      elements from there are used
      * @param outRgb receives the table, starting at index 0; length at least {@code 3 width height}
      * @return {@code outRgb}
+     * @throws IllegalArgumentException if {@code width}, {@code height}, {@code directions} or {@code steps} is not
+     *         positive, {@code scratchOffset} is negative, or {@code scratch} or {@code outRgb} is too small (checked
+     *         before anything is written)
+     * @since 3.0.0
      */
     public static float[] multipleScatteringLut(AtmosphereModel m, int width, int height, int directions, int steps,
-            float[] outRgb) {
-        SunTable table = new SunTable(m, 256, 128);
-        double[] v = new double[3];
+            double[] scratch, int scratchOffset, float[] outRgb) {
+        if (width <= 0 || height <= 0) {
+            throw new IllegalArgumentException("width and height must be positive: " + width + " x " + height);
+        }
+        checkCounts(directions, steps);
+        if (scratchOffset < 0 || (long) scratchOffset + multipleScatteringLutScratchSize() > scratch.length) {
+            throw new IllegalArgumentException("scratch needs multipleScatteringLutScratchSize() elements from offset "
+                    + scratchOffset + ": " + scratch.length);
+        }
+        checkTableOut(outRgb, width, height);
+        buildSunTable(m, scratch, scratchOffset);
+        double[] v = SCRATCH.get().depth;
         for (int y = 0; y < height; y++) {
             double r = m.bottomRadius() + (m.topRadius() - m.bottomRadius()) * (y + 0.5) / height;
             for (int x = 0; x < width; x++) {
                 double muSun = -1.0 + 2.0 * (x + 0.5) / width;
-                multipleScattering(m, r, muSun, directions, steps, table::lookup, v);
+                multipleScattering(m, r, muSun, directions, steps, scratch, scratchOffset, v);
                 int o = 3 * (y * width + x);
                 outRgb[o] = (float) v[0];
                 outRgb[o + 1] = (float) v[1];

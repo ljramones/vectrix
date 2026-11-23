@@ -49,15 +49,22 @@ public record AtmosphereModel(double bottomRadius, double topRadius, double rayl
         double[] groundAlbedo) {
 
     /**
-     * Creates a model after validating the scalars and copying the arrays. The array components themselves are not
-     * range-checked, except that Mie extinction must not be below Mie scattering.
+     * Creates a model after validating every field and copying the arrays. No field may be NaN or infinite.
      *
-     * @throws IllegalArgumentException if {@code bottomRadius}, either scale height or {@code ozoneHalfWidth} is not
-     *                                  positive, {@code topRadius <= bottomRadius}, {@code mieAnisotropy} is not in
-     *                                  (-1, 1), an array is null or does not have 3 components, or a Mie extinction
-     *                                  component is below the matching Mie scattering component
+     * @throws IllegalArgumentException if a scalar is NaN or infinite; {@code bottomRadius}, either scale height or
+     *                                  {@code ozoneHalfWidth} is not positive; {@code topRadius <= bottomRadius};
+     *                                  {@code mieAnisotropy} is not in (-1, 1); an array is null or does not have 3
+     *                                  components; a coefficient is negative, NaN or infinite; a Mie extinction
+     *                                  component is below the matching Mie scattering component; or a ground albedo
+     *                                  component is outside [0, 1]
      */
     public AtmosphereModel {
+        finite(bottomRadius, "bottomRadius");
+        finite(topRadius, "topRadius");
+        finite(rayleighScaleHeight, "rayleighScaleHeight");
+        finite(mieScaleHeight, "mieScaleHeight");
+        finite(ozoneCenterAltitude, "ozoneCenterAltitude");
+        finite(ozoneHalfWidth, "ozoneHalfWidth");
         if (!(bottomRadius > 0.0) || !(topRadius > bottomRadius) || !(rayleighScaleHeight > 0.0)
                 || !(mieScaleHeight > 0.0) || !(ozoneHalfWidth > 0.0) || !(mieAnisotropy > -1.0 && mieAnisotropy < 1.0)) {
             throw new IllegalArgumentException("atmosphere geometry or profile");
@@ -71,6 +78,15 @@ public record AtmosphereModel(double bottomRadius, double topRadius, double rayl
             if (mieExtinction[c] < mieScattering[c]) {
                 throw new IllegalArgumentException("Mie extinction below Mie scattering");
             }
+            if (groundAlbedo[c] > 1.0) {
+                throw new IllegalArgumentException("groundAlbedo must be in [0, 1]: " + groundAlbedo[c]);
+            }
+        }
+    }
+
+    private static void finite(double v, String name) {
+        if (!Double.isFinite(v)) {
+            throw new IllegalArgumentException(name + " must be finite: " + v);
         }
     }
 
@@ -78,7 +94,13 @@ public record AtmosphereModel(double bottomRadius, double topRadius, double rayl
         if (v == null || v.length != 3) {
             throw new IllegalArgumentException(name + " needs 3 components");
         }
-        return v.clone();
+        double[] copy = v.clone();
+        for (double x : copy) {
+            if (!(x >= 0.0) || x == Double.POSITIVE_INFINITY) {
+                throw new IllegalArgumentException(name + " components must be finite and at least 0: " + x);
+            }
+        }
+        return copy;
     }
 
     /**

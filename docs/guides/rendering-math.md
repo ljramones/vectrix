@@ -57,8 +57,9 @@ values: `ColorGamut.SRGB`, `ColorGamut.DISPLAY_P3`, `ColorGamut.REC2020`, `Color
 (`BRADFORD`, `CAT16` or `NONE`) to choose. For a shader, bake the matrix once with
 `ColorSpacesf.conversionMatrix(from, to, adaptation, out9)`. It is 3×3 **row-major**: `out = M · rgb` with
 `out.r = m[0] r + m[1] g + m[2] b`. Remember to transpose it if you upload it to a column-major GLSL `mat3`. The
-double class `ColorSpacesd` adds `ColorSpacesd.toXyz`, `ColorSpacesd.fromXyz`, `ColorSpacesd.toXyzMatrix` and
-`ColorSpacesd.adaptationMatrix`.
+float and double classes have the same methods, including `ColorSpacesf.toXyz`, `ColorSpacesf.fromXyz`,
+`ColorSpacesf.toXyzMatrix`, `ColorSpacesf.fromXyzMatrix` and `ColorSpacesf.adaptationMatrix` (arbitrary white
+points).
 
 For display encoding beyond sRGB, `TransferFunctionsf` has:
 
@@ -176,7 +177,10 @@ well.
 **Storage.** `ShCoeffs9f` and `ShCoeffs16f` (and their `d` twins) hold RGB coefficients in one public array
 `ShCoeffs9f.c`, laid out `[c0.r, c0.g, c0.b, c1.r, …]`. Coefficient `i` of basis function `Y(l, m)` is at
 `i = l · (l + 1) + m`, and its channel `ch` is at `c[3 · i + ch]`. `ShCoeffs9f.COEFFS` is the count per channel
-(9 or 16). A new object is all zeros; `ShCoeffs9f.zero` clears it. Upload `c` as is: 27 floats per probe at order 2.
+(9 or 16). A new object is all zeros; `ShCoeffs9f.zero` clears it. Both sizes have the same accessors:
+`ShCoeffs16f.get(index, channel)` and `ShCoeffs16f.set(index, channel, value)` take the coefficient index `i` (not
+the band `l`) and reject an index or channel out of range, and `ShCoeffs16f.set(other)` copies. Upload `c` as is:
+27 floats per probe at order 2.
 
 **Basis.** `ShBasis` defines the real SH basis used everywhere in the package: the standard graphics basis without
 the Condon-Shortley phase, evaluated on `(x, y, z)` exactly as you pass it, with no axis remapping. Project and
@@ -226,15 +230,16 @@ ShCoeffs9f irradiance = ShConvolution.convolveLambertL2(radiance, new ShCoeffs9f
 float[] up = new float[3];
 float[] side = new float[3];
 float[] down = new float[3];
-ShConvolution.evaluateIrradiance(irradiance, 0, 1, 0, scratch, up);
-ShConvolution.evaluateIrradiance(irradiance, 1, 0, 0, scratch, side);
-ShConvolution.evaluateIrradiance(irradiance, 0, -1, 0, scratch, down);
+ShConvolution.evaluateL2(irradiance, 0, 1, 0, scratch, up);
+ShConvolution.evaluateL2(irradiance, 1, 0, 0, scratch, side);
+ShConvolution.evaluateL2(irradiance, 0, -1, 0, scratch, down);
 ```
 
 `ShConvolution.convolveLambertL2` scales band 0 by π, band 1 by 2π/3 and band 2 by π/4; `dest` may be the input.
 `ShConvolution.convolveLambertL3` also zeroes band 3, because the cosine has no band-3 content. Evaluate with
-`ShConvolution.evaluateIrradiance` (normal as three floats, scratch array, RGB array out; allocates nothing) or
-`ShConvolution.evaluateL2` / `ShConvolution.evaluateL3` (into a `Vector3f`). The result is irradiance E; divide by
+`ShConvolution.evaluateL2` (either with the normal as three floats, a scratch array and an RGB array out, or into a
+`Vector3f`; neither allocates) or `ShConvolution.evaluateL3`. The `evaluate...` methods do not convolve: they
+reconstruct whatever coefficients you pass. The result is irradiance E; divide by
 π and multiply by the albedo for the reflected radiance of a Lambertian surface.
 
 **Other operations.**
@@ -266,8 +271,8 @@ amplitude, so for RGB call once per channel or scale the result.
 | Integral over the sphere | `SphericalGaussiansf.integral` |
 | Product of two SGs (an SG again) | `SphericalGaussiansf.product` |
 | Integral of a product | `SphericalGaussiansf.innerProduct` |
-| Diffuse irradiance at a normal | `SphericalGaussiansf.irradianceFitted` (within 2 % for `λ ≥ 1`), `SphericalGaussiansf.irradianceInnerProduct` (cheaper, up to about 15 % error) |
-| Fit an SG to weighted sample directions | `SphericalGaussiansf.fit`, `SphericalGaussiansf.fitSharpness` |
+| Diffuse irradiance at a normal | `SphericalGaussiansf.irradianceFitted` (Hill's fit, within 2 % for `λ ≥ 1`; exact for `λ < 1`, where the fit diverges), `SphericalGaussiansf.irradianceInnerProduct` (cheaper, up to about 15 % error) |
+| Fit an SG to weighted sample directions | `SphericalGaussiansf.fit(dirs, dirsOffset, weights, weightsOffset, count, dest)`, `SphericalGaussiansf.fitSharpness` |
 | Anisotropic SG | `SphericalGaussiansf.evaluateAnisotropic`, `SphericalGaussiansf.integralAnisotropic` |
 
 `SphericalGaussiansf.COSINE_LOBE_SHARPNESS` and `SphericalGaussiansf.COSINE_LOBE_AMPLITUDE` give the SG that
@@ -279,7 +284,7 @@ approximates a clamped cosine lobe.
   [−1, 1]², with the upper hemisphere in the inner diamond. Map to [0, 1]² with `uv * 0.5 + 0.5`. The input
   direction need not be unit length. For bit-packed normals use `gpu.OctaNormal` instead.
 - `DirectionMappingsf.hemiOctahedralEncode` / `DirectionMappingsf.hemiOctahedralDecode`: the upper hemisphere
-  (`z ≥ 0`) onto the whole square.
+  (`z ≥ 0`) onto the whole square. A direction with `z < 0` is folded: it encodes like its mirror image `(x, y, −z)`.
 - `DirectionMappingsf.cubeFace` returns the face (0 to 5 for +X, −X, +Y, −Y, +Z, −Z) and writes face coordinates
   in [0, 1]² to a `Vector2f`; `DirectionMappingsf.cubeDirection` is the inverse. The convention is the OpenGL /
   Vulkan one: `u` right and `v` down on each face.
@@ -332,7 +337,7 @@ the ray direction and the local zenith. A point at altitude `h` has `r = bottomR
 | Transmittance to the top of the atmosphere | `Atmosphere.transmittanceToTop` (0 if the ray hits the ground) |
 | Transmittance table | `Atmosphere.transmittanceLut(model, width, height, outRgb)` |
 | Table coordinates and their inverse | `Atmosphere.transmittanceLutUv`, `Atmosphere.transmittanceLutRMu` |
-| Multiple scattering | `Atmosphere.multipleScattering`, `Atmosphere.multipleScatteringLut(model, width, height, directions, steps, outRgb)` |
+| Multiple scattering | `Atmosphere.multipleScattering`, `Atmosphere.multipleScatteringLut(model, width, height, directions, steps, scratch, scratchOffset, outRgb)`, `Atmosphere.multipleScatteringLutScratchSize` |
 
 Both tables are `width × height` texels of interleaved RGB floats, texel `(x, y)` at `3 · (y · width + x)`,
 evaluated at texel centers. In the transmittance table, look up a texel with `Atmosphere.transmittanceLutUv`; it
@@ -453,9 +458,11 @@ The `renderingmath` package holds small kernels for lookup tables and visibility
 - **Allocation.** Per-pixel and per-probe functions allocate nothing: the BRDF and Fresnel terms, SH projection,
   evaluation, windowing, products and `ShL1`, the phase-function samplers, the direction mappings and the
   `ColorMathf`/`ColorSpacesf`/`ColorSpacesd` conversions. `ShRotation` allocates per-thread scratch on its first
-  call in each thread, and `ColorSpacesd.adaptationMatrix` (arbitrary white points) allocates small temporaries. The SH and LTC table functions take caller-owned scratch and output arrays. The table
-  builders (`DfgLutBuilder`, `SssLutBuilder`, `Atmosphere.transmittanceLut`, `Atmosphere.multipleScatteringLut`)
-  and the atmosphere integrators allocate small temporaries; run them at load time or offline.
+  call in each thread. The SH and LTC table functions take caller-owned scratch and output arrays. The table
+  builders `DfgLutBuilder`, `SssLutBuilder` and `Atmosphere.transmittanceLut` allocate small temporaries;
+  `Atmosphere.multipleScatteringLut` builds its internal sun-transmittance table in caller scratch
+  (`Atmosphere.multipleScatteringLutScratchSize` doubles), and the atmosphere integrators use per-thread scratch, so
+  they allocate nothing after the first call on a thread. Run the table builders at load time or offline.
   The Javadoc puts a 32 × 32 `Atmosphere.multipleScatteringLut` at about a second.
 - **Threading.** All functions are static and keep no shared mutable state (`ShRotation` and `ShProduct` use
   per-thread scratch), so they are safe from any number of threads. A `ShCoeffs9f` is a mutable object: do not

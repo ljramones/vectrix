@@ -215,7 +215,7 @@ angle (per unit area for the disk).
   `SphericalSamplingf.solidAngleRectangle` give that solid angle, whose reciprocal is the density.
 - `AliasTable` draws index `i` with probability `weights[i] / sum(weights)` in constant time, for example to pick
   environment-map pixels by luminance. Construct it with the number of outcomes, call `AliasTable.build` with the
-  weights (non-negative, finite, not all zero), then `AliasTable.sample` with one uniform number. `AliasTable.pdf`
+  weights (non-negative, finite, not all zero), then `AliasTable.sample` with one uniform number in [0, 1] (others throw). `AliasTable.pdf`
   gives the probability of an outcome. Building reuses the table's arrays; sampling does not allocate.
 
 ## Hashing and counter-based random numbers

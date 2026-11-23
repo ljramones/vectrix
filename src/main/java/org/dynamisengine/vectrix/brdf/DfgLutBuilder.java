@@ -71,7 +71,7 @@ public final class DfgLutBuilder {
         if (model == null) {
             throw new IllegalArgumentException("model");
         }
-        if (outAb == null || outAb.length < 2 * size * size) {
+        if (outAb == null || outAb.length < 2L * size * size) {
             throw new IllegalArgumentException("outAb must hold 2 * size * size floats");
         }
         double[] ab = new double[2];
@@ -88,16 +88,29 @@ public final class DfgLutBuilder {
 
     /**
      * Computes the DFG term for one {@code (nDotV, perceptualRoughness)}: writes {@code a} to {@code outAb[0]} and
-     * {@code b} to {@code outAb[1]}. Arguments are not validated: {@code sampleCount <= 0} gives NaN, a null
-     * {@code model} integrates {@link Model#SCHLICK_GGX_KARIS}, and with that model {@code nDotV = 0} gives NaN.
+     * {@code b} to {@code outAb[1]}. Roughness 0 is allowed: it gives the mirror limit
+     * {@code a = 1 - F_c(nDotV)}, {@code b = F_c(nDotV)} with {@code F_c = (1 - nDotV)⁵}.
      *
      * @param nDotV the cosine between the normal and the view direction, in (0, 1]
      * @param perceptualRoughness the perceptual roughness, in [0, 1]; {@code α = perceptualRoughness²}
      * @param sampleCount the number of Hammersley samples, positive
-     * @param model the masking-shadowing term to integrate with
+     * @param model the masking-shadowing term to integrate with, not {@code null}
      * @param outAb receives {@code a} at index 0 and {@code b} at index 1; length at least 2
+     * @throws IllegalArgumentException if {@code nDotV} is outside (0, 1], {@code perceptualRoughness} is outside
+     *         [0, 1], {@code sampleCount} is not positive, {@code model} is {@code null} or {@code outAb} is
+     *         shorter than 2 (NaN arguments included; checked before anything is written)
      */
     public static void integrate(double nDotV, double perceptualRoughness, int sampleCount, Model model, double[] outAb) {
+        checkCommon(nDotV, sampleCount);
+        if (!(perceptualRoughness >= 0.0 && perceptualRoughness <= 1.0)) {
+            throw new IllegalArgumentException("perceptualRoughness must be in [0, 1]: " + perceptualRoughness);
+        }
+        if (model == null) {
+            throw new IllegalArgumentException("model must not be null");
+        }
+        if (outAb.length < 2) {
+            throw new IllegalArgumentException("outAb must hold 2 doubles: " + outAb.length);
+        }
         double alpha = perceptualRoughness * perceptualRoughness;
         double a2 = alpha * alpha;
         double vx = java.lang.Math.sqrt(java.lang.Math.max(0.0, 1.0 - nDotV * nDotV));
@@ -143,16 +156,22 @@ public final class DfgLutBuilder {
      * The cloth (sheen) DFG term of Filament: {@code ∫ D_Charlie(α) V_Neubelt nDotL dl} over the hemisphere, the
      * directional albedo of the Charlie sheen lobe, for {@code α = perceptualRoughness²}. Integrated by stratified
      * uniform sampling of the half vector ({@code pdf_l = 1 / (2π · 4 vDotH)}). Store it as the third DFG channel
-     * and scale sheen energy with it, as Filament does. Arguments are not validated: {@code sampleCount <= 0} or
-     * {@code perceptualRoughness = 0} gives NaN.
+     * and scale sheen energy with it, as Filament does. Roughness 0 is rejected: the Charlie distribution has no
+     * finite limit there.
      *
      * @param nDotV the cosine between the normal and the view direction, in (0, 1]
      * @param perceptualRoughness the perceptual roughness, in (0, 1]
      * @param sampleCount the number of samples, positive
      * @return the directional albedo of the sheen lobe
+     * @throws IllegalArgumentException if {@code nDotV} or {@code perceptualRoughness} is outside (0, 1] or
+     *         {@code sampleCount} is not positive (NaN arguments included)
      * @since 2.3.0
      */
     public static double integrateCloth(double nDotV, double perceptualRoughness, int sampleCount) {
+        checkCommon(nDotV, sampleCount);
+        if (!(perceptualRoughness > 0.0 && perceptualRoughness <= 1.0)) {
+            throw new IllegalArgumentException("perceptualRoughness must be in (0, 1]: " + perceptualRoughness);
+        }
         double alpha = perceptualRoughness * perceptualRoughness;
         double vx = java.lang.Math.sqrt(java.lang.Math.max(0.0, 1.0 - nDotV * nDotV));
         double vz = nDotV;
@@ -181,20 +200,35 @@ public final class DfgLutBuilder {
     /**
      * Builds the cloth DFG channel ({@code size × size}, u = nDotV, v = perceptual roughness, texel centers, the same
      * layout as {@link #build} but one float per texel: texel {@code (x, y)} is at index {@code y size + x}).
-     * Arguments are not validated: {@code out} must hold at least {@code size * size} floats, otherwise an
-     * {@code ArrayIndexOutOfBoundsException} is thrown after part of it is written.
      *
-     * @param size the table width and height in texels
+     * @param size the table width and height in texels, positive
      * @param sampleCount samples per texel, positive
-     * @param out receives the table, starting at index 0
+     * @param out receives the table, starting at index 0; length at least {@code size * size}
+     * @throws IllegalArgumentException if {@code size} or {@code sampleCount} is not positive or {@code out} is too
+     *         small (checked before anything is written)
      * @since 2.3.0
      */
     public static void buildCloth(int size, int sampleCount, float[] out) {
+        if (size <= 0 || sampleCount <= 0) {
+            throw new IllegalArgumentException("size and sampleCount must be positive");
+        }
+        if (out.length < (long) size * size) {
+            throw new IllegalArgumentException("out must hold size * size floats");
+        }
         for (int y = 0; y < size; y++) {
             double roughness = (y + 0.5) / size;
             for (int x = 0; x < size; x++) {
                 out[y * size + x] = (float) integrateCloth((x + 0.5) / size, roughness, sampleCount);
             }
+        }
+    }
+
+    private static void checkCommon(double nDotV, int sampleCount) {
+        if (!(nDotV > 0.0 && nDotV <= 1.0)) {
+            throw new IllegalArgumentException("nDotV must be in (0, 1]: " + nDotV);
+        }
+        if (sampleCount <= 0) {
+            throw new IllegalArgumentException("sampleCount must be positive: " + sampleCount);
         }
     }
 

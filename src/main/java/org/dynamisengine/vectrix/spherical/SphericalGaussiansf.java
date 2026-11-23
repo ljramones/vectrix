@@ -130,16 +130,22 @@ public final class SphericalGaussiansf {
 
     /**
      * Irradiance at unit normal {@code n} from SG radiance, {@code ∫ G(v) max(n · v, 0) dv}, by Hill's fitted
-     * approximation (Neubelt and Pettineo): within 2 % of the lobe's integral for {@code λ ≥ 1}.
+     * approximation (Neubelt and Pettineo): within 2 % of the lobe's integral for {@code λ ≥ 1}. The fit diverges
+     * for wide lobes (it tends to −∞ as {@code λ → 0}), so for {@code λ < 1} the exact irradiance is computed
+     * instead, from the Legendre series of the lobe against the clamped cosine (Funk-Hecke); {@code λ = 0} gives
+     * {@code π a}, the irradiance of a constant environment.
      *
      * @param axis the unit lobe axis
-     * @param sharpness the sharpness {@code λ}, greater than 0 (0 gives NaN)
+     * @param sharpness the sharpness {@code λ}, at least 0
      * @param amplitude the amplitude {@code a}
      * @param n the unit surface normal
      * @return the irradiance
      */
     public static float irradianceFitted(Vector3fc axis, float sharpness, float amplitude, Vector3fc n) {
         float muDotN = axis.dot(n);
+        if (sharpness < 1.0f) {
+            return (float) exactIrradiance(sharpness, muDotN) * amplitude;
+        }
         float c0 = 0.36f;
         float c1 = 1.0f / (4.0f * c0);
         float eml = (float) AccurateMath.exp(-sharpness);
@@ -157,6 +163,40 @@ public final class SphericalGaussiansf {
         }
         float result = scale * y + bias;
         return result * amplitude * (float) (2.0 * java.lang.Math.PI) / sharpness;
+    }
+
+    /** {@code Â_l / π} of the clamped cosine, {@code 2 ∫₀¹ P_l(t) t dt}, for l = 0..14. */
+    private static final double[] CLAMPED_COSINE = {1.0, 2.0 / 3.0, 1.0 / 4.0, 0.0, -1.0 / 24.0, 0.0, 1.0 / 64.0,
+        0.0, -1.0 / 128.0, 0.0, 7.0 / 1536.0, 0.0, -3.0 / 1024.0, 0.0, 33.0 / 16384.0};
+
+    /**
+     * Exact {@code ∫ exp(λ (μ · v − 1)) max(n · v, 0) dv} for {@code 0 <= λ < 1}, {@code c = μ · n}: the lobe's Legendre
+     * coefficients {@code (2l + 1) e^(−λ) i_l(λ)} (modified spherical Bessel functions, by their power series) times
+     * the clamped cosine's {@code Â_l P_l(c)}. Terms beyond l = 14 are below double rounding for {@code λ < 1}.
+     */
+    private static double exactIrradiance(double lambda, double c) {
+        double x = 0.5 * lambda * lambda;
+        double e = 0.0;
+        double pPrev = 0.0, pl = 1.0; // P_(l-1)(c), P_l(c)
+        double lambdaPow = 1.0, doubleFactorial = 1.0; // λ^l, (2l + 1)!!
+        for (int l = 0; l < CLAMPED_COSINE.length; l++) {
+            if (l > 0) {
+                double next = ((2 * l - 1) * c * pl - (l - 1) * pPrev) / l;
+                pPrev = pl;
+                pl = next;
+                lambdaPow *= lambda;
+                doubleFactorial *= 2 * l + 1;
+            }
+            if (CLAMPED_COSINE[l] != 0.0) {
+                double term = 1.0, series = 1.0;
+                for (int k = 1; k <= 8; k++) {
+                    term *= x / (k * (2.0 * l + 2.0 * k + 1.0));
+                    series += term;
+                }
+                e += (2 * l + 1) * lambdaPow / doubleFactorial * series * CLAMPED_COSINE[l] * pl;
+            }
+        }
+        return e * java.lang.Math.PI * AccurateMath.exp(-lambda);
     }
 
     /**
@@ -193,21 +233,36 @@ public final class SphericalGaussiansf {
      * comes from its length ({@link #fitSharpness}), and the amplitude makes the SG's integral equal the total
      * weight. Writes {@code (axis, sharpness)} to {@code dest} and returns the amplitude. If the total weight is
      * not positive (or NaN), {@code dest} is set to {@code (0, 0, 1, 0)} and 0 is returned; if the weighted mean
-     * direction is zero, the axis is {@code (0, 0, 1)}. The arrays are read from index 0 without offsets.
+     * direction is zero, the axis is {@code (0, 0, 1)}. Sums are accumulated in double. Does not allocate.
      *
-     * @param dirs the unit directions, packed xyz, at least {@code 3 * count} elements
-     * @param weights the weights, at least {@code count} elements
+     * @param dirs the unit directions, packed xyz: direction {@code i} at {@code dirs[dirsOffset + 3 i ..]}
+     * @param dirsOffset the index of the first direction's x
+     * @param weights the weights: weight {@code i} at {@code weights[weightsOffset + i]}
+     * @param weightsOffset the index of the first weight
      * @param count the number of directions, at least 0
      * @param dest receives the unit axis in xyz and the sharpness in w
      * @return the amplitude
+     * @throws IllegalArgumentException if {@code count} or an offset is negative, or an array is too small for
+     *         {@code count} entries from its offset (checked before anything is written)
+     * @since 3.0.0
      */
-    public static float fit(float[] dirs, float[] weights, int count, Vector4f dest) {
+    public static float fit(float[] dirs, int dirsOffset, float[] weights, int weightsOffset, int count, Vector4f dest) {
+        if (count < 0 || dirsOffset < 0 || weightsOffset < 0) {
+            throw new IllegalArgumentException("count and offsets must be at least 0");
+        }
+        if (dirsOffset + 3L * count > dirs.length) {
+            throw new IllegalArgumentException("dirs too small for " + count + " directions from " + dirsOffset);
+        }
+        if ((long) weightsOffset + count > weights.length) {
+            throw new IllegalArgumentException("weights too small for " + count + " weights from " + weightsOffset);
+        }
         double sx = 0.0, sy = 0.0, sz = 0.0, sw = 0.0; // double sums: count may be large
         for (int i = 0; i < count; i++) {
-            double w = weights[i];
-            sx += w * dirs[3 * i];
-            sy += w * dirs[3 * i + 1];
-            sz += w * dirs[3 * i + 2];
+            double w = weights[weightsOffset + i];
+            int o = dirsOffset + 3 * i;
+            sx += w * dirs[o];
+            sy += w * dirs[o + 1];
+            sz += w * dirs[o + 2];
             sw += w;
         }
         if (!(sw > 0.0f)) {

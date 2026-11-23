@@ -140,10 +140,25 @@ public final class ShProduct {
      * @param j the second basis index, 0..15
      * @param k the third basis index, 0..15
      * @return the integral over the unit sphere
-     * @throws ArrayIndexOutOfBoundsException if an index is outside 0..15
+     * @throws IllegalArgumentException if an index is outside 0..15
      */
     public static double gaunt(int i, int j, int k) {
+        checkIndex(i, "i");
+        checkIndex(j, "j");
+        checkIndex(k, "k");
         return triple(POLY[i], POLY[j], POLY[k]);
+    }
+
+    private static void checkIndex(int index, String name) {
+        if (index < 0 || index >= 16) {
+            throw new IllegalArgumentException(name + " must be in 0..15: " + index);
+        }
+    }
+
+    private static void checkScalar(int length, int needed, String name) {
+        if (length < needed) {
+            throw new IllegalArgumentException(name + " needs at least " + needed + " elements: " + length);
+        }
     }
 
     private static final ThreadLocal<float[]> SCRATCH_F = ThreadLocal.withInitial(() -> new float[48]);
@@ -274,8 +289,11 @@ public final class ShProduct {
      * @param s9 the scalar function's 9 coefficients in {@link ShBasis} order, in elements 0..8
      * @param dest receives the projected product; may be {@code a}
      * @return {@code dest}
+     * @throws IllegalArgumentException if {@code s9} has fewer than 9 elements (checked before anything is
+     *         written)
      */
     public static ShCoeffs9f multiplyScalarL2(ShCoeffs9f a, float[] s9, ShCoeffs9f dest) {
+        checkScalar(s9.length, 9, "s9");
         scalar(a.c, s9, dest.c, COUNT_L2, 9);
         return dest;
     }
@@ -289,8 +307,11 @@ public final class ShProduct {
      * @param s16 the scalar function's 16 coefficients in {@link ShBasis} order, in elements 0..15
      * @param dest receives the projected product; may be {@code a}
      * @return {@code dest}
+     * @throws IllegalArgumentException if {@code s16} has fewer than 16 elements (checked before anything is
+     *         written)
      */
     public static ShCoeffs16f multiplyScalarL3(ShCoeffs16f a, float[] s16, ShCoeffs16f dest) {
+        checkScalar(s16.length, 16, "s16");
         scalar(a.c, s16, dest.c, IDX.length, 16);
         return dest;
     }
@@ -304,8 +325,11 @@ public final class ShProduct {
      * @param s9 the scalar function's 9 coefficients in {@link ShBasis} order, in elements 0..8
      * @param dest receives the projected product; may be {@code a}
      * @return {@code dest}
+     * @throws IllegalArgumentException if {@code s9} has fewer than 9 elements (checked before anything is
+     *         written)
      */
     public static ShCoeffs9d multiplyScalarL2(ShCoeffs9d a, double[] s9, ShCoeffs9d dest) {
+        checkScalar(s9.length, 9, "s9");
         scalar(a.c, s9, dest.c, COUNT_L2, 9);
         return dest;
     }
@@ -319,8 +343,11 @@ public final class ShProduct {
      * @param s16 the scalar function's 16 coefficients in {@link ShBasis} order, in elements 0..15
      * @param dest receives the projected product; may be {@code a}
      * @return {@code dest}
+     * @throws IllegalArgumentException if {@code s16} has fewer than 16 elements (checked before anything is
+     *         written)
      */
     public static ShCoeffs16d multiplyScalarL3(ShCoeffs16d a, double[] s16, ShCoeffs16d dest) {
+        checkScalar(s16.length, 16, "s16");
         scalar(a.c, s16, dest.c, IDX.length, 16);
         return dest;
     }

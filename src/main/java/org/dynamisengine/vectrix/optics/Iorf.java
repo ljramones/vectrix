@@ -37,10 +37,10 @@ public final class Iorf {
      * @param etaI the refractive index of the incident medium, greater than 0
      * @param etaT the refractive index of the transmitting medium, greater than 0
      * @return {@code etaI / etaT}
-     * @throws IllegalArgumentException if {@code etaI} or {@code etaT} is not greater than 0
+     * @throws IllegalArgumentException if {@code etaI} or {@code etaT} is not greater than 0 (NaN included)
      */
     public static float etaRatio(float etaI, float etaT) {
-        if (etaI <= 0.0f || etaT <= 0.0f) {
+        if (!(etaI > 0.0f) || !(etaT > 0.0f)) {
             throw new IllegalArgumentException("eta");
         }
         return etaI / etaT;
@@ -53,10 +53,10 @@ public final class Iorf {
      * @param etaI the refractive index of the incident medium, greater than 0
      * @param etaT the refractive index of the transmitting medium, greater than 0
      * @return {@code F0}, in {@code [0, 1)}
-     * @throws IllegalArgumentException if {@code etaI} or {@code etaT} is not greater than 0
+     * @throws IllegalArgumentException if {@code etaI} or {@code etaT} is not greater than 0 (NaN included)
      */
     public static float schlickF0(float etaI, float etaT) {
-        if (etaI <= 0.0f || etaT <= 0.0f) {
+        if (!(etaI > 0.0f) || !(etaT > 0.0f)) {
             throw new IllegalArgumentException("eta");
         }
         float r = (etaI - etaT) / (etaI + etaT);
@@ -69,10 +69,10 @@ public final class Iorf {
      *
      * @param etaRatio the relative refractive index, greater than 0
      * @return {@code F0}, in {@code [0, 1)}
-     * @throws IllegalArgumentException if {@code etaRatio} is not greater than 0
+     * @throws IllegalArgumentException if {@code etaRatio} is not greater than 0 (NaN included)
      */
     public static float schlickF0FromEtaRatio(float etaRatio) {
-        if (etaRatio <= 0.0f) {
+        if (!(etaRatio > 0.0f)) {
             throw new IllegalArgumentException("etaRatio");
         }
         float r = (etaRatio - 1.0f) / (etaRatio + 1.0f);

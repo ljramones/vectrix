@@ -36,10 +36,10 @@ import org.dynamisengine.vectrix.core.Vector3dc;
  * stays white in every D65 gamut and sRGB conversions match the rest of the library exactly. The ACES white point is
  * x 0.32168, y 0.33767. All matrices are 3×3 row-major: {@code out[i] = m[3i] r + m[3i+1] g + m[3i+2] b}.
  * <p>
- * The methods are safe to call from any thread. Every gamut-to-gamut matrix is computed once, on first use, so
- * {@link #convert(Vector3dc, ColorGamut, ColorGamut, Vector3d)} and {@link #conversionMatrix} do not allocate.
- * {@link #adaptationMatrix}, for arbitrary white points, computes its matrix on each call and allocates small
- * temporary arrays.
+ * The methods are safe to call from any thread. Every gamut matrix is computed once, when the class loads, so
+ * {@link #convert(Vector3dc, ColorGamut, ColorGamut, Vector3d)} and {@link #conversionMatrix} are table lookups.
+ * {@link #adaptationMatrix}, for arbitrary white points, computes its matrix on each call. No method allocates.
+ * {@link ColorSpacesf} has the same methods in single precision.
  *
  * @since 2.1.0
  */
@@ -61,6 +61,8 @@ public final class ColorSpacesd {
         1.0296};
     private static final double[] CAT16_M = {0.401288, 0.650173, -0.051461, -0.250268, 1.204414, 0.045854,
         -0.002079, 0.048952, 0.953127};
+    private static final double[] BRADFORD_INV = invert(BRADFORD_M);
+    private static final double[] CAT16_INV = invert(CAT16_M);
 
     private static final double[][] TO_XYZ = new double[ColorGamut.values().length][];
     private static final double[][] FROM_XYZ = new double[ColorGamut.values().length][];
@@ -115,29 +117,27 @@ public final class ColorSpacesd {
      * @return {@code out9}
      */
     public static double[] conversionMatrix(ColorGamut from, ColorGamut to, Adaptation adaptation, double[] out9) {
-        System.arraycopy(Table.CONVERT[Table.index(from, to, adaptation)], 0, out9, 0, 9);
+        System.arraycopy(CONVERT[index(from, to, adaptation)], 0, out9, 0, 9);
         return out9;
     }
 
-    /** Every conversion matrix, computed once (the computation allocates); read by {@link #convert}. */
-    private static final class Table {
-        static final int GAMUTS = ColorGamut.values().length;
-        static final int ADAPTATIONS = Adaptation.values().length;
-        static final double[][] CONVERT = new double[GAMUTS * GAMUTS * ADAPTATIONS][];
+    private static final int GAMUTS = ColorGamut.values().length;
+    private static final int ADAPTATIONS = Adaptation.values().length;
+    /** Every conversion matrix, computed when the class loads (the computation allocates); read by {@link #convert}. */
+    private static final double[][] CONVERT = new double[GAMUTS * GAMUTS * ADAPTATIONS][];
 
-        static {
-            for (ColorGamut from : ColorGamut.values()) {
-                for (ColorGamut to : ColorGamut.values()) {
-                    for (Adaptation a : Adaptation.values()) {
-                        CONVERT[index(from, to, a)] = compute(from, to, a, new double[9]);
-                    }
+    static {
+        for (ColorGamut from : ColorGamut.values()) {
+            for (ColorGamut to : ColorGamut.values()) {
+                for (Adaptation a : Adaptation.values()) {
+                    CONVERT[index(from, to, a)] = compute(from, to, a, new double[9]);
                 }
             }
         }
+    }
 
-        static int index(ColorGamut from, ColorGamut to, Adaptation a) {
-            return (from.ordinal() * GAMUTS + to.ordinal()) * ADAPTATIONS + a.ordinal();
-        }
+    private static int index(ColorGamut from, ColorGamut to, Adaptation a) {
+        return (from.ordinal() * GAMUTS + to.ordinal()) * ADAPTATIONS + a.ordinal();
     }
 
     private static double[] compute(ColorGamut from, ColorGamut to, Adaptation adaptation, double[] out9) {
@@ -150,7 +150,9 @@ public final class ColorSpacesd {
         double[] w0 = white(from);
         double[] w1 = white(to);
         if (adaptation != Adaptation.NONE && w0 != w1) {
-            m = mul3(adaptationMatrix(w0, w1, adaptation == Adaptation.CAT16 ? CAT16_M : BRADFORD_M), m);
+            double[] a = new double[9];
+            adaptation(w0[0], w0[1], w0[2], w1[0], w1[1], w1[2], adaptation, a, null);
+            m = mul3(a, m);
         }
         m = mul3(FROM_XYZ[to.ordinal()], m);
         System.arraycopy(m, 0, out9, 0, 9);
@@ -182,7 +184,7 @@ public final class ColorSpacesd {
      * @return {@code dest}
      */
     public static Vector3d convert(Vector3dc rgb, ColorGamut from, ColorGamut to, Adaptation adaptation, Vector3d dest) {
-        double[] m = Table.CONVERT[Table.index(from, to, adaptation)];
+        double[] m = CONVERT[index(from, to, adaptation)];
         double r = rgb.x(), g = rgb.y(), b = rgb.z();
         return dest.set(m[0] * r + m[1] * g + m[2] * b, m[3] * r + m[4] * g + m[5] * b, m[6] * r + m[7] * g + m[8] * b);
     }
@@ -230,8 +232,23 @@ public final class ColorSpacesd {
     }
 
     /**
+     * Writes the row-major XYZ to RGB matrix of {@code gamut} (the matrix {@link #fromXyz} uses), the inverse of
+     * {@link #toXyzMatrix}.
+     *
+     * @param gamut the gamut
+     * @param out9 receives the nine matrix elements at indices 0 to 8
+     * @return {@code out9}
+     * @since 3.0.0
+     */
+    public static double[] fromXyzMatrix(ColorGamut gamut, double[] out9) {
+        System.arraycopy(FROM_XYZ[gamut.ordinal()], 0, out9, 0, 9);
+        return out9;
+    }
+
+    /**
      * Writes the chromatic adaptation matrix (row-major) from white {@code srcWhite} to {@code dstWhite}, with the
      * given transform: {@code M⁻¹ diag(M dst / M src) M}, where {@code M} is the transform's cone-response matrix.
+     * Does not allocate.
      *
      * @param srcWhite the source white point in XYZ
      * @param dstWhite the target white point in XYZ
@@ -241,19 +258,47 @@ public final class ColorSpacesd {
      */
     public static double[] adaptationMatrix(Vector3dc srcWhite, Vector3dc dstWhite, Adaptation adaptation,
             double[] out9) {
-        double[] m = adaptation == Adaptation.NONE ? new double[] {1, 0, 0, 0, 1, 0, 0, 0, 1}
-                : adaptationMatrix(new double[] {srcWhite.x(), srcWhite.y(), srcWhite.z()},
-                        new double[] {dstWhite.x(), dstWhite.y(), dstWhite.z()},
-                        adaptation == Adaptation.CAT16 ? CAT16_M : BRADFORD_M);
-        System.arraycopy(m, 0, out9, 0, 9);
+        adaptation(srcWhite.x(), srcWhite.y(), srcWhite.z(), dstWhite.x(), dstWhite.y(), dstWhite.z(), adaptation,
+                out9, null);
         return out9;
     }
 
-    private static double[] adaptationMatrix(double[] src, double[] dst, double[] cone) {
-        double[] s = mul(cone, src);
-        double[] d = mul(cone, dst);
-        double[] scale = {d[0] / s[0], 0, 0, 0, d[1] / s[1], 0, 0, 0, d[2] / s[2]};
-        return mul3(invert(cone), mul3(scale, cone));
+    /**
+     * {@code M⁻¹ diag(M dst / M src) M} into {@code outD} or, rounded, {@code outF} (whichever is not null); the
+     * identity for {@link Adaptation#NONE}. Shared with {@link ColorSpacesf#adaptationMatrix}.
+     */
+    static void adaptation(double sx, double sy, double sz, double dx, double dy, double dz, Adaptation adaptation,
+            double[] outD, float[] outF) {
+        if (outD != null && outD.length < 9 || outF != null && outF.length < 9) {
+            throw new IllegalArgumentException("out9 must hold 9 elements");
+        }
+        if (adaptation == Adaptation.NONE) {
+            for (int i = 0; i < 9; i++) {
+                double v = i % 4 == 0 ? 1.0 : 0.0;
+                if (outD != null) {
+                    outD[i] = v;
+                } else {
+                    outF[i] = (float) v;
+                }
+            }
+            return;
+        }
+        double[] cone = adaptation == Adaptation.CAT16 ? CAT16_M : BRADFORD_M;
+        double[] inv = adaptation == Adaptation.CAT16 ? CAT16_INV : BRADFORD_INV;
+        double k0 = (cone[0] * dx + cone[1] * dy + cone[2] * dz) / (cone[0] * sx + cone[1] * sy + cone[2] * sz);
+        double k1 = (cone[3] * dx + cone[4] * dy + cone[5] * dz) / (cone[3] * sx + cone[4] * sy + cone[5] * sz);
+        double k2 = (cone[6] * dx + cone[7] * dy + cone[8] * dz) / (cone[6] * sx + cone[7] * sy + cone[8] * sz);
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                double v = inv[3 * i] * (k0 * cone[j]) + inv[3 * i + 1] * (k1 * cone[3 + j])
+                        + inv[3 * i + 2] * (k2 * cone[6 + j]);
+                if (outD != null) {
+                    outD[3 * i + j] = v;
+                } else {
+                    outF[3 * i + j] = (float) v;
+                }
+            }
+        }
     }
 
     private static double[] mul(double[] m, double[] v) {
