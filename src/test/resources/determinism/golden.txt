@@ -8825,6 +8825,11 @@ nn.Activations.softplus(float[],int,float[],int,int) d7870dede90ed61e
 nn.Activations.softplusBackward(float[],int,float[],int,float[],int,int) 97e317c85cf7c523
 nn.Activations.tanh(float[],int,float[],int,int) 03c26baa6fa1a93e
 nn.Activations.tanhBackward(float[],int,float[],int,float[],int,int) 22a72037beec5f21
+nn.Attention.backward(float[],int,int,float[],int,int,float[],int,int,int,int,float,float[],int,float[],int,float[],int,float[],int,float[],int,float[],int) 3f971e328f8ebf27
+nn.Attention.forward(float[],int,int,float[],int,int,float[],int,int,int,int,float,float[],int,float[],int,float[],int,float[],int) cfb5b3f8f80c9bb9
+nn.Formats.toE4M3(float,boolean) 5419d77a1d1f23ba
+nn.Formats.toE5M2(float,boolean) 0cbb5aa493284e04
+nn.Formats.toBf16(float) 82c1c6fce97a54b7
 nn.Loss.crossEntropy(float[],int,int,int,float[],int) f6cdf3c15d9c7c63
 nn.Loss.crossEntropyBackward(float[],int,int,int,float,float[],int) 5abb99fa93488abb
 nn.NnMath.cosD(double) 6bb30dcac6283c88
@@ -8846,6 +8851,9 @@ nn.Norms.layerNorm(float[],int,float[],int,float[],int,float,float[],int,int,flo
 nn.Norms.layerNormBackward(float[],int,float[],int,float[],int,float[],int,float[],int,float[],int,float[],int,int,float[],int) 18e7d38f609a1cac
 nn.Norms.rmsNorm(float[],int,float[],int,float,float[],int,int,float[],int) d41a142f9e8329e6
 nn.Norms.rmsNormBackward(float[],int,float[],int,float[],int,float[],int,float[],int,float[],int,int,float[],int) 749b57f8b221e6db
+nn.Optim.clipFactor(double,double) 53434eb0746ad9b4
+nn.Optim.adamW(float[],int,float[],int,float[],int,float[],int,int,float,float,float,float,float,long) 5dc6b79c2d4a1387
+nn.Optim.sgd(float[],int,float[],int,float[],int,int,float,float,float,boolean) a77a3f4deead471a
 nn.Philox.uniform(long,long) 82188eec51a13fab
 nn.Philox.word(long,long) 3c147af1f792368c
 nn.Philox.block(int,int,int,int,int,int,int[],int) 1ea4082fd543c9a3

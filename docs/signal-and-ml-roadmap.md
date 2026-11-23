@@ -76,6 +76,9 @@ The first consumer is DynamisAudio.
 
 ## Neural-network / LLM kernels
 
+Done in 2.5.0 (packages `blas` and `nn`), every kernel reproducible bit for bit across platforms, jars and batch
+sizes. Convolution and pooling layers (item 4) remain.
+
 1. **Core:**
    - GEMM/GEMV (blocked and vectorized);
    - BLAS-1 operations;

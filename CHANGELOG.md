@@ -103,6 +103,16 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     - Top-k uses heap selection, and nothing allocates.
   - `NnMath`: the reproducible double functions `expD`, `logD`, `powD`, `sinD` and `cosD` are public.
   - Backward passes for sigmoid, tanh, the tanh-form GELU and softplus.
+- **Neural-network kernels, batch 4b** (`nn`), completing phase 3:
+  - `Formats`:
+    - bfloat16, and both OCP FP8 formats (E4M3 finite-only and E5M2), round to nearest even, with or without
+      saturation. The FP8 encoders search the exact value set, and are checked against brute force.
+    - int8 block quantization with a scale per 32 values (the largest element maps to ±127 exactly).
+    - A quantized dot product and GEMV with a defined accumulation order.
+  - `Attention`: scaled dot-product attention of one query over a key/value cache, with an optional additive mask
+    and a backward pass. It is built from the deterministic dot, softmax and transposed GEMV, so results are
+    batch-invariant.
+  - `Optim`: AdamW (decoupled weight decay), SGD with momentum and Nesterov, and the global-norm clip factor.
 - `AccurateMath.cosTurns/sinTurns(e, d)`: cos and sin of `2π·e/d`, with the angle reduced exactly in integers. The
   symmetries are exact (odd multiples of π/4 give the correctly rounded √½ for both). The FFT twiddles now use
   them.

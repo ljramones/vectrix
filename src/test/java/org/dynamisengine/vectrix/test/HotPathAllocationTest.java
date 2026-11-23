@@ -398,6 +398,20 @@ class HotPathAllocationTest {
             0.9f, 0.5f, ny, 0, sorder, 0));
         assertNoAllocation("Loss.crossEntropy", () -> org.dynamisengine.vectrix.nn.Loss.crossEntropy(nx, 0, 1024, 3,
             nscratch, 0));
+        float[] ak = new float[64 * 32];
+        float[] ap = new float[64];
+        float[] aout = new float[32];
+        float[] ascr = new float[128];
+        assertNoAllocation("Attention.forward", () -> org.dynamisengine.vectrix.nn.Attention.forward(nx, 0, 32, ak, 0,
+            32, ak, 0, 32, 32, 64, 0.17f, null, 0, ap, 0, aout, 0, ascr, 0));
+        byte[] q8 = new byte[8 * 256];
+        float[] q8s = new float[8 * 256 / 32];
+        assertNoAllocation("Formats.gemvInt8", () -> org.dynamisengine.vectrix.nn.Formats.gemvInt8(8, 256, q8, 0, q8s, 0,
+            nx, 0, ny, 0));
+        float[] om = new float[1024];
+        float[] ov = new float[1024];
+        assertNoAllocation("Optim.adamW", () -> org.dynamisengine.vectrix.nn.Optim.adamW(ny, 0, nx, 0, om, 0, ov, 0,
+            1024, 1e-3f, 0.9f, 0.999f, 1e-8f, 0.01f, 5));
         double[] legacy = new double[2 * 4096];
         org.dynamisengine.vectrix.fft.FFT1d.forward(legacy); // builds the shared table once
         assertNoAllocation("FFT1d.forward", () -> org.dynamisengine.vectrix.fft.FFT1d.forward(legacy));
