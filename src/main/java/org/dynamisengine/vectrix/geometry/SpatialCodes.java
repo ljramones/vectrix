@@ -29,8 +29,7 @@ package org.dynamisengine.vectrix.geometry;
  * non-negative integer grid coordinates; quantise floats first (for example {@code (int) ((x - min) / extent * 1024)}).
  * <p>
  * Morton encoders keep only the low bits of each coordinate that fit the code (16, 32, 10 or 21); higher bits are
- * ignored. The class is stateless and safe to call from any thread. The Morton and 2D Hilbert methods do not
- * allocate; the 3D Hilbert methods allocate a three-element {@code int} array per call.
+ * ignored. The class is stateless and safe to call from any thread. No method allocates.
  *
  * @since 2.2.0
  */
@@ -83,7 +82,8 @@ public final class SpatialCodes {
     /**
      * 2D Morton code of {@code x, y} in {@code [0, 65535]}: bit {@code i} of x goes to bit {@code 2i}, of y to
      * {@code 2i + 1}. All 32 bits are used, so the code is negative when bit 15 of {@code y} is set; compare codes
-     * as unsigned ints, and widen with {@link Integer#toUnsignedLong} before decoding.
+     * as unsigned ints ({@link Integer#compareUnsigned}). Decode with {@link #morton2dX(int)} and
+     * {@link #morton2dY(int)}, which read the code as unsigned.
      *
      * @param x the x cell coordinate; only the low 16 bits are used
      * @param y the y cell coordinate; only the low 16 bits are used
@@ -106,22 +106,48 @@ public final class SpatialCodes {
     }
 
     /**
-     * Decodes x from a 2D Morton code (32- or 64-bit). Pass a 32-bit code from {@link #morton2d} zero-extended
-     * ({@code Integer.toUnsignedLong(code)}): a negative int widened with sign extension decodes to a wrong value.
+     * Decodes x from a 32-bit 2D Morton code made by {@link #morton2d}. The code is read as an unsigned int, so codes
+     * with the top bit set (negative ints) decode correctly.
      *
-     * @param code the Morton code
-     * @return the x cell coordinate (an unsigned int for 64-bit codes)
+     * @param code the 32-bit Morton code, read as an unsigned int
+     * @return the x cell coordinate, in {@code [0, 65535]}
+     * @since 3.0.0
+     */
+    public static int morton2dX(int code) {
+        return (int) compact2(code & 0xFFFFFFFFL);
+    }
+
+    /**
+     * Decodes y from a 32-bit 2D Morton code made by {@link #morton2d}. The code is read as an unsigned int, so codes
+     * with the top bit set (negative ints) decode correctly.
+     *
+     * @param code the 32-bit Morton code, read as an unsigned int
+     * @return the y cell coordinate, in {@code [0, 65535]}
+     * @since 3.0.0
+     */
+    public static int morton2dY(int code) {
+        return (int) compact2((code & 0xFFFFFFFFL) >>> 1);
+    }
+
+    /**
+     * Decodes x from a 64-bit 2D Morton code made by {@link #morton2d64}. A 32-bit code passed as an {@code int}
+     * goes to {@link #morton2dX(int)} instead, which reads it as unsigned; a 32-bit code stored in a {@code long}
+     * must be zero-extended ({@link Integer#toUnsignedLong}).
+     *
+     * @param code the 64-bit Morton code, read as an unsigned long
+     * @return the x cell coordinate, as an unsigned int
      */
     public static int morton2dX(long code) {
         return (int) compact2(code);
     }
 
     /**
-     * Decodes y from a 2D Morton code (32- or 64-bit). Pass a 32-bit code from {@link #morton2d} zero-extended
-     * ({@code Integer.toUnsignedLong(code)}): a negative int widened with sign extension decodes to a wrong value.
+     * Decodes y from a 64-bit 2D Morton code made by {@link #morton2d64}. A 32-bit code passed as an {@code int}
+     * goes to {@link #morton2dY(int)} instead, which reads it as unsigned; a 32-bit code stored in a {@code long}
+     * must be zero-extended ({@link Integer#toUnsignedLong}).
      *
-     * @param code the Morton code
-     * @return the y cell coordinate (an unsigned int for 64-bit codes)
+     * @param code the 64-bit Morton code, read as an unsigned long
+     * @return the y cell coordinate, as an unsigned int
      */
     public static int morton2dY(long code) {
         return (int) compact2(code >>> 1);
@@ -246,8 +272,7 @@ public final class SpatialCodes {
 
     /**
      * Index along the 3D Hilbert curve of order {@code bits} ({@code bits <= 21}) of cell {@code (x, y, z)}, by
-     * Skilling's transpose algorithm (2004). Consecutive indices are face-adjacent cells. Allocates a three-element
-     * {@code int} array per call.
+     * Skilling's transpose algorithm (2004). Consecutive indices are face-adjacent cells. Does not allocate.
      *
      * @param x the x cell coordinate, in {@code [0, 2^bits)}
      * @param y the y cell coordinate, in {@code [0, 2^bits)}
@@ -256,81 +281,95 @@ public final class SpatialCodes {
      * @return the Hilbert index, in {@code [0, 8^bits)}
      */
     public static long hilbert3d(int x, int y, int z, int bits) {
-        int[] c = {x, y, z};
+        // the transposed coordinates in locals, not an int[3] (allocated per call before 3.0)
+        int c0 = x, c1 = y, c2 = z;
         int m = 1 << (bits - 1);
-        // inverse undo
+        // inverse undo; for i = 0 the else branch is a no-op
         for (int q = m; q > 1; q >>>= 1) {
             int p = q - 1;
-            for (int i = 0; i < 3; i++) {
-                if ((c[i] & q) != 0) {
-                    c[0] ^= p;
-                } else {
-                    int t = (c[0] ^ c[i]) & p;
-                    c[0] ^= t;
-                    c[i] ^= t;
-                }
+            if ((c0 & q) != 0) {
+                c0 ^= p;
+            }
+            if ((c1 & q) != 0) {
+                c0 ^= p;
+            } else {
+                int t = (c0 ^ c1) & p;
+                c0 ^= t;
+                c1 ^= t;
+            }
+            if ((c2 & q) != 0) {
+                c0 ^= p;
+            } else {
+                int t = (c0 ^ c2) & p;
+                c0 ^= t;
+                c2 ^= t;
             }
         }
         // Gray encode
-        for (int i = 1; i < 3; i++) {
-            c[i] ^= c[i - 1];
-        }
+        c1 ^= c0;
+        c2 ^= c1;
         int t = 0;
         for (int q = m; q > 1; q >>>= 1) {
-            if ((c[2] & q) != 0) {
+            if ((c2 & q) != 0) {
                 t ^= q - 1;
             }
         }
-        for (int i = 0; i < 3; i++) {
-            c[i] ^= t;
-        }
-        // interleave the transposed form, most significant bit first: bit b of c[0], c[1], c[2]
+        c0 ^= t;
+        c1 ^= t;
+        c2 ^= t;
+        // interleave the transposed form, most significant bit first: bit b of c0, c1, c2
         long d = 0;
         for (int b = bits - 1; b >= 0; b--) {
-            for (int i = 0; i < 3; i++) {
-                d = (d << 1) | ((c[i] >>> b) & 1);
-            }
+            d = (d << 1) | ((c0 >>> b) & 1);
+            d = (d << 1) | ((c1 >>> b) & 1);
+            d = (d << 1) | ((c2 >>> b) & 1);
         }
         return d;
     }
 
     /**
-     * Inverse of {@link #hilbert3d}: writes {@code x, y, z} to {@code out[0..2]}. Allocates a three-element
-     * {@code int} array per call.
+     * Inverse of {@link #hilbert3d}: writes {@code x, y, z} to {@code out[0..2]}. Does not allocate.
      *
      * @param d the Hilbert index, in {@code [0, 8^bits)}
      * @param bits the curve order, in {@code [1, 21]}
      * @param out receives the cell coordinates; at least 3 elements
      */
     public static void hilbert3dToXyz(long d, int bits, int[] out) {
-        int[] c = new int[3];
-        for (int b = bits - 1, k = 3 * bits - 1; b >= 0; b--) {
-            for (int i = 0; i < 3; i++, k--) {
-                c[i] |= (int) ((d >>> k) & 1) << b;
-            }
+        int c0 = 0, c1 = 0, c2 = 0;
+        for (int b = bits - 1, k = 3 * bits - 1; b >= 0; b--, k -= 3) {
+            c0 |= (int) ((d >>> k) & 1) << b;
+            c1 |= (int) ((d >>> (k - 1)) & 1) << b;
+            c2 |= (int) ((d >>> (k - 2)) & 1) << b;
         }
         int n = 2 << (bits - 1);
         // Gray decode by H ^ (H/2)
-        int t = c[2] >>> 1;
-        for (int i = 2; i > 0; i--) {
-            c[i] ^= c[i - 1];
-        }
-        c[0] ^= t;
-        // undo excess work
+        int t = c2 >>> 1;
+        c2 ^= c1;
+        c1 ^= c0;
+        c0 ^= t;
+        // undo excess work, i = 2, 1, 0; for i = 0 the else branch is a no-op
         for (int q = 2; q != n; q <<= 1) {
             int p = q - 1;
-            for (int i = 2; i >= 0; i--) {
-                if ((c[i] & q) != 0) {
-                    c[0] ^= p;
-                } else {
-                    int tt = (c[0] ^ c[i]) & p;
-                    c[0] ^= tt;
-                    c[i] ^= tt;
-                }
+            if ((c2 & q) != 0) {
+                c0 ^= p;
+            } else {
+                int tt = (c0 ^ c2) & p;
+                c0 ^= tt;
+                c2 ^= tt;
+            }
+            if ((c1 & q) != 0) {
+                c0 ^= p;
+            } else {
+                int tt = (c0 ^ c1) & p;
+                c0 ^= tt;
+                c1 ^= tt;
+            }
+            if ((c0 & q) != 0) {
+                c0 ^= p;
             }
         }
-        out[0] = c[0];
-        out[1] = c[1];
-        out[2] = c[2];
+        out[0] = c0;
+        out[1] = c1;
+        out[2] = c2;
     }
 }

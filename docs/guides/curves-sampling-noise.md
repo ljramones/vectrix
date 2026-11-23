@@ -236,8 +236,9 @@ Monte Carlo sample, a noise mask or a weight initialization reproducible however
 |---|---|
 | `hash.Philox.word` | 32-bit word `index` of stream `seed` |
 | `hash.Philox.uniform` | A float in `[0, 1)` with 24 random bits |
-| `hash.Philox.fillUniform` | `dest[off + i] = uniform(seed, start + i)` for `n` elements |
-| `hash.Philox.fillNormal` | Normally distributed floats with a mean and standard deviation (Box–Muller, computed in double with `ReproducibleMath`) |
+| `hash.Philox.fillUniform` | `dest[off + i] = uniform(seed, start + i)` for `n` elements (`uniformDouble` for a `double[]`) |
+| `hash.Philox.uniformDouble` | A double in `[0, 1)` with 53 random bits, from two words of one block |
+| `hash.Philox.fillNormal` | Normally distributed floats or doubles with a mean and standard deviation (Box–Muller, computed in double with `ReproducibleMath`); the `double[]` overload uses 53-bit uniforms |
 | `hash.Philox.block` | The raw four-word block for a 128-bit counter and 64-bit key |
 
 Outputs match the Random123 known-answer vectors, and nothing allocates. Give each independent stream its own seed,

@@ -23,7 +23,6 @@
  */
 package org.dynamisengine.vectrix.sdf;
 
-import org.dynamisengine.vectrix.core.Vector2f;
 import org.dynamisengine.vectrix.core.Vector3fc;
 
 /**
@@ -36,7 +35,6 @@ import org.dynamisengine.vectrix.core.Vector3fc;
  *
  * @since 1.0.0
  */
-
 public final class Sdf3f {
     private Sdf3f() {
     }

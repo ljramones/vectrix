@@ -32,8 +32,9 @@ import org.dynamisengine.vectrix.core.ReproducibleMath;
  * There is no generator state, so any element can be drawn in any order by any thread with the same result: a Monte
  * Carlo sample, a dropout mask or a weight initialization is reproducible however the work is split, and a backward
  * pass can regenerate its forward mask instead of storing it. Index {@code n} uses word {@code n mod 4} of the block
- * for counter {@code n / 4}; the 64-bit seed is the key. Outputs match the Random123 known-answer vectors. Nothing
- * allocates.
+ * for counter {@code n / 4}; the 64-bit seed is the key. Outputs match the Random123 known-answer vectors. Floats
+ * ({@link #uniform}, {@code fillNormal} on {@code float[]}) carry 24 random bits from one word; doubles
+ * ({@link #uniformDouble}, {@code fillNormal} on {@code double[]}) carry 53 bits from two words. Nothing allocates.
  *
  * @since 2.6.0 (2.5.0 as {@code nn.Philox})
  */
@@ -48,8 +49,7 @@ public final class Philox {
     }
 
     /**
-     * The block for a 128-bit counter {@code (c0, c1, c2, c3)} and key {@code (k0, k1)}, as four 32-bit words. The
-     * array is not checked up front; a too-short {@code out} throws {@link ArrayIndexOutOfBoundsException}.
+     * The block for a 128-bit counter {@code (c0, c1, c2, c3)} and key {@code (k0, k1)}, as four 32-bit words.
      *
      * @param c0 counter word 0 (least significant)
      * @param c1 counter word 1
@@ -59,8 +59,14 @@ public final class Philox {
      * @param k1 key word 1 (the high 32 bits of a seed)
      * @param out receives four words at {@code out[off .. off + 4)}
      * @param off the index in {@code out} of the first word
+     * @throws IllegalArgumentException if {@code out} is null, {@code off} is negative or {@code out} has fewer than
+     *         {@code off + 4} elements; nothing is written then (before 3.0 an
+     *         {@link ArrayIndexOutOfBoundsException} after a partial write)
      */
     public static void block(int c0, int c1, int c2, int c3, int k0, int k1, int[] out, int off) {
+        if (out == null || off < 0 || off > out.length - 4) {
+            throw new IllegalArgumentException("out must hold 4 words from offset " + off);
+        }
         for (int r = 0; r < 10; r++) {
             long p0 = (M0 & 0xffffffffL) * (c0 & 0xffffffffL);
             long p1 = (M1 & 0xffffffffL) * (c2 & 0xffffffffL);
@@ -175,7 +181,108 @@ public final class Philox {
         }
     }
 
+    /**
+     * A uniform double in [0, 1) with 53 random bits: number {@code index} of the double stream of {@code seed}. It
+     * takes its top 32 bits from word {@code 2·(index mod 2)} and the next 21 from the word after it, in the block
+     * for counter {@code (index / 2, 0)} (index read as unsigned). For {@code index < 2^63} those are
+     * {@link #word words} {@code 2·index} and {@code 2·index + 1} of the stream, so double number {@code index} does
+     * not reuse the bits of float number {@code index}.
+     *
+     * @param seed the stream's seed
+     * @param index the position in the double stream
+     * @return a value in {@code [0, 1)}, a multiple of {@code 2^-53}
+     * @since 3.0.0
+     */
+    public static double uniformDouble(long seed, long index) {
+        return bits53(seed, index) * 0x1p-53;
+    }
+
+    /**
+     * Fills {@code dest[off + i] = uniformDouble(seed, start + i)} for {@code i} in {@code [0, n)}.
+     *
+     * @param seed the stream's seed
+     * @param start the double-stream position of the first value
+     * @param dest receives the values
+     * @param off the index in {@code dest} of the first value
+     * @param n the number of values, at least 0
+     * @throws IllegalArgumentException if {@code dest} is null, {@code n} or {@code off} is negative, or
+     *         {@code dest} has fewer than {@code off + n} elements; nothing is written then
+     * @since 3.0.0
+     */
+    public static void fillUniform(long seed, long start, double[] dest, int off, int n) {
+        check(dest, off, n);
+        for (int i = 0; i < n; i++) {
+            dest[off + i] = uniformDouble(seed, start + i);
+        }
+    }
+
+    /**
+     * Normally distributed doubles by the Box–Muller transform on 53-bit uniforms: element {@code i} uses the
+     * {@link #uniformDouble} numbers {@code 2·⌊(start + i)/2⌋} and the next one (one Philox block), taking the cosine
+     * for even and the sine for odd stream positions, computed with {@link ReproducibleMath}. As with the float
+     * version, the result does not depend on how a stream is split into calls, and the first uniform of each pair is
+     * taken in {@code (0, 1]}, so every value is finite.
+     *
+     * @param seed the stream's seed
+     * @param start the double-stream position of the first value
+     * @param mean the mean of the distribution
+     * @param std the standard deviation of the distribution
+     * @param dest receives the values
+     * @param off the index in {@code dest} of the first value
+     * @param n the number of values, at least 0
+     * @throws IllegalArgumentException if {@code dest} is null, {@code n} or {@code off} is negative, or
+     *         {@code dest} has fewer than {@code off + n} elements; nothing is written then
+     * @since 3.0.0
+     */
+    public static void fillNormal(long seed, long start, double mean, double std, double[] dest, int off, int n) {
+        check(dest, off, n);
+        for (int i = 0; i < n; i++) {
+            long j = start + i;
+            long pair = j & ~1L;
+            double u1 = (bits53(seed, pair) + 1) * 0x1p-53; // (0, 1]: log is finite
+            double u2 = bits53(seed, pair + 1) * 0x1p-53;
+            double rad = Math.sqrt(-2.0 * ReproducibleMath.log(u1));
+            double a = 2 * Math.PI * u2;
+            double z = (j & 1) == 0 ? rad * ReproducibleMath.cos(a) : rad * ReproducibleMath.sin(a);
+            dest[off + i] = Math.fma(z, std, mean);
+        }
+    }
+
+    /** 53 random bits from words {@code 2·index} (high 32) and {@code 2·index + 1} (next 21) of the stream. */
+    private static long bits53(long seed, long index) {
+        // words 2·index and 2·index + 1 are words 0, 1 or 2, 3 of the block for counter index / 2: one block
+        long counter = index >>> 1;
+        int r0 = (int) counter;
+        int r1 = (int) (counter >>> 32);
+        int r2 = 0;
+        int r3 = 0;
+        int k0 = (int) seed;
+        int k1 = (int) (seed >>> 32);
+        for (int r = 0; r < 10; r++) {
+            long p0 = (M0 & 0xffffffffL) * (r0 & 0xffffffffL);
+            long p1 = (M1 & 0xffffffffL) * (r2 & 0xffffffffL);
+            int n0 = (int) (p1 >>> 32) ^ r1 ^ k0;
+            int n2 = (int) (p0 >>> 32) ^ r3 ^ k1;
+            r0 = n0;
+            r1 = (int) p1;
+            r2 = n2;
+            r3 = (int) p0;
+            k0 += W0;
+            k1 += W1;
+        }
+        boolean low = (index & 1) == 0;
+        long hi = (low ? r0 : r2) & 0xffffffffL;
+        long lo = ((low ? r1 : r3) >>> 11) & 0x1fffffL;
+        return (hi << 21) | lo;
+    }
+
     private static void check(float[] a, int off, int n) {
+        if (a == null || n < 0 || off < 0 || off > a.length - n) {
+            throw new IllegalArgumentException("array must hold " + n + " values from offset " + off);
+        }
+    }
+
+    private static void check(double[] a, int off, int n) {
         if (a == null || n < 0 || off < 0 || off > a.length - n) {
             throw new IllegalArgumentException("array must hold " + n + " values from offset " + off);
         }

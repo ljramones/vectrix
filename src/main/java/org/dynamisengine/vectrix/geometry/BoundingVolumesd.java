@@ -37,8 +37,9 @@ import org.dynamisengine.vectrix.linalg.Eigen3d;
  * Bounding-volume construction for point sets (double precision): Welzl's minimal enclosing sphere, PCA-fitted oriented
  * boxes, the minimal-area enclosing rectangle in 2D (searched over the convex hull's edge directions), an approximate
  * minimal-volume box in 3D, and k-DOPs. Points are {@code x, y, z} (or {@code x, y}) tuples in a flat array, starting
- * at index 0. These are fitting routines: they allocate scratch proportional to the input. The bounds of single shapes
- * ({@code aabOf...} and {@code transformSphere}) do not allocate.
+ * at index 0. The fitting routines (sphere, boxes and rectangle) allocate scratch proportional to the input.
+ * {@code kDop}, {@code kDopDirections} and the bounds of single shapes ({@code aabOf...} and
+ * {@code transformSphere}) do not allocate.
  *
  * @since 2.2.0
  */
@@ -255,15 +256,20 @@ public final class BoundingVolumesd {
      * {@code axisU = (1, 0)}; collinear points give a zero-width one.
      *
      * @param xy the points as packed {@code x, y} pairs starting at index 0
-     * @param count the number of points, at least 1 (not checked)
+     * @param count the number of points, at least 1
      * @param center receives the rectangle center
      * @param axisU receives the unit direction of the rectangle's first side
      * @param halfExtents receives the half extents along {@code axisU} and along {@code axisU} rotated 90 degrees
      *        counter-clockwise
      * @return the area of the rectangle
+     * @throws IllegalArgumentException if {@code count <= 0} or {@code xy} holds fewer than {@code count} points;
+     *         nothing is written then
      */
     public static double minimalAreaRectangle(double[] xy, int count, Vector2d center, Vector2d axisU,
             Vector2d halfExtents) {
+        if (count <= 0 || 2L * count > xy.length) {
+            throw new IllegalArgumentException("count must be in [1, xy.length / 2]: " + count);
+        }
         int[] hull = convexHull(xy, count);
         int h = hull.length;
         double bestArea = Double.MAX_VALUE;
@@ -387,67 +393,102 @@ public final class BoundingVolumesd {
         return best;
     }
 
+    /** The k-DOP directions for each k, shared and never written (allocated per call before 3.0). */
+    private static final double[] KDOP6 = {
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1};
+    private static final double[] KDOP14 = {
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1,
+        1, 1, 1,
+        1, 1, -1,
+        1, -1, 1,
+        1, -1, -1};
+    private static final double[] KDOP18 = {
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1,
+        1, 1, 0,
+        1, 0, 1,
+        0, 1, 1,
+        1, -1, 0,
+        1, 0, -1,
+        0, 1, -1};
+    private static final double[] KDOP26 = {
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1,
+        1, 1, 1,
+        1, 1, -1,
+        1, -1, 1,
+        1, -1, -1,
+        1, 1, 0,
+        1, 0, 1,
+        0, 1, 1,
+        1, -1, 0,
+        1, 0, -1,
+        0, 1, -1};
+
     /**
      * Writes the {@code k / 2} directions of a k-DOP and returns how many it wrote. The directions are not normalized:
      * the three coordinate axes first, then for {@code k = 14} the four corner diagonals {@code (1, ±1, ±1)}, for
      * {@code k = 18} the six edge diagonals {@code (1, ±1, 0), (1, 0, ±1), (0, 1, ±1)}, and for {@code k = 26} the
-     * corner diagonals followed by the edge diagonals. Allocates its small direction tables on each call.
+     * corner diagonals followed by the edge diagonals. Does not allocate.
      *
      * @param k the number of k-DOP planes: 6, 14, 18 or 26
      * @param out receives the directions as packed {@code x, y, z} triples from index 0; at least {@code 3 * k / 2}
      *        elements
      * @return the number of directions written, {@code k / 2}
-     * @throws IllegalArgumentException if {@code k} is not 6, 14, 18 or 26
+     * @throws IllegalArgumentException if {@code k} is not 6, 14, 18 or 26, or {@code out} is too short; nothing is
+     *         written then
      */
     public static int kDopDirections(int k, double[] out) {
-        double[][] axes = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-        double[][] corners = {{1, 1, 1}, {1, 1, -1}, {1, -1, 1}, {1, -1, -1}};
-        double[][] edges = {{1, 1, 0}, {1, 0, 1}, {0, 1, 1}, {1, -1, 0}, {1, 0, -1}, {0, 1, -1}};
-        double[][][] sets;
+        double[] dirs = kDopTable(k);
+        if (out.length < dirs.length) {
+            throw new IllegalArgumentException("out needs " + dirs.length + " elements, has " + out.length);
+        }
+        System.arraycopy(dirs, 0, out, 0, dirs.length);
+        return dirs.length / 3;
+    }
+
+    private static double[] kDopTable(int k) {
         switch (k) {
             case 6:
-                sets = new double[][][] {axes};
-                break;
+                return KDOP6;
             case 14:
-                sets = new double[][][] {axes, corners};
-                break;
+                return KDOP14;
             case 18:
-                sets = new double[][][] {axes, edges};
-                break;
+                return KDOP18;
             case 26:
-                sets = new double[][][] {axes, corners, edges};
-                break;
+                return KDOP26;
             default:
                 throw new IllegalArgumentException("k must be 6, 14, 18 or 26");
         }
-        int n = 0;
-        for (double[][] set : sets) {
-            for (double[] d : set) {
-                out[3 * n] = d[0];
-                out[3 * n + 1] = d[1];
-                out[3 * n + 2] = d[2];
-                n++;
-            }
-        }
-        return n;
     }
 
     /**
      * Computes the k-DOP of the points. For each direction {@code i} of {@link #kDopDirections}, the minimum and
      * maximum of {@code p · direction} go to {@code minMax[2i]} and {@code minMax[2i + 1]}. The directions are not
      * normalized, so the diagonal values are not distances. The 6-DOP is the AABB, as {@code minX, maxX, minY, maxY,
-     * minZ, maxZ}. With {@code count == 0} every minimum is {@code +∞} and every maximum {@code −∞}. Allocates a small
-     * table.
+     * minZ, maxZ}. With {@code count == 0} every minimum is {@code +∞} and every maximum {@code −∞}. Does not
+     * allocate.
      *
      * @param xyz the points as packed {@code x, y, z} triples starting at index 0
      * @param count the number of points, 0 or more
      * @param k the number of k-DOP planes: 6, 14, 18 or 26
      * @param minMax receives the {@code k} bounds; at least {@code k} elements
-     * @throws IllegalArgumentException if {@code k} is not 6, 14, 18 or 26
+     * @throws IllegalArgumentException if {@code k} is not 6, 14, 18 or 26, {@code count} is negative, {@code xyz}
+     *         holds fewer than {@code count} points or {@code minMax} has fewer than {@code k} elements; nothing is
+     *         written then
      */
     public static void kDop(double[] xyz, int count, int k, double[] minMax) {
-        double[] dirs = new double[39];
-        int n = kDopDirections(k, dirs);
+        double[] dirs = kDopTable(k);
+        if (count < 0 || 3L * count > xyz.length || minMax.length < k) {
+            throw new IllegalArgumentException("count " + count + " or array lengths out of range");
+        }
+        int n = dirs.length / 3;
         for (int d = 0; d < n; d++) {
             double lo = Double.POSITIVE_INFINITY, hi = Double.NEGATIVE_INFINITY;
             for (int i = 0; i < count; i++) {
@@ -500,9 +541,11 @@ public final class BoundingVolumesd {
     /**
      * Computes the axis-aligned bounds of a solid cylinder.
      * <p>
-     * The bounds are exact up to rounding: along world axis {@code i}, each cap disc extends
-     * {@code r · sqrt(u_j² + u_k²) / |u|}, where {@code u = b − a}. That form does not cancel. A zero-length cylinder
-     * has no defined disc orientation, so it is bounded as a sphere of radius {@code r}.
+     * The bounds are tight up to rounding and conservative: along world axis {@code i}, each cap disc extends
+     * {@code r · sqrt(u_j² + u_k²) / |u|}, where {@code u = b − a}. That form does not cancel. The extents are padded
+     * by a relative {@code 2^-46} (never beyond {@code r}) and the corners are rounded outward, so the box always
+     * contains the cylinder. A zero-length cylinder has no defined disc orientation, so it is bounded as a sphere of
+     * radius {@code r}.
      *
      * @param a the center of one cap
      * @param b the center of the other cap
@@ -517,12 +560,46 @@ public final class BoundingVolumesd {
         double len = Math.sqrt(ux * ux + uy * uy + uz * uz);
         double ex = r, ey = r, ez = r;
         if (len > 0) {
-            ex = (r * Math.sqrt(uy * uy + uz * uz) / len);
-            ey = (r * Math.sqrt(ux * ux + uz * uz) / len);
-            ez = (r * Math.sqrt(ux * ux + uy * uy) / len);
+            ex = padExtent(r * Math.sqrt(uy * uy + uz * uz) / len, r);
+            ey = padExtent(r * Math.sqrt(ux * ux + uz * uz) / len, r);
+            ez = padExtent(r * Math.sqrt(ux * ux + uy * uy) / len, r);
         }
-        min.set(Math.min(ax, bx) - ex, Math.min(ay, by) - ey, Math.min(az, bz) - ez);
-        max.set(Math.max(ax, bx) + ex, Math.max(ay, by) + ey, Math.max(az, bz) + ez);
+        // rounded outward (to nearest before 3.0, which could cut into the cylinder)
+        min.set(subDown(Math.min(ax, bx), ex), subDown(Math.min(ay, by), ey), subDown(Math.min(az, bz), ez));
+        max.set(addUp(Math.max(ax, bx), ex), addUp(Math.max(ay, by), ey), addUp(Math.max(az, bz), ez));
+    }
+
+    /**
+     * Pads an extent computed in double by a relative {@code 2^-46}, more than its rounding error, but never beyond
+     * {@code r}, which the exact extent never exceeds.
+     */
+    static double padExtent(double e, double r) {
+        return Math.min(e + e * 0x1p-46, r);
+    }
+
+    /** The smallest double at least {@code a + b}: the sum, moved up one ulp when TwoSum shows it was rounded down. */
+    static double addUp(double a, double b) {
+        double s = a + b;
+        double bb = s - a;
+        double err = (a - (s - bb)) + (b - bb);
+        return err > 0 ? Math.nextUp(s) : s;
+    }
+
+    /** The largest double at most {@code a - b}. */
+    static double subDown(double a, double b) {
+        return -addUp(-a, b);
+    }
+
+    /** The largest float at most {@code v}. */
+    static float floatDown(double v) {
+        float f = (float) v;
+        return f > v ? Math.nextDown(f) : f;
+    }
+
+    /** The smallest float at least {@code v}. */
+    static float floatUp(double v) {
+        float f = (float) v;
+        return f < v ? Math.nextUp(f) : f;
     }
 
     /**
@@ -624,8 +701,8 @@ public final class BoundingVolumesd {
     /**
      * Computes a bounding sphere of a sphere transformed by the affine {@code m}: the transformed center, and the
      * radius scaled by the largest singular value of {@code m}'s linear part. That singular value comes from a Jacobi
-     * eigenvalue solve in double and is rounded up by a few ulps, and the scaled radius is rounded up by two ulps, so
-     * the result contains the transformed sphere. That holds for any linear part, including shear and non-uniform
+     * eigenvalue solve in double and is rounded up by a few ulps. The radius is then enlarged by a bound on the rounding
+     * of the center and by two ulps, so the result always contains the transformed sphere. That holds for any linear part, including shear and non-uniform
      * scale, where the largest-column-length shortcut is too small. Does not allocate.
      *
      * @param sphere the sphere: center in {@code x, y, z}, radius in {@code w}
@@ -637,9 +714,23 @@ public final class BoundingVolumesd {
     public static Vector4d transformSphere(Vector4dc sphere, Matrix4x3dc m, Vector4d dest) {
         double x = sphere.x(), y = sphere.y(), z = sphere.z(), r = sphere.w();
         double s = maxStretch(m.m00(), m.m01(), m.m02(), m.m10(), m.m11(), m.m12(), m.m20(), m.m21(), m.m22());
-        double rr = r * s;
-        return dest.set(m.m00() * x + m.m10() * y + m.m20() * z + m.m30(), m.m01() * x + m.m11() * y + m.m21() * z + m.m31(),
-                m.m02() * x + m.m12() * y + m.m22() * z + m.m32(), rr + 2 * Math.ulp(rr));
+        double m00 = m.m00(), m01 = m.m01(), m02 = m.m02(), m10 = m.m10(), m11 = m.m11(), m12 = m.m12();
+        double m20 = m.m20(), m21 = m.m21(), m22 = m.m22(), m30 = m.m30(), m31 = m.m31(), m32 = m.m32();
+        // the radius also covers the rounding of the center (before 3.0 it did not)
+        double ex = sumError(m00 * x, m10 * y, m20 * z, m30);
+        double ey = sumError(m01 * x, m11 * y, m21 * z, m31);
+        double ez = sumError(m02 * x, m12 * y, m22 * z, m32);
+        double rr = r * s + Math.sqrt(ex * ex + ey * ey + ez * ez);
+        return dest.set(m00 * x + m10 * y + m20 * z + m30, m01 * x + m11 * y + m21 * z + m31,
+                m02 * x + m12 * y + m22 * z + m32, rr + 2 * Math.ulp(rr));
+    }
+
+    /**
+     * A bound on the rounding error of computing {@code a + b + c + d} in double, where {@code a, b, c} are rounded
+     * products: {@code 2^-50} of the sum of the magnitudes, more than the {@code 4 · 2^-53} the operations can lose.
+     */
+    static double sumError(double a, double b, double c, double d) {
+        return 0x1p-50 * (Math.abs(a) + Math.abs(b) + Math.abs(c) + Math.abs(d));
     }
 
 }

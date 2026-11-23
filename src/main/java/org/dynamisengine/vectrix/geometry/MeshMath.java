@@ -33,8 +33,8 @@ import org.dynamisengine.vectrix.core.Vector3fc;
  * triangles, triangle area, winding and quality measures, and per-vertex normals and tangents of indexed triangle
  * lists.
  * <p>
- * The class is stateless and safe to call from any thread. The per-triangle methods do not allocate, except
- * {@link #triangleMinAngle}; the per-vertex mesh methods allocate small temporaries as stated on each method.
+ * The class is stateless and safe to call from any thread. No method allocates: {@link #vertexTangents} takes a
+ * caller-owned scratch array.
  */
 public final class MeshMath {
     /** Triangles with sin^2 of the angle at a below this are degenerate for {@link #barycentric}. */
@@ -246,8 +246,8 @@ public final class MeshMath {
      * <p>
      * The vertex count is {@code positions.length / 3}; the first {@code 3 * vertexCount} elements of
      * {@code normalsOut} are overwritten. Arrays start at index 0 and are not range-checked up front: a bad index
-     * throws {@link ArrayIndexOutOfBoundsException} after part of the output has been written. The method allocates
-     * a three-element {@code int} array per triangle.
+     * throws {@link ArrayIndexOutOfBoundsException} after part of the output has been written. The method does not
+     * allocate.
      *
      * @param positions vertex positions, {@code x, y, z} per vertex
      * @param indices vertex indices, 3 per triangle; face normals follow the right-hand rule on the vertex order
@@ -261,23 +261,21 @@ public final class MeshMath {
             float[] normalsOut) {
         java.util.Arrays.fill(normalsOut, 0, positions.length / 3 * 3, 0.0f);
         for (int t = 0; t < triangleCount; t++) {
-            int[] v = {indices[3 * t], indices[3 * t + 1], indices[3 * t + 2]};
-            double ex1 = positions[3 * v[1]] - positions[3 * v[0]], ey1 = positions[3 * v[1] + 1] - positions[3 * v[0] + 1];
-            double ez1 = positions[3 * v[1] + 2] - positions[3 * v[0] + 2];
-            double ex2 = positions[3 * v[2]] - positions[3 * v[0]], ey2 = positions[3 * v[2] + 1] - positions[3 * v[0] + 1];
-            double ez2 = positions[3 * v[2] + 2] - positions[3 * v[0] + 2];
+            // three locals, not an int[3] per triangle (before 3.0)
+            int v0 = indices[3 * t], v1 = indices[3 * t + 1], v2 = indices[3 * t + 2];
+            double ex1 = positions[3 * v1] - positions[3 * v0], ey1 = positions[3 * v1 + 1] - positions[3 * v0 + 1];
+            double ez1 = positions[3 * v1 + 2] - positions[3 * v0 + 2];
+            double ex2 = positions[3 * v2] - positions[3 * v0], ey2 = positions[3 * v2 + 1] - positions[3 * v0 + 1];
+            double ez2 = positions[3 * v2 + 2] - positions[3 * v0 + 2];
             // cross product: twice the area, along the face normal
             double nx = ey1 * ez2 - ez1 * ey2, ny = ez1 * ex2 - ex1 * ez2, nz = ex1 * ey2 - ey1 * ex2;
             double len = java.lang.Math.sqrt(nx * nx + ny * ny + nz * nz);
             if (len == 0.0) {
                 continue;
             }
-            for (int c = 0; c < 3; c++) {
-                double w = angleWeighted ? cornerAngle(positions, v[c], v[(c + 1) % 3], v[(c + 2) % 3]) / len : 0.5;
-                normalsOut[3 * v[c]] += (float) (nx * w);
-                normalsOut[3 * v[c] + 1] += (float) (ny * w);
-                normalsOut[3 * v[c] + 2] += (float) (nz * w);
-            }
+            addNormal(normalsOut, positions, v0, v1, v2, nx, ny, nz, len, angleWeighted);
+            addNormal(normalsOut, positions, v1, v2, v0, nx, ny, nz, len, angleWeighted);
+            addNormal(normalsOut, positions, v2, v0, v1, nx, ny, nz, len, angleWeighted);
         }
         for (int i = 0; i < positions.length / 3; i++) {
             float x = normalsOut[3 * i], y = normalsOut[3 * i + 1], z = normalsOut[3 * i + 2];
@@ -290,13 +288,44 @@ public final class MeshMath {
         }
     }
 
+    /** Adds the face normal {@code n} (of length {@code len}) to vertex {@code a}, weighted for its corner. */
+    private static void addNormal(float[] normalsOut, float[] positions, int a, int b, int c, double nx, double ny,
+            double nz, double len, boolean angleWeighted) {
+        double w = angleWeighted ? cornerAngle(positions, a, b, c) / len : 0.5;
+        normalsOut[3 * a] += (float) (nx * w);
+        normalsOut[3 * a + 1] += (float) (ny * w);
+        normalsOut[3 * a + 2] += (float) (nz * w);
+    }
+
     /** Interior angle at vertex {@code a} of triangle {@code (a, b, c)}, in radians. */
     private static double cornerAngle(float[] p, int a, int b, int c) {
-        double ux = p[3 * b] - p[3 * a], uy = p[3 * b + 1] - p[3 * a + 1], uz = p[3 * b + 2] - p[3 * a + 2];
-        double vx = p[3 * c] - p[3 * a], vy = p[3 * c + 1] - p[3 * a + 1], vz = p[3 * c + 2] - p[3 * a + 2];
+        // float differences, widened, as before 3.0
+        return cornerAngle(p[3 * b] - p[3 * a], p[3 * b + 1] - p[3 * a + 1], p[3 * b + 2] - p[3 * a + 2],
+                p[3 * c] - p[3 * a], p[3 * c + 1] - p[3 * a + 1], p[3 * c + 2] - p[3 * a + 2]);
+    }
+
+    /** Angle between the edge vectors {@code u} and {@code v}, in radians. */
+    private static double cornerAngle(double ux, double uy, double uz, double vx, double vy, double vz) {
         double cx = uy * vz - uz * vy, cy = uz * vx - ux * vz, cz = ux * vy - uy * vx;
         return org.dynamisengine.vectrix.core.AccurateMath.atan2(java.lang.Math.sqrt(cx * cx + cy * cy + cz * cz),
                 ux * vx + uy * vy + uz * vz);
+    }
+
+    /**
+     * The scratch size {@link #vertexTangents} needs for {@code vertexCount} vertices: {@code 6 * vertexCount}
+     * doubles.
+     *
+     * @param vertexCount the number of vertices, {@code positions.length / 3}
+     * @return the number of {@code double} elements of scratch
+     * @throws IllegalArgumentException if {@code vertexCount} is negative or the size exceeds the maximum array length
+     * @since 3.0.0
+     */
+    public static int vertexTangentsScratchSize(int vertexCount) {
+        long size = 6L * vertexCount;
+        if (vertexCount < 0 || size > Integer.MAX_VALUE - 8) {
+            throw new IllegalArgumentException("vertexCount out of range: " + vertexCount);
+        }
+        return (int) size;
     }
 
     /**
@@ -308,9 +337,10 @@ public final class MeshMath {
      * agree. Vertices without a usable corner get {@code (1, 0, 0)} (or {@code (0, 1, 0)} when the normal is along
      * x) projected onto the plane perpendicular to their normal, with {@code w = 1}.
      * <p>
-     * The vertex count is {@code positions.length / 3}; arrays start at index 0 and are not range-checked up front.
-     * Triangles whose UV mapping is degenerate are skipped. The method allocates two {@code double} arrays of
-     * {@code 3 * vertexCount} elements, plus a three-element {@code int} array per triangle.
+     * The vertex count is {@code positions.length / 3}; arrays start at index 0 and, except {@code scratch}, are not
+     * range-checked up front. Triangles whose UV mapping is degenerate are skipped. The tangent and bitangent sums
+     * are accumulated in double in {@code scratch}, so the method does not allocate (before 3.0 it allocated two
+     * {@code double} arrays per call).
      *
      * @param positions vertex positions, {@code x, y, z} per vertex
      * @param normals unit vertex normals, {@code x, y, z} per vertex
@@ -319,20 +349,33 @@ public final class MeshMath {
      * @param triangleCount the number of triangles to read from {@code indices}
      * @param tangentsOut receives the tangents, {@code x, y, z, w} per vertex; at least {@code 4 * vertexCount}
      *        elements
-     * @since 2.2.0
+     * @param scratch working memory, {@link #vertexTangentsScratchSize(int) vertexTangentsScratchSize(vertexCount)}
+     *        doubles from {@code scratchOffset}; its previous contents are ignored
+     * @param scratchOffset the first element of {@code scratch} to use
+     * @throws IllegalArgumentException if {@code scratchOffset} is negative or {@code scratch} is too small from it;
+     *         nothing is written then
+     * @since 3.0.0
      */
     public static void vertexTangents(float[] positions, float[] normals, float[] uvs, int[] indices,
-            int triangleCount, float[] tangentsOut) {
+            int triangleCount, float[] tangentsOut, double[] scratch, int scratchOffset) {
         int vc = positions.length / 3;
-        double[] ts = new double[3 * vc], bs = new double[3 * vc];
+        int need = vertexTangentsScratchSize(vc);
+        if (scratchOffset < 0 || (long) scratchOffset + need > scratch.length) {
+            throw new IllegalArgumentException("scratch needs " + need + " elements from offset " + scratchOffset
+                    + ", has " + scratch.length);
+        }
+        // tangent sums from ts, bitangent sums from bs, 3 doubles per vertex each
+        int ts = scratchOffset, bs = scratchOffset + 3 * vc;
+        java.util.Arrays.fill(scratch, scratchOffset, scratchOffset + need, 0.0);
         for (int t = 0; t < triangleCount; t++) {
-            int[] v = {indices[3 * t], indices[3 * t + 1], indices[3 * t + 2]};
-            double e1x = positions[3 * v[1]] - positions[3 * v[0]], e1y = positions[3 * v[1] + 1] - positions[3 * v[0] + 1];
-            double e1z = positions[3 * v[1] + 2] - positions[3 * v[0] + 2];
-            double e2x = positions[3 * v[2]] - positions[3 * v[0]], e2y = positions[3 * v[2] + 1] - positions[3 * v[0] + 1];
-            double e2z = positions[3 * v[2] + 2] - positions[3 * v[0] + 2];
-            double s1 = uvs[2 * v[1]] - uvs[2 * v[0]], t1 = uvs[2 * v[1] + 1] - uvs[2 * v[0] + 1];
-            double s2 = uvs[2 * v[2]] - uvs[2 * v[0]], t2 = uvs[2 * v[2] + 1] - uvs[2 * v[0] + 1];
+            // three locals, not an int[3] per triangle (before 3.0)
+            int v0 = indices[3 * t], v1 = indices[3 * t + 1], v2 = indices[3 * t + 2];
+            double e1x = positions[3 * v1] - positions[3 * v0], e1y = positions[3 * v1 + 1] - positions[3 * v0 + 1];
+            double e1z = positions[3 * v1 + 2] - positions[3 * v0 + 2];
+            double e2x = positions[3 * v2] - positions[3 * v0], e2y = positions[3 * v2 + 1] - positions[3 * v0 + 1];
+            double e2z = positions[3 * v2 + 2] - positions[3 * v0 + 2];
+            double s1 = uvs[2 * v1] - uvs[2 * v0], t1 = uvs[2 * v1 + 1] - uvs[2 * v0 + 1];
+            double s2 = uvs[2 * v2] - uvs[2 * v0], t2 = uvs[2 * v2 + 1] - uvs[2 * v0 + 1];
             double det = s1 * t2 - s2 * t1;
             if (det == 0.0) {
                 continue;
@@ -340,17 +383,13 @@ public final class MeshMath {
             double r = 1.0 / det;
             double fx = (t2 * e1x - t1 * e2x) * r, fy = (t2 * e1y - t1 * e2y) * r, fz = (t2 * e1z - t1 * e2z) * r;
             double gx = (s1 * e2x - s2 * e1x) * r, gy = (s1 * e2y - s2 * e1y) * r, gz = (s1 * e2z - s2 * e1z) * r;
-            for (int c = 0; c < 3; c++) {
-                int i = v[c];
-                double nx = normals[3 * i], ny = normals[3 * i + 1], nz = normals[3 * i + 2];
-                double w = cornerAngle(positions, i, v[(c + 1) % 3], v[(c + 2) % 3]);
-                accumulateProjected(ts, i, fx, fy, fz, nx, ny, nz, w);
-                accumulateProjected(bs, i, gx, gy, gz, nx, ny, nz, w);
-            }
+            addTangentCorner(scratch, ts, bs, positions, normals, v0, v1, v2, fx, fy, fz, gx, gy, gz);
+            addTangentCorner(scratch, ts, bs, positions, normals, v1, v2, v0, fx, fy, fz, gx, gy, gz);
+            addTangentCorner(scratch, ts, bs, positions, normals, v2, v0, v1, fx, fy, fz, gx, gy, gz);
         }
         for (int i = 0; i < vc; i++) {
             double nx = normals[3 * i], ny = normals[3 * i + 1], nz = normals[3 * i + 2];
-            double tx = ts[3 * i], ty = ts[3 * i + 1], tz = ts[3 * i + 2];
+            double tx = scratch[ts + 3 * i], ty = scratch[ts + 3 * i + 1], tz = scratch[ts + 3 * i + 2];
             double d = tx * nx + ty * ny + tz * nz;
             tx -= d * nx;
             ty -= d * ny;
@@ -374,7 +413,8 @@ public final class MeshMath {
             tz /= l;
             // handedness: does the accumulated bitangent point along n × t?
             double cx = ny * tz - nz * ty, cy = nz * tx - nx * tz, cz = nx * ty - ny * tx;
-            double hand = cx * bs[3 * i] + cy * bs[3 * i + 1] + cz * bs[3 * i + 2] < 0.0 ? -1.0 : 1.0;
+            double hand = cx * scratch[bs + 3 * i] + cy * scratch[bs + 3 * i + 1] + cz * scratch[bs + 3 * i + 2] < 0.0
+                    ? -1.0 : 1.0;
             tangentsOut[4 * i] = (float) tx;
             tangentsOut[4 * i + 1] = (float) ty;
             tangentsOut[4 * i + 2] = (float) tz;
@@ -382,7 +422,16 @@ public final class MeshMath {
         }
     }
 
-    private static void accumulateProjected(double[] acc, int i, double x, double y, double z, double nx, double ny,
+    /** Adds the face tangent {@code f} and bitangent {@code g} to the sums of vertex {@code i}'s corner. */
+    private static void addTangentCorner(double[] scratch, int ts, int bs, float[] positions, float[] normals, int i,
+            int b, int c, double fx, double fy, double fz, double gx, double gy, double gz) {
+        double nx = normals[3 * i], ny = normals[3 * i + 1], nz = normals[3 * i + 2];
+        double w = cornerAngle(positions, i, b, c);
+        accumulateProjected(scratch, ts + 3 * i, fx, fy, fz, nx, ny, nz, w);
+        accumulateProjected(scratch, bs + 3 * i, gx, gy, gz, nx, ny, nz, w);
+    }
+
+    private static void accumulateProjected(double[] acc, int at, double x, double y, double z, double nx, double ny,
             double nz, double weight) {
         double d = x * nx + y * ny + z * nz;
         x -= d * nx;
@@ -390,9 +439,9 @@ public final class MeshMath {
         z -= d * nz;
         double l = java.lang.Math.sqrt(x * x + y * y + z * z);
         if (l > 0.0) {
-            acc[3 * i] += weight * x / l;
-            acc[3 * i + 1] += weight * y / l;
-            acc[3 * i + 2] += weight * z / l;
+            acc[at] += weight * x / l;
+            acc[at + 1] += weight * y / l;
+            acc[at + 2] += weight * z / l;
         }
     }
 
@@ -439,7 +488,7 @@ public final class MeshMath {
 
     /**
      * Smallest interior angle of the triangle, in radians ({@code π/3} for an equilateral triangle, 0 if degenerate).
-     * Allocates a nine-element {@code float} array per call.
+     * Does not allocate.
      *
      * @param a the first vertex
      * @param b the second vertex
@@ -448,8 +497,11 @@ public final class MeshMath {
      * @since 2.2.0
      */
     public static float triangleMinAngle(Vector3fc a, Vector3fc b, Vector3fc c) {
-        float[] p = {a.x(), a.y(), a.z(), b.x(), b.y(), b.z(), c.x(), c.y(), c.z()};
-        double m = java.lang.Math.min(cornerAngle(p, 0, 1, 2), java.lang.Math.min(cornerAngle(p, 1, 2, 0), cornerAngle(p, 2, 0, 1)));
-        return (float) m;
+        float ax = a.x(), ay = a.y(), az = a.z(), bx = b.x(), by = b.y(), bz = b.z(), cx = c.x(), cy = c.y(), cz = c.z();
+        // float differences, widened, as the array form computed them before 3.0
+        double angleA = cornerAngle(bx - ax, by - ay, bz - az, cx - ax, cy - ay, cz - az);
+        double angleB = cornerAngle(cx - bx, cy - by, cz - bz, ax - bx, ay - by, az - bz);
+        double angleC = cornerAngle(ax - cx, ay - cy, az - cz, bx - cx, by - cy, bz - cz);
+        return (float) java.lang.Math.min(angleA, java.lang.Math.min(angleB, angleC));
     }
 }

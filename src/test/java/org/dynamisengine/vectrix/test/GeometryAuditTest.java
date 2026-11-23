@@ -58,12 +58,12 @@ class GeometryAuditTest {
         assertTrue(Intersectiond.intersectPlaneSweptSphere(0, 0, 1, -10, 0, 0, 0, 1, 0, 0, 1, pt));
         assertEquals(9.0, pt.w, 1e-14, "swept sphere time");
         assertTrue(Intersectiond.testPlaneSweptSphere(0, 0, 1, -10, 0, 0, 0, 1, 0, 0, 20));
-        assertTrue(Intersectiond.intersectCircleCircle(0, 0, 4, 2, 0, 1, c3));
+        assertTrue(Intersectiond.intersectCircleCircle(0, 0, 2, 2, 0, 1, c3));
         assertTrue(c3.distance(1.75, 0, Math.sqrt(4 - 1.75 * 1.75)) < 1e-15, "circle-circle " + c3);
-        assertFalse(Intersectiond.testCircleCircle(new Vector2d(0, 0), 4, new Vector2d(6, 0), 4), "r = 2 circles 6 apart");
-        assertTrue(Intersectiond.testCircleCircle(new Vector2d(0, 0), 4, new Vector2d(3, 0), 4));
-        assertTrue(Intersectiond.testSphereSphere(1, 2, 3, 4, 1, 2, 3, 4), "concentric equal spheres");
-        assertFalse(Intersectiond.testSphereSphere(1, 2, 3, 4, 1, 2, 3, 9), "concentric different spheres");
+        assertFalse(Intersectiond.testCircleCircle(new Vector2d(0, 0), 2, new Vector2d(6, 0), 2), "r = 2 circles 6 apart");
+        assertTrue(Intersectiond.testCircleCircle(new Vector2d(0, 0), 2, new Vector2d(3, 0), 2));
+        assertTrue(Intersectiond.testSphereSphere(1, 2, 3, 2, 1, 2, 3, 2), "concentric equal spheres");
+        assertTrue(Intersectiond.testSphereSphere(1, 2, 3, 2, 1, 2, 3, 3), "concentric spheres: containment counts (3.0)");
         // segment closest points: two points give their squared distance; short segments are not points
         Vector3d ra = new Vector3d(), rb = new Vector3d();
         assertEquals(50.0, Intersectiond.findClosestPointsLineSegments(1, 2, 3, 1, 2, 3, 4, 6, 8, 4, 6, 8, ra, rb), 0.0);
