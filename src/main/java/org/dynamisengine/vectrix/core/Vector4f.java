@@ -1602,7 +1602,7 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
     }
 
     public float length() {
-        return Math.sqrt(Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w))));
+        return (float) java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z + (double) w * w);
     }
 
     /**
@@ -1618,7 +1618,7 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
      * @author F. Neurath
      */
     public static float length(float x, float y, float z, float w) {
-        return Math.sqrt(Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w))));
+        return (float) java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z + (double) w * w);
     }
 
     /**
@@ -1631,11 +1631,11 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
     }
 
     public Vector4f normalize(Vector4f dest) {
-        float invLength = Math.invsqrt(Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w))));
-        dest.x = x * invLength;
-        dest.y = y * invLength;
-        dest.z = z * invLength;
-        dest.w = w * invLength;
+        double invLength = 1.0 / java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z + (double) w * w);
+        dest.x = (float) (this.x * invLength);
+        dest.y = (float) (this.y * invLength);
+        dest.z = (float) (this.z * invLength);
+        dest.w = (float) (this.w * invLength);
         return dest;
     }
 
@@ -1651,11 +1651,11 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
     }
 
     public Vector4f normalize(float length, Vector4f dest) {
-        float invLength = Math.invsqrt(Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w)))) * length;
-        dest.x = x * invLength;
-        dest.y = y * invLength;
-        dest.z = z * invLength;
-        dest.w = w * invLength;
+        double invLength = length / java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z + (double) w * w);
+        dest.x = (float) (this.x * invLength);
+        dest.y = (float) (this.y * invLength);
+        dest.z = (float) (this.z * invLength);
+        dest.w = (float) (this.w * invLength);
         return dest;
     }
 
@@ -1768,19 +1768,11 @@ public class Vector4f implements Externalizable, Cloneable, Vector4fc {
     }
 
     public float angleCos(Vector4fc v) {
-        float x = this.x, y = this.y, z = this.z, w = this.w;
-        float length1Squared = Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w)));
-        float length2Squared = Math.fma(v.x(), v.x(), Math.fma(v.y(), v.y(), Math.fma(v.z(), v.z(), v.w() * v.w())));
-        float dot = Math.fma(x, v.x(), Math.fma(y, v.y(), Math.fma(z, v.z(), w * v.w())));
-        return dot / Math.sqrt(length1Squared * length2Squared);
+        return (float) Norms.cos4(x, y, z, w, v.x(), v.y(), v.z(), v.w());
     }
 
     public float angle(Vector4fc v) {
-        float cos = angleCos(v);
-        // This is because sometimes cos goes above 1 or below -1 because of lost precision
-        cos = cos < 1 ? cos : 1;
-        cos = cos > -1 ? cos : -1;
-        return Math.acos(cos);
+        return (float) Norms.angle4(x, y, z, w, v.x(), v.y(), v.z(), v.w());
     }
 
     /**

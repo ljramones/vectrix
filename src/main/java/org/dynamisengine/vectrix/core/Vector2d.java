@@ -876,9 +876,7 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
     }
 
     public double angle(Vector2dc v) {
-        double dot = x*v.x() + y*v.y();
-        double det = x*v.y() - y*v.x();
-        return Math.atan2(det, dot);
+        return Norms.angle2(x, y, v.x(), v.y());
     }
 
     public double lengthSquared() {
@@ -900,7 +898,7 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
     }
 
     public double length() {
-        return Math.sqrt(x * x + y * y);
+        return Norms.norm2(x, y);
     }
 
     /**
@@ -914,7 +912,7 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
      * @author F. Neurath
      */
     public static double length(double x, double y) {
-        return Math.sqrt(x * x + y * y);
+        return Norms.norm2(x, y);
     }
 
     public double distance(Vector2dc v) {
@@ -1001,7 +999,7 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
     }
 
     public Vector2d normalize(Vector2d dest) {
-        double invLength = Math.invsqrt(x * x + y * y);
+        double invLength = 1.0 / Norms.norm2(x, y);
         dest.x = x * invLength;
         dest.y = y * invLength;
         return dest;
@@ -1019,7 +1017,7 @@ public class Vector2d implements Externalizable, Cloneable, Vector2dc {
     }
 
     public Vector2d normalize(double length, Vector2d dest) {
-        double invLength = Math.invsqrt(x * x + y * y) * length;
+        double invLength = 1.0 / Norms.norm2(x, y) * length;
         dest.x = x * invLength;
         dest.y = y * invLength;
         return dest;

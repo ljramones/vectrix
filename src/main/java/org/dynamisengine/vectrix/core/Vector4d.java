@@ -1723,7 +1723,7 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
     }
 
     public double length() {
-        return Math.sqrt(Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w))));
+        return Norms.norm4(x, y, z, w);
     }
 
     /**
@@ -1739,7 +1739,7 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
      * @author F. Neurath
      */
     public static double length(double x, double y, double z, double w) {
-        return Math.sqrt(Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w))));
+        return Norms.norm4(x, y, z, w);
     }
 
     /**
@@ -1752,7 +1752,7 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
     }
 
     public Vector4d normalize(Vector4d dest) {
-        double invLength = Math.invsqrt(Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w))));
+        double invLength = 1.0 / Norms.norm4(x, y, z, w);
         dest.x = x * invLength;
         dest.y = y * invLength;
         dest.z = z * invLength;
@@ -1772,7 +1772,7 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
     }
 
     public Vector4d normalize(double length, Vector4d dest) {
-        double invLength = Math.invsqrt(Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w)))) * length;
+        double invLength = 1.0 / Norms.norm4(x, y, z, w) * length;
         dest.x = x * invLength;
         dest.y = y * invLength;
         dest.z = z * invLength;
@@ -1897,18 +1897,11 @@ public class Vector4d implements Externalizable, Cloneable, Vector4dc {
     }
 
     public double angleCos(Vector4dc v) {
-        double length1Squared = Math.fma(x, x, Math.fma(y, y, Math.fma(z, z, w * w)));
-        double length2Squared = Math.fma(v.x(), v.x(), Math.fma(v.y(), v.y(), Math.fma(v.z(), v.z(), v.w() * v.w())));
-        double dot = Math.fma(x, v.x(), Math.fma(y, v.y(), Math.fma(z, v.z(), w * v.w())));
-        return dot / Math.sqrt(length1Squared * length2Squared);
+        return Norms.cos4(x, y, z, w, v.x(), v.y(), v.z(), v.w());
     }
 
     public double angle(Vector4dc v) {
-        double cos = angleCos(v);
-        // This is because sometimes cos goes above 1 or below -1 because of lost precision
-        cos = cos < 1 ? cos : 1;
-        cos = cos > -1 ? cos : -1;
-        return Math.acos(cos);
+        return Norms.angle4(x, y, z, w, v.x(), v.y(), v.z(), v.w());
     }
 
     /**

@@ -233,34 +233,34 @@ public class Math {
         return AccurateMath.cos(rad);
     }
 
+    /**
+     * {@code cos(angle)} given {@code sin = sin(angle)}. Where {@code |cos| ≥ |sin|} the identity
+     * {@code ±sqrt(1 − sin²)} is exact to rounding and cheaper than a cosine; elsewhere (near ±90 degrees, where that
+     * identity cancels and loses up to all digits) and for huge angles the cosine is evaluated directly. (Before 2.4.0
+     * the identity was used everywhere, losing up to 1e-8 in double near ±90 degrees, and the sign was wrong beyond
+     * about 1.35e10 rad.)
+     */
     public static float cosFromSin(float sin, float angle) {
         if (FAST_MATH)
             return sin(angle + PI_OVER_2_f);
-        return cosFromSinInternal(sin, angle);
-    }
-    private static float cosFromSinInternal(float sin, float angle) {
-        // sin(x)^2 + cos(x)^2 = 1
-        float cos = sqrt(1.0f - sin * sin);
-        float a = angle + PI_OVER_2_f;
-        float b = a - (int)(a / PI_TIMES_2_f) * PI_TIMES_2_f;
-        if (b < 0.0)
-            b = PI_TIMES_2_f + b;
-        if (b >= PI_f)
-            return -cos;
-        return cos;
+        if (java.lang.Math.abs(sin) > 0.70710677f || !(java.lang.Math.abs(angle) < 1e9f))
+            return (float) AccurateMath.cos(angle);
+        float cos = (float) java.lang.Math.sqrt(1.0 - (double) sin * sin);
+        return cosIsNegative(angle) ? -cos : cos;
     }
     public static double cosFromSin(double sin, double angle) {
         if (FAST_MATH)
             return sin(angle + PI_OVER_2);
-        // sin(x)^2 + cos(x)^2 = 1
+        if (java.lang.Math.abs(sin) > 0.7071067811865476 || !(java.lang.Math.abs(angle) < 1e9))
+            return AccurateMath.cos(angle);
         double cos = sqrt(1.0 - sin * sin);
+        return cosIsNegative(angle) ? -cos : cos;
+    }
+    /** Whether cos(angle) < 0, for |angle| < 1e9 and |cos| ≥ 0.707 (far from the sign changes, so reduction is safe). */
+    private static boolean cosIsNegative(double angle) {
         double a = angle + PI_OVER_2;
-        double b = a - (int)(a / PI_TIMES_2) * PI_TIMES_2;
-        if (b < 0.0)
-            b = PI_TIMES_2 + b;
-        if (b >= PI)
-            return -cos;
-        return cos;
+        double b = a - java.lang.Math.floor(a / PI_TIMES_2) * PI_TIMES_2;
+        return b >= PI;
     }
 
     /* Other math functions not yet approximated */
@@ -545,11 +545,15 @@ public class Math {
         }
     }
     
+    /**
+     * {@code a + t (b − a)}, exact at both ends: {@code t = 0} gives {@code a} and {@code t = 1} gives {@code b} (the
+     * single-fma form {@code fma(b − a, t, a)} used before 2.4.0 did not, e.g. {@code lerp(1e20, 1, 1)} was 0).
+     */
     public static float lerp(float a, float b, float t){
-        return Math.fma(b - a, t, a);
+        return Math.fma(t, b, Math.fma(-t, a, a));
     }
     public static double lerp(double a, double b, double t) {
-        return Math.fma(b - a, t, a);
+        return Math.fma(t, b, Math.fma(-t, a, a));
     }
 
     public static float biLerp(float q00, float q10, float q01, float q11, float tx, float ty) {

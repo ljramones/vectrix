@@ -1923,7 +1923,7 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
     }
 
     public float length() {
-        return Math.sqrt(Math.fma(x, x, Math.fma(y, y, z * z)));
+        return (float) java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z);
     }
 
     /**
@@ -1938,7 +1938,7 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
      * @author F. Neurath
      */
     public static float length(float x, float y, float z) {
-        return Math.sqrt(Math.fma(x, x, Math.fma(y, y, z * z)));
+        return (float) java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z);
     }
 
     /**
@@ -1951,10 +1951,10 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
     }
 
     public Vector3f normalize(Vector3f dest) {
-        float scalar = Math.invsqrt(Math.fma(x, x, Math.fma(y, y, z * z)));
-        dest.x = this.x * scalar;
-        dest.y = this.y * scalar;
-        dest.z = this.z * scalar;
+        double invLength = 1.0 / java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z);
+        dest.x = (float) (this.x * invLength);
+        dest.y = (float) (this.y * invLength);
+        dest.z = (float) (this.z * invLength);
         return dest;
     }
 
@@ -1970,10 +1970,10 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
     }
 
     public Vector3f normalize(float length, Vector3f dest) {
-        float scalar = Math.invsqrt(Math.fma(x, x, Math.fma(y, y, z * z))) * length;
-        dest.x = this.x * scalar;
-        dest.y = this.y * scalar;
-        dest.z = this.z * scalar;
+        double invLength = length / java.lang.Math.sqrt((double) x * x + (double) y * y + (double) z * z);
+        dest.x = (float) (this.x * invLength);
+        dest.y = (float) (this.y * invLength);
+        dest.z = (float) (this.z * invLength);
         return dest;
     }
 
@@ -2105,19 +2105,11 @@ public class Vector3f implements Externalizable, Cloneable, Vector3fc {
     }
 
     public float angleCos(Vector3fc v) {
-        float x = this.x, y = this.y, z = this.z;
-        float length1Squared = Math.fma(x, x, Math.fma(y, y, z * z));
-        float length2Squared = Math.fma(v.x(), v.x(), Math.fma(v.y(), v.y(), v.z() * v.z()));
-        float dot = Math.fma(x, v.x(), Math.fma(y, v.y(), z * v.z()));
-        return dot / (float)Math.sqrt(length1Squared * length2Squared);
+        return (float) Norms.cos3(x, y, z, v.x(), v.y(), v.z());
     }
 
     public float angle(Vector3fc v) {
-        float cos = angleCos(v);
-        // This is because sometimes cos goes above 1 or below -1 because of lost precision
-        cos = cos < 1 ? cos : 1;
-        cos = cos > -1 ? cos : -1;
-        return Math.acos(cos);
+        return (float) Norms.angle3(x, y, z, v.x(), v.y(), v.z());
     }
 
     public float angleSigned(Vector3fc v, Vector3fc n) {

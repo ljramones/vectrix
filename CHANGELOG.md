@@ -29,6 +29,75 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - Masked and N-way weighted blends.
   - Additive layers. Applying a layer at weight 1 restores the pose it was made from.
 
+### Fixed (precision and correctness audit of the JOML-inherited core)
+The inherited `core` and `geometry` code was checked against independent references: BigDecimal, direct evaluation,
+exact identities, brute force and separating-axis references. Almost every finding was shared by the float and double
+twins, so twin parity could not see it. `PrecisionAuditTest` and `GeometryAuditTest` cover each fix.
+
+- Scalar math:
+  - `Math.cosFromSin`: it computed `sqrt(1 − sin²)` everywhere. Near ±90° that lost up to 1.5e-8 in double (all
+    digits at 1e-8 from π/2) and 2.4e-4 in float, and the sign was wrong beyond about 1.35e10 rad. Every rotation
+    builder uses it. It now evaluates `cos` where `|sin| > 0.707`, and the identity elsewhere, where it is exact.
+  - `Math.lerp` and `biLerp`/`triLerp` did not return `b` at `t = 1`; for example `lerp(1e20, 1, 1)` gave 0.
+- Axis-angle: `AxisAngle4d/4f.set(Quaternion*)`, `set(Matrix*)` and the constructors snapped angles below about 1e-4
+  to 0 and angles near π to exactly π, and lost precision through `acos`. They now use `atan2` forms, taking the axis
+  near 180° from the symmetric part. Tiny rotations are no longer reported as "no rotation".
+- Quaternions:
+  - `rotationTo`/`rotateTo` near antiparallel returned a non-unit quaternion that ignored the target. Near
+    antiparallel they now use an axis-angle form with the axis re-orthogonalized, exact to 1e-16.
+  - `slerp`'s near-identity fallback left results off unit length by up to 2.5e-7; it now uses a
+    cancellation-free angle.
+  - `nlerpIterative` ignored `alpha` for small arcs, and the double version normalized in float.
+  - `getEulerAngles*` used `asin`, which lost precision near gimbal lock. The outer angle now comes from the
+    residual rotation, so the angles rebuild the rotation exactly, also at gimbal lock.
+- Vectors:
+  - `angle` used `acos`, losing everything below about 1e-8 rad; it now uses `atan2(|a × b|, a · b)`.
+  - `length`, `normalize` and `angleCos` overflowed or underflowed, e.g. `(1e200, 1e200, 0)` had length ∞ and
+    `(1e-170, 0, 0)` normalized to NaN. Double vectors now scale by a power of two outside the safe range.
+  - Float vectors accumulate in double, so they are correctly rounded and their last bits change.
+- Matrices:
+  - `affineSpan` had an operator-precedence error: it was wrong for any scaled matrix.
+  - `getEulerAngles*` could return NaN (rounding pushed `|m20|` above 1), lost precision near gimbal lock, and
+    ignored scale. They now go through the quaternion route.
+  - `normal()` on the orthonormal path kept the translation.
+  - `billboardSpherical` lost precision as the target approached directly behind, and was NaN exactly behind.
+  - The `lookAt`/`lookAlong` family lost orthogonality as `up` approached the view direction (6.6e-9 at 1e-8 rad)
+    while flagging the result orthonormal. It now applies one Gram-Schmidt step: 4.4e-16 at every angle.
+  - `perspectiveFov` used `acos`, losing 3.7e-4 relative at a 1e-6 rad field of view.
+  - `invertPerspective`/`invertPerspectiveView` rounded twice.
+  - The infinite-projection epsilon in `Matrix4d` was the float literal `1E-6f`.
+- Geometry, in `Intersectiond/f` unless noted:
+  - `testObOb` built its rotation matrix transposed: about 3 % wrong answers on random rotated boxes.
+  - `PolygonsIntersection` left each polygon's first vertex out of its bounds.
+  - `intersectPlaneSphere` and `intersectLineCircle` moved the circle center the wrong way.
+  - `findClosestPointOnPlane` and the swept-sphere-versus-plane tests had the plane constant's sign reversed.
+  - `intersectCircleCircle` was missing a factor of 2.
+  - `testCircleCircle` treated its documented squared radii as radii.
+  - `testSphereSphere` returned NaN-false for concentric spheres. Its surface-intersection meaning is now
+    documented.
+  - `findClosestPointsLineSegments` returned a dot product, not the squared distance, when both segments were
+    points. It also treated short segments as points through an absolute threshold, now relative.
+  - Ray-sphere and ray-circle tests cancelled catastrophically for distant spheres: thousands of wrong answers per
+    10k rays. The perpendicular distance and both roots are now computed stably, and tangent rays hit.
+  - The ray-box slab tests missed flat boxes.
+  - `intersectRayPlane` returned Infinity for parallel rays.
+  - `intersectRayTriangle(Front)` returned negative distances for triangles behind the ray.
+  - The ray-triangle tests now use Woop et al.'s watertight algorithm. Möller-Trumbore let about 20 % of rays aimed
+    at a shared edge miss both triangles.
+
+### Changed
+- The `epsilon` of the ray-triangle tests is now the minimum hit distance along the ray. It used to be a tolerance
+  on the determinant; parallel rays are now handled exactly.
+- Results change in their last bits for rotation builders (through `cosFromSin`) and for float vector lengths and
+  normalization. About 1000 determinism-golden entries were re-recorded; every changed method traces to a fix above.
+
+### Known issues (found by the audit, not yet fixed)
+- `Intersection*.intersectSweptSphereTriangle` handles only spheres approaching the front face. Spheres moving away,
+  approaching from the back, or sliding parallel while already cutting the plane give wrong or no results.
+- `testPointInTriangle` includes some edges and vertices but not others.
+- The 2D `testPointTriangle` treats edge points differently for clockwise and counter-clockwise triangles.
+- `testMovingCircleCircle` reports false for circles that already overlap and are moving apart.
+
 ## [2.3.0] - 2026-11-22
 New in this release: rendering math II (spherical functions, camera, atmosphere: review Part II §15.3, §15.5,
 §15.6), animation math (§18, without IK), large-world precision (§12), and spectral colour from the official CIE

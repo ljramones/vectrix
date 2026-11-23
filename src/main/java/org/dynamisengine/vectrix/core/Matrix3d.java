@@ -3925,6 +3925,16 @@ public class Matrix3d implements Externalizable, Cloneable, Matrix3dc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        double leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        double invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         double upnX = dirY * leftZ - dirZ * leftY;
         double upnY = dirZ * leftX - dirX * leftZ;
@@ -4055,6 +4065,16 @@ public class Matrix3d implements Externalizable, Cloneable, Matrix3dc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        double leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        double invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         double upnX = dirY * leftZ - dirZ * leftY;
         double upnY = dirZ * leftX - dirX * leftZ;
@@ -4608,23 +4628,26 @@ public class Matrix3d implements Externalizable, Cloneable, Matrix3dc {
     }
 
     public Vector3d getEulerAnglesZYX(Vector3d dest) {
-        dest.x = Math.atan2(m12, m22);
-        dest.y = Math.atan2(-m02, Math.sqrt(1.0 - m02 * m02));
-        dest.z = Math.atan2(m01, m00);
+        double[] e = Quaterniond.eulerFromMatrix(1, m00, m01, m02, m10, m11, m12, m20, m21, m22);
+        dest.x = e[0];
+        dest.y = e[1];
+        dest.z = e[2];
         return dest;
     }
 
     public Vector3d getEulerAnglesXYZ(Vector3d dest) {
-        dest.x = Math.atan2(-m21, m22);
-        dest.y = Math.atan2(m20, Math.sqrt(1.0 - m20 * m20));
-        dest.z = Math.atan2(-m10, m00);
+        double[] e = Quaterniond.eulerFromMatrix(0, m00, m01, m02, m10, m11, m12, m20, m21, m22);
+        dest.x = e[0];
+        dest.y = e[1];
+        dest.z = e[2];
         return dest;
     }
 
     public Vector3d getEulerAnglesYXZ(Vector3d dest) {
-        dest.x = Math.atan2(-m21, Math.sqrt(1.0 - m21 * m21));
-        dest.y = Math.atan2(m20, m22);
-        dest.z = Math.atan2(m01, m11);
+        double[] e = Quaterniond.eulerFromMatrix(2, m00, m01, m02, m10, m11, m12, m20, m21, m22);
+        dest.x = e[0];
+        dest.y = e[1];
+        dest.z = e[2];
         return dest;
     }
 

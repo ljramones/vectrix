@@ -2720,13 +2720,12 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
      * @return dest
      */
     public Matrix4f invertPerspective(Matrix4f dest) {
-        float a =  1.0f / (m00() * m11());
         float l = -1.0f / (m23() * m32());
         return dest
-        .set(m11() * a, 0, 0, 0,
-                 0, m00() * a, 0, 0,
-                 0, 0, 0, -m23() * l,
-                 0, 0, -m32() * l, m22() * l)
+        .set(1.0f / m00(), 0, 0, 0,
+                 0, 1.0f / m11(), 0, 0,
+                 0, 0, 0, 1.0f / m32(),
+                 0, 0, 1.0f / m23(), m22() * l)
         ._properties(PROPERTY_UNKNOWN);
     }
 
@@ -2838,12 +2837,11 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
      * @return dest
      */
     public Matrix4f invertPerspectiveView(Matrix4fc view, Matrix4f dest) {
-        float a =  1.0f / (m00() * m11());
         float l = -1.0f / (m23() * m32());
-        float pm00 =  m11() * a;
-        float pm11 =  m00() * a;
-        float pm23 = -m23() * l;
-        float pm32 = -m32() * l;
+        float pm00 = 1.0f / m00();
+        float pm11 = 1.0f / m11();
+        float pm23 = 1.0f / m32();
+        float pm32 = 1.0f / m23();
         float pm33 =  m22() * l;
         float vm30 = -view.m00() * view.m30() - view.m01() * view.m31() - view.m02() * view.m32();
         float vm31 = -view.m10() * view.m30() - view.m11() * view.m31() - view.m12() * view.m32();
@@ -2894,12 +2892,11 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
      * @return dest
      */
     public Matrix4f invertPerspectiveView(Matrix4x3fc view, Matrix4f dest) {
-        float a =  1.0f / (m00() * m11());
         float l = -1.0f / (m23() * m32());
-        float pm00 =  m11() * a;
-        float pm11 =  m00() * a;
-        float pm23 = -m23() * l;
-        float pm32 = -m32() * l;
+        float pm00 = 1.0f / m00();
+        float pm11 = 1.0f / m11();
+        float pm23 = 1.0f / m32();
+        float pm32 = 1.0f / m23();
         float pm33 =  m22() * l;
         float vm30 = -view.m00() * view.m30() - view.m01() * view.m31() - view.m02() * view.m32();
         float vm31 = -view.m10() * view.m30() - view.m11() * view.m31() - view.m12() * view.m32();
@@ -8149,6 +8146,16 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        float leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        float invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         float upnX = dirY * leftZ - dirZ * leftY;
         float upnY = dirZ * leftX - dirX * leftZ;
@@ -8289,6 +8296,16 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        float leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        float invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         this._m00(leftX)
             ._m01(dirY * leftZ - dirZ * leftY)
             ._m02(dirX)
@@ -8388,6 +8405,16 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        float leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        float invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         float upnX = dirY * leftZ - dirZ * leftY;
         float upnY = dirZ * leftX - dirX * leftZ;
@@ -8537,6 +8564,16 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        float leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        float invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         float upnX = dirY * leftZ - dirZ * leftY;
         float upnY = dirZ * leftX - dirX * leftZ;
@@ -8641,6 +8678,16 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        float leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        float invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         float upnX = dirY * leftZ - dirZ * leftY;
         float upnY = dirZ * leftX - dirX * leftZ;
@@ -8795,6 +8842,16 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        float leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        float invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         float upnX = dirY * leftZ - dirZ * leftY;
         float upnY = dirZ * leftX - dirX * leftZ;
@@ -8942,6 +8999,16 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        float leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        float invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         float upnX = dirY * leftZ - dirZ * leftY;
         float upnY = dirZ * leftX - dirX * leftZ;
@@ -9087,6 +9154,16 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        float leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        float invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         float upnX = dirY * leftZ - dirZ * leftY;
         float upnY = dirZ * leftX - dirX * leftZ;
@@ -12757,7 +12834,12 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         return normalGeneric(dest);
     }
     private Matrix4f normalOrthonormal(Matrix4f dest) {
-        dest.set(this);
+        // the normal matrix of an orthonormal matrix is its rotation part: translation and projection are cleared
+        // (before 2.4.0 the translation was copied, contradicting the contract)
+        dest._m00(m00)._m01(m01)._m02(m02)._m03(0.0f)
+            ._m10(m10)._m11(m11)._m12(m12)._m13(0.0f)
+            ._m20(m20)._m21(m21)._m22(m22)._m23(0.0f)
+            ._m30(0.0f)._m31(0.0f)._m32(0.0f)._m33(1.0f);
         return dest._properties(PROPERTY_AFFINE | PROPERTY_ORTHONORMAL);
     }
     private Matrix4f normalGeneric(Matrix4f dest) {
@@ -13149,9 +13231,12 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         float n1x, n1y, n1z, n2x, n2y, n2z;
         n1x = m03() + m01(); n1y = m13() + m11(); n1z = m23() + m21(); // bottom
         n2x = m01() - m03(); n2y = m11() - m13(); n2z = m21() - m23(); // top
-        float n1len = Math.sqrt(n1x * n1x + n1y * n1y + n1z * n1z);
-        float n2len = Math.sqrt(n2x * n2x + n2y * n2y + n2z * n2z);
-        return Math.acos((n1x * n2x + n1y * n2y + n1z * n2z) / (n1len * n2len));
+        // atan2(|n1 × n2|, n1 · n2): accurate for narrow fields of view, where acos of the normalized dot product
+        // loses up to all digits (3.7e-4 relative at 1e-6 rad before 2.4.0)
+        double cx = (double) n1y * n2z - (double) n1z * n2y, cy = (double) n1z * n2x - (double) n1x * n2z;
+        double cz = (double) n1x * n2y - (double) n1y * n2x;
+        return (float) AccurateMath.atan2(java.lang.Math.sqrt(cx * cx + cy * cy + cz * cz),
+                (double) n1x * n2x + (double) n1y * n2y + (double) n1z * n2z);
     }
 
     /**
@@ -13622,7 +13707,12 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         float toDirZ = targetPos.z() - objPos.z();
         float x = -toDirY;
         float y = toDirX;
-        float w = Math.sqrt(toDirX * toDirX + toDirY * toDirY + toDirZ * toDirZ) + toDirZ;
+        float len = Math.sqrt(toDirX * toDirX + toDirY * toDirY + toDirZ * toDirZ);
+        // |d| + dz cancels as the target swings behind; there it equals (dx² + dy²) / (|d| − dz)
+        float w = toDirZ >= 0 ? len + toDirZ : (toDirX * toDirX + toDirY * toDirY) / (len - toDirZ);
+        if (x == 0 && y == 0 && w == 0) { // target exactly behind (or on the object): turn 180 degrees about Y
+            y = 1;
+        }
         float invNorm = Math.invsqrt(x * x + y * y + w * w);
         x *= invNorm;
         y *= invNorm;
@@ -14652,23 +14742,26 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
     }
 
     public Vector3f getEulerAnglesZYX(Vector3f dest) {
-        dest.x = Math.atan2(m12(), m22());
-        dest.y = Math.atan2(-m02(), Math.sqrt(1.0f - m02() * m02()));
-        dest.z = Math.atan2(m01(), m00());
+        double[] e = Quaterniond.eulerFromMatrix(1, m00, m01, m02, m10, m11, m12, m20, m21, m22);
+        dest.x = (float) e[0];
+        dest.y = (float) e[1];
+        dest.z = (float) e[2];
         return dest;
     }
 
     public Vector3f getEulerAnglesXYZ(Vector3f dest) {
-        dest.x = Math.atan2(-m21(), m22());
-        dest.y = Math.atan2(m20(), Math.sqrt(1.0f - m20() * m20()));
-        dest.z = Math.atan2(-m10(), m00());
+        double[] e = Quaterniond.eulerFromMatrix(0, m00, m01, m02, m10, m11, m12, m20, m21, m22);
+        dest.x = (float) e[0];
+        dest.y = (float) e[1];
+        dest.z = (float) e[2];
         return dest;
     }
 
     public Vector3f getEulerAnglesYXZ(Vector3f dest) {
-        dest.x = Math.atan2(-m21(), Math.sqrt(1.0f - m21() * m21()));
-        dest.y = Math.atan2(m20(), m22());
-        dest.z = Math.atan2(m01(), m11());
+        double[] e = Quaterniond.eulerFromMatrix(2, m00, m01, m02, m10, m11, m12, m20, m21, m22);
+        dest.x = (float) e[0];
+        dest.y = (float) e[1];
+        dest.z = (float) e[2];
         return dest;
     }
 
@@ -14700,7 +14793,7 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         float i = m12() * m21(), j = m12() * m20(), k = m12() * m01(), l = m12() * m00();
         float m = m20() * m02(), n = m20() * m01(), o = m21() * m02(), p = m21() * m00();
         float q = m22() * m01(), r = m22() * m00();
-        float s = 1.0f / (m00() * m11() - m01() * m10()) * m22() + (m02() * m10() - m00() * m12()) * m21() + (m01() * m12() - m02() * m11()) * m20();
+        float s = 1.0f / ((m00() * m11() - m01() * m10()) * m22() + (m02() * m10() - m00() * m12()) * m21() + (m01() * m12() - m02() * m11()) * m20());
         float nm00 = (e - i) * s, nm01 = (o - q) * s, nm02 = (k - g) * s;
         float nm10 = (j - a) * s, nm11 = (r - m) * s, nm12 = (c - l) * s;
         float nm20 = (b - f) * s, nm21 = (n - p) * s, nm22 = (h - d) * s;

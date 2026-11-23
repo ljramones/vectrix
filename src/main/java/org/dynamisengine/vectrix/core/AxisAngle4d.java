@@ -108,18 +108,7 @@ public class AxisAngle4d implements Externalizable, Cloneable {
      *            the quaternion from which to create the new AngleAxis4f
      */
     public AxisAngle4d(Quaternionfc q) {
-        float acos = Math.safeAcos(q.w());
-        float invSqrt = Math.invsqrt(1.0f - q.w() * q.w());
-        if (Float.isInfinite(invSqrt)) {
-            this.x = 0.0;
-            this.y = 0.0;
-            this.z = 1.0;
-        } else {
-            this.x = q.x() * invSqrt;
-            this.y = q.y() * invSqrt;
-            this.z = q.z() * invSqrt;
-        }
-        this.angle = acos + acos;
+        fromQuaternion(q.x(), q.y(), q.z(), q.w());
     }
 
     /**
@@ -133,18 +122,7 @@ public class AxisAngle4d implements Externalizable, Cloneable {
      *            the quaternion from which to create the new AngleAxis4d
      */
     public AxisAngle4d(Quaterniondc q) {
-        double acos = Math.safeAcos(q.w());
-        double invSqrt = Math.invsqrt(1.0 - q.w() * q.w());
-        if (Double.isInfinite(invSqrt)) {
-            this.x = 0.0;
-            this.y = 0.0;
-            this.z = 1.0;
-        } else {
-            this.x = q.x() * invSqrt;
-            this.y = q.y() * invSqrt;
-            this.z = q.z() * invSqrt;
-        }
-        this.angle = acos + acos;
+        fromQuaternion(q.x(), q.y(), q.z(), q.w());
     }
 
     /**
@@ -272,18 +250,7 @@ public class AxisAngle4d implements Externalizable, Cloneable {
      * @return this
      */
     public AxisAngle4d set(Quaternionfc q) {
-        float acos = Math.safeAcos(q.w());
-        float invSqrt = Math.invsqrt(1.0f - q.w() * q.w());
-        if (Float.isInfinite(invSqrt)) {
-            this.x = 0.0;
-            this.y = 0.0;
-            this.z = 1.0;
-        } else {
-            this.x = q.x() * invSqrt;
-            this.y = q.y() * invSqrt;
-            this.z = q.z() * invSqrt;
-        }
-        this.angle = acos + acos;
+        fromQuaternion(q.x(), q.y(), q.z(), q.w());
         return this;
     }
 
@@ -296,18 +263,7 @@ public class AxisAngle4d implements Externalizable, Cloneable {
      * @return this
      */
     public AxisAngle4d set(Quaterniondc q) {
-        double acos = Math.safeAcos(q.w());
-        double invSqrt = Math.invsqrt(1.0f - q.w() * q.w());
-        if (Double.isInfinite(invSqrt)) {
-            this.x = 0.0;
-            this.y = 0.0;
-            this.z = 1.0;
-        } else {
-            this.x = q.x() * invSqrt;
-            this.y = q.y() * invSqrt;
-            this.z = q.z() * invSqrt;
-        }
-        this.angle = acos + acos;
+        fromQuaternion(q.x(), q.y(), q.z(), q.w());
         return this;
     }
 
@@ -322,56 +278,7 @@ public class AxisAngle4d implements Externalizable, Cloneable {
      * @return this
      */
     public AxisAngle4d set(Matrix3fc m) {
-        double nm00 = m.m00(), nm01 = m.m01(), nm02 = m.m02();
-        double nm10 = m.m10(), nm11 = m.m11(), nm12 = m.m12();
-        double nm20 = m.m20(), nm21 = m.m21(), nm22 = m.m22();
-        double lenX = Math.invsqrt(m.m00() * m.m00() + m.m01() * m.m01() + m.m02() * m.m02());
-        double lenY = Math.invsqrt(m.m10() * m.m10() + m.m11() * m.m11() + m.m12() * m.m12());
-        double lenZ = Math.invsqrt(m.m20() * m.m20() + m.m21() * m.m21() + m.m22() * m.m22());
-        nm00 *= lenX; nm01 *= lenX; nm02 *= lenX;
-        nm10 *= lenY; nm11 *= lenY; nm12 *= lenY;
-        nm20 *= lenZ; nm21 *= lenZ; nm22 *= lenZ;
-        double epsilon = 1E-4, epsilon2 = 1E-3;
-        if (Math.abs(nm10 - nm01) < epsilon && Math.abs(nm20 - nm02) < epsilon && Math.abs(nm21 - nm12) < epsilon) {
-            if (Math.abs(nm10 + nm01) < epsilon2 && Math.abs(nm20 + nm02) < epsilon2 && Math.abs(nm21 + nm12) < epsilon2
-                    && Math.abs(nm00 + nm11 + nm22 - 3) < epsilon2) {
-                x = 0;
-                y = 0;
-                z = 1;
-                angle = 0;
-                return this;
-            }
-            angle = Math.PI;
-            double xx = (nm00 + 1) / 2;
-            double yy = (nm11 + 1) / 2;
-            double zz = (nm22 + 1) / 2;
-            double xy = (nm10 + nm01) / 4;
-            double xz = (nm20 + nm02) / 4;
-            double yz = (nm21 + nm12) / 4;
-            if ((xx > yy) && (xx > zz)) {
-                x = Math.sqrt(xx);
-                double invX = 1.0 / x;
-                y = xy * invX;
-                z = xz * invX;
-            } else if (yy > zz) {
-                y = Math.sqrt(yy);
-                double invY = 1.0 / y;
-                x = xy * invY;
-                z = yz * invY;
-            } else {
-                z = Math.sqrt(zz);
-                double invZ = 1.0 / z;
-                x = xz * invZ;
-                y = yz * invZ;
-            }
-            return this;
-        }
-        double s = Math.invsqrt((nm12 - nm21) * (nm12 - nm21) + (nm20 - nm02) * (nm20 - nm02) + (nm01 - nm10) * (nm01 - nm10));
-        angle = Math.safeAcos((nm00 + nm11 + nm22 - 1) / 2);
-        x = (nm12 - nm21) * s;
-        y = (nm20 - nm02) * s;
-        z = (nm01 - nm10) * s;
-        return this;
+        return fromRotationMatrix(m.m00(), m.m01(), m.m02(), m.m10(), m.m11(), m.m12(), m.m20(), m.m21(), m.m22());
     }
 
     /**
@@ -385,56 +292,7 @@ public class AxisAngle4d implements Externalizable, Cloneable {
      * @return this
      */
     public AxisAngle4d set(Matrix3dc m) {
-        double nm00 = m.m00(), nm01 = m.m01(), nm02 = m.m02();
-        double nm10 = m.m10(), nm11 = m.m11(), nm12 = m.m12();
-        double nm20 = m.m20(), nm21 = m.m21(), nm22 = m.m22();
-        double lenX = Math.invsqrt(m.m00() * m.m00() + m.m01() * m.m01() + m.m02() * m.m02());
-        double lenY = Math.invsqrt(m.m10() * m.m10() + m.m11() * m.m11() + m.m12() * m.m12());
-        double lenZ = Math.invsqrt(m.m20() * m.m20() + m.m21() * m.m21() + m.m22() * m.m22());
-        nm00 *= lenX; nm01 *= lenX; nm02 *= lenX;
-        nm10 *= lenY; nm11 *= lenY; nm12 *= lenY;
-        nm20 *= lenZ; nm21 *= lenZ; nm22 *= lenZ;
-        double epsilon = 1E-4, epsilon2 = 1E-3;
-        if (Math.abs(nm10 - nm01) < epsilon && Math.abs(nm20 - nm02) < epsilon && Math.abs(nm21 - nm12) < epsilon) {
-            if (Math.abs(nm10 + nm01) < epsilon2 && Math.abs(nm20 + nm02) < epsilon2 && Math.abs(nm21 + nm12) < epsilon2
-                    && Math.abs(nm00 + nm11 + nm22 - 3) < epsilon2) {
-                x = 0;
-                y = 0;
-                z = 1;
-                angle = 0;
-                return this;
-            }
-            angle = Math.PI;
-            double xx = (nm00 + 1) / 2;
-            double yy = (nm11 + 1) / 2;
-            double zz = (nm22 + 1) / 2;
-            double xy = (nm10 + nm01) / 4;
-            double xz = (nm20 + nm02) / 4;
-            double yz = (nm21 + nm12) / 4;
-            if ((xx > yy) && (xx > zz)) {
-                x = Math.sqrt(xx);
-                double invX = 1.0 / x;
-                y = xy * invX;
-                z = xz * invX;
-            } else if (yy > zz) {
-                y = Math.sqrt(yy);
-                double invY = 1.0 / y;
-                x = xy * invY;
-                z = yz * invY;
-            } else {
-                z = Math.sqrt(zz);
-                double invZ = 1.0 / z;
-                x = xz * invZ;
-                y = yz * invZ;
-            }
-            return this;
-        }
-        double s = Math.invsqrt((nm12 - nm21) * (nm12 - nm21) + (nm20 - nm02) * (nm20 - nm02) + (nm01 - nm10) * (nm01 - nm10));
-        angle = Math.safeAcos((nm00 + nm11 + nm22 - 1) / 2);
-        x = (nm12 - nm21) * s;
-        y = (nm20 - nm02) * s;
-        z = (nm01 - nm10) * s;
-        return this;
+        return fromRotationMatrix(m.m00(), m.m01(), m.m02(), m.m10(), m.m11(), m.m12(), m.m20(), m.m21(), m.m22());
     }
 
     /**
@@ -448,56 +306,7 @@ public class AxisAngle4d implements Externalizable, Cloneable {
      * @return this
      */
     public AxisAngle4d set(Matrix4fc m) {
-        double nm00 = m.m00(), nm01 = m.m01(), nm02 = m.m02();
-        double nm10 = m.m10(), nm11 = m.m11(), nm12 = m.m12();
-        double nm20 = m.m20(), nm21 = m.m21(), nm22 = m.m22();
-        double lenX = Math.invsqrt(m.m00() * m.m00() + m.m01() * m.m01() + m.m02() * m.m02());
-        double lenY = Math.invsqrt(m.m10() * m.m10() + m.m11() * m.m11() + m.m12() * m.m12());
-        double lenZ = Math.invsqrt(m.m20() * m.m20() + m.m21() * m.m21() + m.m22() * m.m22());
-        nm00 *= lenX; nm01 *= lenX; nm02 *= lenX;
-        nm10 *= lenY; nm11 *= lenY; nm12 *= lenY;
-        nm20 *= lenZ; nm21 *= lenZ; nm22 *= lenZ;
-        double epsilon = 1E-4, epsilon2 = 1E-3;
-        if (Math.abs(nm10 - nm01) < epsilon && Math.abs(nm20 - nm02) < epsilon && Math.abs(nm21 - nm12) < epsilon) {
-            if (Math.abs(nm10 + nm01) < epsilon2 && Math.abs(nm20 + nm02) < epsilon2 && Math.abs(nm21 + nm12) < epsilon2
-                    && Math.abs(nm00 + nm11 + nm22 - 3) < epsilon2) {
-                x = 0;
-                y = 0;
-                z = 1;
-                angle = 0;
-                return this;
-            }
-            angle = Math.PI;
-            double xx = (nm00 + 1) / 2;
-            double yy = (nm11 + 1) / 2;
-            double zz = (nm22 + 1) / 2;
-            double xy = (nm10 + nm01) / 4;
-            double xz = (nm20 + nm02) / 4;
-            double yz = (nm21 + nm12) / 4;
-            if ((xx > yy) && (xx > zz)) {
-                x = Math.sqrt(xx);
-                double invX = 1.0 / x;
-                y = xy * invX;
-                z = xz * invX;
-            } else if (yy > zz) {
-                y = Math.sqrt(yy);
-                double invY = 1.0 / y;
-                x = xy * invY;
-                z = yz * invY;
-            } else {
-                z = Math.sqrt(zz);
-                double invZ = 1.0 / z;
-                x = xz * invZ;
-                y = yz * invZ;
-            }
-            return this;
-        }
-        double s = Math.invsqrt((nm12 - nm21) * (nm12 - nm21) + (nm20 - nm02) * (nm20 - nm02) + (nm01 - nm10) * (nm01 - nm10));
-        angle = Math.safeAcos((nm00 + nm11 + nm22 - 1) / 2);
-        x = (nm12 - nm21) * s;
-        y = (nm20 - nm02) * s;
-        z = (nm01 - nm10) * s;
-        return this;
+        return fromRotationMatrix(m.m00(), m.m01(), m.m02(), m.m10(), m.m11(), m.m12(), m.m20(), m.m21(), m.m22());
     }
 
     /**
@@ -511,56 +320,7 @@ public class AxisAngle4d implements Externalizable, Cloneable {
      * @return this
      */
     public AxisAngle4d set(Matrix4x3fc m) {
-        double nm00 = m.m00(), nm01 = m.m01(), nm02 = m.m02();
-        double nm10 = m.m10(), nm11 = m.m11(), nm12 = m.m12();
-        double nm20 = m.m20(), nm21 = m.m21(), nm22 = m.m22();
-        double lenX = Math.invsqrt(m.m00() * m.m00() + m.m01() * m.m01() + m.m02() * m.m02());
-        double lenY = Math.invsqrt(m.m10() * m.m10() + m.m11() * m.m11() + m.m12() * m.m12());
-        double lenZ = Math.invsqrt(m.m20() * m.m20() + m.m21() * m.m21() + m.m22() * m.m22());
-        nm00 *= lenX; nm01 *= lenX; nm02 *= lenX;
-        nm10 *= lenY; nm11 *= lenY; nm12 *= lenY;
-        nm20 *= lenZ; nm21 *= lenZ; nm22 *= lenZ;
-        double epsilon = 1E-4, epsilon2 = 1E-3;
-        if (Math.abs(nm10 - nm01) < epsilon && Math.abs(nm20 - nm02) < epsilon && Math.abs(nm21 - nm12) < epsilon) {
-            if (Math.abs(nm10 + nm01) < epsilon2 && Math.abs(nm20 + nm02) < epsilon2 && Math.abs(nm21 + nm12) < epsilon2
-                    && Math.abs(nm00 + nm11 + nm22 - 3) < epsilon2) {
-                x = 0;
-                y = 0;
-                z = 1;
-                angle = 0;
-                return this;
-            }
-            angle = Math.PI;
-            double xx = (nm00 + 1) / 2;
-            double yy = (nm11 + 1) / 2;
-            double zz = (nm22 + 1) / 2;
-            double xy = (nm10 + nm01) / 4;
-            double xz = (nm20 + nm02) / 4;
-            double yz = (nm21 + nm12) / 4;
-            if ((xx > yy) && (xx > zz)) {
-                x = Math.sqrt(xx);
-                double invX = 1.0 / x;
-                y = xy * invX;
-                z = xz * invX;
-            } else if (yy > zz) {
-                y = Math.sqrt(yy);
-                double invY = 1.0 / y;
-                x = xy * invY;
-                z = yz * invY;
-            } else {
-                z = Math.sqrt(zz);
-                double invZ = 1.0 / z;
-                x = xz * invZ;
-                y = yz * invZ;
-            }
-            return this;
-        }
-        double s = Math.invsqrt((nm12 - nm21) * (nm12 - nm21) + (nm20 - nm02) * (nm20 - nm02) + (nm01 - nm10) * (nm01 - nm10));
-        angle = Math.safeAcos((nm00 + nm11 + nm22 - 1) / 2);
-        x = (nm12 - nm21) * s;
-        y = (nm20 - nm02) * s;
-        z = (nm01 - nm10) * s;
-        return this;
+        return fromRotationMatrix(m.m00(), m.m01(), m.m02(), m.m10(), m.m11(), m.m12(), m.m20(), m.m21(), m.m22());
     }
 
     /**
@@ -574,56 +334,7 @@ public class AxisAngle4d implements Externalizable, Cloneable {
      * @return this
      */
     public AxisAngle4d set(Matrix4dc m) {
-        double nm00 = m.m00(), nm01 = m.m01(), nm02 = m.m02();
-        double nm10 = m.m10(), nm11 = m.m11(), nm12 = m.m12();
-        double nm20 = m.m20(), nm21 = m.m21(), nm22 = m.m22();
-        double lenX = Math.invsqrt(m.m00() * m.m00() + m.m01() * m.m01() + m.m02() * m.m02());
-        double lenY = Math.invsqrt(m.m10() * m.m10() + m.m11() * m.m11() + m.m12() * m.m12());
-        double lenZ = Math.invsqrt(m.m20() * m.m20() + m.m21() * m.m21() + m.m22() * m.m22());
-        nm00 *= lenX; nm01 *= lenX; nm02 *= lenX;
-        nm10 *= lenY; nm11 *= lenY; nm12 *= lenY;
-        nm20 *= lenZ; nm21 *= lenZ; nm22 *= lenZ;
-        double epsilon = 1E-4, epsilon2 = 1E-3;
-        if (Math.abs(nm10 - nm01) < epsilon && Math.abs(nm20 - nm02) < epsilon && Math.abs(nm21 - nm12) < epsilon) {
-            if (Math.abs(nm10 + nm01) < epsilon2 && Math.abs(nm20 + nm02) < epsilon2 && Math.abs(nm21 + nm12) < epsilon2
-                    && Math.abs(nm00 + nm11 + nm22 - 3) < epsilon2) {
-                x = 0;
-                y = 0;
-                z = 1;
-                angle = 0;
-                return this;
-            }
-            angle = Math.PI;
-            double xx = (nm00 + 1) / 2;
-            double yy = (nm11 + 1) / 2;
-            double zz = (nm22 + 1) / 2;
-            double xy = (nm10 + nm01) / 4;
-            double xz = (nm20 + nm02) / 4;
-            double yz = (nm21 + nm12) / 4;
-            if ((xx > yy) && (xx > zz)) {
-                x = Math.sqrt(xx);
-                double invX = 1.0 / x;
-                y = xy * invX;
-                z = xz * invX;
-            } else if (yy > zz) {
-                y = Math.sqrt(yy);
-                double invY = 1.0 / y;
-                x = xy * invY;
-                z = yz * invY;
-            } else {
-                z = Math.sqrt(zz);
-                double invZ = 1.0 / z;
-                x = xz * invZ;
-                y = yz * invZ;
-            }
-            return this;
-        }
-        double s = Math.invsqrt((nm12 - nm21) * (nm12 - nm21) + (nm20 - nm02) * (nm20 - nm02) + (nm01 - nm10) * (nm01 - nm10));
-        angle = Math.safeAcos((nm00 + nm11 + nm22 - 1) / 2);
-        x = (nm12 - nm21) * s;
-        y = (nm20 - nm02) * s;
-        z = (nm01 - nm10) * s;
-        return this;
+        return fromRotationMatrix(m.m00(), m.m01(), m.m02(), m.m10(), m.m11(), m.m12(), m.m20(), m.m21(), m.m22());
     }
 
     /**
@@ -923,4 +634,84 @@ public class AxisAngle4d implements Externalizable, Cloneable {
         return super.clone();
     }
 
+    /**
+     * Axis and angle of the quaternion {@code (qx, qy, qz, qw)}: {@code angle = 2 atan2(|v|, w)}, accurate at every angle
+     * (an {@code acos(w)} form loses everything below about 1e-8 rad); the axis is {@code v / |v|}, or +Z for no rotation.
+     */
+    private void fromQuaternion(double qx, double qy, double qz, double qw) {
+        double v = java.lang.Math.sqrt(qx * qx + qy * qy + qz * qz);
+        if (v == 0.0) {
+            this.x = 0;
+            this.y = 0;
+            this.z = 1;
+        } else {
+            this.x = (qx / v);
+            this.y = (qy / v);
+            this.z = (qz / v);
+        }
+        this.angle = (2.0 * AccurateMath.atan2(v, qw));
+    }
+
+    /**
+     * Axis and angle of the rotation part of a matrix (columns normalized first, removing scale). The angle is
+     * {@code atan2(|skew|, trace − 1)}, accurate at every angle; the axis comes from the skew-symmetric part up to 120
+     * degrees and from the symmetric part {@code cos θ I + (1 − cos θ) a aᵀ} beyond, where the skew part vanishes.
+     */
+    private AxisAngle4d fromRotationMatrix(double m00, double m01, double m02, double m10, double m11, double m12,
+            double m20, double m21, double m22) {
+        double lx = 1.0 / java.lang.Math.sqrt(m00 * m00 + m01 * m01 + m02 * m02);
+        double ly = 1.0 / java.lang.Math.sqrt(m10 * m10 + m11 * m11 + m12 * m12);
+        double lz = 1.0 / java.lang.Math.sqrt(m20 * m20 + m21 * m21 + m22 * m22);
+        double n00 = m00 * lx, n01 = m01 * lx, n02 = m02 * lx;
+        double n10 = m10 * ly, n11 = m11 * ly, n12 = m12 * ly;
+        double n20 = m20 * lz, n21 = m21 * lz, n22 = m22 * lz;
+        double sx = n12 - n21, sy = n20 - n02, sz = n01 - n10;
+        double sl = java.lang.Math.sqrt(sx * sx + sy * sy + sz * sz); // 2 sin θ
+        double c2 = n00 + n11 + n22 - 1.0; // 2 cos θ
+        double a = AccurateMath.atan2(sl, c2);
+        double ax, ay, az;
+        if (c2 >= -1.0) { // θ up to 120 degrees: the skew part determines the axis
+            if (sl == 0.0) {
+                this.x = 0;
+                this.y = 0;
+                this.z = 1;
+                this.angle = 0;
+                return this;
+            }
+            ax = sx / sl;
+            ay = sy / sl;
+            az = sz / sl;
+        } else { // near 180 degrees: the symmetric part, scaled by (1 − cos θ) ≥ 1.5
+            double c = 0.5 * c2, d = 1.0 - c;
+            double xx = (n00 - c) / d, yy = (n11 - c) / d, zz = (n22 - c) / d;
+            double xy = (n01 + n10) / (2.0 * d), xz = (n02 + n20) / (2.0 * d), yz = (n12 + n21) / (2.0 * d);
+            if (xx >= yy && xx >= zz) {
+                ax = java.lang.Math.sqrt(java.lang.Math.max(xx, 0.0));
+                ay = xy / ax;
+                az = xz / ax;
+            } else if (yy >= zz) {
+                ay = java.lang.Math.sqrt(java.lang.Math.max(yy, 0.0));
+                ax = xy / ay;
+                az = yz / ay;
+            } else {
+                az = java.lang.Math.sqrt(java.lang.Math.max(zz, 0.0));
+                ax = xz / az;
+                ay = yz / az;
+            }
+            if (ax * sx + ay * sy + az * sz < 0.0) { // the skew part fixes the sign
+                ax = -ax;
+                ay = -ay;
+                az = -az;
+            }
+            double al = java.lang.Math.sqrt(ax * ax + ay * ay + az * az);
+            ax /= al;
+            ay /= al;
+            az /= al;
+        }
+        this.x = ax;
+        this.y = ay;
+        this.z = az;
+        this.angle = a;
+        return this;
+    }
 }

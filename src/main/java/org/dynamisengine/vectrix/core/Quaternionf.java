@@ -1991,29 +1991,33 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
 
     public Vector3f getEulerAnglesXYZ(Vector3f eulerAngles) {
         eulerAngles.x = Math.atan2(x * w - y * z, 0.5f - x * x - y * y);
-        eulerAngles.y = Math.safeAsin(2.0f * (x * z + y * w));
+        eulerAngles.y = (float) Math.atan2(2.0 * ((double) x * (double) z + (double) y * (double) w), 2.0 * Quaterniond.hypotUnit((double) x * (double) w - (double) y * (double) z, 0.5 - (double) x * (double) x - (double) y * (double) y));
         eulerAngles.z = Math.atan2(z * w - x * y, 0.5f - y * y - z * z);
+        eulerAngles.x = (float) Quaterniond.eulerOuter(x, y, z, w, 0, 1, eulerAngles.y, 2, eulerAngles.z);
         return eulerAngles;
     }
 
     public Vector3f getEulerAnglesZYX(Vector3f eulerAngles) {
         eulerAngles.x = Math.atan2(y * z + w * x, 0.5f - x * x - y * y);
-        eulerAngles.y = Math.safeAsin(-2.0f * (x * z - w * y));
+        eulerAngles.y = (float) Math.atan2(-2.0 * ((double) x * (double) z - (double) w * (double) y), 2.0 * Quaterniond.hypotUnit((double) y * (double) z + (double) w * (double) x, 0.5 - (double) x * (double) x - (double) y * (double) y));
         eulerAngles.z = Math.atan2(x * y + w * z, 0.5f - y * y - z * z);
+        eulerAngles.z = (float) Quaterniond.eulerOuter(x, y, z, w, 2, 1, eulerAngles.y, 0, eulerAngles.x);
         return eulerAngles;
     }
 
     public Vector3f getEulerAnglesZXY(Vector3f eulerAngles) {
-        eulerAngles.x = Math.safeAsin(2.0f * (w * x + y * z));
+        eulerAngles.x = (float) Math.atan2(2.0 * ((double) w * (double) x + (double) y * (double) z), 2.0 * Quaterniond.hypotUnit((double) w * (double) y - (double) x * (double) z, 0.5 - (double) y * (double) y - (double) x * (double) x));
         eulerAngles.y = Math.atan2(w * y - x * z, 0.5f - y * y - x * x);
         eulerAngles.z = Math.atan2(w * z - x * y, 0.5f - z * z - x * x);
+        eulerAngles.z = (float) Quaterniond.eulerOuter(x, y, z, w, 2, 0, eulerAngles.x, 1, eulerAngles.y);
         return eulerAngles;
     }
 
     public Vector3f getEulerAnglesYXZ(Vector3f eulerAngles) {
-        eulerAngles.x = Math.safeAsin(-2.0f * (y * z - w * x));
+        eulerAngles.x = (float) Math.atan2(-2.0 * ((double) y * (double) z - (double) w * (double) x), 2.0 * Quaterniond.hypotUnit((double) x * (double) z + (double) y * (double) w, 0.5 - (double) y * (double) y - (double) x * (double) x));
         eulerAngles.y = Math.atan2(x * z + y * w, 0.5f - y * y - x * x);
         eulerAngles.z = Math.atan2(y * x + w * z, 0.5f - x * x - z * z);
+        eulerAngles.y = (float) Quaterniond.eulerOuter(x, y, z, w, 1, 0, eulerAngles.x, 2, eulerAngles.z);
         return eulerAngles;
     }
 
@@ -2149,24 +2153,28 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
 
     /** {@link #slerp(Quaternionfc, float, Quaternionf)} on components, so callers can blend without temporaries. */
     private static Quaternionf slerp(float ax, float ay, float az, float aw, float bx, float by, float bz, float bw, float alpha, Quaternionf dest) {
-        float cosom = Math.fma(ax, bx, Math.fma(ay, by, Math.fma(az, bz, aw * bw)));
-        float absCosom = Math.abs(cosom);
-        float scale0, scale1;
-        if (1.0f - absCosom > 1E-6f) {
-            float sinSqr = 1.0f - absCosom * absCosom;
-            float sinom = Math.invsqrt(sinSqr);
-            float omega = Math.atan2(sinSqr * sinom, absCosom);
-            scale0 = Math.sin((1.0f - alpha) * omega) * sinom;
-            scale1 = Math.sin(alpha * omega) * sinom;
-        } else {
-            scale0 = 1.0f - alpha;
+        // the angle between a and the hemisphere-aligned b from 2 atan2(|a − b|, |a + b|): accurate for every angle, so
+        // no near-identity lerp fallback is needed (before 2.4.0 that fallback left results off unit length by up to
+        // 2.5e-7 and the acos-style angle lost precision)
+        double sign = (double) ax * bx + (double) ay * by + (double) az * bz + (double) aw * bw >= 0.0 ? 1.0 : -1.0;
+        double dx = ax - sign * bx, dy = ay - sign * by, dz = az - sign * bz, dw = aw - sign * bw;
+        double px = ax + sign * bx, py = ay + sign * by, pz = az + sign * bz, pw = aw + sign * bw;
+        double om = 2.0 * Math.atan2(java.lang.Math.sqrt(dx * dx + dy * dy + dz * dz + dw * dw),
+                java.lang.Math.sqrt(px * px + py * py + pz * pz + pw * pw));
+        double scale0, scale1;
+        if (om == 0.0) {
+            scale0 = 1.0 - alpha;
             scale1 = alpha;
+        } else {
+            double so = Math.sin(om);
+            scale0 = Math.sin((1.0 - alpha) * om) / so;
+            scale1 = Math.sin(alpha * om) / so;
         }
-        scale1 = cosom >= 0.0f ? scale1 : -scale1;
-        dest.x = Math.fma(scale0, ax, scale1 * bx);
-        dest.y = Math.fma(scale0, ay, scale1 * by);
-        dest.z = Math.fma(scale0, az, scale1 * bz);
-        dest.w = Math.fma(scale0, aw, scale1 * bw);
+        scale1 *= sign;
+        dest.x = (float) (scale0 * ax + scale1 * bx);
+        dest.y = (float) (scale0 * ay + scale1 * by);
+        dest.z = (float) (scale0 * az + scale1 * bz);
+        dest.w = (float) (scale0 * aw + scale1 * bw);
         return dest;
     }
 
@@ -2685,9 +2693,6 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         float q2x = q.x(), q2y = q.y(), q2z = q.z(), q2w = q.w();
         float dot = Math.fma(q1x, q2x, Math.fma(q1y, q2y, Math.fma(q1z, q2z, q1w * q2w)));
         float absDot = Math.abs(dot);
-        if (1.0f - 1E-6f < absDot) {
-            return dest.set(this);
-        }
         float alphaN = alpha;
         // Each iteration halves the arc, so 32 take it below float/double resolution. Without the cap a threshold
         // >= 1 (|dot| never exceeds 1), or one that rounding cannot reach, looped forever.
@@ -2958,21 +2963,38 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         float tx = toDirX * tn, ty = toDirY * tn, tz = toDirZ * tn;
         float dot = fx * tx + fy * ty + fz * tz;
         float x, y, z, w;
-        if (dot < -1.0f + 1E-6f) {
-            x = fy;
-            y = -fx;
-            z = 0.0f;
-            w = 0.0f;
-            if (x * x + y * y == 0.0f) {
-                x = 0.0f;
-                y = fz;
-                z = -fy;
-                w = 0.0f;
+        if (dot <= -0.9f) {
+            // near antiparallel the half-angle form below cancels: use axis and angle, with the axis re-orthogonalized
+            // against from so the image of from stays exact while the (ill-determined) axis direction varies
+            double ax = (double) fy * tz - (double) fz * ty, ay = (double) fz * tx - (double) fx * tz;
+            double az = (double) fx * ty - (double) fy * tx;
+            double s = java.lang.Math.sqrt(ax * ax + ay * ay + az * az);
+            if (s == 0.0) { // exactly opposite: 180 degrees about any axis perpendicular to from
+                if (java.lang.Math.abs(fx) < 0.9) {
+                    ax = 0.0;
+                    ay = fz;
+                    az = -fy;
+                } else {
+                    ax = -fz;
+                    ay = 0.0;
+                    az = fx;
+                }
             }
+            double k = ax * fx + ay * fy + az * fz;
+            ax -= k * fx;
+            ay -= k * fy;
+            az -= k * fz;
+            double al = java.lang.Math.sqrt(ax * ax + ay * ay + az * az);
+            double half = 0.5 * Math.atan2(s, (double) dot);
+            double sh = Math.sin(half) / al;
+            x = (float) (ax * sh);
+            y = (float) (ay * sh);
+            z = (float) (az * sh);
+            w = (float) Math.cos(half);
             this.x = x;
             this.y = y;
             this.z = z;
-            this.w = 0;
+            this.w = w;
         } else {
             float sd2 = Math.sqrt((1.0f + dot) * 2.0f);
             float isd2 = 1.0f / sd2;
@@ -3016,17 +3038,34 @@ public class Quaternionf implements Externalizable, Cloneable, Quaternionfc {
         float tx = toDirX * tn, ty = toDirY * tn, tz = toDirZ * tn;
         float dot = fx * tx + fy * ty + fz * tz;
         float x, y, z, w;
-        if (dot < -1.0f + 1E-6f) {
-            x = fy;
-            y = -fx;
-            z = 0.0f;
-            w = 0.0f;
-            if (x * x + y * y == 0.0f) {
-                x = 0.0f;
-                y = fz;
-                z = -fy;
-                w = 0.0f;
+        if (dot <= -0.9f) {
+            // near antiparallel the half-angle form below cancels: use axis and angle, with the axis re-orthogonalized
+            // against from so the image of from stays exact while the (ill-determined) axis direction varies
+            double ax = (double) fy * tz - (double) fz * ty, ay = (double) fz * tx - (double) fx * tz;
+            double az = (double) fx * ty - (double) fy * tx;
+            double s = java.lang.Math.sqrt(ax * ax + ay * ay + az * az);
+            if (s == 0.0) { // exactly opposite: 180 degrees about any axis perpendicular to from
+                if (java.lang.Math.abs(fx) < 0.9) {
+                    ax = 0.0;
+                    ay = fz;
+                    az = -fy;
+                } else {
+                    ax = -fz;
+                    ay = 0.0;
+                    az = fx;
+                }
             }
+            double k = ax * fx + ay * fy + az * fz;
+            ax -= k * fx;
+            ay -= k * fy;
+            az -= k * fz;
+            double al = java.lang.Math.sqrt(ax * ax + ay * ay + az * az);
+            double half = 0.5 * Math.atan2(s, (double) dot);
+            double sh = Math.sin(half) / al;
+            x = (float) (ax * sh);
+            y = (float) (ay * sh);
+            z = (float) (az * sh);
+            w = (float) Math.cos(half);
         } else {
             float sd2 = Math.sqrt((1.0f + dot) * 2.0f);
             float isd2 = 1.0f / sd2;

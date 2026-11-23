@@ -634,9 +634,7 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
     }
 
     public float angle(Vector2fc v) {
-        float dot = x*v.x() + y*v.y();
-        float det = x*v.y() - y*v.x();
-        return Math.atan2(det, dot);
+        return (float) Norms.angle2(x, y, v.x(), v.y());
     }
 
     public float lengthSquared() {
@@ -658,7 +656,7 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
     }
 
     public float length() {
-        return Math.sqrt(x * x + y * y);
+        return (float) java.lang.Math.sqrt((double) x * x + (double) y * y);
     }
 
     /**
@@ -672,7 +670,7 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
      * @author F. Neurath
      */
     public static float length(float x, float y) {
-        return Math.sqrt(x * x + y * y);
+        return (float) java.lang.Math.sqrt((double) x * x + (double) y * y);
     }
 
     public float distance(Vector2fc v) {
@@ -747,9 +745,9 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
     }
 
     public Vector2f normalize(Vector2f dest) {
-        float invLength = Math.invsqrt(x * x + y * y);
-        dest.x = x * invLength;
-        dest.y = y * invLength;
+        double invLength = 1.0 / java.lang.Math.sqrt((double) x * x + (double) y * y);
+        dest.x = (float) (x * invLength);
+        dest.y = (float) (y * invLength);
         return dest;
     }
 
@@ -765,9 +763,9 @@ public class Vector2f implements Externalizable, Cloneable, Vector2fc {
     }
 
     public Vector2f normalize(float length, Vector2f dest) {
-        float invLength = Math.invsqrt(x * x + y * y) * length;
-        dest.x = x * invLength;
-        dest.y = y * invLength;
+        double invLength = length / java.lang.Math.sqrt((double) x * x + (double) y * y);
+        dest.x = (float) (x * invLength);
+        dest.y = (float) (y * invLength);
         return dest;
     }
 

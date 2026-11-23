@@ -40,8 +40,14 @@ class AxisAngle4fTest {
     void testAxisAngleFromIdentityQuaternion() {
         AxisAngle4f a = new AxisAngle4f().set(new Quaternionf());
         assertEquals(new AxisAngle4f(0, 0, 0, 1), a);
-        a = new AxisAngle4f().set(new Quaternionf(2.035E-9,4.715E-10,-9.166E-11,1.000E+0));
-        assertEquals(new AxisAngle4f(0, 0, 0, 1), a);
+        // a 4.2e-9 rad rotation is kept exactly (before 2.4.0 it was snapped to no rotation)
+        double vx = 2.035E-9f, vy = 4.715E-10f, vz = -9.166E-11f;
+        double v = Math.sqrt(vx * vx + vy * vy + vz * vz);
+        a = new AxisAngle4f().set(new Quaternionf(2.035E-9f, 4.715E-10f, -9.166E-11f, 1.000E+0f));
+        assertEquals(2 * Math.atan2(v, 1), a.angle, 1e-15);
+        assertEquals(vx / v, a.x, 1e-7);
+        assertEquals(vy / v, a.y, 1e-7);
+        assertEquals(vz / v, a.z, 1e-7);
     }
 
     @Test

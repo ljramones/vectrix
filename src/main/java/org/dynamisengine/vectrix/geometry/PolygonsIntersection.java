@@ -211,6 +211,15 @@ public class PolygonsIntersection {
         int i, j = 0;
         minX = minY = 1E38f;
         maxX = maxY = -1E38f;
+        // the bounds over every vertex: the interval loop below never visits each polygon's first vertex as "i"
+        // (which left it out of the bounds before 2.4.0, so points near it were rejected)
+        for (int v = 0; v < count; v++) {
+            float vx = verticesXY[2 * v], vy = verticesXY[2 * v + 1];
+            minX = vx < minX ? vx : minX;
+            minY = vy < minY ? vy : minY;
+            maxX = vx > maxX ? vx : maxX;
+            maxY = vy > maxY ? vy : maxY;
+        }
         List intervals = new ArrayList(count);
         int first = 0;
         int currPoly = 0;

@@ -229,9 +229,9 @@ public class Intersectiond {
         double invDenom = Math.invsqrt(a * a + b * b + c * c);
         double dist = (a * centerX + b * centerY + c * centerZ + d) * invDenom;
         if (-radius <= dist && dist <= radius) {
-            intersectionCenterAndRadius.x = centerX + dist * a * invDenom;
-            intersectionCenterAndRadius.y = centerY + dist * b * invDenom;
-            intersectionCenterAndRadius.z = centerZ + dist * c * invDenom;
+            intersectionCenterAndRadius.x = centerX - dist * a * invDenom;
+            intersectionCenterAndRadius.y = centerY - dist * b * invDenom;
+            intersectionCenterAndRadius.z = centerZ - dist * c * invDenom;
             intersectionCenterAndRadius.w = Math.sqrt(radius * radius - dist * dist);
             return true;
         }
@@ -279,7 +279,7 @@ public class Intersectiond {
             double vX, double vY, double vZ,
             Vector4d pointAndTime) {
         // Compute distance of sphere center to plane
-        double dist = a * cX + b * cY + c * cZ - d;
+        double dist = a * cX + b * cY + c * cZ + d;
         if (Math.abs(dist) <= radius) {
             // The sphere is already overlapping the plane. Set time of
             // intersection to zero and q to sphere center
@@ -340,8 +340,8 @@ public class Intersectiond {
             double t0X, double t0Y, double t0Z, double r,
             double t1X, double t1Y, double t1Z) {
         // Get the distance for both a and b from plane p
-        double adist = t0X * a + t0Y * b + t0Z * c - d;
-        double bdist = t1X * a + t1Y * b + t1Z * c - d;
+        double adist = t0X * a + t0Y * b + t0Z * c + d;
+        double bdist = t1X * a + t1Y * b + t1Z * c + d;
         // Intersects if on different sides of plane (distances have different signs)
         if (adist * bdist < 0.0) return true;
         // Intersects if start or end position within radius from plane
@@ -605,15 +605,16 @@ public class Intersectiond {
             double b1cX, double b1cY, double b1cZ, double b1uXx, double b1uXy, double b1uXz, double b1uYx, double b1uYy, double b1uYz, double b1uZx, double b1uZy, double b1uZz, double b1hsX, double b1hsY, double b1hsZ) {
         double ra, rb;
         // Compute rotation matrix expressing b in a's coordinate frame
-        double rm00 = b0uXx * b1uXx + b0uYx * b1uYx + b0uZx * b1uZx;
-        double rm10 = b0uXx * b1uXy + b0uYx * b1uYy + b0uZx * b1uZy;
-        double rm20 = b0uXx * b1uXz + b0uYx * b1uYz + b0uZx * b1uZz;
-        double rm01 = b0uXy * b1uXx + b0uYy * b1uYx + b0uZy * b1uZx;
-        double rm11 = b0uXy * b1uXy + b0uYy * b1uYy + b0uZy * b1uZy;
-        double rm21 = b0uXy * b1uXz + b0uYy * b1uYz + b0uZy * b1uZz;
-        double rm02 = b0uXz * b1uXx + b0uYz * b1uYx + b0uZz * b1uZx;
-        double rm12 = b0uXz * b1uXy + b0uYz * b1uYy + b0uZz * b1uZy;
-        double rm22 = b0uXz * b1uXz + b0uYz * b1uYz + b0uZz * b1uZz;
+        // R[i][j] = A_i · B_j (before 2.4.0 the matrix was transposed, wrong whenever box 0 was rotated)
+        double rm00 = b0uXx * b1uXx + b0uXy * b1uXy + b0uXz * b1uXz;
+        double rm01 = b0uXx * b1uYx + b0uXy * b1uYy + b0uXz * b1uYz;
+        double rm02 = b0uXx * b1uZx + b0uXy * b1uZy + b0uXz * b1uZz;
+        double rm10 = b0uYx * b1uXx + b0uYy * b1uXy + b0uYz * b1uXz;
+        double rm11 = b0uYx * b1uYx + b0uYy * b1uYy + b0uYz * b1uYz;
+        double rm12 = b0uYx * b1uZx + b0uYy * b1uZy + b0uYz * b1uZz;
+        double rm20 = b0uZx * b1uXx + b0uZy * b1uXy + b0uZz * b1uXz;
+        double rm21 = b0uZx * b1uYx + b0uZy * b1uYy + b0uZz * b1uYz;
+        double rm22 = b0uZx * b1uZx + b0uZy * b1uZy + b0uZz * b1uZz;
         // Compute common subexpressions. Add in an epsilon term to
         // counteract arithmetic errors when two edges are parallel and
         // their cross product is (near) null (see text for details)
@@ -824,6 +825,10 @@ public class Intersectiond {
      * Test whether the one sphere with center <code>(aX, aY, aZ)</code> and square radius <code>radiusSquaredA</code> intersects the other
      * sphere with center <code>(bX, bY, bZ)</code> and square radius <code>radiusSquaredB</code>.
      * <p>
+     * "Intersects" means the two sphere <em>surfaces</em> meet (there is a circle of intersection, see
+     * {@link #intersectSphereSphere}); a sphere strictly inside the other does not count. For overlapping volumes test
+     * {@code distance² <= (rA + rB)²}.
+     * <p>
      * Reference: <a href="http://gamedev.stackexchange.com/questions/75756/sphere-sphere-intersection-and-circle-sphere-intersection">http://gamedev.stackexchange.com</a>
      * 
      * @param aX
@@ -849,6 +854,9 @@ public class Intersectiond {
             double bX, double bY, double bZ, double radiusSquaredB) {
         double dX = bX - aX, dY = bY - aY, dZ = bZ - aZ;
         double distSquared = dX * dX + dY * dY + dZ * dZ;
+        if (distSquared == 0.0) { // concentric: the surfaces meet only if the radii are equal (0/0 before 2.4.0)
+            return radiusSquaredA == radiusSquaredB;
+        }
         double h = 0.5 + (radiusSquaredA - radiusSquaredB) / (2.0 * distSquared);
         double r_i = radiusSquaredA - h * h * distSquared;
         return r_i >= 0.0;
@@ -989,7 +997,7 @@ public class Intersectiond {
     public static double intersectRayPlane(double originX, double originY, double originZ, double dirX, double dirY, double dirZ,
             double pointX, double pointY, double pointZ, double normalX, double normalY, double normalZ, double epsilon) {
         double denom = normalX * dirX + normalY * dirY + normalZ * dirZ;
-        if (denom < epsilon) {
+        if (denom < epsilon && denom != 0.0) { // parallel rays never hit (Infinity before 2.4.0)
             double t = ((pointX - originX) * normalX + (pointY - originY) * normalY + (pointZ - originZ) * normalZ) / denom;
             if (t >= 0.0)
                 return t;
@@ -1062,7 +1070,7 @@ public class Intersectiond {
     public static double intersectRayPlane(double originX, double originY, double originZ, double dirX, double dirY, double dirZ,
             double a, double b, double c, double d, double epsilon) {
         double denom = a * dirX + b * dirY + c * dirZ;
-        if (denom < epsilon) {
+        if (denom < epsilon && denom != 0.0) { // parallel rays never hit (Infinity before 2.4.0)
             double t = -(a * originX + b * originY + c * originZ + d) / denom;
             if (t >= 0.0)
                 return t;
@@ -1174,7 +1182,7 @@ public class Intersectiond {
      */
     public static Vector3d findClosestPointOnPlane(double aX, double aY, double aZ, double nX, double nY, double nZ, double pX, double pY, double pZ, Vector3d result) {
         double d = -(nX * aX + nY * aY + nZ * aZ);
-        double t = nX * pX + nY * pY + nZ * pZ - d;
+        double t = nX * pX + nY * pY + nZ * pZ + d;
         result.x = pX - t * nX;
         result.y = pY - t * nY;
         result.z = pZ - t * nZ;
@@ -1264,13 +1272,15 @@ public class Intersectiond {
         double invA = 1.0 / a;
         double e = d2x * d2x + d2y * d2y + d2z * d2z;
         double f = d2x * rX + d2y * rY + d2z * rZ;
-        double EPSILON = 1E-8;
+        // a segment is a point only relative to the problem's scale (an absolute 1e-8 on squared length before 2.4.0
+        // treated segments shorter than 1e-4 as points)
+        double EPSILON = 1E-24 * Math.max(Math.max(a, e), rX * rX + rY * rY + rZ * rZ);
         double s, t;
         if (a <= EPSILON && e <= EPSILON) {
             // Both segments degenerate into points
             resultA.set(a0X, a0Y, a0Z);
             resultB.set(b0X, b0Y, b0Z);
-            return resultA.dot(resultB);
+            return resultA.distanceSquared(resultB);
         }
         if (a <= EPSILON) {
             // First segment degenerates into a point
@@ -1993,17 +2003,27 @@ public class Intersectiond {
      */
     public static boolean intersectRaySphere(double originX, double originY, double originZ, double dirX, double dirY, double dirZ,
             double centerX, double centerY, double centerZ, double radiusSquared, Vector2d result) {
-        double Lx = centerX - originX;
-        double Ly = centerY - originY;
-        double Lz = centerZ - originZ;
-        double tca = Lx * dirX + Ly * dirY + Lz * dirZ;
-        double d2 = Lx * Lx + Ly * Ly + Lz * Lz - tca * tca;
+        double lx = centerX - (double) originX, ly = centerY - (double) originY, lz = centerZ - (double) originZ;
+        double tca = lx * dirX + ly * dirY + lz * dirZ;
+        // the perpendicular distance directly: |L|² − tca² cancels for distant spheres (thousands of wrong answers per
+        // 10k random distant rays before 2.4.0)
+        double px = lx - tca * dirX, py = ly - tca * dirY, pz = lz - tca * dirZ;
+        double d2 = px * px + py * py + pz * pz;
         if (d2 > radiusSquared)
             return false;
-        double thc = Math.sqrt(radiusSquared - d2);
-        double t0 = tca - thc;
-        double t1 = tca + thc;
-        if (t0 < t1 && t1 >= 0.0) {
+        double thc = java.lang.Math.sqrt(radiusSquared - d2);
+        // the root of larger magnitude without cancellation, the other from t0 t1 = (|L| − r)(|L| + r)
+        double len = java.lang.Math.sqrt(lx * lx + ly * ly + lz * lz), r = java.lang.Math.sqrt(radiusSquared);
+        double prod = (len - r) * (len + r);
+        double t0, t1;
+        if (tca >= 0.0) {
+            t1 = tca + thc;
+            t0 = t1 == 0.0 ? 0.0 : prod / t1;
+        } else {
+            t0 = tca - thc;
+            t1 = prod / t0;
+        }
+        if (t1 >= 0.0) { // tangent rays (t0 == t1) hit
             result.x = t0;
             result.y = t1;
             return true;
@@ -2070,17 +2090,20 @@ public class Intersectiond {
      */
     public static boolean testRaySphere(double originX, double originY, double originZ, double dirX, double dirY, double dirZ,
             double centerX, double centerY, double centerZ, double radiusSquared) {
-        double Lx = centerX - originX;
-        double Ly = centerY - originY;
-        double Lz = centerZ - originZ;
-        double tca = Lx * dirX + Ly * dirY + Lz * dirZ;
-        double d2 = Lx * Lx + Ly * Ly + Lz * Lz - tca * tca;
+        double lx = centerX - (double) originX, ly = centerY - (double) originY, lz = centerZ - (double) originZ;
+        double tca = lx * dirX + ly * dirY + lz * dirZ;
+        // the perpendicular distance directly: |L|² − tca² cancels for distant spheres (thousands of wrong answers per
+        // 10k random distant rays before 2.4.0)
+        double px = lx - tca * dirX, py = ly - tca * dirY, pz = lz - tca * dirZ;
+        double d2 = px * px + py * py + pz * pz;
         if (d2 > radiusSquared)
             return false;
-        double thc = Math.sqrt(radiusSquared - d2);
-        double t0 = tca - thc;
-        double t1 = tca + thc;
-        return t0 < t1 && t1 >= 0.0;
+        double thc = java.lang.Math.sqrt(radiusSquared - d2);
+        // the root of larger magnitude without cancellation, the other from t0 t1 = (|L| − r)(|L| + r)
+        double len = java.lang.Math.sqrt(lx * lx + ly * ly + lz * lz), r = java.lang.Math.sqrt(radiusSquared);
+        double prod = (len - r) * (len + r);
+        double t1 = tca >= 0.0 ? tca + thc : prod / (tca - thc); // the far root
+        return t1 >= 0.0;
     }
 
     /**
@@ -2258,7 +2281,7 @@ public class Intersectiond {
         tFar = tymax < tFar || Double.isNaN(tFar) ? tymax : tFar;
         tNear = tzmin > tNear ? tzmin : tNear;
         tFar = tzmax < tFar ? tzmax : tFar;
-        if (tNear < tFar && tFar >= 0.0) {
+        if (tNear <= tFar && tFar >= 0.0) {
             result.x = tNear;
             result.y = tFar;
             return true;
@@ -2544,7 +2567,7 @@ public class Intersectiond {
         tFar = tymax < tFar || Double.isNaN(tFar) ? tymax : tFar;
         tNear = tzmin > tNear ? tzmin : tNear;
         tFar = tzmax < tFar ? tzmax : tFar;
-        return tNear < tFar && tFar >= 0.0;
+        return tNear <= tFar && tFar >= 0.0;
     }
 
     /**
@@ -2618,38 +2641,13 @@ public class Intersectiond {
      * @param v2Z
      *              the z coordinate of the third vertex
      * @param epsilon
-     *              a small epsilon when testing rays that are almost parallel to the triangle
+     *              the minimum distance along the ray for a hit (the test is watertight and handles parallel rays exactly; before 2.4.0 this was a tolerance on the Möller-Trumbore determinant)
      * @return <code>true</code> if the given ray intersects the frontface of the triangle; <code>false</code> otherwise
      */
     public static boolean testRayTriangleFront(double originX, double originY, double originZ, double dirX, double dirY, double dirZ,
             double v0X, double v0Y, double v0Z, double v1X, double v1Y, double v1Z, double v2X, double v2Y, double v2Z,
             double epsilon) {
-        double edge1X = v1X - v0X;
-        double edge1Y = v1Y - v0Y;
-        double edge1Z = v1Z - v0Z;
-        double edge2X = v2X - v0X;
-        double edge2Y = v2Y - v0Y;
-        double edge2Z = v2Z - v0Z;
-        double pvecX = dirY * edge2Z - dirZ * edge2Y;
-        double pvecY = dirZ * edge2X - dirX * edge2Z;
-        double pvecZ = dirX * edge2Y - dirY * edge2X;
-        double det = edge1X * pvecX + edge1Y * pvecY + edge1Z * pvecZ;
-        if (det < epsilon)
-            return false;
-        double tvecX = originX - v0X;
-        double tvecY = originY - v0Y;
-        double tvecZ = originZ - v0Z;
-        double u = (tvecX * pvecX + tvecY * pvecY + tvecZ * pvecZ);
-        if (u < 0.0 || u > det)
-            return false;
-        double qvecX = tvecY * edge1Z - tvecZ * edge1Y;
-        double qvecY = tvecZ * edge1X - tvecX * edge1Z;
-        double qvecZ = tvecX * edge1Y - tvecY * edge1X;
-        double v = (dirX * qvecX + dirY * qvecY + dirZ * qvecZ);
-        if (v < 0.0 || u + v > det)
-            return false;
-        double t = (edge2X * qvecX + edge2Y * qvecY + edge2Z * qvecZ) / det;
-        return t >= epsilon;
+        return !Double.isNaN(rayTriangleWatertight(originX, originY, originZ, dirX, dirY, dirZ, v0X, v0Y, v0Z, v1X, v1Y, v1Z, v2X, v2Y, v2Z, epsilon, true));
     }
 
     /**
@@ -2676,7 +2674,7 @@ public class Intersectiond {
      * @param v2
      *              the position of the third vertex
      * @param epsilon
-     *              a small epsilon when testing rays that are almost parallel to the triangle
+     *              the minimum distance along the ray for a hit (the test is watertight and handles parallel rays exactly; before 2.4.0 this was a tolerance on the Möller-Trumbore determinant)
      * @return <code>true</code> if the given ray intersects the frontface of the triangle; <code>false</code> otherwise
      */
     public static boolean testRayTriangleFront(Vector3dc origin, Vector3dc dir, Vector3dc v0, Vector3dc v1, Vector3dc v2, double epsilon) {
@@ -2725,39 +2723,13 @@ public class Intersectiond {
      * @param v2Z
      *              the z coordinate of the third vertex
      * @param epsilon
-     *              a small epsilon when testing rays that are almost parallel to the triangle
+     *              the minimum distance along the ray for a hit (the test is watertight and handles parallel rays exactly; before 2.4.0 this was a tolerance on the Möller-Trumbore determinant)
      * @return <code>true</code> if the given ray intersects the frontface of the triangle; <code>false</code> otherwise
      */
     public static boolean testRayTriangle(double originX, double originY, double originZ, double dirX, double dirY, double dirZ,
             double v0X, double v0Y, double v0Z, double v1X, double v1Y, double v1Z, double v2X, double v2Y, double v2Z,
             double epsilon) {
-        double edge1X = v1X - v0X;
-        double edge1Y = v1Y - v0Y;
-        double edge1Z = v1Z - v0Z;
-        double edge2X = v2X - v0X;
-        double edge2Y = v2Y - v0Y;
-        double edge2Z = v2Z - v0Z;
-        double pvecX = dirY * edge2Z - dirZ * edge2Y;
-        double pvecY = dirZ * edge2X - dirX * edge2Z;
-        double pvecZ = dirX * edge2Y - dirY * edge2X;
-        double det = edge1X * pvecX + edge1Y * pvecY + edge1Z * pvecZ;
-        if (det > -epsilon && det < epsilon)
-            return false;
-        double tvecX = originX - v0X;
-        double tvecY = originY - v0Y;
-        double tvecZ = originZ - v0Z;
-        double invDet = 1.0 / det;
-        double u = (tvecX * pvecX + tvecY * pvecY + tvecZ * pvecZ) * invDet;
-        if (u < 0.0 || u > 1.0)
-            return false;
-        double qvecX = tvecY * edge1Z - tvecZ * edge1Y;
-        double qvecY = tvecZ * edge1X - tvecX * edge1Z;
-        double qvecZ = tvecX * edge1Y - tvecY * edge1X;
-        double v = (dirX * qvecX + dirY * qvecY + dirZ * qvecZ) * invDet;
-        if (v < 0.0 || u + v > 1.0)
-            return false;
-        double t = (edge2X * qvecX + edge2Y * qvecY + edge2Z * qvecZ) * invDet;
-        return t >= epsilon;
+        return !Double.isNaN(rayTriangleWatertight(originX, originY, originZ, dirX, dirY, dirZ, v0X, v0Y, v0Z, v1X, v1Y, v1Z, v2X, v2Y, v2Z, epsilon, false));
     }
 
     /**
@@ -2782,7 +2754,7 @@ public class Intersectiond {
      * @param v2
      *              the position of the third vertex
      * @param epsilon
-     *              a small epsilon when testing rays that are almost parallel to the triangle
+     *              the minimum distance along the ray for a hit (the test is watertight and handles parallel rays exactly; before 2.4.0 this was a tolerance on the Möller-Trumbore determinant)
      * @return <code>true</code> if the given ray intersects the frontface of the triangle; <code>false</code> otherwise
      */
     public static boolean testRayTriangle(Vector3dc origin, Vector3dc dir, Vector3dc v0, Vector3dc v1, Vector3dc v2, double epsilon) {
@@ -2834,38 +2806,15 @@ public class Intersectiond {
      * @param v2Z
      *              the z coordinate of the third vertex
      * @param epsilon
-     *              a small epsilon when testing rays that are almost parallel to the triangle
+     *              the minimum distance along the ray for a hit (the test is watertight and handles parallel rays exactly; before 2.4.0 this was a tolerance on the Möller-Trumbore determinant)
      * @return the value of the parameter <i>t</i> in the ray equation <i>p(t) = origin + t * dir</i> of the point of intersection
      *         if the ray intersects the frontface of the triangle; <code>-1.0</code> otherwise
      */
     public static double intersectRayTriangleFront(double originX, double originY, double originZ, double dirX, double dirY, double dirZ,
             double v0X, double v0Y, double v0Z, double v1X, double v1Y, double v1Z, double v2X, double v2Y, double v2Z,
             double epsilon) {
-        double edge1X = v1X - v0X;
-        double edge1Y = v1Y - v0Y;
-        double edge1Z = v1Z - v0Z;
-        double edge2X = v2X - v0X;
-        double edge2Y = v2Y - v0Y;
-        double edge2Z = v2Z - v0Z;
-        double pvecX = dirY * edge2Z - dirZ * edge2Y;
-        double pvecY = dirZ * edge2X - dirX * edge2Z;
-        double pvecZ = dirX * edge2Y - dirY * edge2X;
-        double det = edge1X * pvecX + edge1Y * pvecY + edge1Z * pvecZ;
-        if (det <= epsilon)
-            return -1.0;
-        double tvecX = originX - v0X;
-        double tvecY = originY - v0Y;
-        double tvecZ = originZ - v0Z;
-        double u = tvecX * pvecX + tvecY * pvecY + tvecZ * pvecZ;
-        if (u < 0.0 || u > det)
-            return -1.0;
-        double qvecX = tvecY * edge1Z - tvecZ * edge1Y;
-        double qvecY = tvecZ * edge1X - tvecX * edge1Z;
-        double qvecZ = tvecX * edge1Y - tvecY * edge1X;
-        double v = dirX * qvecX + dirY * qvecY + dirZ * qvecZ;
-        if (v < 0.0 || u + v > det)
-            return -1.0;
-        return (edge2X * qvecX + edge2Y * qvecY + edge2Z * qvecZ) / det;
+        double t = rayTriangleWatertight(originX, originY, originZ, dirX, dirY, dirZ, v0X, v0Y, v0Z, v1X, v1Y, v1Z, v2X, v2Y, v2Z, epsilon, true);
+        return Double.isNaN(t) ? -1.0 : t;
     }
 
     /**
@@ -2892,7 +2841,7 @@ public class Intersectiond {
      * @param v2
      *              the position of the third vertex
      * @param epsilon
-     *              a small epsilon when testing rays that are almost parallel to the triangle
+     *              the minimum distance along the ray for a hit (the test is watertight and handles parallel rays exactly; before 2.4.0 this was a tolerance on the Möller-Trumbore determinant)
      * @return the value of the parameter <i>t</i> in the ray equation <i>p(t) = origin + t * dir</i> of the point of intersection
      *         if the ray intersects the frontface of the triangle; <code>-1.0</code> otherwise
      */
@@ -2943,39 +2892,15 @@ public class Intersectiond {
      * @param v2Z
      *              the z coordinate of the third vertex
      * @param epsilon
-     *              a small epsilon when testing rays that are almost parallel to the triangle
+     *              the minimum distance along the ray for a hit (the test is watertight and handles parallel rays exactly; before 2.4.0 this was a tolerance on the Möller-Trumbore determinant)
      * @return the value of the parameter <i>t</i> in the ray equation <i>p(t) = origin + t * dir</i> of the point of intersection
      *         if the ray intersects the triangle; <code>-1.0</code> otherwise
      */
     public static double intersectRayTriangle(double originX, double originY, double originZ, double dirX, double dirY, double dirZ,
             double v0X, double v0Y, double v0Z, double v1X, double v1Y, double v1Z, double v2X, double v2Y, double v2Z,
             double epsilon) {
-        double edge1X = v1X - v0X;
-        double edge1Y = v1Y - v0Y;
-        double edge1Z = v1Z - v0Z;
-        double edge2X = v2X - v0X;
-        double edge2Y = v2Y - v0Y;
-        double edge2Z = v2Z - v0Z;
-        double pvecX = dirY * edge2Z - dirZ * edge2Y;
-        double pvecY = dirZ * edge2X - dirX * edge2Z;
-        double pvecZ = dirX * edge2Y - dirY * edge2X;
-        double det = edge1X * pvecX + edge1Y * pvecY + edge1Z * pvecZ;
-        if (det > -epsilon && det < epsilon)
-            return -1.0;
-        double tvecX = originX - v0X;
-        double tvecY = originY - v0Y;
-        double tvecZ = originZ - v0Z;
-        double invDet = 1.0 / det;
-        double u = (tvecX * pvecX + tvecY * pvecY + tvecZ * pvecZ) * invDet;
-        if (u < 0.0 || u > 1.0)
-            return -1.0;
-        double qvecX = tvecY * edge1Z - tvecZ * edge1Y;
-        double qvecY = tvecZ * edge1X - tvecX * edge1Z;
-        double qvecZ = tvecX * edge1Y - tvecY * edge1X;
-        double v = (dirX * qvecX + dirY * qvecY + dirZ * qvecZ) * invDet;
-        if (v < 0.0 || u + v > 1.0)
-            return -1.0;
-        return (edge2X * qvecX + edge2Y * qvecY + edge2Z * qvecZ) * invDet;
+        double t = rayTriangleWatertight(originX, originY, originZ, dirX, dirY, dirZ, v0X, v0Y, v0Z, v1X, v1Y, v1Z, v2X, v2Y, v2Z, epsilon, false);
+        return Double.isNaN(t) ? -1.0 : t;
     }
 
     /**
@@ -3000,7 +2925,7 @@ public class Intersectiond {
      * @param v2
      *              the position of the third vertex
      * @param epsilon
-     *              a small epsilon when testing rays that are almost parallel to the triangle
+     *              the minimum distance along the ray for a hit (the test is watertight and handles parallel rays exactly; before 2.4.0 this was a tolerance on the Möller-Trumbore determinant)
      * @return the value of the parameter <i>t</i> in the ray equation <i>p(t) = origin + t * dir</i> of the point of intersection
      *         if the ray intersects the triangle; <code>-1.0</code> otherwise
      */
@@ -3282,8 +3207,8 @@ public class Intersectiond {
         double invDenom = Math.invsqrt(a * a + b * b);
         double dist = (a * centerX + b * centerY + c) * invDenom;
         if (-radius <= dist && dist <= radius) {
-            intersectionCenterAndHL.x = centerX + dist * a * invDenom;
-            intersectionCenterAndHL.y = centerY + dist * b * invDenom;
+            intersectionCenterAndHL.x = centerX - dist * a * invDenom;
+            intersectionCenterAndHL.y = centerY - dist * b * invDenom;
             intersectionCenterAndHL.z = Math.sqrt(radius * radius - dist * dist);
             return true;
         }
@@ -3569,9 +3494,10 @@ public class Intersectiond {
     public static boolean intersectCircleCircle(double aX, double aY, double radiusSquaredA, double bX, double bY, double radiusSquaredB, Vector3d intersectionCenterAndHL) {
         double dX = bX - aX, dY = bY - aY;
         double distSquared = dX * dX + dY * dY;
-        double h = 0.5 + (radiusSquaredA - radiusSquaredB) / distSquared;
-        double r_i = Math.sqrt(radiusSquaredA - h * h * distSquared);
-        if (r_i >= 0.0) {
+        double h = 0.5 + (radiusSquaredA - radiusSquaredB) / (2.0 * distSquared);
+        double r2 = radiusSquaredA - h * h * distSquared;
+        if (r2 >= 0.0) {
+            double r_i = Math.sqrt(r2);
             intersectionCenterAndHL.x = aX + h * dX;
             intersectionCenterAndHL.y = aY + h * dY;
             intersectionCenterAndHL.z = r_i;
@@ -3628,7 +3554,9 @@ public class Intersectiond {
      */
     public static boolean testCircleCircle(double aX, double aY, double rA, double bX, double bY, double rB) {
         double d = (aX - bX) * (aX - bX) + (aY - bY) * (aY - bY);
-        return d <= (rA + rB) * (rA + rB);
+        // rA and rB are squared radii, as documented (before 2.4.0 they were used as radii)
+        double ra = Math.sqrt(rA), rb = Math.sqrt(rB);
+        return d <= (ra + rb) * (ra + rb);
     }
 
     /**
@@ -3766,7 +3694,7 @@ public class Intersectiond {
      */
     public static double intersectRayLine(double originX, double originY, double dirX, double dirY, double pointX, double pointY, double normalX, double normalY, double epsilon) {
         double denom = normalX * dirX + normalY * dirY;
-        if (denom < epsilon) {
+        if (denom < epsilon && denom != 0.0) { // parallel rays never hit (Infinity before 2.4.0)
             double t = ((pointX - originX) * normalX + (pointY - originY) * normalY) / denom;
             if (t >= 0.0)
                 return t;
@@ -4072,16 +4000,27 @@ public class Intersectiond {
      */
     public static boolean intersectRayCircle(double originX, double originY, double dirX, double dirY, 
             double centerX, double centerY, double radiusSquared, Vector2d result) {
-        double Lx = centerX - originX;
-        double Ly = centerY - originY;
-        double tca = Lx * dirX + Ly * dirY;
-        double d2 = Lx * Lx + Ly * Ly - tca * tca;
+        double lx = centerX - (double) originX, ly = centerY - (double) originY;
+        double tca = lx * dirX + ly * dirY;
+        // the perpendicular distance directly: |L|² − tca² cancels for distant circles (thousands of wrong answers per
+        // 10k random distant rays before 2.4.0)
+        double px = lx - tca * dirX, py = ly - tca * dirY;
+        double d2 = px * px + py * py;
         if (d2 > radiusSquared)
             return false;
-        double thc = Math.sqrt(radiusSquared - d2);
-        double t0 = tca - thc;
-        double t1 = tca + thc;
-        if (t0 < t1 && t1 >= 0.0) {
+        double thc = java.lang.Math.sqrt(radiusSquared - d2);
+        // the root of larger magnitude without cancellation, the other from t0 t1 = (|L| − r)(|L| + r)
+        double len = java.lang.Math.sqrt(lx * lx + ly * ly), r = java.lang.Math.sqrt(radiusSquared);
+        double prod = (len - r) * (len + r);
+        double t0, t1;
+        if (tca >= 0.0) {
+            t1 = tca + thc;
+            t0 = t1 == 0.0 ? 0.0 : prod / t1;
+        } else {
+            t0 = tca - thc;
+            t1 = prod / t0;
+        }
+        if (t1 >= 0.0) { // tangent rays (t0 == t1) hit
             result.x = t0;
             result.y = t1;
             return true;
@@ -4142,16 +4081,20 @@ public class Intersectiond {
      */
     public static boolean testRayCircle(double originX, double originY, double dirX, double dirY, 
             double centerX, double centerY, double radiusSquared) {
-        double Lx = centerX - originX;
-        double Ly = centerY - originY;
-        double tca = Lx * dirX + Ly * dirY;
-        double d2 = Lx * Lx + Ly * Ly - tca * tca;
+        double lx = centerX - (double) originX, ly = centerY - (double) originY;
+        double tca = lx * dirX + ly * dirY;
+        // the perpendicular distance directly: |L|² − tca² cancels for distant circles (thousands of wrong answers per
+        // 10k random distant rays before 2.4.0)
+        double px = lx - tca * dirX, py = ly - tca * dirY;
+        double d2 = px * px + py * py;
         if (d2 > radiusSquared)
             return false;
-        double thc = Math.sqrt(radiusSquared - d2);
-        double t0 = tca - thc;
-        double t1 = tca + thc;
-        return t0 < t1 && t1 >= 0.0;
+        double thc = java.lang.Math.sqrt(radiusSquared - d2);
+        // the root of larger magnitude without cancellation, the other from t0 t1 = (|L| − r)(|L| + r)
+        double len = java.lang.Math.sqrt(lx * lx + ly * ly), r = java.lang.Math.sqrt(radiusSquared);
+        double prod = (len - r) * (len + r);
+        double t1 = tca >= 0.0 ? tca + thc : prod / (tca - thc); // the far root
+        return t1 >= 0.0;
     }
 
     /**
@@ -4234,7 +4177,7 @@ public class Intersectiond {
         tNear = tymin > tNear || Double.isNaN(tNear) ? tymin : tNear;
         tFar = tymax < tFar || Double.isNaN(tFar) ? tymax : tFar;
         int side = -1; // no intersection side
-        if (tNear < tFar && tFar >= 0.0) {
+        if (tNear <= tFar && tFar >= 0.0) {
             double px = originX + tNear * dirX;
             double py = originY + tNear * dirY;
             result.x = tNear;
@@ -4449,7 +4392,7 @@ public class Intersectiond {
             return false;
         tNear = tymin > tNear || Double.isNaN(tNear) ? tymin : tNear;
         tFar = tymax < tFar || Double.isNaN(tFar) ? tymax : tFar;
-        return tNear < tFar && tFar >= 0.0;
+        return tNear <= tFar && tFar >= 0.0;
     }
 
     /**
@@ -4852,4 +4795,56 @@ public class Intersectiond {
         return true;
     }
 
+    /**
+     * Watertight ray-triangle intersection (Woop, Benthin and Wald, "Watertight Ray/Triangle Intersection", JCGT 2013):
+     * the space is sheared and scaled so the ray is the +z axis, and the triangle is tested with 2D edge functions that
+     * are the same, exactly antisymmetric products in both triangles sharing an edge, so a ray through a shared edge or
+     * vertex always hits at least one of them (Möller-Trumbore, used before 2.4.0, missed both in about 20 % of rays
+     * aimed at a shared edge). Parallel rays are handled exactly. Returns the hit distance {@code t ≥ epsilon}, or NaN.
+     * With {@code frontOnly}, only triangles facing the ray ({@code n · dir < 0}, {@code n = (v1 − v0) × (v2 − v0)})
+     * count.
+     */
+    static double rayTriangleWatertight(double ox, double oy, double oz, double dx, double dy, double dz,
+            double v0x, double v0y, double v0z, double v1x, double v1y, double v1z, double v2x, double v2y, double v2z,
+            double epsilon, boolean frontOnly) {
+        if (frontOnly) {
+            double e1x = v1x - v0x, e1y = v1y - v0y, e1z = v1z - v0z, e2x = v2x - v0x, e2y = v2y - v0y, e2z = v2z - v0z;
+            double nx = e1y * e2z - e1z * e2y, ny = e1z * e2x - e1x * e2z, nz = e1x * e2y - e1y * e2x;
+            if (!(nx * dx + ny * dy + nz * dz < 0.0)) {
+                return Double.NaN;
+            }
+        }
+        double adx = java.lang.Math.abs(dx), ady = java.lang.Math.abs(dy), adz = java.lang.Math.abs(dz);
+        int kz = adx >= ady ? (adx >= adz ? 0 : 2) : (ady >= adz ? 1 : 2);
+        int kx = kz == 2 ? 0 : kz + 1;
+        int ky = kx == 2 ? 0 : kx + 1;
+        double dkz = comp(dx, dy, dz, kz);
+        if (dkz < 0.0) { // keep the winding
+            int tmp = kx;
+            kx = ky;
+            ky = tmp;
+        }
+        double sx = comp(dx, dy, dz, kx) / dkz, sy = comp(dx, dy, dz, ky) / dkz, sz = 1.0 / dkz;
+        double aX = v0x - ox, aY = v0y - oy, aZ = v0z - oz;
+        double bX = v1x - ox, bY = v1y - oy, bZ = v1z - oz;
+        double cX = v2x - ox, cY = v2y - oy, cZ = v2z - oz;
+        double akz = comp(aX, aY, aZ, kz), bkz = comp(bX, bY, bZ, kz), ckz = comp(cX, cY, cZ, kz);
+        double ax = comp(aX, aY, aZ, kx) - sx * akz, ay = comp(aX, aY, aZ, ky) - sy * akz;
+        double bx = comp(bX, bY, bZ, kx) - sx * bkz, by = comp(bX, bY, bZ, ky) - sy * bkz;
+        double cx = comp(cX, cY, cZ, kx) - sx * ckz, cy = comp(cX, cY, cZ, ky) - sy * ckz;
+        double u = cx * by - cy * bx, v = ax * cy - ay * cx, w = bx * ay - by * ax;
+        if ((u < 0.0 || v < 0.0 || w < 0.0) && (u > 0.0 || v > 0.0 || w > 0.0)) {
+            return Double.NaN;
+        }
+        double det = u + v + w;
+        if (det == 0.0) {
+            return Double.NaN;
+        }
+        double t = (u * sz * akz + v * sz * bkz + w * sz * ckz) / det;
+        return t >= epsilon ? t : Double.NaN;
+    }
+
+    private static double comp(double x, double y, double z, int k) {
+        return k == 0 ? x : k == 1 ? y : z;
+    }
 }

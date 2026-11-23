@@ -2997,12 +2997,11 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Matrix4d invertPerspective(Matrix4d dest) {
-        double a =  1.0 / (m00 * m11);
         double l = -1.0 / (m23 * m32);
-        dest.set(m11 * a, 0, 0, 0,
-                 0, m00 * a, 0, 0,
-                 0, 0, 0, -m23 * l,
-                 0, 0, -m32 * l, m22 * l);
+        dest.set(1.0 / m00, 0, 0, 0,
+                 0, 1.0 / m11, 0, 0,
+                 0, 0, 0, 1.0 / m32,
+                 0, 0, 1.0 / m23, m22 * l);
         return dest;
     }
 
@@ -3076,12 +3075,11 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Matrix4d invertPerspectiveView(Matrix4dc view, Matrix4d dest) {
-        double a =  1.0 / (m00 * m11);
         double l = -1.0 / (m23 * m32);
-        double pm00 =  m11 * a;
-        double pm11 =  m00 * a;
-        double pm23 = -m23 * l;
-        double pm32 = -m32 * l;
+        double pm00 = 1.0 / m00;
+        double pm11 = 1.0 / m11;
+        double pm23 = 1.0 / m32;
+        double pm32 = 1.0 / m23;
         double pm33 =  m22 * l;
         double vm30 = -view.m00() * view.m30() - view.m01() * view.m31() - view.m02() * view.m32();
         double vm31 = -view.m10() * view.m30() - view.m11() * view.m31() - view.m12() * view.m32();
@@ -3111,12 +3109,11 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Matrix4d invertPerspectiveView(Matrix4x3dc view, Matrix4d dest) {
-        double a =  1.0 / (m00 * m11);
         double l = -1.0 / (m23 * m32);
-        double pm00 =  m11 * a;
-        double pm11 =  m00 * a;
-        double pm23 = -m23 * l;
-        double pm32 = -m32 * l;
+        double pm00 = 1.0 / m00;
+        double pm11 = 1.0 / m11;
+        double pm23 = 1.0 / m32;
+        double pm32 = 1.0 / m23;
         double pm33 =  m22 * l;
         double vm30 = -view.m00() * view.m30() - view.m01() * view.m31() - view.m02() * view.m32();
         double vm31 = -view.m10() * view.m30() - view.m11() * view.m31() - view.m12() * view.m32();
@@ -8969,7 +8966,12 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         return normalGeneric(dest);
     }
     private Matrix4d normalOrthonormal(Matrix4d dest) {
-        dest.set(this);
+        // the normal matrix of an orthonormal matrix is its rotation part: translation and projection are cleared
+        // (before 2.4.0 the translation was copied, contradicting the contract)
+        dest._m00(m00)._m01(m01)._m02(m02)._m03(0.0)
+            ._m10(m10)._m11(m11)._m12(m12)._m13(0.0)
+            ._m20(m20)._m21(m21)._m22(m22)._m23(0.0)
+            ._m30(0.0)._m31(0.0)._m32(0.0)._m33(1.0);
         return dest._properties(PROPERTY_AFFINE | PROPERTY_ORTHONORMAL);
     }
     private Matrix4d normalGeneric(Matrix4d dest) {
@@ -11064,6 +11066,16 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        double leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        double invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         double upnX = dirY * leftZ - dirZ * leftY;
         double upnY = dirZ * leftX - dirX * leftZ;
@@ -11215,6 +11227,16 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        double leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        double invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         double upnX = dirY * leftZ - dirZ * leftY;
         double upnY = dirZ * leftX - dirX * leftZ;
@@ -11318,6 +11340,16 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        double leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        double invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         double upnX = dirY * leftZ - dirZ * leftY;
         double upnY = dirZ * leftX - dirX * leftZ;
@@ -11467,6 +11499,16 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        double leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        double invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         double upnX = dirY * leftZ - dirZ * leftY;
         double upnY = dirZ * leftX - dirX * leftZ;
@@ -11620,6 +11662,16 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        double leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        double invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         double upnX = dirY * leftZ - dirZ * leftY;
         double upnY = dirZ * leftX - dirX * leftZ;
@@ -11733,6 +11785,16 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        double leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        double invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         double upnX = dirY * leftZ - dirZ * leftY;
         double upnY = dirZ * leftX - dirX * leftZ;
@@ -11881,6 +11943,16 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        double leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        double invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         double upnX = dirY * leftZ - dirZ * leftY;
         double upnY = dirZ * leftX - dirX * leftZ;
@@ -12034,6 +12106,16 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         leftX *= invLeftLength;
         leftY *= invLeftLength;
         leftZ *= invLeftLength;
+        // re-orthogonalize against dir: as up approaches dir the cross product is tiny and its rounding leaves
+        // left measurably non-perpendicular (6.6e-9 at 1e-8 rad before 2.4.0) in a result flagged orthonormal
+        double leftDot = leftX * dirX + leftY * dirY + leftZ * dirZ;
+        leftX -= leftDot * dirX;
+        leftY -= leftDot * dirY;
+        leftZ -= leftDot * dirZ;
+        double invLeftLength2 = Math.invsqrt(leftX * leftX + leftY * leftY + leftZ * leftZ);
+        leftX *= invLeftLength2;
+        leftY *= invLeftLength2;
+        leftZ *= invLeftLength2;
         // up = direction x left
         double upnX = dirY * leftZ - dirZ * leftY;
         double upnY = dirZ * leftX - dirX * leftZ;
@@ -12365,11 +12447,11 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         boolean nearInf = zNear > 0 && Double.isInfinite(zNear);
         if (farInf) {
             // See: "Infinite Projection Matrix" (http://www.terathon.com/gdc07_lengyel.pdf)
-            double e = 1E-6f;
+            double e = 1E-6;
             rm22 = e - 1.0;
             rm32 = (e - (zZeroToOne ? 1.0 : 2.0)) * zNear;
         } else if (nearInf) {
-            double e = 1E-6f;
+            double e = 1E-6;
             rm22 = (zZeroToOne ? 0.0 : 1.0) - e;
             rm32 = ((zZeroToOne ? 1.0 : 2.0) - e) * zFar;
         } else {
@@ -13046,7 +13128,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
             this._m22(e - 1.0);
             this._m32((e - (zZeroToOne ? 1.0 : 2.0)) * zNear);
         } else if (nearInf) {
-            double e = 1E-6f;
+            double e = 1E-6;
             this._m22((zZeroToOne ? 0.0 : 1.0) - e);
             this._m32(((zZeroToOne ? 1.0 : 2.0) - e) * zFar);
         } else {
@@ -14415,9 +14497,12 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         double n1x, n1y, n1z, n2x, n2y, n2z;
         n1x = m03 + m01; n1y = m13 + m11; n1z = m23 + m21; // bottom
         n2x = m01 - m03; n2y = m11 - m13; n2z = m21 - m23; // top
-        double n1len = Math.sqrt(n1x * n1x + n1y * n1y + n1z * n1z);
-        double n2len = Math.sqrt(n2x * n2x + n2y * n2y + n2z * n2z);
-        return Math.acos((n1x * n2x + n1y * n2y + n1z * n2z) / (n1len * n2len));
+        // atan2(|n1 × n2|, n1 · n2): accurate for narrow fields of view, where acos of the normalized dot product
+        // loses up to all digits (3.7e-4 relative at 1e-6 rad before 2.4.0)
+        double cx = (double) n1y * n2z - (double) n1z * n2y, cy = (double) n1z * n2x - (double) n1x * n2z;
+        double cz = (double) n1x * n2y - (double) n1y * n2x;
+        return AccurateMath.atan2(java.lang.Math.sqrt(cx * cx + cy * cy + cz * cz),
+                (double) n1x * n2x + (double) n1y * n2y + (double) n1z * n2z);
     }
 
     public double perspectiveNear() {
@@ -14880,7 +14965,12 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         double toDirZ = targetPos.z() - objPos.z();
         double x = -toDirY;
         double y = toDirX;
-        double w = Math.sqrt(toDirX * toDirX + toDirY * toDirY + toDirZ * toDirZ) + toDirZ;
+        double len = Math.sqrt(toDirX * toDirX + toDirY * toDirY + toDirZ * toDirZ);
+        // |d| + dz cancels as the target swings behind; there it equals (dx² + dy²) / (|d| − dz)
+        double w = toDirZ >= 0 ? len + toDirZ : (toDirX * toDirX + toDirY * toDirY) / (len - toDirZ);
+        if (x == 0 && y == 0 && w == 0) { // target exactly behind (or on the object): turn 180 degrees about Y
+            y = 1;
+        }
         double invNorm = Math.invsqrt(x * x + y * y + w * w);
         x *= invNorm;
         y *= invNorm;
@@ -15907,23 +15997,26 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Vector3d getEulerAnglesZYX(Vector3d dest) {
-        dest.x = Math.atan2(m12, m22);
-        dest.y = Math.atan2(-m02, Math.sqrt(1.0 - m02 * m02));
-        dest.z = Math.atan2(m01, m00);
+        double[] e = Quaterniond.eulerFromMatrix(1, m00, m01, m02, m10, m11, m12, m20, m21, m22);
+        dest.x = e[0];
+        dest.y = e[1];
+        dest.z = e[2];
         return dest;
     }
 
     public Vector3d getEulerAnglesXYZ(Vector3d dest) {
-        dest.x = Math.atan2(-m21, m22);
-        dest.y = Math.atan2(m20, Math.sqrt(1.0 - m20 * m20));
-        dest.z = Math.atan2(-m10, m00);
+        double[] e = Quaterniond.eulerFromMatrix(0, m00, m01, m02, m10, m11, m12, m20, m21, m22);
+        dest.x = e[0];
+        dest.y = e[1];
+        dest.z = e[2];
         return dest;
     }
 
     public Vector3d getEulerAnglesYXZ(Vector3d dest) {
-        dest.x = Math.atan2(-m21(), Math.sqrt(1.0 - m21() * m21()));
-        dest.y = Math.atan2(m20(), m22());
-        dest.z = Math.atan2(m01(), m11());
+        double[] e = Quaterniond.eulerFromMatrix(2, m00, m01, m02, m10, m11, m12, m20, m21, m22);
+        dest.x = e[0];
+        dest.y = e[1];
+        dest.z = e[2];
         return dest;
     }
 
@@ -15955,7 +16048,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         double i = m12 * m21, j = m12 * m20, k = m12 * m01, l = m12 * m00;
         double m = m20 * m02, n = m20 * m01, o = m21 * m02, p = m21 * m00;
         double q = m22 * m01, r = m22 * m00;
-        double s = 1.0 / (m00 * m11 - m01 * m10) * m22 + (m02 * m10 - m00 * m12) * m21 + (m01 * m12 - m02 * m11) * m20;
+        double s = 1.0 / ((m00 * m11 - m01 * m10) * m22 + (m02 * m10 - m00 * m12) * m21 + (m01 * m12 - m02 * m11) * m20);
         double nm00 = (e - i) * s, nm01 = (o - q) * s, nm02 = (k - g) * s;
         double nm10 = (j - a) * s, nm11 = (r - m) * s, nm12 = (c - l) * s;
         double nm20 = (b - f) * s, nm21 = (n - p) * s, nm22 = (h - d) * s;
