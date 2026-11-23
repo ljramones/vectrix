@@ -42,8 +42,6 @@ import org.dynamisengine.vectrix.fft.ComplexFft2d;
 import org.dynamisengine.vectrix.fft.ComplexFft2f;
 import org.dynamisengine.vectrix.fft.ComplexFftd;
 import org.dynamisengine.vectrix.fft.ComplexFftf;
-import org.dynamisengine.vectrix.fft.FFT1d;
-import org.dynamisengine.vectrix.fft.FFT1f;
 import org.dynamisengine.vectrix.fft.RealFft2d;
 import org.dynamisengine.vectrix.fft.RealFft2f;
 import org.dynamisengine.vectrix.fft.RealFftd;
@@ -159,54 +157,6 @@ class FftPlanTest {
             d[i] = a[i];
         }
         return d;
-    }
-
-    @Test
-    void largeTransformsStayExact() {
-        // a pure tone: one bin of height n, every other bin zero
-        for (int n : new int[] {1 << 16, 3 * 5 * 4096, 65537}) {
-            int k = n / 3;
-            double[] d = new double[2 * n];
-            for (int m = 0; m < n; m++) {
-                double a = 2 * java.lang.Math.PI * ((long) k * m % n) / n;
-                d[2 * m] = StrictMath.cos(a);
-                d[2 * m + 1] = StrictMath.sin(a);
-            }
-            ComplexFftd p = ComplexFftd.plan(n);
-            p.forward(d, 0, new double[p.scratchSize()], 0);
-            double leak = 0;
-            for (int i = 0; i < n; i++) {
-                if (i != k) {
-                    leak = java.lang.Math.max(leak, java.lang.Math.hypot(d[2 * i], d[2 * i + 1]));
-                }
-            }
-            assertEquals(n, java.lang.Math.hypot(d[2 * k], d[2 * k + 1]), 1e-9 * n, "peak " + n);
-            assertTrue(leak / n < 3e-16, n + " leakage " + leak / n);
-        }
-        // the legacy radix-2 API now uses the exact table (it leaked 1.1e-13 at 2^14)
-        int n = 1 << 14;
-        int k = 4321;
-        double[] d = new double[2 * n];
-        float[] f = new float[2 * n];
-        for (int m = 0; m < n; m++) {
-            double a = 2 * java.lang.Math.PI * ((long) k * m % n) / n;
-            d[2 * m] = StrictMath.cos(a);
-            d[2 * m + 1] = StrictMath.sin(a);
-            f[2 * m] = (float) d[2 * m];
-            f[2 * m + 1] = (float) d[2 * m + 1];
-        }
-        FFT1d.forward(d);
-        FFT1f.forward(f);
-        double leak = 0;
-        double leakF = 0;
-        for (int i = 0; i < n; i++) {
-            if (i != k) {
-                leak = java.lang.Math.max(leak, java.lang.Math.hypot(d[2 * i], d[2 * i + 1]));
-                leakF = java.lang.Math.max(leakF, java.lang.Math.hypot(f[2 * i], f[2 * i + 1]));
-            }
-        }
-        assertTrue(leak / n < 3e-16, "FFT1d leakage " + leak / n);
-        assertTrue(leakF / n < 3e-7, "FFT1f leakage " + leakF / n);
     }
 
     @Test
@@ -479,7 +429,5 @@ class FftPlanTest {
         BlockConvolverd b = BlockConvolverd.plan(new double[] {1, 2}, 0, 2, 4);
         assertThrows(IllegalArgumentException.class,
             () -> b.process(new double[5], 0, 5, new double[5], 0, new double[1], 0, new double[b.scratchSize()], 0));
-        // the legacy API keeps its power-of-two contract
-        assertThrows(IllegalArgumentException.class, () -> FFT1d.forward(new double[6]));
     }
 }

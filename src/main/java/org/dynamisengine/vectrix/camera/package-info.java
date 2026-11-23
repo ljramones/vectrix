@@ -26,8 +26,7 @@
  * conversions, clip-space corrections, oblique near-plane clipping and TAA jitter; stable cascaded-shadow fitting;
  * clustered / froxel lighting grids; and the thin-lens physical camera. Conventions: right-handed view space looking
  * down {@code −z}, column-major matrices as in {@code core}, and an explicit
- * {@link org.dynamisengine.vectrix.core.DepthRange} wherever depth values are produced or read. The
- * {@code camera.DepthRange} enum and the overloads that take it are deprecated and forward to the core versions.
+ * {@link org.dynamisengine.vectrix.core.DepthRange} wherever depth values are produced or read.
  * <p>
  * <b>Contract.</b> Threading: the classes are stateless static utilities and safe to call from any thread.
  * Allocation: no method allocates, except {@code obliqueNearPlane}, which allocates a per-thread scratch matrix on

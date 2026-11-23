@@ -80,7 +80,7 @@ final class GatherLbsKernel {
         if (i < count) {
             int n = count - i;
             float[][] tail = new float[14][];
-            SkinningKernels.skinLbs4SoAScalar(joints, slice(j0, i, n), slice(j1, i, n), slice(j2, i, n), slice(j3, i, n),
+            SkinningKernels.skinLbs4SoA(joints, slice(j0, i, n), slice(j1, i, n), slice(j2, i, n), slice(j3, i, n),
                     slice(w0, i, n), slice(w1, i, n), slice(w2, i, n), slice(w3, i, n), slice(inX, i, n), slice(inY, i, n),
                     slice(inZ, i, n), tail[0] = new float[n], tail[1] = new float[n], tail[2] = new float[n], n);
             System.arraycopy(tail[0], 0, outX, i, n);

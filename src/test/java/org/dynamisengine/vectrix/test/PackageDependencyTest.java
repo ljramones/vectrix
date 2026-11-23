@@ -46,17 +46,12 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The top-level packages form a directed acyclic graph, with {@code core} and {@code hash} at the bottom (see
- * {@code docs/package-map.md}). A subpackage counts as part of its top-level package. The only edges allowed to point
- * upward come from deprecated forwarders kept for compatibility, which go in 3.0.
+ * {@code docs/package-map.md}). A subpackage counts as part of its top-level package.
  */
 class PackageDependencyTest {
 
     private static final Path ROOT = Path.of("src/main/java/org/dynamisengine/vectrix");
     private static final Pattern REF = Pattern.compile("org\\.dynamisengine\\.vectrix\\.([a-z0-9]+)(?:\\.[a-z0-9]+)*\\.[A-Z]");
-    /** Edges kept only by deprecated forwarders, removed in 3.0. */
-    private static final Set<String> DEPRECATED_EDGES = Set.of(
-        "core->camera",   // Matrix4*/FrustumPlanes overloads taking camera.DepthRange
-        "affine->soa");   // affine.TransformKernels, moved to soa
 
     static Map<String, Set<String>> graph() throws IOException {
         Map<String, Set<String>> g = new TreeMap<>();
@@ -72,7 +67,7 @@ class PackageDependencyTest {
                 Matcher m = REF.matcher(src);
                 while (m.find()) {
                     String dep = m.group(1);
-                    if (!dep.equals(pkg) && !DEPRECATED_EDGES.contains(pkg + "->" + dep)) {
+                    if (!dep.equals(pkg)) {
                         deps.add(dep);
                     }
                 }

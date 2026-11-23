@@ -28,7 +28,10 @@ package org.dynamisengine.vectrix.sampling;
  * 
  * @author Kai Burjack
  */
-class Math extends org.dynamisengine.vectrix.core.Math {
+final class SamplingMath {
+
+    private SamplingMath() {
+    }
 
     static final double PI = java.lang.Math.PI;
     static final double PI2 = PI * 2.0;
@@ -48,7 +51,7 @@ class Math extends org.dynamisengine.vectrix.core.Math {
      */
     static double sin_roquen_9(double v) {
         double i = java.lang.Math.rint(v * ONE_OVER_PI);
-        double x = v - i * Math.PI;
+        double x = v - i * java.lang.Math.PI;
         double qs = 1 - 2 * ((int) i & 1);
         double x2 = x * x;
         double r;

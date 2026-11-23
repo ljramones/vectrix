@@ -30,8 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.SplittableRandom;
 
-import org.dynamisengine.vectrix.fft.FFT1d;
-import org.dynamisengine.vectrix.fft.FFT1f;
 import org.dynamisengine.vectrix.sampling.PoissonSampling;
 import org.junit.jupiter.api.Test;
 
@@ -40,41 +38,6 @@ import org.junit.jupiter.api.Test;
  * the minimum distance and crashed for radii below 1).
  */
 class FftPoissonAccuracyTest {
-
-    /** Relative L2 error of the float FFT against the double FFT of the same (float) input. */
-    private static double fftRelativeError(int n, boolean inverse) {
-        SplittableRandom rnd = new SplittableRandom(n);
-        float[] f = new float[2 * n];
-        double[] d = new double[2 * n];
-        for (int i = 0; i < f.length; i++) {
-            f[i] = (float) (rnd.nextDouble() * 2 - 1);
-            d[i] = f[i];
-        }
-        if (inverse) {
-            FFT1f.inverse(f);
-            FFT1d.inverse(d);
-        } else {
-            FFT1f.forward(f);
-            FFT1d.forward(d);
-        }
-        double err = 0, ref = 0;
-        for (int i = 0; i < f.length; i++) {
-            err += (f[i] - d[i]) * (f[i] - d[i]);
-            ref += d[i] * d[i];
-        }
-        return java.lang.Math.sqrt(err / ref);
-    }
-
-    @Test
-    void floatFftHasFloatAccuracyAtLargeSizes() {
-        for (int n : new int[] {1024, 16384, 65536}) {
-            double fwd = fftRelativeError(n, false);
-            double inv = fftRelativeError(n, true);
-            // Float butterflies alone give about 1e-7 * sqrt(log2 N); the old float recurrence gave 2.2e-4.
-            assertTrue(fwd < 1e-6, "forward N=" + n + " rel err " + fwd);
-            assertTrue(inv < 1e-6, "inverse N=" + n + " rel err " + inv);
-        }
-    }
 
     private static List<float[]> poisson(long seed, float radius, float minDist) {
         List<float[]> pts = new ArrayList<>();

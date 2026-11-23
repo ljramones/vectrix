@@ -158,9 +158,6 @@
                     <excludes>
                         <exclude>module-info.java</exclude>
                     </excludes>
-                    <testExcludes>
-                        <testExclude>**/experimental/**</testExclude>
-                    </testExcludes>
                     <compilerArgs>
                         <arg>--add-modules</arg>
                         <arg>jdk.unsupported</arg>

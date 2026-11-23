@@ -63,10 +63,10 @@ class TwinParityTest {
 
     private static final String[] FLOAT_DOUBLE = {
         "core.Vector2", "core.Vector3", "core.Vector4", "core.Matrix2", "core.Matrix3", "core.Matrix3x2", "core.Matrix4",
-        "core.Matrix4x3", "core.Quaternion", "core.AxisAngle4", "core.Interpolation", "core.Range", "core.Epsilon",
+        "core.Matrix4x3", "core.Quaternion", "core.AxisAngle4", "core.Interpolation", "core.Range", "core.Epsilon", "core.Complex",
         "geometry.Intersection", "easing.Easing", "sdf.Sdf3", "color.ColorMath", "color.ColorScience", "optics.Fresnel",
         "optics.Ior", "optics.SpectralRGB", "optics.SpectralSampling", "optics.ThinFilm", "renderingmath.BentNormalCone",
-        "renderingmath.Interpolation", "ltc.LtcEval", "ltc.LtcTable", "fft.FFT1", "fft.Convolution", "fft.Complex",
+        "renderingmath.Interpolation", "ltc.LtcEval", "ltc.LtcTable",
         "curve.CurveReparameterizer3", "curve.scalar.Bezier1", "curve.scalar.CatmullRom1", "curve.scalar.Hermite1",
         "curve.vec2.Bezier2", "curve.vec2.CatmullRom2", "curve.vec2.Hermite2", "curve.vec3.Bezier3",
         "curve.vec3.CatmullRom3", "curve.vec3.Hermite3", "curve.vec4.Bezier4", "curve.vec4.CatmullRom4",

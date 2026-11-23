@@ -27,10 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
-import org.dynamisengine.vectrix.renderingmath.AtmosphereParams;
 import org.dynamisengine.vectrix.renderingmath.SssLutBuilder;
 import org.dynamisengine.vectrix.renderingmath.SssProfile;
-import org.dynamisengine.vectrix.renderingmath.TransmittanceLutBuilder;
 
 @SuppressWarnings("deprecation") // covers the deprecated renderingmath atmosphere classes
 class RenderingMathTest {
@@ -56,27 +54,4 @@ class RenderingMathTest {
         assertTrue(lut[highNoL + 2] >= lut[lowNoL + 2]);
     }
 
-    @Test
-    void atmosphereLutIsBoundedAndHigherAltitudeIsMoreTransparent() {
-        AtmosphereParams params = new AtmosphereParams(
-            6360.0f, 6460.0f,
-            8.0f, 1.2f,
-            0.0058f, 0.0135f, 0.0331f,
-            0.0030f, 0.0030f, 0.0030f);
-        int w = 48, h = 32;
-        float[] lut = new float[w * h * 3];
-        TransmittanceLutBuilder.build(w, h, params, 128, lut);
-
-        for (float v : lut) {
-            assertFalse(Float.isNaN(v) || Float.isInfinite(v));
-            assertTrue(v >= 0.0f && v <= 1.0f);
-        }
-
-        int muUp = (int) (0.9f * (w - 1)); // mostly upward view
-        int ground = (0 * w + muUp) * 3;
-        int high = ((h - 1) * w + muUp) * 3;
-        assertTrue(lut[high] >= lut[ground]);
-        assertTrue(lut[high + 1] >= lut[ground + 1]);
-        assertTrue(lut[high + 2] >= lut[ground + 2]);
-    }
 }

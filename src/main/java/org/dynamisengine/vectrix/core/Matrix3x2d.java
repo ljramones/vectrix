@@ -1663,38 +1663,6 @@ public class Matrix3x2d implements Matrix3x2dc, Cloneable, Externalizable {
     }
 
     /**
-     * Pre-multiply scaling to this matrix by scaling the base axes by the given sx and
-     * sy factors while using <code>(ox, oy)</code> as the scaling origin.
-     * <p>
-     * If <code>M</code> is <code>this</code> matrix and <code>S</code> the scaling matrix,
-     * then the new matrix will be <code>S * M</code>. So when transforming a
-     * vector <code>v</code> with the new matrix by using <code>S * M * v</code>, the
-     * scaling will be applied last!
-     * <p>
-     * This method is equivalent to calling: <code>new Matrix3x2d().translate(ox, oy).scale(sx, sy).translate(-ox, -oy).mul(this, this)</code>
-     * 
-     * @param sx
-     *            the scaling factor of the x component
-     * @param sy
-     *            the scaling factor of the y component
-     * @param sz
-     *            the scaling factor of the z component
-     * @param ox
-     *            the x coordinate of the scaling origin
-     * @param oy
-     *            the y coordinate of the scaling origin
-     * @param oz
-     *            the z coordinate of the scaling origin
-     * @return this
-     * @deprecated since 2.5.0: a 3D leftover; {@code sz} and {@code oz} are ignored. Use
-     *             {@link #scaleAroundLocal(double, double, double, double)}.
-     */
-    @Deprecated
-    public Matrix3x2d scaleAroundLocal(double sx, double sy, double sz, double ox, double oy, double oz) {
-        return scaleAroundLocal(sx, sy, ox, oy, this);
-    }
-
-    /**
      * Pre-multiply scaling to this matrix by scaling the base axes by the given <code>factor</code>
      * while using <code>(ox, oy)</code> as the scaling origin.
      * <p>

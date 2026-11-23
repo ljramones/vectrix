@@ -23,9 +23,6 @@
  */
 package org.dynamisengine.vectrix.soa;
 
-import org.dynamisengine.vectrix.core.CoreConfig;
-import org.dynamisengine.vectrix.core.MathMode;
-import org.dynamisengine.vectrix.simd.SimdSupport;
 
 /**
  * Batch skinning kernels: each output vertex blends up to four joint transforms of its bind-pose position.
@@ -53,9 +50,6 @@ import org.dynamisengine.vectrix.simd.SimdSupport;
  * be the corresponding input array. STRICT mode adds no validation: the results are the same in both modes.
  */
 public final class SkinningKernels {
-    private static final String PROP_EXPERIMENTAL_SKINNING_SIMD = "vectrix.skinning.simd";
-    private static final int SIMD_BATCH_THRESHOLD = 64;
-    private static final boolean EXPERIMENTAL_SKINNING_SIMD = booleanProperty(PROP_EXPERIMENTAL_SKINNING_SIMD, false);
 
     private SkinningKernels() {
     }
@@ -79,55 +73,6 @@ public final class SkinningKernels {
     public static void skinLbs4(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
             float[] outX, float[] outY, float[] outZ, int count) {
         skinLbs4Scalar(joints, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, count);
-    }
-
-    /**
-     * Same as {@link #skinLbs4}; there is no Vector API path for the interleaved layout.
-     *
-     * @param joints the skinning transforms of the joints
-     * @param jointIndices four joint indices per vertex, interleaved: {@code jointIndices[4·i + k]}
-     * @param jointWeights four weights per vertex, interleaved like {@code jointIndices}
-     * @param inX the bind-pose x coordinates, one per vertex
-     * @param inY the bind-pose y coordinates
-     * @param inZ the bind-pose z coordinates
-     * @param outX receives the skinned x coordinates; may be {@code inX}
-     * @param outY receives the skinned y coordinates; may be {@code inY}
-     * @param outZ receives the skinned z coordinates; may be {@code inZ}
-     * @param count the number of vertices
-     * @deprecated use {@link #skinLbs4}
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public static void skinLbs4Vector(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
-            float[] outX, float[] outY, float[] outZ, int count) {
-        // The AoS influence layout (jointIndices[4 * i + k]) cannot feed a Vector API gather without a scratch
-        // index array, so there is no SIMD path for it; use skinLbs4SoA with per-influence arrays. This method used
-        // to do the scalar work lane by lane and pack the results with withLane, which only added overhead.
-        skinLbs4Scalar(joints, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, count);
-    }
-
-    /**
-     * Same as {@link #skinLbs4}.
-     *
-     * @param joints the skinning transforms of the joints
-     * @param jointIndices four joint indices per vertex, interleaved: {@code jointIndices[4·i + k]}
-     * @param jointWeights four weights per vertex, interleaved like {@code jointIndices}
-     * @param inX the bind-pose x coordinates, one per vertex
-     * @param inY the bind-pose y coordinates
-     * @param inZ the bind-pose z coordinates
-     * @param outX receives the skinned x coordinates; may be {@code inX}
-     * @param outY receives the skinned y coordinates; may be {@code inY}
-     * @param outZ receives the skinned z coordinates; may be {@code inZ}
-     * @param count the number of vertices
-     * @deprecated use {@link #skinLbs4}
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public static void skinLbs4Scalar(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
-            float[] outX, float[] outY, float[] outZ, int count) {
-        for (int i = 0; i < count; i++) {
-            int base = i << 2;
-            skinLbs4Single(joints, jointIndices[base], jointIndices[base + 1], jointIndices[base + 2], jointIndices[base + 3], jointWeights[base], jointWeights[base + 1],
-                    jointWeights[base + 2], jointWeights[base + 3], inX[i], inY[i], inZ[i], outX, outY, outZ, i);
-        }
     }
 
     /**
@@ -158,73 +103,6 @@ public final class SkinningKernels {
         if (count <= 0) {
             return;
         }
-        if (CoreConfig.mathMode() == MathMode.STRICT
-                || !SimdSupport.isEnabled()
-                || SimdSupport.backend() != SimdSupport.Backend.VECTOR_API
-                || !EXPERIMENTAL_SKINNING_SIMD
-                || count < SIMD_BATCH_THRESHOLD) {
-            skinLbs4SoAScalar(joints, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, count);
-            return;
-        }
-        skinLbs4SoASimd(joints, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, count);
-    }
-
-    /**
-     * Same as {@link #skinLbs4SoA}.
-     *
-     * @param joints the skinning transforms of the joints
-     * @param j0 the first joint index of each vertex
-     * @param j1 the second joint index of each vertex
-     * @param j2 the third joint index of each vertex
-     * @param j3 the fourth joint index of each vertex
-     * @param w0 the weight of {@code j0} for each vertex
-     * @param w1 the weight of {@code j1} for each vertex
-     * @param w2 the weight of {@code j2} for each vertex
-     * @param w3 the weight of {@code j3} for each vertex
-     * @param inX the bind-pose x coordinates, one per vertex
-     * @param inY the bind-pose y coordinates
-     * @param inZ the bind-pose z coordinates
-     * @param outX receives the skinned x coordinates; may be {@code inX}
-     * @param outY receives the skinned y coordinates; may be {@code inY}
-     * @param outZ receives the skinned z coordinates; may be {@code inZ}
-     * @param count the number of vertices
-     * @deprecated use {@link #skinLbs4SoA}
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public static void skinLbs4SoAScalar(TransformSoA joints, int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2, float[] w3,
-            float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
-        for (int i = 0; i < count; i++) {
-            skinLbs4Single(joints, j0[i], j1[i], j2[i], j3[i], w0[i], w1[i], w2[i], w3[i], inX[i], inY[i], inZ[i], outX, outY, outZ, i);
-        }
-    }
-
-    /**
-     * Same as {@link #skinLbs4SoA}; there is no Vector API path.
-     *
-     * @param joints the skinning transforms of the joints
-     * @param j0 the first joint index of each vertex
-     * @param j1 the second joint index of each vertex
-     * @param j2 the third joint index of each vertex
-     * @param j3 the fourth joint index of each vertex
-     * @param w0 the weight of {@code j0} for each vertex
-     * @param w1 the weight of {@code j1} for each vertex
-     * @param w2 the weight of {@code j2} for each vertex
-     * @param w3 the weight of {@code j3} for each vertex
-     * @param inX the bind-pose x coordinates, one per vertex
-     * @param inY the bind-pose y coordinates
-     * @param inZ the bind-pose z coordinates
-     * @param outX receives the skinned x coordinates; may be {@code inX}
-     * @param outY receives the skinned y coordinates; may be {@code inY}
-     * @param outZ receives the skinned z coordinates; may be {@code inZ}
-     * @param count the number of vertices
-     * @deprecated use {@link #skinLbs4SoA}
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public static void skinLbs4SoASimd(TransformSoA joints, int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2, float[] w3,
-            float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
-        // No Vector API path: LBS needs a per-lane gather of joint data. A gather kernel (FloatVector.fromArray with
-        // an index map) measured 6.8x slower than this scalar loop on arm64, where NEON has no gather instruction
-        // (72 us vs 10.6 us for 1024 vertices). The previous "SIMD" body did scalar work per lane plus withLane.
         skinLbs4SoAScalar(joints, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, count);
     }
 
@@ -528,8 +406,19 @@ public final class SkinningKernels {
         return dot < 0.0f ? -1.0f : 1.0f;
     }
 
-    private static boolean booleanProperty(String name, boolean defaultValue) {
-        String v = System.getProperty(name);
-        return v == null || v.isEmpty() ? defaultValue : Boolean.parseBoolean(v.trim());
+    private static void skinLbs4Scalar(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
+            float[] outX, float[] outY, float[] outZ, int count) {
+        for (int i = 0; i < count; i++) {
+            int base = i << 2;
+            skinLbs4Single(joints, jointIndices[base], jointIndices[base + 1], jointIndices[base + 2], jointIndices[base + 3], jointWeights[base], jointWeights[base + 1],
+                    jointWeights[base + 2], jointWeights[base + 3], inX[i], inY[i], inZ[i], outX, outY, outZ, i);
+        }
+    }
+
+    private static void skinLbs4SoAScalar(TransformSoA joints, int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2, float[] w3,
+            float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
+        for (int i = 0; i < count; i++) {
+            skinLbs4Single(joints, j0[i], j1[i], j2[i], j3[i], w0[i], w1[i], w2[i], w3[i], inX[i], inY[i], inZ[i], outX, outY, outZ, i);
+        }
     }
 }

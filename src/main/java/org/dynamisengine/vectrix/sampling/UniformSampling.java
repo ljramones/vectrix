@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.sampling;
 
+import org.dynamisengine.vectrix.core.Math;
 import org.dynamisengine.vectrix.core.Random;
 
 /**
@@ -31,15 +32,10 @@ import org.dynamisengine.vectrix.core.Random;
  * @author Kai Burjack
   * @since 1.0.0
   */
-public class UniformSampling {
+public final class UniformSampling {
 
-    /**
-     * Not meant to be instantiated: every member is static.
-     *
-     * @deprecated this utility class will not be instantiable from 3.0
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public UniformSampling() {
+    /** Not instantiable: every member is static. */
+    private UniformSampling() {
     }
 
     /**
@@ -71,8 +67,8 @@ public class UniformSampling {
                 float r = rnd.nextFloat();
                 float a = rnd.nextFloat() * 2.0f * (float) Math.PI;
                 float sqrtR = (float) Math.sqrt(r);
-                float x = sqrtR * (float) Math.sin_roquen_9(a + 0.5 * Math.PI);
-                float y = sqrtR * (float) Math.sin_roquen_9(a);
+                float x = sqrtR * (float) SamplingMath.sin_roquen_9(a + 0.5 * Math.PI);
+                float y = sqrtR * (float) SamplingMath.sin_roquen_9(a);
                 callback.onNewSample(x, y);
             }
         }

@@ -166,8 +166,8 @@ class SimdPathTest {
             int[] scalar = new int[n];
             int[] simd = new int[n];
             int[] dispatched = new int[n];
-            CullingKernels.frustumCullAabbBatchScalar(fp, boxes, scalar, n);
-            CullingKernels.frustumCullAabbBatchSimd(fp, boxes, simd, n);
+            TestBackends.cullScalar(fp, boxes, scalar, n);
+            TestBackends.cullSimd(fp, boxes, simd, n);
             CullingKernels.frustumCullAabbBatch(fp, boxes, dispatched, n);
             assertArrayEquals(scalar, simd, "SIMD vs scalar, trial " + trial);
             assertArrayEquals(scalar, dispatched, "default dispatch vs scalar, trial " + trial);
@@ -186,8 +186,8 @@ class SimdPathTest {
             boxes.set(i, cx - e, cy - e, cz - e, cx + e, cy + e, cz + e);
         }
         int[] a = new int[n], b = new int[n];
-        CullingKernels.frustumCullAabbBatchScalar(fp, boxes, a, n);
-        CullingKernels.frustumCullAabbBatchSimd(fp, boxes, b, n);
+        TestBackends.cullScalar(fp, boxes, a, n);
+        TestBackends.cullSimd(fp, boxes, b, n);
         assertArrayEquals(a, b);
     }
 
@@ -210,7 +210,7 @@ class SimdPathTest {
             }
             float[] in = new float[64];
             SkinningKernels.skinLbs4(joints, idx, wts, in, in, in, ox, oy, oz, 64);
-            SkinningKernels.skinLbs4Vector(joints, idx, wts, in, in, in, ox, oy, oz, 64);
+            SkinningKernels.skinLbs4(joints, idx, wts, in, in, in, ox, oy, oz, 64);
             int[] zi = new int[64];
             float[] w1 = new float[64];
             SkinningKernels.skinLbs4SoA(joints, zi, zi, zi, zi, w1, w1, w1, w1, in, in, in, ox, oy, oz, 64);

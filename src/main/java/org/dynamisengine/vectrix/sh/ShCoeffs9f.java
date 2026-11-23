@@ -40,13 +40,6 @@ public final class ShCoeffs9f {
     /** The number of coefficients per channel: {@code (L + 1)²} for order {@code L = 2}. */
     public static final int COEFFS = 9;
 
-    /**
-     * The number of coefficients per channel (not of bands: order 2 has 3 bands).
-     *
-     * @deprecated misnamed; use {@link #COEFFS}
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public static final int BANDS = COEFFS;
     /** The number of color channels (red, green, blue). */
     public static final int CHANNELS = 3;
     /** The length of {@link #c}: {@code COEFFS * CHANNELS} = 27. */

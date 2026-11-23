@@ -13,21 +13,18 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.dynamisengine.vectrix.core.Vector3d;
 import org.dynamisengine.vectrix.core.Vector3f;
-import org.dynamisengine.vectrix.renderingmath.AtmosphereParams;
 import org.dynamisengine.vectrix.renderingmath.BentNormalConed;
 import org.dynamisengine.vectrix.renderingmath.BentNormalConef;
 import org.dynamisengine.vectrix.renderingmath.Interpolationd;
 import org.dynamisengine.vectrix.renderingmath.Interpolationf;
 import org.dynamisengine.vectrix.renderingmath.SssLutBuilder;
 import org.dynamisengine.vectrix.renderingmath.SssProfile;
-import org.dynamisengine.vectrix.renderingmath.TransmittanceLutBuilder;
 
 import java.util.SplittableRandom;
 import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@SuppressWarnings("deprecation") // covers the deprecated renderingmath atmosphere classes
 public class RenderingMathBenchmark extends ThroughputBenchmark {
     @Param({"64", "1024", "16384"})
     public int count;
@@ -63,7 +60,6 @@ public class RenderingMathBenchmark extends ThroughputBenchmark {
     private int[] order;
 
     private SssProfile sssProfile;
-    private AtmosphereParams atmosphere;
     private float[] lutRgb;
 
     @Setup
@@ -106,17 +102,6 @@ public class RenderingMathBenchmark extends ThroughputBenchmark {
         sssProfile = new SssProfile(
                 new float[] {0.24f, 0.31f, 0.45f, 0.12f, 0.14f, 0.18f},
                 new float[] {0.0064f, 0.0484f, 0.187f, 0.35f, 0.35f, 0.35f});
-        atmosphere = new AtmosphereParams(
-                6360_000.0f,
-                6460_000.0f,
-                8000.0f,
-                1200.0f,
-                5.8e-6f,
-                13.5e-6f,
-                33.1e-6f,
-                2.0e-5f,
-                2.0e-5f,
-                2.0e-5f);
         lutRgb = new float[resolution * resolution * 3];
     }
 
@@ -168,14 +153,6 @@ public class RenderingMathBenchmark extends ThroughputBenchmark {
         ensureLutCapacity();
         int samples = sampleCountForQuality();
         SssLutBuilder.build(resolution, resolution, sssProfile, 2.5f, 12.0f, samples, lutRgb);
-        return lutRgb[0] + lutRgb[lutRgb.length - 1];
-    }
-
-    @Benchmark
-    public float buildTransmittanceLut() {
-        ensureLutCapacity();
-        int samples = sampleCountForQuality() * 2;
-        TransmittanceLutBuilder.build(resolution, resolution, atmosphere, samples, lutRgb);
         return lutRgb[0] + lutRgb[lutRgb.length - 1];
     }
 

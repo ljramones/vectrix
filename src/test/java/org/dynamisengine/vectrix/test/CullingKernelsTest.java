@@ -80,7 +80,7 @@ class CullingKernelsTest {
         int[] a = new int[3];
         int[] b = new int[3];
         CullingKernels.frustumCullAabbBatch(new FrustumPlanes().set(vp, false), aabbs, a, 3);
-        CullingKernels.frustumCullAabbBatch(vp, aabbs, b, 3);
+        CullingKernels.frustumCullAabbBatch(new FrustumPlanes().set(vp, false), aabbs, b, 3);
         assertEquals(a[0], b[0]);
         assertEquals(a[1], b[1]);
         assertEquals(a[2], b[2]);
@@ -103,8 +103,8 @@ class CullingKernelsTest {
         }
         int[] scalar = new int[aabbs.size()];
         int[] simd = new int[aabbs.size()];
-        CullingKernels.frustumCullAabbBatchScalar(fp, aabbs, scalar, aabbs.size());
-        CullingKernels.frustumCullAabbBatchSimd(fp, aabbs, simd, aabbs.size());
+        TestBackends.cullScalar(fp, aabbs, scalar, aabbs.size());
+        TestBackends.cullSimd(fp, aabbs, simd, aabbs.size());
         for (int i = 0; i < aabbs.size(); i++) {
             assertEquals(scalar[i], simd[i]);
         }
@@ -126,7 +126,7 @@ class CullingKernelsTest {
             CoreConfig.setMathMode(MathMode.STRICT);
             SimdSupport.setEnabled(true);
             CullingKernels.frustumCullAabbBatch(fp, aabbs, auto, aabbs.size());
-            CullingKernels.frustumCullAabbBatchScalar(fp, aabbs, scalar, aabbs.size());
+            TestBackends.cullScalar(fp, aabbs, scalar, aabbs.size());
         } finally {
             CoreConfig.setMathMode(prevMode);
             SimdSupport.setEnabled(prevSimd);

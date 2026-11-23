@@ -91,136 +91,11 @@ public final class CullingKernels {
         frustumCullAabbBatchSimd(frustum, bounds, outResult, count);
     }
 
-    /**
-     * Classifies the boxes with the scalar kernel, whatever the runtime backend.
-     *
-     * @param frustum the frustum planes
-     * @param bounds the boxes; box {@code i} is element {@code i} of each min and max array
-     * @param outResult receives one classification per box, from index 0
-     * @param count the number of boxes, starting at index 0; nothing is written when it is 0 or negative
-     *
-     * @deprecated call {@code frustumCullAabbBatch}, which picks the backend ({@code SimdSupport})
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public static void frustumCullAabbBatchScalar(FrustumPlanes frustum, AABBSoA bounds, int[] outResult, int count) {
-        float nxX = frustum.x[FrustumPlanes.PLANE_NX], nxY = frustum.y[FrustumPlanes.PLANE_NX], nxZ = frustum.z[FrustumPlanes.PLANE_NX], nxW = frustum.w[FrustumPlanes.PLANE_NX];
-        float pxX = frustum.x[FrustumPlanes.PLANE_PX], pxY = frustum.y[FrustumPlanes.PLANE_PX], pxZ = frustum.z[FrustumPlanes.PLANE_PX], pxW = frustum.w[FrustumPlanes.PLANE_PX];
-        float nyX = frustum.x[FrustumPlanes.PLANE_NY], nyY = frustum.y[FrustumPlanes.PLANE_NY], nyZ = frustum.z[FrustumPlanes.PLANE_NY], nyW = frustum.w[FrustumPlanes.PLANE_NY];
-        float pyX = frustum.x[FrustumPlanes.PLANE_PY], pyY = frustum.y[FrustumPlanes.PLANE_PY], pyZ = frustum.z[FrustumPlanes.PLANE_PY], pyW = frustum.w[FrustumPlanes.PLANE_PY];
-        float nzX = frustum.x[FrustumPlanes.PLANE_NZ], nzY = frustum.y[FrustumPlanes.PLANE_NZ], nzZ = frustum.z[FrustumPlanes.PLANE_NZ], nzW = frustum.w[FrustumPlanes.PLANE_NZ];
-        float pzX = frustum.x[FrustumPlanes.PLANE_PZ], pzY = frustum.y[FrustumPlanes.PLANE_PZ], pzZ = frustum.z[FrustumPlanes.PLANE_PZ], pzW = frustum.w[FrustumPlanes.PLANE_PZ];
-        for (int i = 0; i < count; i++) {
-            float minX = bounds.minX[i], minY = bounds.minY[i], minZ = bounds.minZ[i];
-            float maxX = bounds.maxX[i], maxY = bounds.maxY[i], maxZ = bounds.maxZ[i];
-            boolean inside = true;
-            float dMax = nxX * (nxX < 0.0f ? minX : maxX) + nxY * (nxY < 0.0f ? minY : maxY) + nxZ * (nxZ < 0.0f ? minZ : maxZ) + nxW;
-            if (dMax < 0.0f) {
-                outResult[i] = FrustumIntersection.OUTSIDE;
-                continue;
-            }
-            float dMin = nxX * (nxX < 0.0f ? maxX : minX) + nxY * (nxY < 0.0f ? maxY : minY) + nxZ * (nxZ < 0.0f ? maxZ : minZ) + nxW;
-            inside &= dMin >= 0.0f;
-
-            dMax = pxX * (pxX < 0.0f ? minX : maxX) + pxY * (pxY < 0.0f ? minY : maxY) + pxZ * (pxZ < 0.0f ? minZ : maxZ) + pxW;
-            if (dMax < 0.0f) {
-                outResult[i] = FrustumIntersection.OUTSIDE;
-                continue;
-            }
-            dMin = pxX * (pxX < 0.0f ? maxX : minX) + pxY * (pxY < 0.0f ? maxY : minY) + pxZ * (pxZ < 0.0f ? maxZ : minZ) + pxW;
-            inside &= dMin >= 0.0f;
-
-            dMax = nyX * (nyX < 0.0f ? minX : maxX) + nyY * (nyY < 0.0f ? minY : maxY) + nyZ * (nyZ < 0.0f ? minZ : maxZ) + nyW;
-            if (dMax < 0.0f) {
-                outResult[i] = FrustumIntersection.OUTSIDE;
-                continue;
-            }
-            dMin = nyX * (nyX < 0.0f ? maxX : minX) + nyY * (nyY < 0.0f ? maxY : minY) + nyZ * (nyZ < 0.0f ? maxZ : minZ) + nyW;
-            inside &= dMin >= 0.0f;
-
-            dMax = pyX * (pyX < 0.0f ? minX : maxX) + pyY * (pyY < 0.0f ? minY : maxY) + pyZ * (pyZ < 0.0f ? minZ : maxZ) + pyW;
-            if (dMax < 0.0f) {
-                outResult[i] = FrustumIntersection.OUTSIDE;
-                continue;
-            }
-            dMin = pyX * (pyX < 0.0f ? maxX : minX) + pyY * (pyY < 0.0f ? maxY : minY) + pyZ * (pyZ < 0.0f ? maxZ : minZ) + pyW;
-            inside &= dMin >= 0.0f;
-
-            dMax = nzX * (nzX < 0.0f ? minX : maxX) + nzY * (nzY < 0.0f ? minY : maxY) + nzZ * (nzZ < 0.0f ? minZ : maxZ) + nzW;
-            if (dMax < 0.0f) {
-                outResult[i] = FrustumIntersection.OUTSIDE;
-                continue;
-            }
-            dMin = nzX * (nzX < 0.0f ? maxX : minX) + nzY * (nzY < 0.0f ? maxY : minY) + nzZ * (nzZ < 0.0f ? maxZ : minZ) + nzW;
-            inside &= dMin >= 0.0f;
-
-            dMax = pzX * (pzX < 0.0f ? minX : maxX) + pzY * (pzY < 0.0f ? minY : maxY) + pzZ * (pzZ < 0.0f ? minZ : maxZ) + pzW;
-            if (dMax < 0.0f) {
-                outResult[i] = FrustumIntersection.OUTSIDE;
-                continue;
-            }
-            dMin = pzX * (pzX < 0.0f ? maxX : minX) + pzY * (pzY < 0.0f ? maxY : minY) + pzZ * (pzZ < 0.0f ? maxZ : minZ) + pzW;
-            inside &= dMin >= 0.0f;
-
-            outResult[i] = inside ? FrustumIntersection.INSIDE : FrustumIntersection.INTERSECT;
-        }
-    }
-
-    /**
-     * Classifies the boxes with the Vector API kernel when it is available, otherwise with a scalar loop unrolled
-     * four at a time. Unlike {@link #frustumCullAabbBatch(FrustumPlanes, AABBSoA, int[], int)}, it ignores the math
-     * mode and the batch-size limits.
-     *
-     * @param frustum the frustum planes
-     * @param bounds the boxes; box {@code i} is element {@code i} of each min and max array
-     * @param outResult receives one classification per box, from index 0
-     * @param count the number of boxes, starting at index 0; nothing is written when it is 0 or negative
-     *
-     * @deprecated call {@code frustumCullAabbBatch}, which picks the backend ({@code SimdSupport})
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public static void frustumCullAabbBatchSimd(FrustumPlanes frustum, AABBSoA bounds, int[] outResult, int count) {
-//#ifdef __HAS_VECTOR_API__
-        if (SimdSupport.isVectorApiAvailable()) {
-            Simd.frustumCull(frustum, bounds, outResult, count);
-            return;
-        }
-//#endif
-        int i = 0;
-        int limit = count & ~3;
-        for (; i < limit; i += 4) {
-            classifyInto(frustum, bounds, outResult, i);
-            classifyInto(frustum, bounds, outResult, i + 1);
-            classifyInto(frustum, bounds, outResult, i + 2);
-            classifyInto(frustum, bounds, outResult, i + 3);
-        }
-        for (; i < count; i++) {
-            classifyInto(frustum, bounds, outResult, i);
-        }
-    }
-
     private static void classifyInto(FrustumPlanes frustum, AABBSoA bounds, int[] outResult, int i) {
         outResult[i] = classifyAabb(
                 frustum,
                 bounds.minX[i], bounds.minY[i], bounds.minZ[i],
                 bounds.maxX[i], bounds.maxY[i], bounds.maxZ[i]);
-    }
-
-    /**
-     * Extracts the planes of {@code viewProj} for an OpenGL depth range ([-1, 1]), then classifies.
-     *
-     * @param viewProj the view-projection matrix
-     * @param bounds the boxes; box {@code i} is element {@code i} of each min and max array
-     * @param outResult receives one classification per box, from index 0
-     * @param count the number of boxes, starting at index 0
-
-     * @deprecated allocates a {@link FrustumPlanes} per call and assumes OpenGL depth, which culls nothing near the
-     *             camera for a [0, 1] or reverse-Z projection; extract the planes once with
-     *             {@link FrustumPlanes#set(Matrix4fc, boolean, DepthRange)} and call
-     *             {@link #frustumCullAabbBatch(FrustumPlanes, AABBSoA, int[], int)}
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public static void frustumCullAabbBatch(Matrix4fc viewProj, AABBSoA bounds, int[] outResult, int count) {
-        frustumCullAabbBatch(new FrustumPlanes().set(viewProj, false), bounds, outResult, count);
     }
 
     /**
@@ -388,5 +263,88 @@ public final class CullingKernels {
     private static boolean booleanProperty(String name, boolean defaultValue) {
         String v = System.getProperty(name);
         return v == null || v.isEmpty() ? defaultValue : Boolean.parseBoolean(v.trim());
+    }
+
+    private static void frustumCullAabbBatchScalar(FrustumPlanes frustum, AABBSoA bounds, int[] outResult, int count) {
+        float nxX = frustum.x[FrustumPlanes.PLANE_NX], nxY = frustum.y[FrustumPlanes.PLANE_NX], nxZ = frustum.z[FrustumPlanes.PLANE_NX], nxW = frustum.w[FrustumPlanes.PLANE_NX];
+        float pxX = frustum.x[FrustumPlanes.PLANE_PX], pxY = frustum.y[FrustumPlanes.PLANE_PX], pxZ = frustum.z[FrustumPlanes.PLANE_PX], pxW = frustum.w[FrustumPlanes.PLANE_PX];
+        float nyX = frustum.x[FrustumPlanes.PLANE_NY], nyY = frustum.y[FrustumPlanes.PLANE_NY], nyZ = frustum.z[FrustumPlanes.PLANE_NY], nyW = frustum.w[FrustumPlanes.PLANE_NY];
+        float pyX = frustum.x[FrustumPlanes.PLANE_PY], pyY = frustum.y[FrustumPlanes.PLANE_PY], pyZ = frustum.z[FrustumPlanes.PLANE_PY], pyW = frustum.w[FrustumPlanes.PLANE_PY];
+        float nzX = frustum.x[FrustumPlanes.PLANE_NZ], nzY = frustum.y[FrustumPlanes.PLANE_NZ], nzZ = frustum.z[FrustumPlanes.PLANE_NZ], nzW = frustum.w[FrustumPlanes.PLANE_NZ];
+        float pzX = frustum.x[FrustumPlanes.PLANE_PZ], pzY = frustum.y[FrustumPlanes.PLANE_PZ], pzZ = frustum.z[FrustumPlanes.PLANE_PZ], pzW = frustum.w[FrustumPlanes.PLANE_PZ];
+        for (int i = 0; i < count; i++) {
+            float minX = bounds.minX[i], minY = bounds.minY[i], minZ = bounds.minZ[i];
+            float maxX = bounds.maxX[i], maxY = bounds.maxY[i], maxZ = bounds.maxZ[i];
+            boolean inside = true;
+            float dMax = nxX * (nxX < 0.0f ? minX : maxX) + nxY * (nxY < 0.0f ? minY : maxY) + nxZ * (nxZ < 0.0f ? minZ : maxZ) + nxW;
+            if (dMax < 0.0f) {
+                outResult[i] = FrustumIntersection.OUTSIDE;
+                continue;
+            }
+            float dMin = nxX * (nxX < 0.0f ? maxX : minX) + nxY * (nxY < 0.0f ? maxY : minY) + nxZ * (nxZ < 0.0f ? maxZ : minZ) + nxW;
+            inside &= dMin >= 0.0f;
+
+            dMax = pxX * (pxX < 0.0f ? minX : maxX) + pxY * (pxY < 0.0f ? minY : maxY) + pxZ * (pxZ < 0.0f ? minZ : maxZ) + pxW;
+            if (dMax < 0.0f) {
+                outResult[i] = FrustumIntersection.OUTSIDE;
+                continue;
+            }
+            dMin = pxX * (pxX < 0.0f ? maxX : minX) + pxY * (pxY < 0.0f ? maxY : minY) + pxZ * (pxZ < 0.0f ? maxZ : minZ) + pxW;
+            inside &= dMin >= 0.0f;
+
+            dMax = nyX * (nyX < 0.0f ? minX : maxX) + nyY * (nyY < 0.0f ? minY : maxY) + nyZ * (nyZ < 0.0f ? minZ : maxZ) + nyW;
+            if (dMax < 0.0f) {
+                outResult[i] = FrustumIntersection.OUTSIDE;
+                continue;
+            }
+            dMin = nyX * (nyX < 0.0f ? maxX : minX) + nyY * (nyY < 0.0f ? maxY : minY) + nyZ * (nyZ < 0.0f ? maxZ : minZ) + nyW;
+            inside &= dMin >= 0.0f;
+
+            dMax = pyX * (pyX < 0.0f ? minX : maxX) + pyY * (pyY < 0.0f ? minY : maxY) + pyZ * (pyZ < 0.0f ? minZ : maxZ) + pyW;
+            if (dMax < 0.0f) {
+                outResult[i] = FrustumIntersection.OUTSIDE;
+                continue;
+            }
+            dMin = pyX * (pyX < 0.0f ? maxX : minX) + pyY * (pyY < 0.0f ? maxY : minY) + pyZ * (pyZ < 0.0f ? maxZ : minZ) + pyW;
+            inside &= dMin >= 0.0f;
+
+            dMax = nzX * (nzX < 0.0f ? minX : maxX) + nzY * (nzY < 0.0f ? minY : maxY) + nzZ * (nzZ < 0.0f ? minZ : maxZ) + nzW;
+            if (dMax < 0.0f) {
+                outResult[i] = FrustumIntersection.OUTSIDE;
+                continue;
+            }
+            dMin = nzX * (nzX < 0.0f ? maxX : minX) + nzY * (nzY < 0.0f ? maxY : minY) + nzZ * (nzZ < 0.0f ? maxZ : minZ) + nzW;
+            inside &= dMin >= 0.0f;
+
+            dMax = pzX * (pzX < 0.0f ? minX : maxX) + pzY * (pzY < 0.0f ? minY : maxY) + pzZ * (pzZ < 0.0f ? minZ : maxZ) + pzW;
+            if (dMax < 0.0f) {
+                outResult[i] = FrustumIntersection.OUTSIDE;
+                continue;
+            }
+            dMin = pzX * (pzX < 0.0f ? maxX : minX) + pzY * (pzY < 0.0f ? maxY : minY) + pzZ * (pzZ < 0.0f ? maxZ : minZ) + pzW;
+            inside &= dMin >= 0.0f;
+
+            outResult[i] = inside ? FrustumIntersection.INSIDE : FrustumIntersection.INTERSECT;
+        }
+    }
+
+    private static void frustumCullAabbBatchSimd(FrustumPlanes frustum, AABBSoA bounds, int[] outResult, int count) {
+//#ifdef __HAS_VECTOR_API__
+        if (SimdSupport.isVectorApiAvailable()) {
+            Simd.frustumCull(frustum, bounds, outResult, count);
+            return;
+        }
+//#endif
+        int i = 0;
+        int limit = count & ~3;
+        for (; i < limit; i += 4) {
+            classifyInto(frustum, bounds, outResult, i);
+            classifyInto(frustum, bounds, outResult, i + 1);
+            classifyInto(frustum, bounds, outResult, i + 2);
+            classifyInto(frustum, bounds, outResult, i + 3);
+        }
+        for (; i < count; i++) {
+            classifyInto(frustum, bounds, outResult, i);
+        }
     }
 }

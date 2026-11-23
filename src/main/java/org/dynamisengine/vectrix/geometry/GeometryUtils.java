@@ -35,15 +35,10 @@ import org.dynamisengine.vectrix.core.Math;
  * @author Kai Burjack
  * @author Richard Greenlees
  */
-public class GeometryUtils {
+public final class GeometryUtils {
 
-    /**
-     * Not meant to be instantiated: every member is static.
-     *
-     * @deprecated this utility class will not be instantiable from 3.0
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public GeometryUtils() {
+    /** Not instantiable: every member is static. */
+    private GeometryUtils() {
     }
 
     /**

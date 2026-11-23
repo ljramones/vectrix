@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.sampling;
 
+import org.dynamisengine.vectrix.core.Math;
 import org.dynamisengine.vectrix.core.Random;
 
 /**
@@ -65,8 +66,8 @@ public class SpiralSampling {
         for (int sample = 0; sample < numSamples; sample++) {
             float angle = 2.0f * (float) Math.PI * (sample * numRotations) * invNumSamples;
             float r = radius * sample * iNSMinusOne;
-            float x = (float) Math.sin_roquen_9(angle + 0.5f * (float) Math.PI) * r;
-            float y = (float) Math.sin_roquen_9(angle) * r;
+            float x = (float) SamplingMath.sin_roquen_9(angle + 0.5f * (float) Math.PI) * r;
+            float y = (float) SamplingMath.sin_roquen_9(angle) * r;
             callback.onNewSample(x, y);
         }
     }
@@ -98,8 +99,8 @@ public class SpiralSampling {
         for (int sample = 0; sample < numSamples; sample++) {
             float angle = 2.0f * (float) Math.PI * (sample * numRotations) * invNumSamples;
             float r = radius * sample * iNSMinusOne + (rnd.nextFloat() * 2.0f - 1.0f) * spacingTimesJitter;
-            float x = (float) Math.sin_roquen_9(angle + 0.5f * (float) Math.PI) * r;
-            float y = (float) Math.sin_roquen_9(angle) * r;
+            float x = (float) SamplingMath.sin_roquen_9(angle + 0.5f * (float) Math.PI) * r;
+            float y = (float) SamplingMath.sin_roquen_9(angle) * r;
             callback.onNewSample(x, y);
         }
     }

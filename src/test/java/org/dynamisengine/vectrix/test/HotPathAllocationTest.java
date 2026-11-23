@@ -160,8 +160,6 @@ class HotPathAllocationTest {
         org.dynamisengine.vectrix.core.Vector3f lightDir = new org.dynamisengine.vectrix.core.Vector3f(0.3f, -1f, 0.2f);
         assertNoAllocation("Projectionsf.obliqueNearPlane", () -> org.dynamisengine.vectrix.camera.Projectionsf
                 .obliqueNearPlane(camProj, mirror, org.dynamisengine.vectrix.core.DepthRange.REVERSED_ZERO_TO_ONE, camOut));
-        assertNoAllocation("Projectionsf.obliqueNearPlane (deprecated camera.DepthRange forwarder)",
-                () -> deprecatedOblique(camProj, mirror, camOut));
         assertNoAllocation("Projectionsf.applyJitter", () -> org.dynamisengine.vectrix.camera.Projectionsf.applyJitter(camProj,
                 0.001f, -0.002f, camOut));
         assertNoAllocation("ShadowCascadesf.stableLightMatrices", () -> org.dynamisengine.vectrix.camera.ShadowCascadesf
@@ -471,9 +469,6 @@ class HotPathAllocationTest {
         double[] wscr = new double[org.dynamisengine.vectrix.dsp.Wiener.deconvolveScratchSize(wplan)];
         assertNoAllocation("Wiener.deconvolve", () -> org.dynamisengine.vectrix.dsp.Wiener.deconvolve(wplan, wy, 0, wk,
             0, 3, 0.01, wout, 0, wscr, 0));
-        double[] legacy = new double[2 * 4096];
-        org.dynamisengine.vectrix.fft.FFT1d.forward(legacy); // builds the shared table once
-        assertNoAllocation("FFT1d.forward", () -> org.dynamisengine.vectrix.fft.FFT1d.forward(legacy));
     }
 
     /** The previous squadControlPoint, written with the public API (it allocated eight quaternions). */
@@ -554,10 +549,4 @@ class HotPathAllocationTest {
         assertEquals(expected, CatmullRom4f.derivative(p0, alias, p2, p3, 0.4f, 0.5f, alias));
     }
 
-    @SuppressWarnings("removal")
-    private static void deprecatedOblique(org.dynamisengine.vectrix.core.Matrix4fc proj,
-            org.dynamisengine.vectrix.core.Vector4fc plane, org.dynamisengine.vectrix.core.Matrix4f dest) {
-        org.dynamisengine.vectrix.camera.Projectionsf.obliqueNearPlane(proj, plane,
-            org.dynamisengine.vectrix.camera.DepthRange.REVERSED_ZERO_TO_ONE, dest);
-    }
 }

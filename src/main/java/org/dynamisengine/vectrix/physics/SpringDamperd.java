@@ -134,53 +134,6 @@ public final class SpringDamperd {
     }
 
     /**
-     * One semi-implicit Euler step of a damped spring. Despite the name, this is not an overdamped solution: it is
-     * first-order accurate and unstable for stiff springs or large {@code dt}.
-     *
-     * @param current the current position
-     * @param target the position the spring moves toward
-     * @param velocity the current velocity
-     * @param stiffness the stiffness per unit mass
-     * @param damping the damping per unit mass
-     * @param dt the time step
-     * @param velOut receives the new velocity in element 0
-     * @return the new position
-     * @deprecated since 2.4.0; use {@link #dampedStep}, which is exact in every damping regime.
-     */
-    @Deprecated
-    public static double overdamped(
-            double current, double target, double velocity, double stiffness, double damping, double dt, double[] velOut) {
-        double x = current - target;
-        double accel = -stiffness * x - damping * velocity;
-        double newVelocity = velocity + accel * dt;
-        double newValue = current + newVelocity * dt;
-        velOut[0] = newVelocity;
-        return newValue;
-    }
-
-    /**
-     * Suspension force from the spring's current length: {@code k (restLength − length) − c · lengthRate}.
-     * <p>
-     * The parameters were misnamed: {@code compression} is the current length, and {@code compressionRate} is the
-     * rate of change of that length. Passing the actual compression gives the largest force at full extension and
-     * damping in the wrong direction.
-     *
-     * @param compression despite its name, the current spring length
-     * @param restLength the spring's rest length
-     * @param stiffness the spring stiffness
-     * @param compressionRate despite its name, the rate of change of the spring length
-     * @param damping the damping coefficient
-     * @return the force along the strut, positive pushing the wheel away from the body
-     * @deprecated since 2.4.0; use {@link #suspensionForceFromLength} or {@link #suspensionForceFromCompression},
-     *             which name their inputs unambiguously.
-     */
-    @Deprecated
-    public static double suspensionForce(
-            double compression, double restLength, double stiffness, double compressionRate, double damping) {
-        return suspensionForceFromLength(compression, restLength, compressionRate, stiffness, damping);
-    }
-
-    /**
      * Suspension force along the strut, positive pushing the wheel away from the body, from the current spring
      * length: {@code k (restLength − length) − c · lengthRate}.
      *

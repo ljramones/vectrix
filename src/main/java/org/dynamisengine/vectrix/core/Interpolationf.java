@@ -28,15 +28,10 @@ package org.dynamisengine.vectrix.core;
  * 
  * @author Kai Burjack
  */
-public class Interpolationf {
+public final class Interpolationf {
 
-    /**
-     * Not meant to be instantiated: every member is static.
-     *
-     * @deprecated this utility class will not be instantiable from 3.0
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public Interpolationf() {
+    /** Not instantiable: every member is static. */
+    private Interpolationf() {
     }
 
     /**

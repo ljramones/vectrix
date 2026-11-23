@@ -124,17 +124,4 @@ public final class Fresnelf {
         return java.lang.Math.max(0.0f, java.lang.Math.min(1.0f, v));
     }
 
-    /**
-     * Returns the conductor reflectance for an IOR given as an {@code fft.Complexf}. Allocates a copy of the IOR.
-     *
-     * @param cosThetaI cosine of the incident angle, clamped to {@code [0, 1]}
-     * @param eta the complex IOR: {@code n} in the real part and {@code k} in the imaginary part
-     * @return the reflectance, in {@code [0, 1]}
-     * @throws IllegalArgumentException if {@code n} or {@code k} is negative
-     * @deprecated use the overload taking {@link Complexf} from {@code core}
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public static float conductor(float cosThetaI, org.dynamisengine.vectrix.fft.Complexf eta) {
-        return conductor(cosThetaI, new Complexf(eta.real, eta.imag));
-    }
 }

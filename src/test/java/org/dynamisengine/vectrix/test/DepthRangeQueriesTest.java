@@ -222,18 +222,4 @@ class DepthRangeQueriesTest {
                 (float) close.z));
     }
 
-    @Test
-    @SuppressWarnings("removal")
-    void deprecatedCameraDepthRangeForwardsToCore() {
-        org.dynamisengine.vectrix.core.Matrix4f m = new org.dynamisengine.vectrix.core.Matrix4f()
-            .perspective(1.1f, 1.6f, 0.3f, 80f, true);
-        for (org.dynamisengine.vectrix.camera.DepthRange old : org.dynamisengine.vectrix.camera.DepthRange.values()) {
-            assertEquals(old.name(), old.toCore().name());
-            org.dynamisengine.vectrix.core.Vector4f a = m.frustumPlane(2, old, new org.dynamisengine.vectrix.core.Vector4f());
-            org.dynamisengine.vectrix.core.Vector4f b = m.frustumPlane(2, old.toCore(),
-                new org.dynamisengine.vectrix.core.Vector4f());
-            assertEquals(b, a);
-            assertEquals(m.perspectiveNear(old.toCore()), m.perspectiveNear(old), 0f);
-        }
-    }
 }

@@ -39,15 +39,6 @@ The packages form layers: each depends only on packages in the layers below it, 
 | 4 | `geometry` | Intersections, closest points, contacts, bounding volumes, frustum culling | `camera`, `linalg`, `simd`, `soa` |
 | 5 | `gpu` | GPU data layouts and encodings: std140/std430, half floats, packed normals, instance data | `affine`, `color`, `geometry`, `soa` |
 
-## Deprecated edges
-
-Three edges remain only through deprecated overloads kept for compatibility. All three go in 3.0:
-- `core` → `camera`: `Matrix4f`/`Matrix4d` methods taking `camera.DepthRange`, deprecated in favor of
-  `core.DepthRange`.
-- `affine` → `soa`: the deprecated `affine.TransformKernels`, now `soa.TransformKernels`.
-- `optics` → `fft`: the deprecated `Fresnelf.conductor` overloads taking `fft.Complexf`, which are now
-  `core.Complexf`.
-
 ## Where to start
 
 - **New to the library:** [getting-started.md](getting-started.md), then [conventions.md](conventions.md).

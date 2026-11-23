@@ -33,14 +33,11 @@
  * Each has a float twin ({@code ...f}). Plans are immutable and shareable between threads; calls take caller-owned
  * scratch, never allocate, and are deterministic. Twiddle factors are computed with exact argument reduction, so
  * the error grows only with {@code log n}. The Vector API paths of the {@code -simd} jar give the same bits as the
- * scalar ones. The original radix-2 classes {@code FFT1d}, {@code FFT1f}, {@code Convolutiond} and
- * {@code Convolutionf} are deprecated, and so are {@code Complexd} and {@code Complexf}, which moved to the
- * {@code core} package. See {@code docs/guides/signal-processing.md}.
+ * scalar ones. See {@code docs/guides/signal-processing.md}.
  * <p>
  * <b>Contract.</b> Threading: plans are immutable and can be shared by any number of threads; scratch arrays and
  * {@code BlockConvolverd}/{@code BlockConvolverf} state belong to one thread at a time. Allocation: creating a plan
- * allocates its tables; transforms and {@code process}/{@code flush} calls do not allocate (the deprecated classes
- * do). Determinism: results do not depend on SIMD or thread count, but a block convolver's output bits depend on
+ * allocates its tables; transforms and {@code process}/{@code flush} calls do not allocate. Determinism: results do not depend on SIMD or thread count, but a block convolver's output bits depend on
  * where its blocks start; twiddles use {@code AccurateMath}, so they match across platforms under
  * {@code -Dvectrix.strictMath=true}. Errors: invalid sizes and offsets, too-short arrays or segments and too-small
  * scratch throw {@link java.lang.IllegalArgumentException} before any element is written; NaN and infinities

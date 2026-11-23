@@ -9,8 +9,8 @@ across machines.
 `CoreConfig.determinismFingerprint()` returns one line naming every bit-affecting setting, for example:
 
 ```
-vectrix.math.mode=FAST;vectrix.strictMath=true;joml.fastmath=false;joml.sinLookup=false/14;joml.useMathFma=true;
-vectrix.simd.enabled=true;vectrix.skinning.simd=false;vectrix.culling.simd=true;os.arch=aarch64;java.vm.version=25.0.4+...
+vectrix.math.mode=FAST;vectrix.strictMath=true;vectrix.fastmath=false;vectrix.sinLookup=false/14;
+vectrix.useMathFma=true;os.arch=aarch64;java.vm.version=25.0.4+...
 ```
 
 Store it in replay files and compare it on playback. Two runs can only be expected to agree bitwise when their
@@ -26,11 +26,9 @@ false.
 | `-Djoml.sinLookup`, `-Djoml.sinLookup.bits` | false, 14 | Which `fastmath` approximation is used, and the table size. Error bounds against the exact value: the polynomial `sin` within 1e-10 and `cos` within 2e-10 for \|x\| < 1e6; the lookup `sin`/`cos` within 4e-5 for \|x\| < 256 (default table); `atan2` within 2.1e-4 rad. Larger arguments, zeros, infinities and NaN use the accurate path (since 2.5.0). |
 | `-Djoml.useMathFma` | true | Whether `Math.fma(a, b, c)` is fused (`java.lang.Math.fma`) or `a * b + c`. Both are exactly specified, so each setting is reproducible, but the two settings differ in the last bit. Every type, including `Affine4f`, follows this flag. |
 | `vectrix.math.mode` / `CoreConfig.setMathMode` | FAST | `STRICT` validates inputs and forces scalar kernels; see `MathMode` and [conventions.md](conventions.md). This is the process-wide default; `CoreConfig.runWithMathMode` / `callWithMathMode` override it for one task on one thread (see below). |
-| `-Dvectrix.simd.enabled` | true | Whether batch kernels may take their Vector API path. Vector API kernels perform the scalar operations in the same order, so FAST compose is bitwise identical either way. |
-| `-Dvectrix.skinning.simd` | false | Opt-in SIMD skinning dispatch. Skinning has no SIMD kernel (the gather kernel was slower on arm64), so it has no effect. |
-| `-Dvectrix.culling.simd` | true | Whether `CullingKernels.frustumCullAabbBatch` may take its Vector API kernel. It classifies every box exactly like scalar, NaN and infinite bounds included, so results do not depend on this setting. |
 
 Settings that do **not** change output bits:
+- The SIMD switches (`-Dvectrix.simd.enabled`, `SimdSupport.setEnabled`, `-Dvectrix.culling.simd`): every Vector API kernel performs the scalar operations in the same order, so FAST results are the same bits either way.
 - The memory backend (FFM by default; `-Djoml.noffm`, `-Djoml.forceUnsafe`, `-Djoml.nounsafe`): every backend writes the same bytes, including the raw-address API.
 - The JIT: results are the same in the interpreter (`-Xint`) and in compiled code.
 - `-Djoml.debug`.

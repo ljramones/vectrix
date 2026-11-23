@@ -41,7 +41,6 @@ import org.dynamisengine.vectrix.core.Vector2d;
 import org.dynamisengine.vectrix.core.Vector2f;
 import org.dynamisengine.vectrix.core.Vector3d;
 import org.dynamisengine.vectrix.core.Vector3f;
-import org.dynamisengine.vectrix.fft.Convolutionf;
 import org.dynamisengine.vectrix.geometry.CullingKernels;
 import org.dynamisengine.vectrix.geometry.FrustumPlanes;
 import org.dynamisengine.vectrix.geometry.Intersectiond;
@@ -108,8 +107,8 @@ class LowFindingsTest {
             boxes.set(i, v, -1, -5, 1, 1, -4);
         }
         int[] scalar = new int[n], simd = new int[n];
-        CullingKernels.frustumCullAabbBatchScalar(fp, boxes, scalar, n);
-        CullingKernels.frustumCullAabbBatchSimd(fp, boxes, simd, n);
+        TestBackends.cullScalar(fp, boxes, scalar, n);
+        TestBackends.cullSimd(fp, boxes, simd, n);
         assertArrayEquals(scalar, simd);
     }
 
@@ -133,11 +132,6 @@ class LowFindingsTest {
     void degenerateCapsuleIsASphere() {
         Vector3f a = new Vector3f(1, 2, 3), p = new Vector3f(4, 6, 3);
         assertEquals(Sdf3f.sphere(new Vector3f(p).sub(a), 0.5f), Sdf3f.capsule(p, a, a, 0.5f), 1e-6f); // was NaN
-    }
-
-    @Test
-    void emptyConvolutionInputIsRejected() {
-        assertThrows(IllegalArgumentException.class, () -> Convolutionf.linear(new float[0], new float[] {1, 0}, new float[4]));
     }
 
     @Test

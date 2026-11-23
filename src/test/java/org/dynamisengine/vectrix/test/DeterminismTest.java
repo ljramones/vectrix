@@ -135,8 +135,8 @@ class DeterminismTest {
             String fast = CoreConfig.determinismFingerprint();
             CoreConfig.setMathMode(MathMode.STRICT);
             String strict = CoreConfig.determinismFingerprint();
-            for (String key : new String[] {"vectrix.math.mode=", "vectrix.strictMath=", "joml.fastmath=", "joml.sinLookup=",
-                    "joml.useMathFma=", "vectrix.simd.enabled=", "os.arch=", "java.vm.version="}) {
+            for (String key : new String[] {"vectrix.math.mode=", "vectrix.strictMath=", "vectrix.fastmath=",
+                    "vectrix.sinLookup=", "vectrix.useMathFma=", "os.arch=", "java.vm.version="}) {
                 assertTrue(fast.contains(key), key + " missing from " + fast);
             }
             assertTrue(fast.contains("vectrix.math.mode=FAST") && strict.contains("vectrix.math.mode=STRICT"));

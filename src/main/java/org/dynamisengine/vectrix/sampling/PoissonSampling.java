@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.sampling;
 
+import org.dynamisengine.vectrix.core.Math;
 import java.util.ArrayList;
 
 import org.dynamisengine.vectrix.core.Random;
@@ -37,15 +38,10 @@ import org.dynamisengine.vectrix.core.Vector2f;
  * @author Kai Burjack
   * @since 1.0.0
   */
-public class PoissonSampling {
+public final class PoissonSampling {
 
-    /**
-     * Not meant to be instantiated: every member is static.
-     *
-     * @deprecated this utility class will not be instantiable from 3.0
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public PoissonSampling() {
+    /** Not instantiable: every member is static. */
+    private PoissonSampling() {
     }
 
     /**
@@ -113,10 +109,10 @@ public class PoissonSampling {
                 Vector2f sample = (Vector2f) processList.get(i);
                 boolean found = false;
                 search: for (int s = 0; s < k; s++) {
-                    float angle = rnd.nextFloat() * (float) Math.PI2;
+                    float angle = rnd.nextFloat() * (float) SamplingMath.PI2;
                     float radius = minDist * (rnd.nextFloat() + 1.0f);
-                    x = (float) (radius * Math.sin_roquen_9(angle + Math.PIHalf));
-                    y = (float) (radius * Math.sin_roquen_9(angle));
+                    x = (float) (radius * SamplingMath.sin_roquen_9(angle + SamplingMath.PIHalf));
+                    y = (float) (radius * SamplingMath.sin_roquen_9(angle));
                     x += sample.x;
                     y += sample.y;
                     if (x * x + y * y > diskRadiusSquared)

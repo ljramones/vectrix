@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.sampling;
 
+import org.dynamisengine.vectrix.core.Math;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 
@@ -36,15 +37,10 @@ import org.dynamisengine.vectrix.core.Vector3f;
  * @author Kai Burjack
   * @since 1.0.0
   */
-public class BestCandidateSampling {
+public final class BestCandidateSampling {
 
-    /**
-     * Not meant to be instantiated: every member is static.
-     *
-     * @deprecated this utility class will not be instantiable from 3.0
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public BestCandidateSampling() {
+    /** Not instantiable: every member is static. */
+    private BestCandidateSampling() {
     }
 
     private static final class IntHolder {
@@ -252,7 +248,7 @@ public class BestCandidateSampling {
                  * f(0)  = PI/2
                  * f(1)  = 0
                  */
-                return (float) (-Math.PIHalf * dot + Math.PIHalf);
+                return (float) (-SamplingMath.PIHalf * dot + SamplingMath.PIHalf);
                 //return (float) Math.acos(dot);
             }
 

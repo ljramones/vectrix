@@ -46,15 +46,10 @@ package org.dynamisengine.vectrix.core;
  *
  * @author Kai Burjack
  */
-public class Math {
+public final class Math {
 
-    /**
-     * Not meant to be instantiated: every member is static.
-     *
-     * @deprecated this utility class will not be instantiable from 3.0
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public Math() {
+    /** Not instantiable: every member is static. */
+    private Math() {
     }
 
     /*

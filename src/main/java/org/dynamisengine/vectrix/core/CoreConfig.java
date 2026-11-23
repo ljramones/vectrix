@@ -178,19 +178,17 @@ public final class CoreConfig {
      * A one-line summary of every setting that can change Vectrix's output bits, for recording in replay files
      * and comparing on playback. Two runs can only be expected to agree bitwise when their fingerprints are
      * equal; the {@code os.arch} and {@code java.vm.version} entries only matter while
-     * {@code vectrix.strictMath} is false. See {@code docs/determinism.md}.
+     * {@code vectrix.strictMath} is false. The SIMD settings are not listed: SIMD and scalar paths give the same
+     * bits. See {@code docs/determinism.md}.
      *
      * @return the settings as {@code name=value} pairs separated by semicolons
      */
     public static String determinismFingerprint() {
         return "vectrix.math.mode=" + mathMode()
                 + ";vectrix.strictMath=" + Options.STRICT_MATH
-                + ";joml.fastmath=" + Options.FASTMATH
-                + ";joml.sinLookup=" + Options.SIN_LOOKUP + "/" + Options.SIN_LOOKUP_BITS
-                + ";joml.useMathFma=" + Options.USE_MATH_FMA
-                + ";vectrix.simd.enabled=" + System.getProperty("vectrix.simd.enabled", "true")
-                + ";vectrix.skinning.simd=" + System.getProperty("vectrix.skinning.simd", "false")
-                + ";vectrix.culling.simd=" + System.getProperty("vectrix.culling.simd", "true")
+                + ";vectrix.fastmath=" + Options.FASTMATH
+                + ";vectrix.sinLookup=" + Options.SIN_LOOKUP + "/" + Options.SIN_LOOKUP_BITS
+                + ";vectrix.useMathFma=" + Options.USE_MATH_FMA
                 + ";os.arch=" + System.getProperty("os.arch")
                 + ";java.vm.version=" + System.getProperty("java.vm.version");
     }

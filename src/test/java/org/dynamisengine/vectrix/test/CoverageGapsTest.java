@@ -37,9 +37,7 @@ import java.util.List;
 import org.dynamisengine.vectrix.affine.Transformf;
 import org.dynamisengine.vectrix.core.Matrix4f;
 import org.dynamisengine.vectrix.core.Quaterniond;
-import org.dynamisengine.vectrix.core.QuaterniondInterpolator;
 import org.dynamisengine.vectrix.core.Quaternionf;
-import org.dynamisengine.vectrix.core.QuaternionfInterpolator;
 import org.dynamisengine.vectrix.core.SimplexNoise;
 import org.dynamisengine.vectrix.core.Vector2d;
 import org.dynamisengine.vectrix.core.Vector2f;
@@ -169,24 +167,6 @@ class CoverageGapsTest {
         GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(new PackedAffineArray(packedUpload), identityOrder, expanded, n);
         assertArrayEquals(matrixUpload, expanded, 1e-5f);
         assertArrayEquals(vin, vout, 0f, "identity joint leaves vertices in place");
-    }
-
-    @Test
-    void doubleInterpolatorMatchesFloat() {
-        Quaternionf[] qf = {new Quaternionf().rotationXYZ(0.1f, 0.2f, 0.3f), new Quaternionf().rotationXYZ(0.4f, -0.1f, 0.2f),
-            new Quaternionf().rotationXYZ(-0.2f, 0.5f, 0.1f)};
-        float[] wf = {0.2f, 0.5f, 0.3f};
-        Quaterniond[] qd = new Quaterniond[3];
-        double[] wd = new double[3];
-        for (int i = 0; i < 3; i++) {
-            qd[i] = new Quaterniond(qf[i].x, qf[i].y, qf[i].z, qf[i].w);
-            wd[i] = wf[i];
-        }
-        Quaternionf af = new QuaternionfInterpolator().computeWeightedAverage(qf, wf, 30, new Quaternionf());
-        Quaterniond ad = new QuaterniondInterpolator().computeWeightedAverage(qd, wd, 30, new Quaterniond());
-        double dot = java.lang.Math.abs(af.x * ad.x + af.y * ad.y + af.z * ad.z + af.w * ad.w);
-        assertEquals(1.0, dot, 1e-5);
-        assertEquals(1.0, ad.lengthSquared(), 1e-9);
     }
 
     @Test

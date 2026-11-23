@@ -23,11 +23,11 @@
  */
 /**
  * Renderer-oriented math kernels (LUT generation, interpolation, and visibility approximations)
- * that remain renderer-agnostic and allocation-conscious. {@code AtmosphereParams} and
- * {@code TransmittanceLutBuilder} are deprecated in favour of the {@code atmosphere} package.
+ * that remain renderer-agnostic and allocation-conscious. Atmosphere lookup tables are in the {@code atmosphere}
+ * package.
  * <p>
- * <b>Contract.</b> Threading: the functions are static and keep no shared state, and {@code SssProfile} and
- * {@code AtmosphereParams} are immutable, so all are safe to use from any thread. Allocation: the interpolation and
+ * <b>Contract.</b> Threading: the functions are static and keep no shared state, and {@code SssProfile} is
+ * immutable, so all are safe to use from any thread. Allocation: the interpolation and
  * cone functions and {@code SssProfile.evaluate} do not allocate; the {@code SssProfile} constructor copies its
  * arrays and {@code SssLutBuilder.build} allocates temporary arrays, so run the builders at load time.
  * Determinism: transcendentals use {@code AccurateMath}, so results match across platforms under

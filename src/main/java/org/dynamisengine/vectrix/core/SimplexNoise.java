@@ -31,15 +31,10 @@ package org.dynamisengine.vectrix.core;
  * The original implementation can be found here: <a
  * href="http://staffwww.itn.liu.se/~stegu/simplexnoise/SimplexNoise.java">http://http://staffwww.itn.liu.se/</a>.
  */
-public class SimplexNoise {
+public final class SimplexNoise {
 
-    /**
-     * Not meant to be instantiated: every member is static.
-     *
-     * @deprecated this utility class will not be instantiable from 3.0
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public SimplexNoise() {
+    /** Not instantiable: every member is static. */
+    private SimplexNoise() {
     }
     private static class Vector3b {
         byte x, y, z;

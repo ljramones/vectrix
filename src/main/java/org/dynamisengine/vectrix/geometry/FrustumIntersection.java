@@ -1040,20 +1040,4 @@ public class FrustumIntersection {
         return da >= 0.0f || db >= 0.0f;
     }
 
-    /**
-     * Updates the frustum planes for a depth range given as the deprecated camera-package enum.
-     *
-     * @param m
-     *          the {@link Matrix4fc matrix} to update <code>this</code> frustum culler's frustum planes from
-     * @param allowTestSpheres
-     *          whether to normalize the planes; the sphere and distance queries are correct either way
-     * @param depthRange
-     *          the clip-space depth convention of {@code m}
-     * @return this
-     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public FrustumIntersection set(Matrix4fc m, boolean allowTestSpheres, org.dynamisengine.vectrix.camera.DepthRange depthRange) {
-        return set(m, allowTestSpheres, depthRange.toCore());
-    }
 }

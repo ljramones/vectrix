@@ -165,17 +165,4 @@ public class FrustumPlanes {
         return dest;
     }
 
-    /**
-     * Extracts the planes for a depth range given as the deprecated camera-package enum.
-     *
-     * @param m the view-projection matrix
-     * @param normalize {@code true} to scale each plane so its normal has unit length
-     * @param depthRange the clip-space depth convention of {@code m}
-     * @return this
-     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public FrustumPlanes set(Matrix4fc m, boolean normalize, org.dynamisengine.vectrix.camera.DepthRange depthRange) {
-        return set(m, normalize, depthRange.toCore());
-    }
 }

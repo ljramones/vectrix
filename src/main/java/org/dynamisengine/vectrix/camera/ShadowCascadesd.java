@@ -161,23 +161,4 @@ public final class ShadowCascadesd {
                 m22, 0.0, 0.0, 0.0, m32, 1.0);
     }
 
-    /**
-     * Forwards to the {@link org.dynamisengine.vectrix.core.DepthRange} overload.
-     *
-     * @param center the center of the cascade's bounding sphere, in world space
-     * @param radius the radius of the bounding sphere
-     * @param lightDir the direction the light travels
-     * @param up a reference up direction, not parallel to {@code lightDir}
-     * @param casterDistance how far beyond the sphere, toward the light, occluders are still captured
-     * @param resolution the shadow-map size in texels, greater than 2
-     * @param range the depth convention of the projection
-     * @param viewDest receives the light view matrix
-     * @param projDest receives the orthographic light projection
-     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
-     */
-    @Deprecated(since = "2.6.0", forRemoval = true)
-    public static void stableLightMatrices(Vector3dc center, double radius, Vector3dc lightDir, Vector3dc up,
-            double casterDistance, int resolution, org.dynamisengine.vectrix.camera.DepthRange range, Matrix4d viewDest, Matrix4d projDest) {
-        stableLightMatrices(center, radius, lightDir, up, casterDistance, resolution, range.toCore(), viewDest, projDest);
-    }
 }

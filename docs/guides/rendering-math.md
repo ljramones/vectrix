@@ -342,9 +342,6 @@ values are the transfer `Ψ` for unit sun illuminance: multiply by the local sca
 illuminance to get radiance. The ray geometry avoids cancellation, so rays that graze the ground are as accurate
 as vertical ones.
 
-The deprecated `renderingmath.AtmosphereParams` and `renderingmath.TransmittanceLutBuilder` are replaced by this
-package.
-
 **Phase functions** say how much light scatters into each angle. `PhaseFunctionsf` writes each one in terms of
 `u = cos θ`, the cosine between the light's direction of travel and the scattered direction (`u = 1` is forward).
 For a camera ray with direction `d` (from the camera into the scene) and a unit vector `l` toward the light,

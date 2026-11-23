@@ -111,7 +111,7 @@ class GeometryEquivalenceTest {
             boxes.set(i, cx - e, cy - e, cz - e, cx + e, cy + e, cz + e);
         }
         int[] kernel = new int[n];
-        CullingKernels.frustumCullAabbBatchScalar(new FrustumPlanes().set(VIEW_PROJ, false), boxes, kernel, n);
+        TestBackends.cullScalar(new FrustumPlanes().set(VIEW_PROJ, false), boxes, kernel, n);
         int all = FrustumIntersection.PLANE_MASK_NX | FrustumIntersection.PLANE_MASK_PX | FrustumIntersection.PLANE_MASK_NY
                 | (1 << FrustumIntersection.PLANE_PY) | (1 << FrustumIntersection.PLANE_NZ) | (1 << FrustumIntersection.PLANE_PZ);
         for (int i = 0; i < n; i++) {

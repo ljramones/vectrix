@@ -61,7 +61,6 @@ class PhysicsMathTest {
     @Test
     void springDamperBasics() {
         assertEquals(-8.0f, SpringDamperf.force(2.0f, 3.0f, 1.0f, 2.0f), 1E-6f);
-        assertEquals(6.0f, SpringDamperf.suspensionForce(0.5f, 1.0f, 20.0f, 2.0f, 2.0f), 1E-6f);
         float[] velOut = {0.0f};
         float next = SpringDamperf.criticallyDamped(1.0f, 0.0f, 0.0f, 10.0f, 0.016f, velOut);
         assertEquals(true, next < 1.0f);

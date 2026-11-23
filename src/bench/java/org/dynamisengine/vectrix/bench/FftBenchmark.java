@@ -16,8 +16,6 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.dynamisengine.vectrix.fft.BlockConvolverf;
 import org.dynamisengine.vectrix.fft.ComplexFftf;
-import org.dynamisengine.vectrix.fft.Convolutionf;
-import org.dynamisengine.vectrix.fft.FFT1f;
 import org.dynamisengine.vectrix.fft.RealFftf;
 
 @State(Scope.Benchmark)
@@ -89,17 +87,4 @@ public class FftBenchmark extends ThroughputBenchmark {
         return out;
     }
 
-    @Benchmark
-    public float[] forwardInverse() {
-        float[] x = data.clone();
-        FFT1f.forward(x);
-        FFT1f.inverse(x);
-        return x;
-    }
-
-    @Benchmark
-    public float[] circularConvolution() {
-        Convolutionf.circular(a, b, out);
-        return out;
-    }
 }

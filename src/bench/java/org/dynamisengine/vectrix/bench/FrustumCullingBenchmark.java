@@ -83,13 +83,16 @@ public class FrustumCullingBenchmark extends ThroughputBenchmark {
 
     @Benchmark
     public int[] batchKernelScalarForced() {
-        CullingKernels.frustumCullAabbBatchScalar(planes, aabbs, out, count);
+        SimdSupport.setEnabled(false);
+        CullingKernels.frustumCullAabbBatch(planes, aabbs, out, count);
+        SimdSupport.setEnabled(true);
         return out;
     }
 
     @Benchmark
     public int[] batchKernelSimdForced() {
-        CullingKernels.frustumCullAabbBatchSimd(planes, aabbs, out, count);
+        SimdSupport.setEnabled(true);
+        CullingKernels.frustumCullAabbBatch(planes, aabbs, out, count);
         return out;
     }
 

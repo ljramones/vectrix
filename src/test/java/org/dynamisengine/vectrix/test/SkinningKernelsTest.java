@@ -150,8 +150,8 @@ class SkinningKernelsTest {
         float[] vx = new float[f.vertices];
         float[] vy = new float[f.vertices];
         float[] vz = new float[f.vertices];
-        SkinningKernels.skinLbs4SoAScalar(f.joints, f.j0, f.j1, f.j2, f.j3, f.w0, f.w1, f.w2, f.w3, f.inX, f.inY, f.inZ, sx, sy, sz, f.vertices);
-        SkinningKernels.skinLbs4SoASimd(f.joints, f.j0, f.j1, f.j2, f.j3, f.w0, f.w1, f.w2, f.w3, f.inX, f.inY, f.inZ, vx, vy, vz, f.vertices);
+        SkinningKernels.skinLbs4SoA(f.joints, f.j0, f.j1, f.j2, f.j3, f.w0, f.w1, f.w2, f.w3, f.inX, f.inY, f.inZ, sx, sy, sz, f.vertices);
+        SkinningKernels.skinLbs4SoA(f.joints, f.j0, f.j1, f.j2, f.j3, f.w0, f.w1, f.w2, f.w3, f.inX, f.inY, f.inZ, vx, vy, vz, f.vertices);
         for (int i = 0; i < f.vertices; i++) {
             assertEquals(sx[i], vx[i], 1E-6f);
             assertEquals(sy[i], vy[i], 1E-6f);
@@ -168,8 +168,8 @@ class SkinningKernelsTest {
         float[] vx = new float[f.vertices];
         float[] vy = new float[f.vertices];
         float[] vz = new float[f.vertices];
-        SkinningKernels.skinLbs4Scalar(f.joints, f.jointIndices, f.jointWeights, f.inX, f.inY, f.inZ, sx, sy, sz, f.vertices);
-        SkinningKernels.skinLbs4Vector(f.joints, f.jointIndices, f.jointWeights, f.inX, f.inY, f.inZ, vx, vy, vz, f.vertices);
+        SkinningKernels.skinLbs4(f.joints, f.jointIndices, f.jointWeights, f.inX, f.inY, f.inZ, sx, sy, sz, f.vertices);
+        SkinningKernels.skinLbs4(f.joints, f.jointIndices, f.jointWeights, f.inX, f.inY, f.inZ, vx, vy, vz, f.vertices);
         for (int i = 0; i < f.vertices; i++) {
             assertEquals(sx[i], vx[i], 1E-6f);
             assertEquals(sy[i], vy[i], 1E-6f);
