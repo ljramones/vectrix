@@ -226,8 +226,9 @@ wrong angle, so keep the angle uncertainty well below π.
    to compare models.
 4. **Estimate.** `ParticleFilter.mean(particles, dim, count, w, mean)` writes the weighted mean.
 5. **Resample when needed.** When `ParticleFilter.effectiveSampleSize(w, count)` drops below about `count / 2`, call
-   `ParticleFilter.systematicResample(w, count, u, indices)` with one uniform number `u` in [0, 1) (for example
-   `hash.Philox.uniform(seed, step)`), then `ParticleFilter.gather(particles, dim, count, indices, out)`. `out` must
+   `ParticleFilter.systematicResample(w, count, u, indices)` with one uniform number `u` in [0, 1), or
+   `ParticleFilter.systematicResample(w, count, seed, step, indices)`, which draws `u` with
+   `hash.Philox.uniformDouble(seed, step)`; then `ParticleFilter.gather(particles, dim, count, indices, out)`. `out` must
    be a second particle array: swap the two arrays after each resampling, and reset all log-weights to 0.
 
 Use `ReproducibleMath.exp` and `ReproducibleMath.log` in your likelihoods if the results must match across machines.

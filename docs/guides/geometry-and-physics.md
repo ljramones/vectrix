@@ -184,8 +184,8 @@ The fitting methods above, except `BoundingVolumesf.kDop`, allocate scratch prop
 at load or build time; `BoundingVolumesf.kDop` allocates nothing. The bounds helpers allocate nothing and suit
 per-frame use: `BoundingVolumesf.aabOfObb`, `BoundingVolumesf.aabOfCapsule`,
 `BoundingVolumesf.aabOfCylinder`, `BoundingVolumesf.aabOfTransformedPoints` (points under a `Matrix4x3f`), and
-`BoundingVolumesf.transformSphere` (a bounding sphere under an affine transform). `BoundingVolumesf.aabOfCylinder`
-and `BoundingVolumesf.transformSphere` round outward, so their bounds always contain the shape.
+`BoundingVolumesf.transformSphere` (a bounding sphere under an affine transform). They all round outward, so their
+bounds always contain the shape.
 
 ## Spatial codes
 

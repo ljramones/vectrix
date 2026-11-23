@@ -95,8 +95,7 @@ public final class CatmullRom4f {
     public static Vector4f secondDerivative(Vector4fc p0, Vector4fc p1, Vector4fc p2, Vector4fc p3, float t, float tension, Vector4f dest) { return dest.set(CubicCurveMath.hermiteSecondDerivative(p1.x(), CubicCurveMath.cardinalTangent(p0.x(), p2.x(), tension), p2.x(), CubicCurveMath.cardinalTangent(p1.x(), p3.x(), tension), t), CubicCurveMath.hermiteSecondDerivative(p1.y(), CubicCurveMath.cardinalTangent(p0.y(), p2.y(), tension), p2.y(), CubicCurveMath.cardinalTangent(p1.y(), p3.y(), tension), t), CubicCurveMath.hermiteSecondDerivative(p1.z(), CubicCurveMath.cardinalTangent(p0.z(), p2.z(), tension), p2.z(), CubicCurveMath.cardinalTangent(p1.z(), p3.z(), tension), t), CubicCurveMath.hermiteSecondDerivative(p1.w(), CubicCurveMath.cardinalTangent(p0.w(), p2.w(), tension), p2.w(), CubicCurveMath.cardinalTangent(p1.w(), p3.w(), tension), t)); }
 
     /**
-     * Evaluates the segment at {@code length} parameters, writing one point, one array per coordinate. The arrays are
-     * not checked up front; an output array may be {@code tValues} at the same offset.
+     * Evaluates the segment at {@code length} parameters, writing one point, one array per coordinate. The arrays and offsets are checked before anything is written; an output array may be {@code tValues} at the same offset.
      *
      * @param p0 the point before the segment
      * @param p1 the start point of the segment
@@ -105,7 +104,7 @@ public final class CatmullRom4f {
      * @param tension the cardinal tension: 0 for Catmull–Rom, 1 for zero tangents
      * @param tValues the curve parameters
      * @param tOffset the offset of the first parameter in {@code tValues}
-     * @param length the number of parameters to evaluate
+     * @param length the number of parameters to evaluate, at least 0
      * @param outX receives the x coordinates
      * @param outXOffset the offset of the first coordinate in {@code outX}
      * @param outY receives the y coordinates
@@ -114,8 +113,11 @@ public final class CatmullRom4f {
      * @param outZOffset the offset of the first coordinate in {@code outZ}
      * @param outW receives the w coordinates
      * @param outWOffset the offset of the first coordinate in {@code outW}
+     * @throws IllegalArgumentException if {@code length} is negative or an array is null or too short for its
+     *         offset; nothing is written then
      */
     public static void evaluateBatch(Vector4fc p0, Vector4fc p1, Vector4fc p2, Vector4fc p3, float tension, float[] tValues, int tOffset, int length, float[] outX, int outXOffset, float[] outY, int outYOffset, float[] outZ, int outZOffset, float[] outW, int outWOffset) {
+        checkBatch(tValues, tOffset, length, outX, outXOffset, outY, outYOffset, outZ, outZOffset, outW, outWOffset);
         float m1x = CubicCurveMath.cardinalTangent(p0.x(), p2.x(), tension), m2x = CubicCurveMath.cardinalTangent(p1.x(), p3.x(), tension);
         float ax = p1.x(), bx = p2.x();
         float m1y = CubicCurveMath.cardinalTangent(p0.y(), p2.y(), tension), m2y = CubicCurveMath.cardinalTangent(p1.y(), p3.y(), tension);
@@ -131,5 +133,15 @@ public final class CatmullRom4f {
             outZ[outZOffset + i] = CubicCurveMath.hermite(az, m1z, bz, m2z, t);
             outW[outWOffset + i] = CubicCurveMath.hermite(aw, m1w, bw, m2w, t);
         }
+    }
+
+    private static void checkBatch(float[] tValues, int tOffset, int length, float[] outX, int outXOffset, float[] outY, int outYOffset, float[] outZ, int outZOffset, float[] outW, int outWOffset) {
+        if (length < 0 || !fits(tValues, tOffset, length) || !fits(outX, outXOffset, length) || !fits(outY, outYOffset, length) || !fits(outZ, outZOffset, length) || !fits(outW, outWOffset, length)) {
+            throw new IllegalArgumentException("tValues, outX, outY, outZ and outW must hold " + length + " values from their offsets");
+        }
+    }
+
+    private static boolean fits(float[] array, int offset, int length) {
+        return array != null && offset >= 0 && offset <= array.length - length;
     }
 }

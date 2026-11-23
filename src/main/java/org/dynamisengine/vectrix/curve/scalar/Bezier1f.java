@@ -75,7 +75,7 @@ public final class Bezier1f {
     public static float secondDerivative(float p0, float p1, float p2, float p3, float t) { return CubicCurveMath.bezierSecondDerivative(p0, p1, p2, p3, t); }
 
     /**
-     * Evaluates the segment at {@code length} parameters, writing one value. The arrays are not checked up front; an
+     * Evaluates the segment at {@code length} parameters, writing one value. The arrays and offsets are checked before anything is written; an
      * output array may be {@code tValues} at the same offset.
      *
      * @param p0 the start value
@@ -84,13 +84,26 @@ public final class Bezier1f {
      * @param p3 the end value
      * @param tValues the curve parameters
      * @param tOffset the offset of the first parameter in {@code tValues}
-     * @param length the number of parameters to evaluate
+     * @param length the number of parameters to evaluate, at least 0
      * @param outValues receives the {@code length} values
      * @param outOffset the offset of the first value in {@code outValues}
+     * @throws IllegalArgumentException if {@code length} is negative or an array is null or too short for its
+     *         offset; nothing is written then
      */
     public static void evaluateBatch(float p0, float p1, float p2, float p3, float[] tValues, int tOffset, int length, float[] outValues, int outOffset) {
+        checkBatch(tValues, tOffset, length, outValues, outOffset);
         for (int i = 0; i < length; i++) {
             outValues[outOffset + i] = evaluate(p0, p1, p2, p3, tValues[tOffset + i]);
         }
+    }
+
+    private static void checkBatch(float[] tValues, int tOffset, int length, float[] outValues, int outOffset) {
+        if (length < 0 || !fits(tValues, tOffset, length) || !fits(outValues, outOffset, length)) {
+            throw new IllegalArgumentException("tValues and outValues must hold " + length + " values from their offsets");
+        }
+    }
+
+    private static boolean fits(float[] array, int offset, int length) {
+        return array != null && offset >= 0 && offset <= array.length - length;
     }
 }

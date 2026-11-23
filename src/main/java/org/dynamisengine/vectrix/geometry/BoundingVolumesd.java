@@ -502,8 +502,9 @@ public final class BoundingVolumesd {
     }
 
     /**
-     * Computes the axis-aligned bounds of an oriented box. Each world half extent is {@code Σ_j |axes_ij| h_j}, which
-     * is exact (tight).
+     * Computes the axis-aligned bounds of an oriented box. Each world half extent is {@code Σ_j |axes_ij| h_j}. The
+     * products and sums are rounded up and the corners outward, so the box always contains the oriented box and is
+     * tight to within an ulp or two.
      *
      * @param center the box center
      * @param axes the box axes as columns, unit length
@@ -515,15 +516,20 @@ public final class BoundingVolumesd {
     public static void aabOfObb(Vector3dc center, Matrix3dc axes, Vector3dc halfExtents, Vector3d min, Vector3d max) {
         double hx = halfExtents.x(), hy = halfExtents.y(), hz = halfExtents.z();
         double cx = center.x(), cy = center.y(), cz = center.z();
-        double ex = Math.abs(axes.m00()) * hx + Math.abs(axes.m10()) * hy + Math.abs(axes.m20()) * hz;
-        double ey = Math.abs(axes.m01()) * hx + Math.abs(axes.m11()) * hy + Math.abs(axes.m21()) * hz;
-        double ez = Math.abs(axes.m02()) * hx + Math.abs(axes.m12()) * hy + Math.abs(axes.m22()) * hz;
-        min.set(cx - ex, cy - ey, cz - ez);
-        max.set(cx + ex, cy + ey, cz + ez);
+        // rounded up, then the corners outward (rounded to nearest before 3.0, which could cut into the box)
+        double ex = addUp(addUp(mulUp(Math.abs(axes.m00()), hx), mulUp(Math.abs(axes.m10()), hy)),
+                mulUp(Math.abs(axes.m20()), hz));
+        double ey = addUp(addUp(mulUp(Math.abs(axes.m01()), hx), mulUp(Math.abs(axes.m11()), hy)),
+                mulUp(Math.abs(axes.m21()), hz));
+        double ez = addUp(addUp(mulUp(Math.abs(axes.m02()), hx), mulUp(Math.abs(axes.m12()), hy)),
+                mulUp(Math.abs(axes.m22()), hz));
+        min.set(subDown(cx, ex), subDown(cy, ey), subDown(cz, ez));
+        max.set(addUp(cx, ex), addUp(cy, ey), addUp(cz, ez));
     }
 
     /**
-     * Computes the axis-aligned bounds of a capsule. Exact.
+     * Computes the axis-aligned bounds of a capsule: the bounds of its segment grown by {@code r}. The corners are
+     * rounded outward, so the box always contains the capsule and is tight to within an ulp.
      *
      * @param a one end of the capsule's segment
      * @param b the other end of the capsule's segment
@@ -534,8 +540,9 @@ public final class BoundingVolumesd {
      */
     public static void aabOfCapsule(Vector3dc a, Vector3dc b, double r, Vector3d min, Vector3d max) {
         double ax = a.x(), ay = a.y(), az = a.z(), bx = b.x(), by = b.y(), bz = b.z();
-        min.set(Math.min(ax, bx) - r, Math.min(ay, by) - r, Math.min(az, bz) - r);
-        max.set(Math.max(ax, bx) + r, Math.max(ay, by) + r, Math.max(az, bz) + r);
+        // rounded outward (to nearest before 3.0, which could cut into the capsule)
+        min.set(subDown(Math.min(ax, bx), r), subDown(Math.min(ay, by), r), subDown(Math.min(az, bz), r));
+        max.set(addUp(Math.max(ax, bx), r), addUp(Math.max(ay, by), r), addUp(Math.max(az, bz), r));
     }
 
     /**
@@ -590,6 +597,28 @@ public final class BoundingVolumesd {
         return -addUp(-a, b);
     }
 
+    /** The largest double at most {@code a + b}. */
+    static double addDown(double a, double b) {
+        return -addUp(-a, -b);
+    }
+
+    /**
+     * A double at least {@code a · b}: the product, moved up one ulp when its exact error shows it was rounded down.
+     * Near the subnormal range, where that error is not representable, it moves up unless the product is an exact 0.
+     */
+    static double mulUp(double a, double b) {
+        double p = a * b;
+        if (Math.abs(p) < 0x1p-969) {
+            return p == 0 && (a == 0 || b == 0) ? p : Math.nextUp(p);
+        }
+        return Math.fma(a, b, -p) > 0 ? Math.nextUp(p) : p;
+    }
+
+    /** A double at most {@code a · b}. */
+    static double mulDown(double a, double b) {
+        return -mulUp(-a, b);
+    }
+
     /** The largest float at most {@code v}. */
     static float floatDown(double v) {
         float f = (float) v;
@@ -604,7 +633,9 @@ public final class BoundingVolumesd {
 
     /**
      * Computes the axis-aligned bounds of {@code count} points transformed by the affine {@code m}, with no allocation.
-     * With {@code count == 0}, {@code min} is {@code +∞} and {@code max} is {@code −∞}.
+     * Each transformed coordinate is bounded below and above with products and sums rounded in that direction, so the
+     * box always contains the exactly transformed points and is tight to within an ulp or two. With
+     * {@code count == 0}, {@code min} is {@code +∞} and {@code max} is {@code −∞}.
      *
      * @param xyz the points as packed {@code x, y, z} triples starting at index 0
      * @param count the number of points, 0 or more
@@ -618,17 +649,15 @@ public final class BoundingVolumesd {
         double m20 = m.m20(), m21 = m.m21(), m22 = m.m22(), m30 = m.m30(), m31 = m.m31(), m32 = m.m32();
         double minX = Double.POSITIVE_INFINITY, minY = Double.POSITIVE_INFINITY, minZ = Double.POSITIVE_INFINITY;
         double maxX = Double.NEGATIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY, maxZ = Double.NEGATIVE_INFINITY;
+        // directed bounds of each coordinate (rounded to nearest before 3.0, which could cut into the points)
         for (int i = 0; i < count; i++) {
             double x = xyz[3 * i], y = xyz[3 * i + 1], z = xyz[3 * i + 2];
-            double tx = Math.fma(m00, x, Math.fma(m10, y, Math.fma(m20, z, m30)));
-            double ty = Math.fma(m01, x, Math.fma(m11, y, Math.fma(m21, z, m31)));
-            double tz = Math.fma(m02, x, Math.fma(m12, y, Math.fma(m22, z, m32)));
-            minX = Math.min(minX, tx);
-            minY = Math.min(minY, ty);
-            minZ = Math.min(minZ, tz);
-            maxX = Math.max(maxX, tx);
-            maxY = Math.max(maxY, ty);
-            maxZ = Math.max(maxZ, tz);
+            minX = Math.min(minX, addDown(addDown(addDown(mulDown(m00, x), mulDown(m10, y)), mulDown(m20, z)), m30));
+            minY = Math.min(minY, addDown(addDown(addDown(mulDown(m01, x), mulDown(m11, y)), mulDown(m21, z)), m31));
+            minZ = Math.min(minZ, addDown(addDown(addDown(mulDown(m02, x), mulDown(m12, y)), mulDown(m22, z)), m32));
+            maxX = Math.max(maxX, addUp(addUp(addUp(mulUp(m00, x), mulUp(m10, y)), mulUp(m20, z)), m30));
+            maxY = Math.max(maxY, addUp(addUp(addUp(mulUp(m01, x), mulUp(m11, y)), mulUp(m21, z)), m31));
+            maxZ = Math.max(maxZ, addUp(addUp(addUp(mulUp(m02, x), mulUp(m12, y)), mulUp(m22, z)), m32));
         }
         min.set(minX, minY, minZ);
         max.set(maxX, maxY, maxZ);

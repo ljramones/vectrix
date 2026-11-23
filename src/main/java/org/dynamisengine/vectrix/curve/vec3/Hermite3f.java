@@ -87,8 +87,7 @@ public final class Hermite3f {
     }
 
     /**
-     * Evaluates the segment at {@code length} parameters, writing one point, one array per coordinate. The arrays are
-     * not checked up front; an output array may be {@code tValues} at the same offset.
+     * Evaluates the segment at {@code length} parameters, writing one point, one array per coordinate. The arrays and offsets are checked before anything is written; an output array may be {@code tValues} at the same offset.
      *
      * @param p0 the start point
      * @param m0 the tangent at the start
@@ -96,20 +95,33 @@ public final class Hermite3f {
      * @param m1 the tangent at the end
      * @param tValues the curve parameters
      * @param tOffset the offset of the first parameter in {@code tValues}
-     * @param length the number of parameters to evaluate
+     * @param length the number of parameters to evaluate, at least 0
      * @param outX receives the x coordinates
      * @param outXOffset the offset of the first coordinate in {@code outX}
      * @param outY receives the y coordinates
      * @param outYOffset the offset of the first coordinate in {@code outY}
      * @param outZ receives the z coordinates
      * @param outZOffset the offset of the first coordinate in {@code outZ}
+     * @throws IllegalArgumentException if {@code length} is negative or an array is null or too short for its
+     *         offset; nothing is written then
      */
     public static void evaluateBatch(Vector3fc p0, Vector3fc m0, Vector3fc p1, Vector3fc m1, float[] tValues, int tOffset, int length, float[] outX, int outXOffset, float[] outY, int outYOffset, float[] outZ, int outZOffset) {
+        checkBatch(tValues, tOffset, length, outX, outXOffset, outY, outYOffset, outZ, outZOffset);
         for (int i = 0; i < length; i++) {
             float t = tValues[tOffset + i];
             outX[outXOffset + i] = CubicCurveMath.hermite(p0.x(), m0.x(), p1.x(), m1.x(), t);
             outY[outYOffset + i] = CubicCurveMath.hermite(p0.y(), m0.y(), p1.y(), m1.y(), t);
             outZ[outZOffset + i] = CubicCurveMath.hermite(p0.z(), m0.z(), p1.z(), m1.z(), t);
         }
+    }
+
+    private static void checkBatch(float[] tValues, int tOffset, int length, float[] outX, int outXOffset, float[] outY, int outYOffset, float[] outZ, int outZOffset) {
+        if (length < 0 || !fits(tValues, tOffset, length) || !fits(outX, outXOffset, length) || !fits(outY, outYOffset, length) || !fits(outZ, outZOffset, length)) {
+            throw new IllegalArgumentException("tValues, outX, outY and outZ must hold " + length + " values from their offsets");
+        }
+    }
+
+    private static boolean fits(float[] array, int offset, int length) {
+        return array != null && offset >= 0 && offset <= array.length - length;
     }
 }

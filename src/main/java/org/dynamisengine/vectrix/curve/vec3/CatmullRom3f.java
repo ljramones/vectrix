@@ -109,8 +109,7 @@ public final class CatmullRom3f {
     }
 
     /**
-     * Evaluates the segment at {@code length} parameters, writing one point, one array per coordinate. The arrays are
-     * not checked up front; an output array may be {@code tValues} at the same offset.
+     * Evaluates the segment at {@code length} parameters, writing one point, one array per coordinate. The arrays and offsets are checked before anything is written; an output array may be {@code tValues} at the same offset.
      *
      * @param p0 the point before the segment
      * @param p1 the start point of the segment
@@ -119,15 +118,18 @@ public final class CatmullRom3f {
      * @param tension the cardinal tension: 0 for Catmull–Rom, 1 for zero tangents
      * @param tValues the curve parameters
      * @param tOffset the offset of the first parameter in {@code tValues}
-     * @param length the number of parameters to evaluate
+     * @param length the number of parameters to evaluate, at least 0
      * @param outX receives the x coordinates
      * @param outXOffset the offset of the first coordinate in {@code outX}
      * @param outY receives the y coordinates
      * @param outYOffset the offset of the first coordinate in {@code outY}
      * @param outZ receives the z coordinates
      * @param outZOffset the offset of the first coordinate in {@code outZ}
+     * @throws IllegalArgumentException if {@code length} is negative or an array is null or too short for its
+     *         offset; nothing is written then
      */
     public static void evaluateBatch(Vector3fc p0, Vector3fc p1, Vector3fc p2, Vector3fc p3, float tension, float[] tValues, int tOffset, int length, float[] outX, int outXOffset, float[] outY, int outYOffset, float[] outZ, int outZOffset) {
+        checkBatch(tValues, tOffset, length, outX, outXOffset, outY, outYOffset, outZ, outZOffset);
         float m1x = CubicCurveMath.cardinalTangent(p0.x(), p2.x(), tension), m2x = CubicCurveMath.cardinalTangent(p1.x(), p3.x(), tension);
         float ax = p1.x(), bx = p2.x();
         float m1y = CubicCurveMath.cardinalTangent(p0.y(), p2.y(), tension), m2y = CubicCurveMath.cardinalTangent(p1.y(), p3.y(), tension);
@@ -140,5 +142,15 @@ public final class CatmullRom3f {
             outY[outYOffset + i] = CubicCurveMath.hermite(ay, m1y, by, m2y, t);
             outZ[outZOffset + i] = CubicCurveMath.hermite(az, m1z, bz, m2z, t);
         }
+    }
+
+    private static void checkBatch(float[] tValues, int tOffset, int length, float[] outX, int outXOffset, float[] outY, int outYOffset, float[] outZ, int outZOffset) {
+        if (length < 0 || !fits(tValues, tOffset, length) || !fits(outX, outXOffset, length) || !fits(outY, outYOffset, length) || !fits(outZ, outZOffset, length)) {
+            throw new IllegalArgumentException("tValues, outX, outY and outZ must hold " + length + " values from their offsets");
+        }
+    }
+
+    private static boolean fits(float[] array, int offset, int length) {
+        return array != null && offset >= 0 && offset <= array.length - length;
     }
 }

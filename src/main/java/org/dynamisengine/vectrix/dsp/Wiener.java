@@ -41,6 +41,11 @@ import org.dynamisengine.vectrix.fft.RealFftd;
  * </ul>
  * Results are deterministic; the processing methods take caller scratch and do not allocate. Arrays without an
  * offset parameter are used from index 0.
+ * <p>
+ * Every processing method has a float overload that computes in double exactly as the double method does on the
+ * widened inputs and rounds only its outputs, so its result is the double method's rounded once to float. Their
+ * scratch is double; the float {@code deconvolve2d} needs more of it, {@link #deconvolve2dFloatScratchSize(RealFft2d)}
+ * doubles.
  *
  * @since 2.5.0
  */
@@ -62,6 +67,24 @@ public final class Wiener {
      *         autocorrelation matrix is singular (see {@link Toeplitz#solve})
      */
     public static void fir(double[] rxx, double[] rdx, int n, double[] w, double[] scratch) {
+        Toeplitz.solve(rxx, rdx, n, w, scratch);
+    }
+
+    /**
+     * The optimal FIR filter of float correlations, computing in double exactly as
+     * {@link #fir(double[], double[], int, double[], double[])} does on the widened values (with
+     * {@link Toeplitz#solve(float[], float[], int, float[], double[])}); only the taps are rounded to float.
+     *
+     * @param rxx the observation's autocorrelation at lags {@code 0..n-1}
+     * @param rdx the cross-correlation {@code E[d[t]·x[t - i]]} at lags {@code 0..n-1}
+     * @param n the number of taps, at least 1
+     * @param w receives {@code n} taps; may be {@code rdx}
+     * @param scratch {@code 2n} doubles
+     * @throws IllegalArgumentException if {@code n < 1}, an array is too short, or a leading submatrix of the
+     *         autocorrelation matrix is singular (see {@link Toeplitz#solve})
+     * @since 3.0.0
+     */
+    public static void fir(float[] rxx, float[] rdx, int n, float[] w, double[] scratch) {
         Toeplitz.solve(rxx, rdx, n, w, scratch);
     }
 
@@ -93,6 +116,33 @@ public final class Wiener {
     }
 
     /**
+     * The Wiener gain of float power estimates, computing in double exactly as
+     * {@link #gain(double[], double[], int, double, double[])} does on the widened values; only the gains are rounded
+     * to float.
+     *
+     * @param signalPower {@code n} signal power estimates
+     * @param noisePower {@code n} noise power estimates
+     * @param n the number of bins
+     * @param floor the smallest gain, normally in [0, 1)
+     * @param gain receives {@code n} gains; may be either input
+     * @throws IllegalArgumentException if {@code n} is negative or an array holds fewer than {@code n} values
+     *         (checked before anything is written)
+     * @since 3.0.0
+     */
+    public static void gain(float[] signalPower, float[] noisePower, int n, float floor, float[] gain) {
+        count(n);
+        check(signalPower, 0, n, "signalPower");
+        check(noisePower, 0, n, "noisePower");
+        check(gain, 0, n, "gain");
+        for (int i = 0; i < n; i++) {
+            double s = Math.max(signalPower[i], 0.0);
+            double t = s + Math.max(noisePower[i], 0.0);
+            double g = t > 0 ? s / t : 0;
+            gain[i] = (float) Math.min(1, Math.max(floor, g));
+        }
+    }
+
+    /**
      * The non-causal Wiener filter {@code H[k] = P_xy[k] / P_xx[k]} per bin, from the PSD of the observation and its
      * cross spectrum with the desired signal (both from {@link Spectra}); 0 where {@code P_xx} is not positive.
      *
@@ -116,6 +166,31 @@ public final class Wiener {
     }
 
     /**
+     * The non-causal Wiener filter of float spectra, computing in double exactly as
+     * {@link #noncausal(double[], double[], int, double[])} does on the widened values; only the responses are rounded
+     * to float.
+     *
+     * @param pxx {@code bins} auto-spectrum values
+     * @param pxy {@code bins} complex cross-spectrum values, interleaved
+     * @param bins the number of frequency bins
+     * @param h receives {@code bins} complex responses, interleaved; may be {@code pxy}
+     * @throws IllegalArgumentException if {@code bins} is negative or an array is too short (checked before
+     *         anything is written)
+     * @since 3.0.0
+     */
+    public static void noncausal(float[] pxx, float[] pxy, int bins, float[] h) {
+        count(bins);
+        check(pxx, 0, bins, "pxx");
+        check(pxy, 0, 2 * bins, "pxy");
+        check(h, 0, 2 * bins, "h");
+        for (int k = 0; k < bins; k++) {
+            double d = pxx[k];
+            h[2 * k] = d > 0 ? (float) (pxy[2 * k] / d) : 0f;
+            h[2 * k + 1] = d > 0 ? (float) (pxy[2 * k + 1] / d) : 0f;
+        }
+    }
+
+    /**
      * The FIR taps of a frequency response on {@code plan}'s bins: its inverse transform, rotated by {@code n/2} so the
      * non-causal part comes first (a delay of {@code n/2} samples). Window the taps to shorten them.
      *
@@ -135,6 +210,33 @@ public final class Wiener {
         plan.inverse(scratch, 0, scratch, 0, scratch, sp);
         for (int i = 0; i < n; i++) {
             taps[i] = scratch[(i + n - n / 2) % n];
+        }
+    }
+
+    /**
+     * The FIR taps of a float frequency response, computing in double exactly as
+     * {@link #impulseResponse(RealFftd, double[], double[], double[])} does on the widened values; only the taps are
+     * rounded to float.
+     *
+     * @param plan the real FFT plan; its size is the number of taps {@code n}
+     * @param h the {@code n/2 + 1} complex responses, interleaved
+     * @param taps receives {@code n} taps
+     * @param scratch {@code plan.spectrumLength() + plan.scratchSize()} doubles
+     * @throws IllegalArgumentException if an array is too short (checked before anything is written)
+     * @since 3.0.0
+     */
+    public static void impulseResponse(RealFftd plan, float[] h, float[] taps, double[] scratch) {
+        int n = plan.size();
+        int sp = plan.spectrumLength();
+        check(h, 0, sp, "h");
+        check(taps, 0, n, "taps");
+        check(scratch, 0, sp + plan.scratchSize(), "scratch");
+        for (int i = 0; i < sp; i++) {
+            scratch[i] = h[i];
+        }
+        plan.inverse(scratch, 0, scratch, 0, scratch, sp);
+        for (int i = 0; i < n; i++) {
+            taps[i] = (float) scratch[(i + n - n / 2) % n];
         }
     }
 
@@ -240,6 +342,106 @@ public final class Wiener {
         }
     }
 
+    /**
+     * Wiener deconvolution of a float signal, computing in double exactly as
+     * {@link #deconvolve(RealFftd, double[], int, double[], int, int, double, double[], int, double[], int)} does on
+     * the widened values; only the restored samples are rounded to float.
+     *
+     * @param plan the real FFT plan; its size is the signal length {@code n}
+     * @param y the {@code n} observed samples
+     * @param yOff the offset of the first observed sample
+     * @param kernel the blur, {@code kLen <= n} taps (tap 0 is the unshifted one)
+     * @param kOff the offset of the first tap
+     * @param kLen the number of taps, in {@code [1, n]}
+     * @param nsr the noise-to-signal ratio, {@code >= 0}, the same for every bin
+     * @param out receives the {@code n} restored samples; may be {@code y}
+     * @param outOff the offset of the first restored sample
+     * @param scratch {@link #deconvolveScratchSize(RealFftd)} doubles of working memory
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if {@code kLen} is outside {@code [1, n]}, {@code nsr} is negative or NaN, or
+     *         an array does not hold its values from its offset (checked before anything is written)
+     * @since 3.0.0
+     */
+    public static void deconvolve(RealFftd plan, float[] y, int yOff, float[] kernel, int kOff, int kLen, double nsr,
+            float[] out, int outOff, double[] scratch, int scratchOff) {
+        deconvolve(plan, y, yOff, kernel, kOff, kLen, null, nsr, out, outOff, scratch, scratchOff);
+    }
+
+    /**
+     * Wiener deconvolution of a float signal with a noise-to-signal ratio per bin, computing in double exactly as
+     * {@link #deconvolve(RealFftd, double[], int, double[], int, int, double[], double[], int, double[], int)} does on
+     * the widened values; only the restored samples are rounded to float.
+     *
+     * @param plan the real FFT plan; its size is the signal length {@code n}
+     * @param y the {@code n} observed samples
+     * @param yOff the offset of the first observed sample
+     * @param kernel the blur, {@code kLen <= n} taps (tap 0 is the unshifted one)
+     * @param kOff the offset of the first tap
+     * @param kLen the number of taps, in {@code [1, n]}
+     * @param nsrPerBin {@code n/2 + 1} noise-to-signal ratios, {@code >= 0}, from DC to Nyquist, from index 0
+     * @param out receives the {@code n} restored samples; may be {@code y}
+     * @param outOff the offset of the first restored sample
+     * @param scratch {@link #deconvolveScratchSize(RealFftd)} doubles of working memory
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if {@code kLen} is outside {@code [1, n]}, {@code nsrPerBin} is null or
+     *         shorter than {@code n/2 + 1} or holds a negative or NaN ratio, or an array does not hold its values
+     *         from its offset (checked before anything is written)
+     * @since 3.0.0
+     */
+    public static void deconvolve(RealFftd plan, float[] y, int yOff, float[] kernel, int kOff, int kLen,
+            float[] nsrPerBin, float[] out, int outOff, double[] scratch, int scratchOff) {
+        if (nsrPerBin == null) {
+            throw new IllegalArgumentException("nsrPerBin must not be null");
+        }
+        deconvolve(plan, y, yOff, kernel, kOff, kLen, nsrPerBin, 0.0, out, outOff, scratch, scratchOff);
+    }
+
+    private static void deconvolve(RealFftd plan, float[] y, int yOff, float[] kernel, int kOff, int kLen,
+            float[] nsrBins, double nsr, float[] out, int outOff, double[] scratch, int scratchOff) {
+        int n = plan.size();
+        int sp = plan.spectrumLength();
+        if (kLen < 1 || kLen > n) {
+            throw new IllegalArgumentException("need 1 <= kLen <= n: " + kLen);
+        }
+        check(y, yOff, n, "y");
+        check(kernel, kOff, kLen, "kernel");
+        check(out, outOff, n, "out");
+        check(scratch, scratchOff, deconvolveScratchSize(plan), "scratch");
+        if (nsrBins == null) {
+            checkNsr(nsr);
+        } else {
+            check(nsrBins, 0, n / 2 + 1, "nsrPerBin");
+            for (int k = 0; k <= n / 2; k++) {
+                checkNsr(nsrBins[k]);
+            }
+        }
+        int by = scratchOff;
+        int bh = scratchOff + sp;
+        int work = scratchOff + 2 * sp;
+        for (int i = 0; i < n; i++) {
+            scratch[by + i] = y[yOff + i];
+        }
+        java.util.Arrays.fill(scratch, bh, bh + n, 0.0);
+        for (int i = 0; i < kLen; i++) {
+            scratch[bh + i] = kernel[kOff + i];
+        }
+        plan.forward(scratch, by, scratch, by, scratch, work);
+        plan.forward(scratch, bh, scratch, bh, scratch, work);
+        for (int k = 0; k < sp / 2; k++) {
+            divide(scratch, by + 2 * k, bh + 2 * k, nsrBins == null ? nsr : nsrBins[k]);
+        }
+        plan.inverse(scratch, by, scratch, by, scratch, work);
+        for (int i = 0; i < n; i++) {
+            out[outOff + i] = (float) scratch[by + i];
+        }
+    }
+
+    private static void check(float[] a, int off, int count, String name) {
+        if (a == null || off < 0 || off > a.length - count) {
+            throw new IllegalArgumentException(name + " must hold " + count + " floats from offset " + off);
+        }
+    }
+
     private static void count(int n) {
         if (n < 0 || n > Integer.MAX_VALUE / 2) {
             throw new IllegalArgumentException("count out of range: " + n);
@@ -276,6 +478,19 @@ public final class Wiener {
      */
     public static int deconvolve2dScratchSize(RealFft2d plan) {
         return 2 * plan.spectrumLength() + plan.scratchSize();
+    }
+
+    /**
+     * Returns the scratch size of the float overload of {@link #deconvolve2d} for this plan:
+     * {@link #deconvolve2dScratchSize(RealFft2d)} plus {@code rows·cols} doubles that hold the widened image (the 2D
+     * transforms cannot work in place).
+     *
+     * @param plan the 2D real FFT plan of the image size
+     * @return the number of scratch doubles
+     * @since 3.0.0
+     */
+    public static int deconvolve2dFloatScratchSize(RealFft2d plan) {
+        return deconvolve2dScratchSize(plan) + plan.rows() * plan.cols();
     }
 
     /**
@@ -330,6 +545,65 @@ public final class Wiener {
     }
 
     /**
+     * Wiener deconvolution of a float image, computing in double exactly as
+     * {@link #deconvolve2d(RealFft2d, double[], int, double[], int, int, int, double, double[], int, double[], int)}
+     * does on the widened values; only the restored pixels are rounded to float.
+     *
+     * @param plan the 2D real FFT plan; its size is the image size {@code rows × cols}
+     * @param y the {@code rows·cols} observed pixels, row-major without padding
+     * @param yOff the offset of the first pixel
+     * @param kernel the blur, {@code kRows·kCols} taps, row-major without padding
+     * @param kOff the offset of the first tap
+     * @param kRows the kernel height, in {@code [1, rows]}
+     * @param kCols the kernel width, in {@code [1, cols]}
+     * @param nsr the noise-to-signal ratio, {@code >= 0}, the same for every bin
+     * @param out receives the {@code rows·cols} restored pixels, row-major; may be {@code y}
+     * @param outOff the offset of the first restored pixel
+     * @param scratch {@link #deconvolve2dFloatScratchSize(RealFft2d)} doubles of working memory
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if the kernel is empty or larger than the image, {@code nsr} is negative or
+     *         NaN, or an array does not hold its values from its offset (checked before anything is written)
+     * @since 3.0.0
+     */
+    public static void deconvolve2d(RealFft2d plan, float[] y, int yOff, float[] kernel, int kOff, int kRows,
+            int kCols, double nsr, float[] out, int outOff, double[] scratch, int scratchOff) {
+        int rows = plan.rows();
+        int cols = plan.cols();
+        int sp = plan.spectrumLength();
+        if (kRows < 1 || kCols < 1 || kRows > rows || kCols > cols) {
+            throw new IllegalArgumentException("the kernel must fit the image: " + kRows + " x " + kCols);
+        }
+        check(y, yOff, rows * cols, "y");
+        check(kernel, kOff, kRows * kCols, "kernel");
+        check(out, outOff, rows * cols, "out");
+        check(scratch, scratchOff, deconvolve2dFloatScratchSize(plan), "scratch");
+        checkNsr(nsr);
+        int by = scratchOff;
+        int bh = scratchOff + sp;
+        int img = scratchOff + 2 * sp;
+        int work = img + rows * cols;
+        java.util.Arrays.fill(scratch, bh, bh + rows * cols, 0.0);
+        for (int r = 0; r < kRows; r++) {
+            for (int c = 0; c < kCols; c++) {
+                scratch[bh + r * cols + c] = kernel[kOff + r * kCols + c];
+            }
+        }
+        System.arraycopy(scratch, bh, scratch, by, rows * cols);
+        plan.forward(scratch, by, scratch, bh, scratch, work);
+        for (int i = 0; i < rows * cols; i++) {
+            scratch[img + i] = y[yOff + i];
+        }
+        plan.forward(scratch, img, scratch, by, scratch, work);
+        for (int k = 0; k < sp / 2; k++) {
+            divide(scratch, by + 2 * k, bh + 2 * k, nsr);
+        }
+        plan.inverse(scratch, by, scratch, img, scratch, work);
+        for (int i = 0; i < rows * cols; i++) {
+            out[outOff + i] = (float) scratch[img + i];
+        }
+    }
+
+    /**
      * The locally adaptive Wiener filter for images: with the mean {@code μ} and variance {@code σ²} of the
      * {@code (2·half + 1)²} window around each pixel (cut at the borders),
      * {@code out = μ + max(σ² - ν², 0) / max(σ², ν²)·(x - μ)}, smoothing flat regions and keeping edges.
@@ -347,11 +621,7 @@ public final class Wiener {
      */
     public static double adaptive2d(double[] img, int rows, int cols, int half, double noiseVariance, double[] out,
             double[] scratch) {
-        if (rows < 1 || cols < 1 || half < 0 || img == null || out == null || scratch == null
-                || 2L * (rows + 1L) * (cols + 1L) > Integer.MAX_VALUE - 8 || img.length < (long) rows * cols
-                || out.length < (long) rows * cols || scratch.length < 2L * (rows + 1L) * (cols + 1L)) {
-            throw new IllegalArgumentException("need rows·cols pixels and 2·(rows+1)·(cols+1) doubles of scratch");
-        }
+        checkAdaptive(rows, cols, half, img == null ? -1 : img.length, out == null ? -1 : out.length, scratch);
         int w = cols + 1;
         int s1 = 0;
         int s2 = (rows + 1) * w;
@@ -367,30 +637,98 @@ public final class Wiener {
                 scratch[s2 + (r + 1) * w + c + 1] = scratch[s2 + r * w + c + 1] + row2;
             }
         }
+        double nu = noiseVariance(scratch, rows, cols, half, noiseVariance);
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                out[r * cols + c] = filtered(scratch, rows, cols, half, nu, r, c, img[r * cols + c]);
+            }
+        }
+        return nu;
+    }
+
+    /**
+     * The locally adaptive Wiener filter for float images, computing in double exactly as
+     * {@link #adaptive2d(double[], int, int, int, double, double[], double[])} does on the widened values; only the
+     * filtered pixels are rounded to float.
+     *
+     * @param img the {@code rows·cols} pixels, row-major without padding, from index 0
+     * @param rows the image height, at least 1
+     * @param cols the image width, at least 1
+     * @param half the window radius in pixels, {@code >= 0}
+     * @param noiseVariance {@code ν²}; 0 or less estimates it as the mean of the local variances
+     * @param out receives the {@code rows·cols} filtered pixels; may be {@code img}
+     * @param scratch {@code 2·(rows + 1)·(cols + 1)} doubles (two summed-area tables)
+     * @return the noise variance used
+     * @throws IllegalArgumentException if a size is out of range or an array is too short (checked before anything
+     *         is written)
+     * @since 3.0.0
+     */
+    public static double adaptive2d(float[] img, int rows, int cols, int half, double noiseVariance, float[] out,
+            double[] scratch) {
+        checkAdaptive(rows, cols, half, img == null ? -1 : img.length, out == null ? -1 : out.length, scratch);
+        int w = cols + 1;
+        int s1 = 0;
+        int s2 = (rows + 1) * w;
+        java.util.Arrays.fill(scratch, 0, 2 * (rows + 1) * w, 0.0);
+        for (int r = 0; r < rows; r++) {
+            double row1 = 0;
+            double row2 = 0;
+            for (int c = 0; c < cols; c++) {
+                double v = img[r * cols + c];
+                row1 += v;
+                row2 = Math.fma(v, v, row2);
+                scratch[s1 + (r + 1) * w + c + 1] = scratch[s1 + r * w + c + 1] + row1;
+                scratch[s2 + (r + 1) * w + c + 1] = scratch[s2 + r * w + c + 1] + row2;
+            }
+        }
+        double nu = noiseVariance(scratch, rows, cols, half, noiseVariance);
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                out[r * cols + c] = (float) filtered(scratch, rows, cols, half, nu, r, c, img[r * cols + c]);
+            }
+        }
+        return nu;
+    }
+
+    private static void checkAdaptive(int rows, int cols, int half, int imgLength, int outLength, double[] scratch) {
+        if (rows < 1 || cols < 1 || half < 0 || imgLength < 0 || outLength < 0 || scratch == null
+                || 2L * (rows + 1L) * (cols + 1L) > Integer.MAX_VALUE - 8 || imgLength < (long) rows * cols
+                || outLength < (long) rows * cols || scratch.length < 2L * (rows + 1L) * (cols + 1L)) {
+            throw new IllegalArgumentException("need rows·cols pixels and 2·(rows+1)·(cols+1) doubles of scratch");
+        }
+    }
+
+    /** {@code noiseVariance} if positive, else the mean of the local variances from the summed-area tables. */
+    private static double noiseVariance(double[] scratch, int rows, int cols, int half, double noiseVariance) {
         double nu = noiseVariance;
         if (!(nu > 0)) {
+            int w = cols + 1;
             double sum = 0;
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
-                    sum += localVariance(scratch, s1, s2, w, rows, cols, r, c, half);
+                    sum += localVariance(scratch, 0, (rows + 1) * w, w, rows, cols, r, c, half);
                 }
             }
             nu = sum / ((double) rows * cols);
         }
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                int r0 = Math.max(0, r - half);
-                int r1 = Math.min(rows, r + half + 1);
-                int c0 = Math.max(0, c - half);
-                int c1 = Math.min(cols, c + half + 1);
-                double cnt = (double) (r1 - r0) * (c1 - c0);
-                double mean = box(scratch, s1, w, r0, r1, c0, c1) / cnt;
-                double var = Math.max(0, box(scratch, s2, w, r0, r1, c0, c1) / cnt - mean * mean);
-                double g = Math.max(var - nu, 0) / Math.max(var, nu);
-                out[r * cols + c] = Math.fma(g, img[r * cols + c] - mean, mean);
-            }
-        }
         return nu;
+    }
+
+    /** The filtered value of pixel {@code (r, c)}, whose value is {@code x}. */
+    private static double filtered(double[] scratch, int rows, int cols, int half, double nu, int r, int c,
+            double x) {
+        int w = cols + 1;
+        int s1 = 0;
+        int s2 = (rows + 1) * w;
+        int r0 = Math.max(0, r - half);
+        int r1 = Math.min(rows, r + half + 1);
+        int c0 = Math.max(0, c - half);
+        int c1 = Math.min(cols, c + half + 1);
+        double cnt = (double) (r1 - r0) * (c1 - c0);
+        double mean = box(scratch, s1, w, r0, r1, c0, c1) / cnt;
+        double var = Math.max(0, box(scratch, s2, w, r0, r1, c0, c1) / cnt - mean * mean);
+        double g = Math.max(var - nu, 0) / Math.max(var, nu);
+        return Math.fma(g, x - mean, mean);
     }
 
     private static double localVariance(double[] s, int s1, int s2, int w, int rows, int cols, int r, int c,
@@ -426,6 +764,29 @@ public final class Wiener {
         for (int k = 0; k < bins; k++) {
             spectrum[off + 2 * k] *= gain[k];
             spectrum[off + 2 * k + 1] *= gain[k];
+        }
+    }
+
+    /**
+     * Multiplies a float half spectrum by float per-bin gains, in place. Each product is computed in double, where it
+     * is exact, and rounded once, exactly as {@link #apply(double[], int, double[], int)} on the widened values.
+     *
+     * @param spectrum the interleaved complex bins, modified in place
+     * @param off the offset of the first bin
+     * @param gain {@code bins} gains, from index 0
+     * @param bins the number of complex bins
+     * @throws IllegalArgumentException if {@code bins} is negative or an array is too short from its offset
+     *         (checked before anything is written)
+     * @since 3.0.0
+     */
+    public static void apply(float[] spectrum, int off, float[] gain, int bins) {
+        count(bins);
+        check(spectrum, off, 2 * bins, "spectrum");
+        check(gain, 0, bins, "gain");
+        for (int k = 0; k < bins; k++) {
+            double g = gain[k];
+            spectrum[off + 2 * k] = (float) (spectrum[off + 2 * k] * g);
+            spectrum[off + 2 * k + 1] = (float) (spectrum[off + 2 * k + 1] * g);
         }
     }
 }

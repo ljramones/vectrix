@@ -357,6 +357,26 @@ class HotPathAllocationTest {
         Vector3d da = new Vector3d(0, 0, 0), dc = new Vector3d(0.3, 0.8, 0.1), dmin = new Vector3d(), dmax = new Vector3d();
         assertNoAllocation("BoundingVolumesd.aabOfCylinder", () -> org.dynamisengine.vectrix.geometry.BoundingVolumesd
                 .aabOfCylinder(da, dc, 0.7, dmin, dmax));
+        org.dynamisengine.vectrix.core.Matrix3f obbAxes = new org.dynamisengine.vectrix.core.Matrix3f().rotateXYZ(0.3f, 0.2f,
+                0.1f);
+        assertNoAllocation("BoundingVolumesf.aabOfObb", () -> org.dynamisengine.vectrix.geometry.BoundingVolumesf
+                .aabOfObb(tc, obbAxes, ta, cmin, cmax));
+        assertNoAllocation("BoundingVolumesf.aabOfCapsule", () -> org.dynamisengine.vectrix.geometry.BoundingVolumesf
+                .aabOfCapsule(ta, tc, 0.7f, cmin, cmax));
+        org.dynamisengine.vectrix.core.Matrix4x3f ptM = new org.dynamisengine.vectrix.core.Matrix4x3f().rotateXYZ(0.3f,
+                0.2f, 0.1f).translate(1e4f, 2, 3);
+        assertNoAllocation("BoundingVolumesf.aabOfTransformedPoints", () -> org.dynamisengine.vectrix.geometry
+                .BoundingVolumesf.aabOfTransformedPoints(pos, 8, ptM, cmin, cmax));
+        org.dynamisengine.vectrix.core.Matrix3d obbAxesD = new org.dynamisengine.vectrix.core.Matrix3d().rotateXYZ(0.3,
+                0.2, 0.1);
+        assertNoAllocation("BoundingVolumesd.aabOfObb", () -> org.dynamisengine.vectrix.geometry.BoundingVolumesd
+                .aabOfObb(dc, obbAxesD, dc, dmin, dmax));
+        assertNoAllocation("BoundingVolumesd.aabOfCapsule", () -> org.dynamisengine.vectrix.geometry.BoundingVolumesd
+                .aabOfCapsule(da, dc, 0.7, dmin, dmax));
+        org.dynamisengine.vectrix.core.Matrix4x3d ptMD = new org.dynamisengine.vectrix.core.Matrix4x3d().rotateXYZ(0.3,
+                0.2, 0.1).translate(1e4, 2, 3);
+        assertNoAllocation("BoundingVolumesd.aabOfTransformedPoints", () -> org.dynamisengine.vectrix.geometry
+                .BoundingVolumesd.aabOfTransformedPoints(posD, 8, ptMD, dmin, dmax));
         org.dynamisengine.vectrix.core.Vector4d sphD = new org.dynamisengine.vectrix.core.Vector4d(0.1, 0.2, 0.3, 1.5);
         org.dynamisengine.vectrix.core.Matrix4x3d mD = new org.dynamisengine.vectrix.core.Matrix4x3d().rotateXYZ(0.3, 0.2,
                 0.1).translate(1e5, 2, 3);
@@ -707,6 +727,37 @@ class HotPathAllocationTest {
         double[] spScr = new double[org.dynamisengine.vectrix.dsp.Spectra.scratchSize(sp)];
         assertNoAllocation("Spectra.welch", () -> org.dynamisengine.vectrix.dsp.Spectra.welch(sp, hw, 0, 64, sig, 0,
             512, psd, 0, spScr, 0));
+        float[] hwf = new float[128];
+        java.util.Arrays.fill(hwf, 0.5f);
+        float[] psdf = new float[65];
+        double[] spScrF = new double[org.dynamisengine.vectrix.dsp.Spectra.floatCrossScratchSize(sp)];
+        assertNoAllocation("Spectra.welch float", () -> org.dynamisengine.vectrix.dsp.Spectra.welch(sp, hwf, 0, 64, sigf,
+            0, 512, psdf, 0, spScrF, 0));
+        float[] crossf = new float[130];
+        assertNoAllocation("Spectra.crossWelch float", () -> org.dynamisengine.vectrix.dsp.Spectra.crossWelch(sp, hwf, 0,
+            64, sigf, 0, sigf, 0, 512, crossf, 0, spScrF, 0));
+        org.dynamisengine.vectrix.fft.ComplexFftd cp = org.dynamisengine.vectrix.fft.ComplexFftd.plan(128);
+        float[] anf = new float[256];
+        double[] anScr = new double[org.dynamisengine.vectrix.dsp.Spectra.floatScratchSize(cp)];
+        assertNoAllocation("Spectra.analytic float", () -> org.dynamisengine.vectrix.dsp.Spectra.analytic(cp, sigf, 0,
+            anf, 0, anScr, 0));
+        float[] wyf = new float[512];
+        float[] wkf = {0.6f, 0.3f, 0.1f};
+        float[] woutf = new float[512];
+        assertNoAllocation("Wiener.deconvolve float", () -> org.dynamisengine.vectrix.dsp.Wiener.deconvolve(wplan, wyf,
+            0, wkf, 0, 3, 0.01, woutf, 0, wscr, 0));
+        org.dynamisengine.vectrix.fft.RealFft2d wp2 = org.dynamisengine.vectrix.fft.RealFft2d.plan(16, 16);
+        float[] img2 = new float[256];
+        double[] w2scr = new double[org.dynamisengine.vectrix.dsp.Wiener.deconvolve2dFloatScratchSize(wp2)];
+        assertNoAllocation("Wiener.deconvolve2d float", () -> org.dynamisengine.vectrix.dsp.Wiener.deconvolve2d(wp2,
+            img2, 0, wkf, 0, 1, 3, 0.01, img2, 0, w2scr, 0));
+        double[] adScr = new double[2 * 17 * 17];
+        assertNoAllocation("Wiener.adaptive2d float", () -> org.dynamisengine.vectrix.dsp.Wiener.adaptive2d(img2, 16, 16,
+            1, 0, img2, adScr));
+        double[] pfW = {0.1, 0.4, 0.05, 0.3, 0.15};
+        int[] pfIdx = new int[5];
+        assertNoAllocation("ParticleFilter.systematicResample Philox", () -> org.dynamisengine.vectrix.dsp.ParticleFilter
+            .systematicResample(pfW, 5, 42L, 7L, pfIdx));
         float[] medOut = new float[512];
         float[] medScr = new float[5];
         assertNoAllocation("Smoothers.median", () -> org.dynamisengine.vectrix.dsp.Smoothers.median(sigf, 0, 512, 2,

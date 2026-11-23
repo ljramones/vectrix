@@ -24,6 +24,7 @@
 package org.dynamisengine.vectrix.dsp;
 
 import org.dynamisengine.vectrix.core.ReproducibleMath;
+import org.dynamisengine.vectrix.hash.Philox;
 
 /**
  * Building blocks of a particle filter (sequential Monte Carlo): weight normalization in log space, the effective
@@ -33,7 +34,8 @@ import org.dynamisengine.vectrix.core.ReproducibleMath;
  * {@link org.dynamisengine.vectrix.hash.Philox} with an index derived from the step and particle, so the filter is
  * reproducible and parallel-safe); add each particle's measurement log-likelihood to its log-weight;
  * {@link #normalizeLogWeights}; and when {@link #effectiveSampleSize} falls below about half the particles,
- * {@link #systematicResample} with one uniform number and {@link #gather}. Exponentials and logarithms use
+ * {@link #systematicResample} with one uniform number (yours, or one it draws from {@code Philox} by seed and index)
+ * and {@link #gather}. Exponentials and logarithms use
  * {@link org.dynamisengine.vectrix.core.ReproducibleMath}'s reproducible functions; nothing allocates.
  * <p>
  * All arrays are used from index 0, and particles are stored contiguously, {@code dim} doubles each. Only
@@ -117,6 +119,23 @@ public final class ParticleFilter {
             }
             indices[j] = i;
         }
+    }
+
+    /**
+     * Systematic resampling with its uniform number drawn from {@link Philox}: the same as
+     * {@link #systematicResample(double[], int, double, int[])} with {@code u = Philox.uniformDouble(seed, index)}.
+     * Use a different {@code index} for each resampling, for example the step number, so the filter is reproducible
+     * without a random generator to carry along.
+     *
+     * @param w {@code count} normalized weights
+     * @param count the number of particles, at least 1
+     * @param seed the seed of the {@link Philox} double stream
+     * @param index the position in that stream
+     * @param indices receives {@code count} particle indices, ascending
+     * @since 3.0.0
+     */
+    public static void systematicResample(double[] w, int count, long seed, long index, int[] indices) {
+        systematicResample(w, count, Philox.uniformDouble(seed, index), indices);
     }
 
     /**

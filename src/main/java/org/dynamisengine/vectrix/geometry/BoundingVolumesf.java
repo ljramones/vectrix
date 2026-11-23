@@ -502,8 +502,9 @@ public final class BoundingVolumesf {
     }
 
     /**
-     * Computes the axis-aligned bounds of an oriented box. Each world half extent is {@code Σ_j |axes_ij| h_j}, which
-     * is exact (tight).
+     * Computes the axis-aligned bounds of an oriented box. Each world half extent is {@code Σ_j |axes_ij| h_j}. It is
+     * computed in double (the products are exact there), the sums are rounded up and the corners outward to float, so
+     * the box always contains the oriented box and is tight to within an ulp.
      *
      * @param center the box center
      * @param axes the box axes as columns, unit length
@@ -513,17 +514,28 @@ public final class BoundingVolumesf {
      * @since 2.4.0
      */
     public static void aabOfObb(Vector3fc center, Matrix3fc axes, Vector3fc halfExtents, Vector3f min, Vector3f max) {
-        float hx = halfExtents.x(), hy = halfExtents.y(), hz = halfExtents.z();
-        float cx = center.x(), cy = center.y(), cz = center.z();
-        float ex = Math.abs(axes.m00()) * hx + Math.abs(axes.m10()) * hy + Math.abs(axes.m20()) * hz;
-        float ey = Math.abs(axes.m01()) * hx + Math.abs(axes.m11()) * hy + Math.abs(axes.m21()) * hz;
-        float ez = Math.abs(axes.m02()) * hx + Math.abs(axes.m12()) * hy + Math.abs(axes.m22()) * hz;
-        min.set(cx - ex, cy - ey, cz - ez);
-        max.set(cx + ex, cy + ey, cz + ez);
+        double hx = halfExtents.x(), hy = halfExtents.y(), hz = halfExtents.z();
+        double cx = center.x(), cy = center.y(), cz = center.z();
+        // float products are exact in double; the sums are rounded up, then the corners outward to float (rounded to
+        // nearest before 3.0, which could cut into the box)
+        double ex = BoundingVolumesd.addUp(BoundingVolumesd.addUp(Math.abs(axes.m00()) * hx, Math.abs(axes.m10()) * hy),
+                Math.abs(axes.m20()) * hz);
+        double ey = BoundingVolumesd.addUp(BoundingVolumesd.addUp(Math.abs(axes.m01()) * hx, Math.abs(axes.m11()) * hy),
+                Math.abs(axes.m21()) * hz);
+        double ez = BoundingVolumesd.addUp(BoundingVolumesd.addUp(Math.abs(axes.m02()) * hx, Math.abs(axes.m12()) * hy),
+                Math.abs(axes.m22()) * hz);
+        min.set(BoundingVolumesd.floatDown(BoundingVolumesd.subDown(cx, ex)),
+                BoundingVolumesd.floatDown(BoundingVolumesd.subDown(cy, ey)),
+                BoundingVolumesd.floatDown(BoundingVolumesd.subDown(cz, ez)));
+        max.set(BoundingVolumesd.floatUp(BoundingVolumesd.addUp(cx, ex)),
+                BoundingVolumesd.floatUp(BoundingVolumesd.addUp(cy, ey)),
+                BoundingVolumesd.floatUp(BoundingVolumesd.addUp(cz, ez)));
     }
 
     /**
-     * Computes the axis-aligned bounds of a capsule. Exact.
+     * Computes the axis-aligned bounds of a capsule: the bounds of its segment grown by {@code r}. The corners are
+     * computed in double and rounded outward to float, so the box always contains the capsule and is tight to within
+     * an ulp.
      *
      * @param a one end of the capsule's segment
      * @param b the other end of the capsule's segment
@@ -534,8 +546,13 @@ public final class BoundingVolumesf {
      */
     public static void aabOfCapsule(Vector3fc a, Vector3fc b, float r, Vector3f min, Vector3f max) {
         float ax = a.x(), ay = a.y(), az = a.z(), bx = b.x(), by = b.y(), bz = b.z();
-        min.set(Math.min(ax, bx) - r, Math.min(ay, by) - r, Math.min(az, bz) - r);
-        max.set(Math.max(ax, bx) + r, Math.max(ay, by) + r, Math.max(az, bz) + r);
+        // rounded outward (to nearest before 3.0, which could cut into the capsule)
+        min.set(BoundingVolumesd.floatDown(BoundingVolumesd.subDown(Math.min(ax, bx), r)),
+                BoundingVolumesd.floatDown(BoundingVolumesd.subDown(Math.min(ay, by), r)),
+                BoundingVolumesd.floatDown(BoundingVolumesd.subDown(Math.min(az, bz), r)));
+        max.set(BoundingVolumesd.floatUp(BoundingVolumesd.addUp(Math.max(ax, bx), r)),
+                BoundingVolumesd.floatUp(BoundingVolumesd.addUp(Math.max(ay, by), r)),
+                BoundingVolumesd.floatUp(BoundingVolumesd.addUp(Math.max(az, bz), r)));
     }
 
     /**
@@ -575,7 +592,9 @@ public final class BoundingVolumesf {
 
     /**
      * Computes the axis-aligned bounds of {@code count} points transformed by the affine {@code m}, with no allocation.
-     * With {@code count == 0}, {@code min} is {@code +∞} and {@code max} is {@code −∞}.
+     * Each transformed coordinate is computed in double (the products are exact there) with its sums rounded in each
+     * direction, then rounded outward to float, so the box always contains the exactly transformed points and is
+     * tight to within an ulp. With {@code count == 0}, {@code min} is {@code +∞} and {@code max} is {@code −∞}.
      *
      * @param xyz the points as packed {@code x, y, z} triples starting at index 0
      * @param count the number of points, 0 or more
@@ -585,24 +604,33 @@ public final class BoundingVolumesf {
      * @since 2.4.0
      */
     public static void aabOfTransformedPoints(float[] xyz, int count, Matrix4x3fc m, Vector3f min, Vector3f max) {
-        float m00 = m.m00(), m01 = m.m01(), m02 = m.m02(), m10 = m.m10(), m11 = m.m11(), m12 = m.m12();
-        float m20 = m.m20(), m21 = m.m21(), m22 = m.m22(), m30 = m.m30(), m31 = m.m31(), m32 = m.m32();
-        float minX = Float.POSITIVE_INFINITY, minY = Float.POSITIVE_INFINITY, minZ = Float.POSITIVE_INFINITY;
-        float maxX = Float.NEGATIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY, maxZ = Float.NEGATIVE_INFINITY;
+        double m00 = m.m00(), m01 = m.m01(), m02 = m.m02(), m10 = m.m10(), m11 = m.m11(), m12 = m.m12();
+        double m20 = m.m20(), m21 = m.m21(), m22 = m.m22(), m30 = m.m30(), m31 = m.m31(), m32 = m.m32();
+        double minX = Double.POSITIVE_INFINITY, minY = Double.POSITIVE_INFINITY, minZ = Double.POSITIVE_INFINITY;
+        double maxX = Double.NEGATIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY, maxZ = Double.NEGATIVE_INFINITY;
+        // directed bounds in double (float products are exact there), rounded outward to float (rounded to nearest
+        // before 3.0, which could cut into the points)
         for (int i = 0; i < count; i++) {
-            float x = xyz[3 * i], y = xyz[3 * i + 1], z = xyz[3 * i + 2];
-            float tx = Math.fma(m00, x, Math.fma(m10, y, Math.fma(m20, z, m30)));
-            float ty = Math.fma(m01, x, Math.fma(m11, y, Math.fma(m21, z, m31)));
-            float tz = Math.fma(m02, x, Math.fma(m12, y, Math.fma(m22, z, m32)));
-            minX = Math.min(minX, tx);
-            minY = Math.min(minY, ty);
-            minZ = Math.min(minZ, tz);
-            maxX = Math.max(maxX, tx);
-            maxY = Math.max(maxY, ty);
-            maxZ = Math.max(maxZ, tz);
+            double x = xyz[3 * i], y = xyz[3 * i + 1], z = xyz[3 * i + 2];
+            minX = Math.min(minX, lower(m00 * x, m10 * y, m20 * z, m30));
+            minY = Math.min(minY, lower(m01 * x, m11 * y, m21 * z, m31));
+            minZ = Math.min(minZ, lower(m02 * x, m12 * y, m22 * z, m32));
+            maxX = Math.max(maxX, upper(m00 * x, m10 * y, m20 * z, m30));
+            maxY = Math.max(maxY, upper(m01 * x, m11 * y, m21 * z, m31));
+            maxZ = Math.max(maxZ, upper(m02 * x, m12 * y, m22 * z, m32));
         }
-        min.set(minX, minY, minZ);
-        max.set(maxX, maxY, maxZ);
+        min.set(BoundingVolumesd.floatDown(minX), BoundingVolumesd.floatDown(minY), BoundingVolumesd.floatDown(minZ));
+        max.set(BoundingVolumesd.floatUp(maxX), BoundingVolumesd.floatUp(maxY), BoundingVolumesd.floatUp(maxZ));
+    }
+
+    /** A double at most {@code a + b + c + d}. */
+    private static double lower(double a, double b, double c, double d) {
+        return BoundingVolumesd.addDown(BoundingVolumesd.addDown(BoundingVolumesd.addDown(a, b), c), d);
+    }
+
+    /** A double at least {@code a + b + c + d}. */
+    private static double upper(double a, double b, double c, double d) {
+        return BoundingVolumesd.addUp(BoundingVolumesd.addUp(BoundingVolumesd.addUp(a, b), c), d);
     }
 
 

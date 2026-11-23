@@ -31,7 +31,8 @@
  * B-spline constructors allocate. Determinism: plain float or double arithmetic in a fixed order, no transcendental
  * functions, so results are the same bits on every platform. Errors: {@code t} is not clamped (values outside
  * {@code [0, 1]} extrapolate); a bad B-spline segment index or fewer than 4 control points throw
- * {@code IllegalArgumentException}; the batch methods do not check array sizes up front. Precision and naming:
- * {@code ...f} classes are float, {@code ...d} double.
+ * {@code IllegalArgumentException}; the batch methods check their arrays, offsets and count up front and throw
+ * {@code IllegalArgumentException} before writing anything. Precision and naming: {@code ...f} classes are float,
+ * {@code ...d} double.
  */
 package org.dynamisengine.vectrix.curve.vec4;

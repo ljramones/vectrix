@@ -128,9 +128,19 @@ public final class Formats {
 
     /**
      * Quantizes {@code n} floats ({@code n} a multiple of {@link #QBLOCK}) to int8 by blocks of 32: each block's scale
-     * is {@code max|x| / 127} and {@code q = rint(x / scale)}, so the largest element maps to ±127 exactly. An all-zero
-     * block gets scale 0 and codes 0. The values must be finite: a NaN or infinite value has no int8 code and is
-     * rejected before anything is written (it used to give a NaN scale and all-zero codes).
+     * is {@code max|x| / 127} and {@code q = rint(x / scale)}, so the largest element maps to ±127 exactly (for a
+     * scale of at least {@code 2^-126}; see below). An all-zero block gets scale 0 and codes 0.
+     * <p>
+     * Below {@link Float#MIN_NORMAL} ({@code 2^-126}) a float scale has fewer significant bits, and rounding it to
+     * nearest could push the largest code past 127. There {@code max|x| / 127} is rounded up instead, to the smallest
+     * float at least that large: the largest code then stays within ±127 (it may be smaller than 127) and every code
+     * is still {@code rint(x / scale)}. A block whose largest magnitude is below {@code 127 · 2^-149} gets scale
+     * {@code 2^-149}, the smallest positive float, and its (subnormal) values are encoded exactly. (Before 3.0 such a
+     * scale was rounded to nearest: it underflowed to 0, giving all-zero codes, or rounded down so the largest values
+     * were clamped to ±127.)
+     * <p>
+     * The values must be finite: a NaN or infinite value has no int8 code and is rejected before anything is written
+     * (it used to give a NaN scale and all-zero codes).
      *
      * @param x the values
      * @param xOff the offset in {@code x}
@@ -162,6 +172,15 @@ public final class Formats {
                 amax = Math.max(amax, Math.abs(x[xOff + base + j]));
             }
             float scale = amax / 127f;
+            if (scale < Float.MIN_NORMAL && amax > 0f) {
+                // a subnormal scale is rounded up, so the largest code stays within ±127 (before 3.0 it was rounded
+                // to nearest and could underflow to 0 or clamp the largest values)
+                double exact = amax / 127.0;
+                scale = (float) exact;
+                if (scale < exact) {
+                    scale = Math.nextUp(scale);
+                }
+            }
             scales[sOff + b] = scale;
             for (int j = 0; j < QBLOCK; j++) {
                 float v = scale == 0f ? 0f : (float) Math.rint(x[xOff + base + j] / scale);
