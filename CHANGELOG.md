@@ -108,7 +108,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     - bfloat16, and both OCP FP8 formats (E4M3 finite-only and E5M2), round to nearest even, with or without
       saturation. The FP8 encoders search the exact value set, and are checked against brute force.
     - int8 block quantization with a scale per 32 values (the largest element maps to ±127 exactly).
-    - A quantized dot product and GEMV with a defined accumulation order.
+    - A quantized dot product and GEMV with a defined lane order (8 lanes per block, with per-lane totals across
+      blocks). It has a Vector API path with the same bits. It saves memory, not time: on an M4 Max a 4096×4096
+      int8 GEMV takes 1.8 ms against 1.05 ms for float.
   - `Attention`: scaled dot-product attention of one query over a key/value cache, with an optional additive mask
     and a backward pass. It is built from the deterministic dot, softmax and transposed GEMV, so results are
     batch-invariant.

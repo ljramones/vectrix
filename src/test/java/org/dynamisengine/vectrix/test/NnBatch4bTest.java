@@ -131,7 +131,49 @@ class NnBatch4bTest {
                 exact += (double) q[i * n + j] * s[(i * n + j) / 32] * x[j];
                 mag += java.lang.Math.abs((double) q[i * n + j] * s[(i * n + j) / 32] * x[j]);
             }
-            assertEquals(exact, y[i], (32 + n / 32) * 0x1p-24 * mag, "row " + i);
+            assertEquals(exact, y[i], (7 + n / 32) * 0x1p-24 * mag, "row " + i);
+        }
+    }
+
+    /** The documented int8 order, written plainly. */
+    static float specDotInt8(byte[] q, float[] s, float[] x, int n) {
+        float[] t = new float[8];
+        for (int b = 0; b < n / 32; b++) {
+            float[] a = new float[8];
+            for (int j = 0; j < 32; j++) {
+                a[j & 7] = java.lang.Math.fma(q[b * 32 + j], x[b * 32 + j], a[j & 7]);
+            }
+            for (int l = 0; l < 8; l++) {
+                t[l] = java.lang.Math.fma(s[b], a[l], t[l]);
+            }
+        }
+        return ((t[0] + t[4]) + (t[2] + t[6])) + ((t[1] + t[5]) + (t[3] + t[7]));
+    }
+
+    @Test
+    void int8DotFollowsTheDocumentedOrderOnEveryPath() {
+        SplittableRandom r = new SplittableRandom(9);
+        boolean was = org.dynamisengine.vectrix.experimental.KernelConfig.simdEnabled();
+        try {
+            for (int n : new int[] {32, 64, 1024, 4096}) {
+                float[] w = new float[n];
+                float[] x = new float[n];
+                for (int i = 0; i < n; i++) {
+                    w[i] = (float) r.nextGaussian();
+                    x[i] = (float) r.nextGaussian();
+                }
+                byte[] q = new byte[n];
+                float[] s = new float[n / 32];
+                Formats.quantizeInt8(w, 0, n, q, 0, s, 0);
+                float want = specDotInt8(q, s, x, n);
+                for (int mode = 0; mode < 2; mode++) {
+                    org.dynamisengine.vectrix.experimental.KernelConfig.setSimdEnabled(mode == 1);
+                    assertEquals(Float.floatToRawIntBits(want), Float.floatToRawIntBits(Formats.dotInt8(q, 0, s, 0, x, 0,
+                        n)), "n " + n + " simd " + mode);
+                }
+            }
+        } finally {
+            org.dynamisengine.vectrix.experimental.KernelConfig.setSimdEnabled(was);
         }
     }
 

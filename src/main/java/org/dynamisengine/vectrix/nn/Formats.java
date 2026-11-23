@@ -23,6 +23,15 @@
  */
 package org.dynamisengine.vectrix.nn;
 
+//#ifdef __HAS_VECTOR_API__
+import jdk.incubator.vector.ByteVector;
+import jdk.incubator.vector.FloatVector;
+import jdk.incubator.vector.VectorOperators;
+import jdk.incubator.vector.VectorShuffle;
+import jdk.incubator.vector.VectorSpecies;
+import org.dynamisengine.vectrix.simd.SimdSupport;
+//#endif
+
 /**
  * Low-precision number formats for weights and activations: bfloat16, the two OCP 8-bit floats, and int8 block
  * quantization with a quantized dot product.
@@ -125,9 +134,16 @@ public final class Formats {
     }
 
     /**
-     * The dot product of int8 block-quantized weights with floats, without dequantizing: each block's
-     * {@code Σ q·x} is a fused-multiply-add chain in order, and the blocks are accumulated in order as
-     * {@code fma(scale, blockSum, total)}. Deterministic; the error is about {@code (32 + n/32)·ε·Σ|terms|}.
+     * The dot product of int8 block-quantized weights with floats, without dequantizing. Lane {@code l} (0..7) takes
+     * the elements whose index in their block is {@code l mod 8}: within a block it sums {@code q·x} with fused
+     * multiply-adds in order, and across blocks it accumulates {@code T_l = fma(scale, blockPart_l, T_l)} in block
+     * order; the result is {@code ((T0 + T4) + (T2 + T6)) + ((T1 + T5) + (T3 + T7))}, the lane order of
+     * {@code Blasf}. The scalar and Vector API paths follow this order exactly, so results are the same bits
+     * everywhere; the error is about {@code (7 + n/32)·ε·Σ|terms|}.
+     * <p>
+     * Widening the codes to float limits the speed: on an Apple M4 Max with the Vector API a 4096×4096
+     * {@link #gemvInt8} takes 1.8 ms against 1.05 ms for the float {@code Gemmf.gemv}. Int8 saves memory (a quarter of
+     * float), not time, unless the weights would otherwise not fit in memory bandwidth or cache.
      */
     public static float dotInt8(byte[] q, int qOff, float[] scales, int sOff, float[] x, int xOff, int n) {
         if (n < 0 || n % QBLOCK != 0) {
@@ -136,16 +152,52 @@ public final class Formats {
         range(q == null ? -1 : q.length, qOff, n, "q");
         range(scales == null ? -1 : scales.length, sOff, n / QBLOCK, "scales");
         range(x == null ? -1 : x.length, xOff, n, "x");
-        float total = 0f;
+//#ifdef __HAS_VECTOR_API__
+        if (Simd.on()) {
+            return Simd.dotInt8(q, qOff, scales, sOff, x, xOff, n);
+        }
+//#endif
+        float t0 = 0f;
+        float t1 = 0f;
+        float t2 = 0f;
+        float t3 = 0f;
+        float t4 = 0f;
+        float t5 = 0f;
+        float t6 = 0f;
+        float t7 = 0f;
         for (int b = 0; b < n / QBLOCK; b++) {
             int base = b * QBLOCK;
-            float s = 0f;
-            for (int j = 0; j < QBLOCK; j++) {
-                s = Math.fma(q[qOff + base + j], x[xOff + base + j], s);
+            float a0 = 0f;
+            float a1 = 0f;
+            float a2 = 0f;
+            float a3 = 0f;
+            float a4 = 0f;
+            float a5 = 0f;
+            float a6 = 0f;
+            float a7 = 0f;
+            for (int j = 0; j < QBLOCK; j += 8) {
+                int qi = qOff + base + j;
+                int xi = xOff + base + j;
+                a0 = Math.fma(q[qi], x[xi], a0);
+                a1 = Math.fma(q[qi + 1], x[xi + 1], a1);
+                a2 = Math.fma(q[qi + 2], x[xi + 2], a2);
+                a3 = Math.fma(q[qi + 3], x[xi + 3], a3);
+                a4 = Math.fma(q[qi + 4], x[xi + 4], a4);
+                a5 = Math.fma(q[qi + 5], x[xi + 5], a5);
+                a6 = Math.fma(q[qi + 6], x[xi + 6], a6);
+                a7 = Math.fma(q[qi + 7], x[xi + 7], a7);
             }
-            total = Math.fma(scales[sOff + b], s, total);
+            float sc = scales[sOff + b];
+            t0 = Math.fma(sc, a0, t0);
+            t1 = Math.fma(sc, a1, t1);
+            t2 = Math.fma(sc, a2, t2);
+            t3 = Math.fma(sc, a3, t3);
+            t4 = Math.fma(sc, a4, t4);
+            t5 = Math.fma(sc, a5, t5);
+            t6 = Math.fma(sc, a6, t6);
+            t7 = Math.fma(sc, a7, t7);
         }
-        return total;
+        return ((t0 + t4) + (t2 + t6)) + ((t1 + t5) + (t3 + t7));
     }
 
     /**
@@ -260,5 +312,59 @@ public final class Formats {
         if (length < 0 || n < 0 || off < 0 || off > length - n) {
             throw new IllegalArgumentException(name + " must hold " + n + " values from offset " + off);
         }
+    }
+
+    /**
+     * Vector API int8 kernel: the 8 logical lanes of a block on one 8-lane or two 4-lane float vectors, the codes
+     * widened with {@code convertShape}. Everything stays in one method, so no vector is boxed.
+     */
+    private static final class Simd {
+//#ifdef __HAS_VECTOR_API__
+        static final VectorSpecies<Float> S = FloatVector.SPECIES_PREFERRED.length() >= 8 ? FloatVector.SPECIES_256
+                : FloatVector.SPECIES_PREFERRED;
+        static final int LANES = S.length();
+        static final VectorSpecies<Byte> BS = VectorSpecies.of(byte.class, S.vectorShape());
+        static final boolean AVAILABLE = SimdSupport.isVectorApiAvailable() && (LANES == 4 || LANES == 8);
+        static final VectorShuffle<Float> HALF = VectorShuffle.fromOp(S, i -> (i + LANES / 2) % LANES);
+
+        private Simd() {
+        }
+
+        static boolean on() {
+            return AVAILABLE && SimdSupport.backend() == SimdSupport.Backend.VECTOR_API;
+        }
+
+        static float dotInt8(byte[] q, int qOff, float[] scales, int sOff, float[] x, int xOff, int n) {
+            FloatVector t0 = FloatVector.zero(S);
+            FloatVector t1 = FloatVector.zero(S);
+            int bytesPerVector = BS.length(); // 4·LANES: one load widens to four float vectors
+            for (int b = 0; b < n / QBLOCK; b++) {
+                int base = b * QBLOCK;
+                FloatVector c0 = FloatVector.zero(S);
+                FloatVector c1 = FloatVector.zero(S);
+                for (int j = 0; j < QBLOCK; j += bytesPerVector) {
+                    ByteVector qb = ByteVector.fromArray(BS, q, qOff + base + j);
+                    for (int part = 0; part < 4; part++) {
+                        FloatVector qf = (FloatVector) qb.convertShape(VectorOperators.B2F, S, part);
+                        int e = j + part * LANES; // the first element of this float vector
+                        FloatVector xf = FloatVector.fromArray(S, x, xOff + base + e);
+                        if (LANES == 8 || (e & 4) == 0) {
+                            c0 = qf.fma(xf, c0);
+                        } else {
+                            c1 = qf.fma(xf, c1);
+                        }
+                    }
+                }
+                FloatVector sc = FloatVector.broadcast(S, scales[sOff + b]);
+                t0 = sc.fma(c0, t0);
+                t1 = sc.fma(c1, t1);
+            }
+            FloatVector p = LANES == 8 ? t0.add(t0.rearrange(HALF)) : t0.add(t1);
+            return (p.lane(0) + p.lane(2)) + (p.lane(1) + p.lane(3));
+        }
+//#else
+        private Simd() {
+        }
+//#endif
     }
 }
