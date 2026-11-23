@@ -123,7 +123,13 @@ public final class Activations {
     public static void tanh(float[] x, int xOff, float[] y, int yOff, int n) {
         check(x, xOff, n, "x");
         check(y, yOff, n, "y");
-        for (int i = 0; i < n; i++) {
+        int i = 0;
+//#ifdef __HAS_VECTOR_API__
+        if (Simd.on()) {
+            i = Simd.tanh(x, xOff, y, yOff, n);
+        }
+//#endif
+        for (; i < n; i++) {
             y[yOff + i] = NnMath.tanh(x[xOff + i]);
         }
     }
@@ -158,7 +164,13 @@ public final class Activations {
     public static void geluTanh(float[] x, int xOff, float[] y, int yOff, int n) {
         check(x, xOff, n, "x");
         check(y, yOff, n, "y");
-        for (int i = 0; i < n; i++) {
+        int i = 0;
+//#ifdef __HAS_VECTOR_API__
+        if (Simd.on()) {
+            i = Simd.geluTanh(x, xOff, y, yOff, n);
+        }
+//#endif
+        for (; i < n; i++) {
             float v = x[xOff + i];
             float u = GELU_TANH_K * Math.fma(GELU_TANH_C * v, v * v, v);
             y[yOff + i] = 0.5f * v * (1f + NnMath.tanh(u));
@@ -249,6 +261,9 @@ public final class Activations {
         }
 
         static final FloatVector ONE = FloatVector.broadcast(S, 1f);
+        static final FloatVector E8V = FloatVector.broadcast(S, NnMath.E8);
+        static final FloatVector E7V = FloatVector.broadcast(S, NnMath.E7);
+        static final FloatVector E6V = FloatVector.broadcast(S, NnMath.E6);
         static final FloatVector MLN2_HI = FloatVector.broadcast(S, -NnMath.LN2_HI);
         static final FloatVector MLN2_LO = FloatVector.broadcast(S, -NnMath.LN2_LO);
         static final FloatVector E5V = FloatVector.broadcast(S, NnMath.E5);
@@ -278,6 +293,84 @@ public final class Activations {
                         .mul(eki.sub(ek1).add(127).lanewise(VectorOperators.LSHL, 23).reinterpretAsFloats());
                 FloatVector s = ONE.div(e.add(1f));
                 (silu ? v.mul(s) : s).intoArray(y, yOff + i);
+            }
+            return i;
+        }
+        /** {@link NnMath#tanh} on whole vectors, with expm1 and exp expanded inline; returns the index reached. */
+        static int tanh(float[] x, int xOff, float[] y, int yOff, int n) {
+            int i = 0;
+            for (int b = n - n % LANES; i < b; i += LANES) {
+                FloatVector v = FloatVector.fromArray(S, x, xOff + i);
+                FloatVector ha = v.abs().min(9.1f);
+                FloatVector hy = ha.mul(2f);
+                FloatVector hq = hy.fma(NnMath.E10, NnMath.E9);
+                hq = hy.fma(hq, E8V);
+                hq = hy.fma(hq, E7V);
+                hq = hy.fma(hq, E6V);
+                hq = hy.fma(hq, E5V);
+                hq = hy.fma(hq, E4V);
+                hq = hy.fma(hq, E3V);
+                hq = hy.fma(hq, E2V);
+                FloatVector hsmall = hq.fma(hy.mul(hy), hy);
+                FloatVector hxc = hy.max(-104f).min(89f);
+                FloatVector hxk = hxc.mul(NnMath.LOG2E).add(NnMath.ROUND).sub(NnMath.ROUND);
+                FloatVector hxr = hxk.fma(MLN2_HI, hxc);
+                hxr = hxk.fma(MLN2_LO, hxr);
+                FloatVector hxp = hxr.fma(NnMath.E7, NnMath.E6);
+                hxp = hxr.fma(hxp, E5V);
+                hxp = hxr.fma(hxp, E4V);
+                hxp = hxr.fma(hxp, E3V);
+                hxp = hxr.fma(hxp, E2V);
+                FloatVector hxt = hxp.fma(hxr.mul(hxr), hxr).add(1f);
+                IntVector hxki = (IntVector) hxk.convert(VectorOperators.F2I, 0);
+                IntVector hxk1 = hxki.lanewise(VectorOperators.ASHR, 1);
+                FloatVector hx = hxt.mul(hxk1.add(127).lanewise(VectorOperators.LSHL, 23).reinterpretAsFloats())
+                        .mul(hxki.sub(hxk1).add(127).lanewise(VectorOperators.LSHL, 23).reinterpretAsFloats());
+                FloatVector he = hx.sub(1f).blend(hsmall, hy.compare(VectorOperators.LT, 0.5f));
+                FloatVector ht = he.div(he.add(2f));
+                FloatVector h = ht.reinterpretAsInts().and(0x7fffffff)
+                        .or(v.reinterpretAsInts().and(0x80000000)).reinterpretAsFloats();
+                h.intoArray(y, yOff + i);
+            }
+            return i;
+        }
+
+        /** The tanh-approximated GELU on whole vectors, with tanh expanded inline. */
+        static int geluTanh(float[] x, int xOff, float[] y, int yOff, int n) {
+            int i = 0;
+            for (int b = n - n % LANES; i < b; i += LANES) {
+                FloatVector v = FloatVector.fromArray(S, x, xOff + i);
+                FloatVector u = v.mul(GELU_TANH_C).fma(v.mul(v), v).mul(GELU_TANH_K);
+                FloatVector ha = u.abs().min(9.1f);
+                FloatVector hy = ha.mul(2f);
+                FloatVector hq = hy.fma(NnMath.E10, NnMath.E9);
+                hq = hy.fma(hq, E8V);
+                hq = hy.fma(hq, E7V);
+                hq = hy.fma(hq, E6V);
+                hq = hy.fma(hq, E5V);
+                hq = hy.fma(hq, E4V);
+                hq = hy.fma(hq, E3V);
+                hq = hy.fma(hq, E2V);
+                FloatVector hsmall = hq.fma(hy.mul(hy), hy);
+                FloatVector hxc = hy.max(-104f).min(89f);
+                FloatVector hxk = hxc.mul(NnMath.LOG2E).add(NnMath.ROUND).sub(NnMath.ROUND);
+                FloatVector hxr = hxk.fma(MLN2_HI, hxc);
+                hxr = hxk.fma(MLN2_LO, hxr);
+                FloatVector hxp = hxr.fma(NnMath.E7, NnMath.E6);
+                hxp = hxr.fma(hxp, E5V);
+                hxp = hxr.fma(hxp, E4V);
+                hxp = hxr.fma(hxp, E3V);
+                hxp = hxr.fma(hxp, E2V);
+                FloatVector hxt = hxp.fma(hxr.mul(hxr), hxr).add(1f);
+                IntVector hxki = (IntVector) hxk.convert(VectorOperators.F2I, 0);
+                IntVector hxk1 = hxki.lanewise(VectorOperators.ASHR, 1);
+                FloatVector hx = hxt.mul(hxk1.add(127).lanewise(VectorOperators.LSHL, 23).reinterpretAsFloats())
+                        .mul(hxki.sub(hxk1).add(127).lanewise(VectorOperators.LSHL, 23).reinterpretAsFloats());
+                FloatVector he = hx.sub(1f).blend(hsmall, hy.compare(VectorOperators.LT, 0.5f));
+                FloatVector ht = he.div(he.add(2f));
+                FloatVector h = ht.reinterpretAsInts().and(0x7fffffff)
+                        .or(u.reinterpretAsInts().and(0x80000000)).reinterpretAsFloats();
+                v.mul(0.5f).mul(h.add(1f)).intoArray(y, yOff + i);
             }
             return i;
         }

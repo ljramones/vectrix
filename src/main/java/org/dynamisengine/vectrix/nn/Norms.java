@@ -24,6 +24,11 @@
 package org.dynamisengine.vectrix.nn;
 
 import org.dynamisengine.vectrix.blas.Blasf;
+//#ifdef __HAS_VECTOR_API__
+import jdk.incubator.vector.FloatVector;
+import jdk.incubator.vector.VectorSpecies;
+import org.dynamisengine.vectrix.simd.SimdSupport;
+//#endif
 
 /**
  * Layer normalization and RMS normalization over one row of floats, forward and backward.
@@ -59,12 +64,24 @@ public final class Norms {
             return;
         }
         float mean = Blasf.sum(x, xOff, n) / n;
-        for (int i = 0; i < n; i++) {
+        int i0 = 0;
+//#ifdef __HAS_VECTOR_API__
+        if (Simd.on()) {
+            i0 = Simd.centre(x, xOff, y, yOff, n, mean);
+        }
+//#endif
+        for (int i = i0; i < n; i++) {
             y[yOff + i] = x[xOff + i] - mean;
         }
         float var = Blasf.dot(y, yOff, y, yOff, n) / n;
         float rstd = 1f / (float) Math.sqrt(var + eps);
-        for (int i = 0; i < n; i++) {
+        int i1 = 0;
+//#ifdef __HAS_VECTOR_API__
+        if (Simd.on()) {
+            i1 = Simd.affine(y, yOff, n, rstd, gamma, gOff, beta, bOff);
+        }
+//#endif
+        for (int i = i1; i < n; i++) {
             float v = y[yOff + i] * rstd;
             float g = gamma == null ? 1f : gamma[gOff + i];
             float b = beta == null ? 0f : beta[bOff + i];
@@ -139,7 +156,13 @@ public final class Norms {
         }
         float ms = Blasf.dot(x, xOff, x, xOff, n) / n;
         float rinv = 1f / (float) Math.sqrt(ms + eps);
-        for (int i = 0; i < n; i++) {
+        int i0 = 0;
+//#ifdef __HAS_VECTOR_API__
+        if (Simd.on()) {
+            i0 = Simd.scale(x, xOff, y, yOff, n, rinv, gamma, gOff);
+        }
+//#endif
+        for (int i = i0; i < n; i++) {
             float g = gamma == null ? 1f : gamma[gOff + i];
             y[yOff + i] = x[xOff + i] * rinv * g;
         }
@@ -196,5 +219,55 @@ public final class Norms {
         if (a != null) {
             check(a, off, n, name);
         }
+    }
+
+    /** Vector API loops (the scalar operations lane by lane), in a holder so the scalar build never loads them. */
+    private static final class Simd {
+//#ifdef __HAS_VECTOR_API__
+        static final VectorSpecies<Float> S = FloatVector.SPECIES_PREFERRED;
+        static final int LANES = S.length();
+        static final boolean AVAILABLE = SimdSupport.isVectorApiAvailable() && LANES >= 2;
+
+        private Simd() {
+        }
+
+        static boolean on() {
+            return AVAILABLE && SimdSupport.backend() == SimdSupport.Backend.VECTOR_API;
+        }
+
+        static int centre(float[] x, int xOff, float[] y, int yOff, int n, float mean) {
+            int i = 0;
+            for (int b = n - n % LANES; i < b; i += LANES) {
+                FloatVector.fromArray(S, x, xOff + i).sub(mean).intoArray(y, yOff + i);
+            }
+            return i;
+        }
+
+        static int affine(float[] y, int yOff, int n, float rstd, float[] gamma, int gOff, float[] beta, int bOff) {
+            FloatVector one = FloatVector.broadcast(S, 1f);
+            FloatVector zero = FloatVector.zero(S);
+            int i = 0;
+            for (int b = n - n % LANES; i < b; i += LANES) {
+                FloatVector v = FloatVector.fromArray(S, y, yOff + i).mul(rstd);
+                FloatVector g = gamma == null ? one : FloatVector.fromArray(S, gamma, gOff + i);
+                FloatVector bb = beta == null ? zero : FloatVector.fromArray(S, beta, bOff + i);
+                v.fma(g, bb).intoArray(y, yOff + i);
+            }
+            return i;
+        }
+
+        static int scale(float[] x, int xOff, float[] y, int yOff, int n, float rinv, float[] gamma, int gOff) {
+            FloatVector one = FloatVector.broadcast(S, 1f);
+            int i = 0;
+            for (int b = n - n % LANES; i < b; i += LANES) {
+                FloatVector g = gamma == null ? one : FloatVector.fromArray(S, gamma, gOff + i);
+                FloatVector.fromArray(S, x, xOff + i).mul(rinv).mul(g).intoArray(y, yOff + i);
+            }
+            return i;
+        }
+//#else
+        private Simd() {
+        }
+//#endif
     }
 }

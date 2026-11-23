@@ -125,7 +125,7 @@ class NnKernelsTest {
             for (int n : new int[] {1, 7, 64, 1001}) {
                 float[] x = floats(r, n, 60);
                 x[0] = Float.NaN;
-                float[][][] out = new float[2][4][];
+                float[][][] out = new float[2][8][];
                 for (int mode = 0; mode < 2; mode++) {
                     KernelConfig.setSimdEnabled(mode == 1);
                     float[] y = new float[n];
@@ -138,12 +138,22 @@ class NnKernelsTest {
                     float[] z = floats(new SplittableRandom(n), n, 30);
                     Softmax.softmax(z, 0, y, 0, n);
                     out[mode][3] = y.clone();
+                    Activations.tanh(x, 0, y, 0, n);
+                    out[mode][4] = y.clone();
+                    Activations.geluTanh(x, 0, y, 0, n);
+                    out[mode][5] = y.clone();
+                    float[] g = floats(new SplittableRandom(n + 1), n, 2);
+                    Norms.layerNorm(z, 0, g, 0, z, 0, 1e-5f, y, 0, n, null, 0);
+                    out[mode][6] = y.clone();
+                    Norms.rmsNorm(z, 0, null, 0, 1e-5f, y, 0, n, null, 0);
+                    out[mode][7] = y.clone();
                 }
-                for (int k = 0; k < 4; k++) {
+                for (int k = 0; k < 8; k++) {
                     assertArrayEquals(out[0][k], out[1][k], 0f, "kernel " + k + " n " + n);
                 }
                 for (int i = 1; i < n; i++) {
                     assertEquals(NnMath.sigmoid(x[i]), out[0][0][i], 0f);
+                    assertEquals(NnMath.tanh(x[i]), out[0][4][i], 0f);
                 }
             }
         } finally {
