@@ -23,7 +23,6 @@
  */
 package org.dynamisengine.vectrix.core;
 
-import org.dynamisengine.vectrix.camera.DepthRange;
 
 import org.intellij.lang.annotations.MagicConstant;
 
@@ -16151,4 +16150,11 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         return super.clone();
     }
 
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public Vector4f frustumPlane(int plane, org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector4f dest) {
+        return frustumPlane(plane, depthRange.toCore(), dest);
+    }
 }

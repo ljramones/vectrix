@@ -5,13 +5,13 @@
  */
 package org.dynamisengine.vectrix.test;
 
+import org.dynamisengine.vectrix.core.CoreConfig;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.core.Quaternionf;
 import org.dynamisengine.vectrix.core.Vector3f;
-import org.dynamisengine.vectrix.experimental.KernelConfig;
 
 class QuaternionfAngularVelocityHemisphereTest {
     private static final float EPS = 1E-6f;
@@ -159,16 +159,16 @@ class QuaternionfAngularVelocityHemisphereTest {
 
     @Test
     void hemisphereStrictThrowsOnNonUnitSequenceElement() {
-        MathMode prev = KernelConfig.mathMode();
+        MathMode prev = CoreConfig.mathMode();
         try {
-            KernelConfig.setMathMode(MathMode.STRICT);
+            CoreConfig.setMathMode(MathMode.STRICT);
             Quaternionf[] seq = {
                     new Quaternionf(),
                     new Quaternionf(1.0f, 1.0f, 1.0f, 1.0f)
             };
             assertThrows(IllegalArgumentException.class, () -> Quaternionf.ensureConsistentHemisphere(seq));
         } finally {
-            KernelConfig.setMathMode(prev);
+            CoreConfig.setMathMode(prev);
         }
     }
 }

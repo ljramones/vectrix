@@ -35,7 +35,10 @@ import jdk.incubator.vector.FloatVector;
  * 4D vector backed by a Java primitive float array.
  * 
  * @author Kai Burjack
+ *
+ * @deprecated a demonstration class that exists only in the {@code -simd} jar, so the two jars expose different APIs; use {@link org.dynamisengine.vectrix.core.Vector4f}
  */
+@Deprecated(since = "2.6.0", forRemoval = true)
 public class Vector4fa {
     private final float[] arr = new float[4];
 

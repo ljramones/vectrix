@@ -35,7 +35,6 @@ import org.dynamisengine.vectrix.affine.TransformKernels;
 import org.dynamisengine.vectrix.core.CoreConfig;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.core.Quaternionf;
-import org.dynamisengine.vectrix.experimental.Reduction;
 import org.dynamisengine.vectrix.soa.TransformSoA;
 import org.junit.jupiter.api.Test;
 
@@ -56,43 +55,6 @@ class StrictModeContractTest {
             body.run();
         } finally {
             CoreConfig.setMathMode(prev);
-        }
-    }
-
-    @Test
-    void strictSumKeepsEveryLaneCompensation() {
-        // The review case: per-lane Kahan compensations were dropped when lanes were combined, so STRICT gave the
-        // FAST answer 100000008. The exact sum 100000012 rounds (ties to even) to 100000016.
-        float[] v = {1e8f, 3, 3, 3, 3, 0, 0, 0};
-        float[] ones = {1, 1, 1, 1, 1, 1, 1, 1};
-        assertEquals(100000016f, Reduction.sumStrict(v));
-        assertEquals(100000016f, Reduction.dotStrict(v, ones));
-        strict(() -> {
-            assertEquals(100000016f, Reduction.sum(v));
-            assertEquals(100000016f, Reduction.dot(v, ones));
-        });
-    }
-
-    @Test
-    void strictReductionsAreTheExactResultRounded() {
-        SplittableRandom rnd = new SplittableRandom(7);
-        for (int trial = 0; trial < 20; trial++) {
-            int n = 1 + rnd.nextInt(5000);
-            float[] a = new float[n];
-            float[] b = new float[n];
-            BigDecimal sum = BigDecimal.ZERO;
-            BigDecimal dot = BigDecimal.ZERO;
-            for (int i = 0; i < n; i++) {
-                // wide dynamic range with heavy cancellation
-                a[i] = (float) ((rnd.nextDouble() - 0.5) * java.lang.Math.pow(10, rnd.nextInt(-6, 7)));
-                b[i] = (float) ((rnd.nextDouble() - 0.5) * java.lang.Math.pow(10, rnd.nextInt(-3, 4)));
-                sum = sum.add(new BigDecimal(a[i]));
-                dot = dot.add(new BigDecimal(a[i]).multiply(new BigDecimal(b[i])));
-            }
-            float exactSum = sum.floatValue();
-            float exactDot = dot.floatValue();
-            assertEquals(exactSum, Reduction.sumStrict(a), java.lang.Math.ulp(exactSum), "sum trial " + trial);
-            assertEquals(exactDot, Reduction.dotStrict(a, b), java.lang.Math.ulp(exactDot), "dot trial " + trial);
         }
     }
 

@@ -33,7 +33,7 @@ import java.util.SplittableRandom;
 
 import org.dynamisengine.vectrix.camera.ClusterGridd;
 import org.dynamisengine.vectrix.camera.ClusterGridf;
-import org.dynamisengine.vectrix.camera.DepthRange;
+import org.dynamisengine.vectrix.core.DepthRange;
 import org.dynamisengine.vectrix.camera.PhysicalCamerad;
 import org.dynamisengine.vectrix.camera.Projectionsd;
 import org.dynamisengine.vectrix.camera.Projectionsf;

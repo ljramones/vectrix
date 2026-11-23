@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.test;
 
+import org.dynamisengine.vectrix.simd.SimdSupport;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -153,7 +154,7 @@ class NnBatch4bTest {
     @Test
     void int8DotFollowsTheDocumentedOrderOnEveryPath() {
         SplittableRandom r = new SplittableRandom(9);
-        boolean was = org.dynamisengine.vectrix.experimental.KernelConfig.simdEnabled();
+        boolean was = org.dynamisengine.vectrix.simd.SimdSupport.isEnabled();
         try {
             for (int n : new int[] {32, 64, 1024, 4096}) {
                 float[] w = new float[n];
@@ -167,13 +168,13 @@ class NnBatch4bTest {
                 Formats.quantizeInt8(w, 0, n, q, 0, s, 0);
                 float want = specDotInt8(q, s, x, n);
                 for (int mode = 0; mode < 2; mode++) {
-                    org.dynamisengine.vectrix.experimental.KernelConfig.setSimdEnabled(mode == 1);
+                    org.dynamisengine.vectrix.simd.SimdSupport.setEnabled(mode == 1);
                     assertEquals(Float.floatToRawIntBits(want), Float.floatToRawIntBits(Formats.dotInt8(q, 0, s, 0, x, 0,
                         n)), "n " + n + " simd " + mode);
                 }
             }
         } finally {
-            org.dynamisengine.vectrix.experimental.KernelConfig.setSimdEnabled(was);
+            org.dynamisengine.vectrix.simd.SimdSupport.setEnabled(was);
         }
     }
 

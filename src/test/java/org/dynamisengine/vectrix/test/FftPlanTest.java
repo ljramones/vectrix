@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.test;
 
+import org.dynamisengine.vectrix.simd.SimdSupport;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -400,7 +401,7 @@ class FftPlanTest {
     void simdAndScalarPathsGiveTheSameBits() {
         // In the simd test run the Vector API kernels are used when enabled; both paths must agree bit for bit.
         SplittableRandom r = new SplittableRandom(6);
-        boolean was = org.dynamisengine.vectrix.experimental.KernelConfig.simdEnabled();
+        boolean was = org.dynamisengine.vectrix.simd.SimdSupport.isEnabled();
         try {
             for (int n : new int[] {2, 4, 8, 12, 16, 20, 45, 64, 96, 100, 128, 250, 256, 384, 1000, 1009, 4096, 7 * 64}) {
                 double[] x = gaussian(r, 2 * n);
@@ -409,7 +410,7 @@ class FftPlanTest {
                 double[][] out = new double[2][];
                 float[][] outF = new float[2][];
                 for (int mode = 0; mode < 2; mode++) {
-                    org.dynamisengine.vectrix.experimental.KernelConfig.setSimdEnabled(mode == 1);
+                    org.dynamisengine.vectrix.simd.SimdSupport.setEnabled(mode == 1);
                     double[] y = x.clone();
                     double[] s = new double[p.scratchSize()];
                     p.forward(y, 0, s, 0);
@@ -427,7 +428,7 @@ class FftPlanTest {
                 assertTrue(Arrays.equals(outF[0], outF[1]), "float, n = " + n);
             }
         } finally {
-            org.dynamisengine.vectrix.experimental.KernelConfig.setSimdEnabled(was);
+            org.dynamisengine.vectrix.simd.SimdSupport.setEnabled(was);
         }
     }
 

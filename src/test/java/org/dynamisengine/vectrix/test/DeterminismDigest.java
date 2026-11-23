@@ -53,7 +53,6 @@ import org.dynamisengine.vectrix.core.CoreConfig;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.core.Matrix4f;
 import org.dynamisengine.vectrix.core.Quaternionf;
-import org.dynamisengine.vectrix.experimental.Reduction;
 import org.dynamisengine.vectrix.geometry.CullingKernels;
 import org.dynamisengine.vectrix.geometry.FrustumPlanes;
 import org.dynamisengine.vectrix.soa.AABBSoA;
@@ -78,7 +77,7 @@ public final class DeterminismDigest {
     /** Classes that hold global configuration or touch memory, and are not part of the math surface. */
     private static final Set<String> EXCLUDED_CLASSES = new HashSet<>(Arrays.asList(
             "core.MemUtil", "core.Options", "core.CoreConfig", "core.ConfigurationException", "core.Runtime",
-            "experimental.KernelConfig", "simd.SimdSupport"));
+            "simd.SimdSupport"));
 
     /** Object methods, the raw-address API, {@code Math.random}, and documented-domain exemptions shared with TwinParityTest. */
     private static final Set<String> EXCLUDED_METHODS = new HashSet<>(Arrays.asList(
@@ -181,6 +180,8 @@ public final class DeterminismDigest {
         Arrays.sort(methods, Comparator.comparing(Method::toGenericString));
         for (Method m : methods) {
             if (m.getDeclaringClass() == Object.class || m.isSynthetic() || m.getName().contains("Address")
+                    // deprecated overloads forward to their replacements; hashing both would collide on simple names
+                    || m.isAnnotationPresent(Deprecated.class)
                     || EXCLUDED_METHODS.contains(m.getName())
                     || EXCLUDED_METHODS.contains(c.getSimpleName() + "." + m.getName())
                     || !m.getDeclaringClass().getName().startsWith(ROOT)
@@ -249,8 +250,6 @@ public final class DeterminismDigest {
                         + CoreConfig.callWithMathMode(mode, () -> compose(n)));
                 lines.add("kernel.frustumCullAabbBatch[" + mode + "," + n + "] "
                         + CoreConfig.callWithMathMode(mode, () -> cull(n)));
-                lines.add("kernel.reduction[" + mode + "," + n + "] "
-                        + CoreConfig.callWithMathMode(mode, () -> reduce(n)));
             }
         }
     }
@@ -299,19 +298,6 @@ public final class DeterminismDigest {
         CullingKernels.frustumCullAabbBatch(new FrustumPlanes().set(viewProj, true), boxes, out, n);
         Hasher h = new Hasher();
         h.value(out);
-        return h.hex();
-    }
-
-    private static String reduce(int n) throws IllegalAccessException {
-        SplittableRandom rnd = new SplittableRandom(n + 2);
-        float[] a = new float[n], b = new float[n];
-        for (int i = 0; i < n; i++) {
-            a[i] = (float) rnd.nextDouble(-100, 100);
-            b[i] = (float) rnd.nextDouble(-1, 1);
-        }
-        Hasher h = new Hasher();
-        h.value(Reduction.sum(a));
-        h.value(Reduction.dot(a, b));
         return h.hex();
     }
 

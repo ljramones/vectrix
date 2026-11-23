@@ -37,6 +37,5 @@ module org.dynamisengine.vectrix {
 
     exports org.dynamisengine.vectrix.physics;
 
-    // org.dynamisengine.vectrix.experimental is intentionally not exported: it is @Internal.
     // Math mode is configured through org.dynamisengine.vectrix.core.CoreConfig.
 }

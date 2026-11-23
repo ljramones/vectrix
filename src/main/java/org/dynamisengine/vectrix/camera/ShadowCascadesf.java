@@ -23,6 +23,8 @@
  */
 package org.dynamisengine.vectrix.camera;
 
+import org.dynamisengine.vectrix.core.DepthRange;
+
 import org.dynamisengine.vectrix.core.AccurateMath;
 import org.dynamisengine.vectrix.core.Matrix4f;
 import org.dynamisengine.vectrix.core.Vector3fc;
@@ -131,5 +133,14 @@ public final class ShadowCascadesf {
         }
         projDest.set((float) (1.0 / r), 0.0f, 0.0f, 0.0f, 0.0f, (float) (1.0 / r), 0.0f, 0.0f, 0.0f, 0.0f,
                 (float) m22, 0.0f, 0.0f, 0.0f, (float) m32, 1.0f);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public static void stableLightMatrices(Vector3fc center, float radius, Vector3fc lightDir, Vector3fc up,
+            float casterDistance, int resolution, org.dynamisengine.vectrix.camera.DepthRange range, Matrix4f viewDest, Matrix4f projDest) {
+        stableLightMatrices(center, radius, lightDir, up, casterDistance, resolution, range.toCore(), viewDest, projDest);
     }
 }

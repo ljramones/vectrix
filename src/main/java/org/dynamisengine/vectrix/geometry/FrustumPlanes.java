@@ -23,7 +23,7 @@
  */
 package org.dynamisengine.vectrix.geometry;
 
-import org.dynamisengine.vectrix.camera.DepthRange;
+import org.dynamisengine.vectrix.core.DepthRange;
 
 import org.dynamisengine.vectrix.core.Matrix4fc;
 
@@ -31,6 +31,10 @@ import org.dynamisengine.vectrix.core.Matrix4fc;
  * Packed frustum plane storage for batch culling.
  */
 public class FrustumPlanes {
+
+    /** Creates the six planes, all zero; call {@code set} to extract them from a matrix. */
+    public FrustumPlanes() {
+    }
     public static final int PLANE_NX = 0;
     public static final int PLANE_PX = 1;
     public static final int PLANE_NY = 2;
@@ -119,4 +123,11 @@ public class FrustumPlanes {
         return dest;
     }
 
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public FrustumPlanes set(Matrix4fc m, boolean normalize, org.dynamisengine.vectrix.camera.DepthRange depthRange) {
+        return set(m, normalize, depthRange.toCore());
+    }
 }

@@ -28,9 +28,22 @@ package org.dynamisengine.vectrix.sh;
   * @since 1.0.0
   */
 public final class ShCoeffs9f {
-    public static final int BANDS = 9;
+
+    /** Creates coefficients that are all zero. */
+    public ShCoeffs9f() {
+    }
+    /** The number of coefficients per channel: {@code (L + 1)²} for order {@code L = 2}. */
+    public static final int COEFFS = 9;
+
+    /**
+     * The number of coefficients per channel (not of bands: order 2 has 3 bands).
+     *
+     * @deprecated misnamed; use {@link #COEFFS}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public static final int BANDS = COEFFS;
     public static final int CHANNELS = 3;
-    public static final int SIZE = BANDS * CHANNELS;
+    public static final int SIZE = COEFFS * CHANNELS;
 
     public final float[] c = new float[SIZE];
 

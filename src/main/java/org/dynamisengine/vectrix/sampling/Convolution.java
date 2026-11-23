@@ -36,6 +36,15 @@ import org.dynamisengine.vectrix.core.Math;
 public class Convolution {
 
     /**
+     * Not meant to be instantiated: every member is static.
+     *
+     * @deprecated this utility class will not be instantiable from 3.0
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public Convolution() {
+    }
+
+    /**
      * Generate a Gaussian convolution kernel with the given number of rows and columns, and store
      * the factors in row-major order in <code>dest</code>.
      *

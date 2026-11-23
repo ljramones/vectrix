@@ -28,7 +28,10 @@ package org.dynamisengine.vectrix.camera;
  * matrix built for one range is never read back with another's formulas.
  *
  * @since 2.3.0
+ *
+ * @deprecated moved to {@link org.dynamisengine.vectrix.core.DepthRange} (core must not depend on camera)
  */
+@Deprecated(since = "2.6.0", forRemoval = true)
 public enum DepthRange {
     /** OpenGL: near plane at −1, far plane at +1. */
     NEGATIVE_ONE_TO_ONE(-1.0, 1.0),
@@ -53,5 +56,10 @@ public enum DepthRange {
     /** NDC depth of the far plane (of infinity, for an infinite projection). */
     public double farNdc() {
         return far;
+    }
+
+    /** @return the same convention as a {@link org.dynamisengine.vectrix.core.DepthRange} */
+    public org.dynamisengine.vectrix.core.DepthRange toCore() {
+        return org.dynamisengine.vectrix.core.DepthRange.values()[ordinal()];
     }
 }

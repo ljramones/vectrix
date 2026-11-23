@@ -23,7 +23,7 @@
  */
 package org.dynamisengine.vectrix.soa;
 
-import org.dynamisengine.vectrix.experimental.KernelConfig;
+import org.dynamisengine.vectrix.core.CoreConfig;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.simd.SimdSupport;
 
@@ -33,7 +33,7 @@ import org.dynamisengine.vectrix.simd.SimdSupport;
 public final class SkinningKernels {
     private static final String PROP_EXPERIMENTAL_SKINNING_SIMD = "vectrix.skinning.simd";
     private static final int SIMD_BATCH_THRESHOLD = 64;
-    private static final boolean EXPERIMENTAL_SKINNING_SIMD = KernelConfig.parseBoolean(System.getProperty(PROP_EXPERIMENTAL_SKINNING_SIMD), false);
+    private static final boolean EXPERIMENTAL_SKINNING_SIMD = booleanProperty(PROP_EXPERIMENTAL_SKINNING_SIMD, false);
 
     private SkinningKernels() {
     }
@@ -43,6 +43,7 @@ public final class SkinningKernels {
         skinLbs4Scalar(joints, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, count);
     }
 
+    @Deprecated(since = "2.6.0", forRemoval = true)
     public static void skinLbs4Vector(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
             float[] outX, float[] outY, float[] outZ, int count) {
         // The AoS influence layout (jointIndices[4 * i + k]) cannot feed a Vector API gather without a scratch
@@ -51,6 +52,7 @@ public final class SkinningKernels {
         skinLbs4Scalar(joints, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, count);
     }
 
+    @Deprecated(since = "2.6.0", forRemoval = true)
     public static void skinLbs4Scalar(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
             float[] outX, float[] outY, float[] outZ, int count) {
         for (int i = 0; i < count; i++) {
@@ -65,8 +67,8 @@ public final class SkinningKernels {
         if (count <= 0) {
             return;
         }
-        if (KernelConfig.mathMode() == MathMode.STRICT
-                || !KernelConfig.simdEnabled()
+        if (CoreConfig.mathMode() == MathMode.STRICT
+                || !SimdSupport.isEnabled()
                 || SimdSupport.backend() != SimdSupport.Backend.VECTOR_API
                 || !EXPERIMENTAL_SKINNING_SIMD
                 || count < SIMD_BATCH_THRESHOLD) {
@@ -76,6 +78,7 @@ public final class SkinningKernels {
         skinLbs4SoASimd(joints, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, count);
     }
 
+    @Deprecated(since = "2.6.0", forRemoval = true)
     public static void skinLbs4SoAScalar(TransformSoA joints, int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2, float[] w3,
             float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
         for (int i = 0; i < count; i++) {
@@ -83,6 +86,7 @@ public final class SkinningKernels {
         }
     }
 
+    @Deprecated(since = "2.6.0", forRemoval = true)
     public static void skinLbs4SoASimd(TransformSoA joints, int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2, float[] w3,
             float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
         // No Vector API path: LBS needs a per-lane gather of joint data. A gather kernel (FloatVector.fromArray with
@@ -320,4 +324,8 @@ public final class SkinningKernels {
         return dot < 0.0f ? -1.0f : 1.0f;
     }
 
+    private static boolean booleanProperty(String name, boolean defaultValue) {
+        String v = System.getProperty(name);
+        return v == null || v.isEmpty() ? defaultValue : Boolean.parseBoolean(v.trim());
+    }
 }

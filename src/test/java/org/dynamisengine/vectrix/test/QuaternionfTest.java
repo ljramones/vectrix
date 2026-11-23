@@ -23,10 +23,10 @@
  */
 package org.dynamisengine.vectrix.test;
 
+import org.dynamisengine.vectrix.core.CoreConfig;
 import org.dynamisengine.vectrix.core.*;
 import org.dynamisengine.vectrix.geometry.*;
 import org.dynamisengine.vectrix.core.Math;
-import org.dynamisengine.vectrix.experimental.KernelConfig;
 import org.junit.jupiter.api.Test;
 
 import static org.dynamisengine.vectrix.test.TestUtil.*;
@@ -230,25 +230,25 @@ class QuaternionfTest {
 
     @Test
     void logStrictModeThrowsOnNonUnitInput() {
-        MathMode prev = KernelConfig.mathMode();
+        MathMode prev = CoreConfig.mathMode();
         try {
-            KernelConfig.setMathMode(MathMode.STRICT);
+            CoreConfig.setMathMode(MathMode.STRICT);
             Quaternionf nonUnit = new Quaternionf(1.0, 1.0, 1.0, 1.0);
             assertThrows(IllegalArgumentException.class, () -> nonUnit.log(new Quaternionf()));
         } finally {
-            KernelConfig.setMathMode(prev);
+            CoreConfig.setMathMode(prev);
         }
     }
 
     @Test
     void expStrictModeThrowsOnNonPureInput() {
-        MathMode prev = KernelConfig.mathMode();
+        MathMode prev = CoreConfig.mathMode();
         try {
-            KernelConfig.setMathMode(MathMode.STRICT);
+            CoreConfig.setMathMode(MathMode.STRICT);
             Quaternionf nonPure = new Quaternionf(1.0, 0.0, 0.0, 1.0);
             assertThrows(IllegalArgumentException.class, () -> nonPure.exp(new Quaternionf()));
         } finally {
-            KernelConfig.setMathMode(prev);
+            CoreConfig.setMathMode(prev);
         }
     }
 

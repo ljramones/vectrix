@@ -23,13 +23,14 @@
  */
 package org.dynamisengine.vectrix.test;
 
+import org.dynamisengine.vectrix.core.CoreConfig;
+import org.dynamisengine.vectrix.simd.SimdSupport;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.SplittableRandom;
 
 import org.junit.jupiter.api.Test;
 import org.dynamisengine.vectrix.core.Matrix4f;
-import org.dynamisengine.vectrix.experimental.KernelConfig;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.geometry.CullingKernels;
 import org.dynamisengine.vectrix.geometry.FrustumIntersection;
@@ -119,16 +120,16 @@ class CullingKernelsTest {
         }
         int[] auto = new int[aabbs.size()];
         int[] scalar = new int[aabbs.size()];
-        MathMode prevMode = KernelConfig.mathMode();
-        boolean prevSimd = KernelConfig.simdEnabled();
+        MathMode prevMode = CoreConfig.mathMode();
+        boolean prevSimd = SimdSupport.isEnabled();
         try {
-            KernelConfig.setMathMode(MathMode.STRICT);
-            KernelConfig.setSimdEnabled(true);
+            CoreConfig.setMathMode(MathMode.STRICT);
+            SimdSupport.setEnabled(true);
             CullingKernels.frustumCullAabbBatch(fp, aabbs, auto, aabbs.size());
             CullingKernels.frustumCullAabbBatchScalar(fp, aabbs, scalar, aabbs.size());
         } finally {
-            KernelConfig.setMathMode(prevMode);
-            KernelConfig.setSimdEnabled(prevSimd);
+            CoreConfig.setMathMode(prevMode);
+            SimdSupport.setEnabled(prevSimd);
         }
         for (int i = 0; i < aabbs.size(); i++) {
             assertEquals(scalar[i], auto[i]);

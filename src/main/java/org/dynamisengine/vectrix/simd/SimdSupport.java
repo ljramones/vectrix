@@ -26,35 +26,75 @@ package org.dynamisengine.vectrix.simd;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-import org.dynamisengine.vectrix.core.Internal;
-import org.dynamisengine.vectrix.experimental.KernelConfig;
-
 /**
- * Runtime SIMD capability probing without a static Vector API dependency.
+ * The SIMD switch and the Vector API probe.
+ * <p>
+ * Vectrix ships two jars: the plain jar, all scalar, and the {@code -simd} classifier jar, whose kernels (FFT, BLAS,
+ * GEMM, neural-network kernels, culling, transforms, skinning) also have Vector API paths. The SIMD paths need
+ * {@code --add-modules jdk.incubator.vector} and run only while {@link #isEnabled()}: the switch starts from the
+ * system property {@code vectrix.simd.enabled} (default {@code true}) and can be changed at any time with
+ * {@link #setEnabled(boolean)}. Every SIMD path gives the same bits as its scalar path, so the switch changes speed,
+ * never results. {@link #backend()} reports which path is in use.
+ *
+ * @since 1.0.0
  */
-@Internal("Internal backend probing; not a stable public API.")
 public final class SimdSupport {
+
+    /** The system property that sets the initial state of {@link #setEnabled(boolean)}. */
+    public static final String PROP_ENABLED = "vectrix.simd.enabled";
+
+    /** The kernel backend in use. */
     public enum Backend {
+        /** Plain Java. */
         SCALAR,
+        /** The JDK Vector API ({@code -simd} jar, {@code jdk.incubator.vector} present, SIMD enabled). */
         VECTOR_API
     }
 
     private static final Capability CAPABILITY = detect();
 
+    private static volatile boolean enabled = parseEnabled(System.getProperty(PROP_ENABLED));
+
     private SimdSupport() {
     }
 
+    /** @return the backend kernels use now: {@link Backend#VECTOR_API} when available and enabled */
     public static Backend backend() {
-        if (!KernelConfig.simdEnabled()) {
+        if (!enabled) {
             return Backend.SCALAR;
         }
         return CAPABILITY.vectorApiAvailable ? Backend.VECTOR_API : Backend.SCALAR;
     }
 
+    /**
+     * @return whether SIMD paths may run (they also need the {@code -simd} jar and the Vector API module)
+     * @since 2.6.0
+     */
+    public static boolean isEnabled() {
+        return enabled;
+    }
+
+    /**
+     * Enables or disables the SIMD paths for all threads, effective on the next kernel call. Results do not change,
+     * only speed: useful for benchmarking and for diagnosing a JVM problem.
+     *
+     * @param on whether SIMD paths may run
+     * @since 2.6.0
+     */
+    public static void setEnabled(boolean on) {
+        enabled = on;
+    }
+
+    private static boolean parseEnabled(String value) {
+        return value == null || value.isEmpty() || Boolean.parseBoolean(value.trim());
+    }
+
+    /** @return whether the JDK Vector API module is present (whatever {@link #isEnabled()} says) */
     public static boolean isVectorApiAvailable() {
         return CAPABILITY.vectorApiAvailable;
     }
 
+    /** @return the preferred number of float lanes of the Vector API, or 1 without it */
     public static int preferredFloatLanes() {
         return CAPABILITY.preferredFloatLanes;
     }

@@ -36,7 +36,7 @@ package org.dynamisengine.vectrix.core;
  * <li><b>No repair.</b> STRICT never renormalises, clamps or substitutes values. For valid inputs, element-wise
  * results are bitwise identical to the scalar {@link #FAST} path.</li>
  * <li><b>Fixed dispatch.</b> Batch kernels always take their scalar path, whatever SIMD support or
- * {@code KernelConfig} flags are present, so results do not depend on the host's vector hardware.</li>
+ * SIMD flags are present, so results do not depend on the host's vector hardware.</li>
  * <li><b>Accurate reductions.</b> Sums and dot products accumulate in a fixed sequential order with
  * double-double precision, so the float result is the exact value rounded to float (within one ulp), and is the
  * same for the same input on every JVM.</li>

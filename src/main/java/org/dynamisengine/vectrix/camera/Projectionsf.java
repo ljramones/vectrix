@@ -23,6 +23,8 @@
  */
 package org.dynamisengine.vectrix.camera;
 
+import org.dynamisengine.vectrix.core.DepthRange;
+
 import org.dynamisengine.vectrix.core.AccurateMath;
 import org.dynamisengine.vectrix.core.Matrix4f;
 import org.dynamisengine.vectrix.core.Matrix4fc;
@@ -213,5 +215,46 @@ public final class Projectionsf {
         }
         return set(dest, proj.m00(), proj.m01(), r0, proj.m03(), proj.m10(), proj.m11(), r1, proj.m13(), proj.m20(),
                 proj.m21(), r2, proj.m23(), proj.m30(), proj.m31(), r3, proj.m33());
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public static Matrix4f perspective(float fovy, float aspect, float near, float far, org.dynamisengine.vectrix.camera.DepthRange range,
+            Matrix4f dest) {
+        return perspective(fovy, aspect, near, far, range.toCore(), dest);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public static float nearPlane(Matrix4fc proj, org.dynamisengine.vectrix.camera.DepthRange range) {
+        return nearPlane(proj, range.toCore());
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public static float farPlane(Matrix4fc proj, org.dynamisengine.vectrix.camera.DepthRange range) {
+        return farPlane(proj, range.toCore());
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public static float linearDepth(float ndcDepth, float near, float far, org.dynamisengine.vectrix.camera.DepthRange range) {
+        return linearDepth(ndcDepth, near, far, range.toCore());
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public static Matrix4f obliqueNearPlane(Matrix4fc proj, Vector4fc plane, org.dynamisengine.vectrix.camera.DepthRange range, Matrix4f dest) {
+        return obliqueNearPlane(proj, plane, range.toCore(), dest);
     }
 }

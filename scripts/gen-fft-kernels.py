@@ -416,7 +416,7 @@ def generate(T, P):
         private Simd() {{
         }}
 
-        /** Whether SIMD is enabled now ({{@code KernelConfig.setSimdEnabled}}). */
+        /** Whether SIMD is enabled now ({{@code SimdSupport.setEnabled}}). */
         static boolean enabled() {{
             return SimdSupport.backend() == SimdSupport.Backend.VECTOR_API;
         }}

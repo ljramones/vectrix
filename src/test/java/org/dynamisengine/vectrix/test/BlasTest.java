@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.test;
 
+import org.dynamisengine.vectrix.simd.SimdSupport;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,7 +36,6 @@ import java.util.SplittableRandom;
 
 import org.dynamisengine.vectrix.blas.Blasd;
 import org.dynamisengine.vectrix.blas.Blasf;
-import org.dynamisengine.vectrix.experimental.KernelConfig;
 import org.junit.jupiter.api.Test;
 
 /** BLAS-1 (2.5.0): the documented reduction order, exactness bounds, SIMD/segment identity, overflow safety. */
@@ -82,7 +82,7 @@ class BlasTest {
     @Test
     void reductionsFollowTheDocumentedOrderOnEveryPath() {
         SplittableRandom r = new SplittableRandom(1);
-        boolean was = KernelConfig.simdEnabled();
+        boolean was = SimdSupport.isEnabled();
         try {
             for (int n : SIZES) {
                 float[] x = floats(r, n);
@@ -100,7 +100,7 @@ class BlasTest {
                 MemorySegment.copy(y, 0, sy, ValueLayout.JAVA_FLOAT_UNALIGNED, 4, n);
                 MemorySegment.copy(xd, 0, sd, ValueLayout.JAVA_DOUBLE_UNALIGNED, 8, n);
                 for (int mode = 0; mode < 2; mode++) {
-                    KernelConfig.setSimdEnabled(mode == 1);
+                    SimdSupport.setEnabled(mode == 1);
                     assertEquals(Float.floatToRawIntBits(want), Float.floatToRawIntBits(Blasf.dot(x, 0, y, 0, n)),
                         "dot n " + n + " simd " + mode);
                     assertEquals(Float.floatToRawIntBits(want), Float.floatToRawIntBits(Blasf.dot(sx, 0, sy, 1, n)),
@@ -112,7 +112,7 @@ class BlasTest {
                 }
             }
         } finally {
-            KernelConfig.setSimdEnabled(was);
+            SimdSupport.setEnabled(was);
         }
     }
 
@@ -157,13 +157,13 @@ class BlasTest {
     @Test
     void elementwiseKernelsRoundOnce() {
         SplittableRandom r = new SplittableRandom(3);
-        boolean was = KernelConfig.simdEnabled();
+        boolean was = SimdSupport.isEnabled();
         try {
             for (int n : new int[] {0, 1, 5, 64, 1001}) {
                 float[] x = floats(r, n);
                 float[] y = floats(r, n);
                 for (int mode = 0; mode < 2; mode++) {
-                    KernelConfig.setSimdEnabled(mode == 1);
+                    SimdSupport.setEnabled(mode == 1);
                     float[] z = y.clone();
                     Blasf.axpy(0.37f, x, 0, z, 0, n);
                     float[] s = x.clone();
@@ -181,7 +181,7 @@ class BlasTest {
             }
             assertEquals(-1, Blasd.iamax(new double[0], 0, 0));
         } finally {
-            KernelConfig.setSimdEnabled(was);
+            SimdSupport.setEnabled(was);
         }
     }
 }

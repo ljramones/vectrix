@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.test;
 
+import org.dynamisengine.vectrix.simd.SimdSupport;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -37,7 +38,6 @@ import org.dynamisengine.vectrix.core.CoreConfig;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.core.Matrix4f;
 import org.dynamisengine.vectrix.core.Quaternionf;
-import org.dynamisengine.vectrix.experimental.KernelConfig;
 import org.dynamisengine.vectrix.geometry.CullingKernels;
 import org.dynamisengine.vectrix.geometry.FrustumPlanes;
 import org.dynamisengine.vectrix.soa.AABBSoA;
@@ -110,12 +110,12 @@ class SimdPathTest {
         TransformSoA simd = new TransformSoA(n);
         TransformSoA scalar = new TransformSoA(n);
         MathMode prevMode = CoreConfig.mathMode();
-        boolean prevSimd = KernelConfig.simdEnabled();
+        boolean prevSimd = SimdSupport.isEnabled();
         try {
             CoreConfig.setMathMode(MathMode.FAST);
-            KernelConfig.setSimdEnabled(false);
+            SimdSupport.setEnabled(false);
             TransformKernels.composeBatch(p, l, scalar, n);
-            KernelConfig.setSimdEnabled(true);
+            SimdSupport.setEnabled(true);
             TransformKernels.composeBatch(p, l, simd, n);
             assertSame(scalar, simd);
 
@@ -124,7 +124,7 @@ class SimdPathTest {
             assertSame(scalar, inPlace);
         } finally {
             CoreConfig.setMathMode(prevMode);
-            KernelConfig.setSimdEnabled(prevSimd);
+            SimdSupport.setEnabled(prevSimd);
         }
     }
 

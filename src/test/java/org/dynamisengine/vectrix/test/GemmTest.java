@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.test;
 
+import org.dynamisengine.vectrix.simd.SimdSupport;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -32,7 +33,6 @@ import org.dynamisengine.vectrix.blas.Blasd;
 import org.dynamisengine.vectrix.blas.Blasf;
 import org.dynamisengine.vectrix.blas.Gemmd;
 import org.dynamisengine.vectrix.blas.Gemmf;
-import org.dynamisengine.vectrix.experimental.KernelConfig;
 import org.junit.jupiter.api.Test;
 
 /** GEMM/GEMV (2.5.0): every element is the documented dot product, on every path and layout. */
@@ -52,7 +52,7 @@ class GemmTest {
     @Test
     void floatGemmIsTheDotProductOfRowsAndColumns() {
         SplittableRandom r = new SplittableRandom(1);
-        boolean was = KernelConfig.simdEnabled();
+        boolean was = SimdSupport.isEnabled();
         try {
             for (int[] sh : SHAPES) {
                 int m = sh[0];
@@ -68,7 +68,7 @@ class GemmTest {
                     float[] b = floats(r, (tb ? n : k) * ldb + 5);
                     float[] c0 = floats(r, m * ldc + 4);
                     for (int mode = 0; mode < 2; mode++) {
-                        KernelConfig.setSimdEnabled(mode == 1);
+                        SimdSupport.setEnabled(mode == 1);
                         for (int ab = 0; ab < 2; ab++) {
                             float alpha = ab == 0 ? 1f : -0.75f;
                             float beta = ab == 0 ? 0f : 0.5f;
@@ -102,14 +102,14 @@ class GemmTest {
                 }
             }
         } finally {
-            KernelConfig.setSimdEnabled(was);
+            SimdSupport.setEnabled(was);
         }
     }
 
     @Test
     void doubleGemmAndGemvAgreeWithTheDotProduct() {
         SplittableRandom r = new SplittableRandom(2);
-        boolean was = KernelConfig.simdEnabled();
+        boolean was = SimdSupport.isEnabled();
         try {
             int m = 23;
             int n = 11;
@@ -123,7 +123,7 @@ class GemmTest {
                 b[i] = r.nextDouble(-1, 1);
             }
             for (int mode = 0; mode < 2; mode++) {
-                KernelConfig.setSimdEnabled(mode == 1);
+                SimdSupport.setEnabled(mode == 1);
                 double[] c = new double[m * n];
                 Gemmd.gemm(false, true, m, n, k, 1.0, a, 0, k, b, 0, k, 0.0, c, 0, n,
                     new double[Gemmd.scratchSize(false, true, m, n, k)], 0);
@@ -152,7 +152,7 @@ class GemmTest {
                 }
             }
         } finally {
-            KernelConfig.setSimdEnabled(was);
+            SimdSupport.setEnabled(was);
         }
         assertThrows(IllegalArgumentException.class,
             () -> Gemmf.gemm(false, false, 2, 2, 2, 1, new float[3], 0, 2, new float[4], 0, 2, 0, new float[4], 0, 2,

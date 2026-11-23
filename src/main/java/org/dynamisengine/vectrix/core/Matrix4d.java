@@ -23,7 +23,6 @@
  */
 package org.dynamisengine.vectrix.core;
 
-import org.dynamisengine.vectrix.camera.DepthRange;
 
 import org.intellij.lang.annotations.MagicConstant;
 
@@ -17396,4 +17395,19 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         return super.clone();
     }
 
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public Vector3d frustumCorner(int corner, org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector3d dest) {
+        return frustumCorner(corner, depthRange.toCore(), dest);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public Matrix4d frustumAabb(org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector3d min, Vector3d max) {
+        return frustumAabb(depthRange.toCore(), min, max);
+    }
 }

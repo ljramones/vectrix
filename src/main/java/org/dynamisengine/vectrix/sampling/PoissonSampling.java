@@ -40,6 +40,15 @@ import org.dynamisengine.vectrix.core.Vector2f;
 public class PoissonSampling {
 
     /**
+     * Not meant to be instantiated: every member is static.
+     *
+     * @deprecated this utility class will not be instantiable from 3.0
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public PoissonSampling() {
+    }
+
+    /**
      * Generates Poisson samples on a disk.
      * <p>
      * The algorithm implemented here is based on <a href= "http://www.cs.ubc.ca/~rbridson/docs/bridson-siggraph07-poissondisk.pdf">Fast Poisson Disk Sampling in Arbitrary

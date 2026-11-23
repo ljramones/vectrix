@@ -38,6 +38,15 @@ import org.dynamisengine.vectrix.core.Vector3f;
   */
 public class BestCandidateSampling {
 
+    /**
+     * Not meant to be instantiated: every member is static.
+     *
+     * @deprecated this utility class will not be instantiable from 3.0
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public BestCandidateSampling() {
+    }
+
     private static final class IntHolder {
         int value;
     }

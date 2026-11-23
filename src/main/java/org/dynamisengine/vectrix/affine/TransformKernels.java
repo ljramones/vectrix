@@ -23,7 +23,6 @@
  */
 package org.dynamisengine.vectrix.affine;
 
-import org.dynamisengine.vectrix.experimental.KernelConfig;
 import org.dynamisengine.vectrix.core.CoreConfig;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.simd.SimdSupport;
@@ -51,7 +50,7 @@ public final class TransformKernels {
         if (count <= 0) {
             return;
         }
-        if (KernelConfig.mathMode() == MathMode.STRICT) {
+        if (CoreConfig.mathMode() == MathMode.STRICT) {
             composeBatchScalarStrict(parents, locals, out, count);
             return;
         }

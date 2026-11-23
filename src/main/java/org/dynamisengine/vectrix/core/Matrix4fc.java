@@ -23,7 +23,6 @@
  */
 package org.dynamisengine.vectrix.core;
 
-import org.dynamisengine.vectrix.camera.DepthRange;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -6300,4 +6299,131 @@ public interface Matrix4fc {
      */
     boolean isFinite();
 
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Vector4f unproject(float winX, float winY, float winZ, int[] viewport, org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector4f dest) {
+        return unproject(winX, winY, winZ, viewport, depthRange.toCore(), dest);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Vector3f unproject(float winX, float winY, float winZ, int[] viewport, org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector3f dest) {
+        return unproject(winX, winY, winZ, viewport, depthRange.toCore(), dest);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Matrix4f unprojectRay(float winX, float winY, int[] viewport, org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector3f originDest, Vector3f dirDest) {
+        return unprojectRay(winX, winY, viewport, depthRange.toCore(), originDest, dirDest);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Vector4f unprojectInv(float winX, float winY, float winZ, int[] viewport, org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector4f dest) {
+        return unprojectInv(winX, winY, winZ, viewport, depthRange.toCore(), dest);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Matrix4f unprojectInvRay(float winX, float winY, int[] viewport, org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector3f originDest, Vector3f dirDest) {
+        return unprojectInvRay(winX, winY, viewport, depthRange.toCore(), originDest, dirDest);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Vector3f unprojectInv(float winX, float winY, float winZ, int[] viewport, org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector3f dest) {
+        return unprojectInv(winX, winY, winZ, viewport, depthRange.toCore(), dest);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Vector4f project(float x, float y, float z, int[] viewport, org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector4f winCoordsDest) {
+        return project(x, y, z, viewport, depthRange.toCore(), winCoordsDest);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Vector3f project(float x, float y, float z, int[] viewport, org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector3f winCoordsDest) {
+        return project(x, y, z, viewport, depthRange.toCore(), winCoordsDest);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Vector4f frustumPlane(int plane, org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector4f planeEquation) {
+        return frustumPlane(plane, depthRange.toCore(), planeEquation);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Vector3f frustumCorner(int corner, org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector3f point) {
+        return frustumCorner(corner, depthRange.toCore(), point);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default float perspectiveNear(org.dynamisengine.vectrix.camera.DepthRange depthRange) {
+        return perspectiveNear(depthRange.toCore());
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default float perspectiveFar(org.dynamisengine.vectrix.camera.DepthRange depthRange) {
+        return perspectiveFar(depthRange.toCore());
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Matrix4f frustumAabb(org.dynamisengine.vectrix.camera.DepthRange depthRange, Vector3f min, Vector3f max) {
+        return frustumAabb(depthRange.toCore(), min, max);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Matrix4f projectedGridRange(Matrix4fc projector, float sLower, float sUpper, org.dynamisengine.vectrix.camera.DepthRange depthRange, Matrix4f dest) {
+        return projectedGridRange(projector, sLower, sUpper, depthRange.toCore(), dest);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Matrix4f perspectiveFrustumSlice(float near, float far, org.dynamisengine.vectrix.camera.DepthRange depthRange, Matrix4f dest) {
+        return perspectiveFrustumSlice(near, far, depthRange.toCore(), dest);
+    }
+
+    /**
+     * @deprecated use the overload taking {@link org.dynamisengine.vectrix.core.DepthRange}
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    default Matrix4f orthoCrop(Matrix4fc view, org.dynamisengine.vectrix.camera.DepthRange depthRange, Matrix4f dest) {
+        return orthoCrop(view, depthRange.toCore(), dest);
+    }
 }

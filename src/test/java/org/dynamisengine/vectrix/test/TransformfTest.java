@@ -23,6 +23,8 @@
  */
 package org.dynamisengine.vectrix.test;
 
+import org.dynamisengine.vectrix.core.CoreConfig;
+import org.dynamisengine.vectrix.simd.SimdSupport;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,7 +33,6 @@ import static org.dynamisengine.vectrix.test.TestUtil.assertMatrix4x3fEquals;
 import java.util.SplittableRandom;
 
 import org.junit.jupiter.api.Test;
-import org.dynamisengine.vectrix.experimental.KernelConfig;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.affine.TransformKernels;
 import org.dynamisengine.vectrix.affine.Transformf;
@@ -164,11 +165,11 @@ class TransformfTest {
 
     @Test
     void composeBatchStrictRejectsNonUnitRotationsInsteadOfRepairingThem() {
-        MathMode prev = KernelConfig.mathMode();
-        boolean prevSimd = KernelConfig.simdEnabled();
+        MathMode prev = CoreConfig.mathMode();
+        boolean prevSimd = SimdSupport.isEnabled();
         try {
-            KernelConfig.setMathMode(MathMode.STRICT);
-            KernelConfig.setSimdEnabled(false);
+            CoreConfig.setMathMode(MathMode.STRICT);
+            SimdSupport.setEnabled(false);
             TransformSoA p = new TransformSoA(1);
             TransformSoA l = new TransformSoA(1);
             TransformSoA o = new TransformSoA(1);
@@ -185,8 +186,8 @@ class TransformfTest {
             assertThrows(IllegalArgumentException.class, () -> TransformKernels.composeBatch(p, l, o, 1));
             assertEquals(42.0f, o.qw[0], "nothing is written when validation fails");
         } finally {
-            KernelConfig.setMathMode(prev);
-            KernelConfig.setSimdEnabled(prevSimd);
+            CoreConfig.setMathMode(prev);
+            SimdSupport.setEnabled(prevSimd);
         }
     }
 }

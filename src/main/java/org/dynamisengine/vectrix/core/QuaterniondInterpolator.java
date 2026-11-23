@@ -29,7 +29,10 @@ package org.dynamisengine.vectrix.core;
  * Instances of this class are <i>not</i> thread-safe.
  * 
  * @author Kai Burjack
+ *
+ * @deprecated duplicates {@link org.dynamisengine.vectrix.animation.QuaternionCurvesd#weightedMean}, which is allocation-free; use that
  */
+@Deprecated(since = "2.6.0", forRemoval = true)
 public class QuaterniondInterpolator {
 
     /**

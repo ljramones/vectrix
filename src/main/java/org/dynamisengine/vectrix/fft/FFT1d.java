@@ -37,7 +37,10 @@ package org.dynamisengine.vectrix.fft;
  * relative leakage of 7.8e-12 at {@code 2^20}, now 1.1e-16.
  *
  * @since 1.0.0
+ *
+ * @deprecated use the planned transforms {@link ComplexFftd} and {@link RealFftd}: any size, faster, and allocation-free with caller scratch
  */
+@Deprecated(since = "2.6.0", forRemoval = true)
 public final class FFT1d {
 
     /** {@code exp(-2πi k/N)} for {@code k < N/2}, interleaved, for the largest size {@code N} so far. */

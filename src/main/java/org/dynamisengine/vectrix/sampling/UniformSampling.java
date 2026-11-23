@@ -34,6 +34,15 @@ import org.dynamisengine.vectrix.core.Random;
 public class UniformSampling {
 
     /**
+     * Not meant to be instantiated: every member is static.
+     *
+     * @deprecated this utility class will not be instantiable from 3.0
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public UniformSampling() {
+    }
+
+    /**
      * Generates uniform samples on a unit disk.
      * 
      * @author Kai Burjack

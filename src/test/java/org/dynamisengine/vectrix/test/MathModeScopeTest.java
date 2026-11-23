@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.dynamisengine.vectrix.core.CoreConfig;
 import org.dynamisengine.vectrix.core.MathMode;
-import org.dynamisengine.vectrix.experimental.KernelConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,7 +61,7 @@ class MathModeScopeTest {
     void overrideAppliesInsideTheTaskOnly() {
         CoreConfig.runWithMathMode(MathMode.STRICT, () -> {
             assertEquals(MathMode.STRICT, CoreConfig.mathMode());
-            assertEquals(MathMode.STRICT, KernelConfig.mathMode());
+            assertEquals(MathMode.STRICT, CoreConfig.mathMode());
             assertEquals(MathMode.FAST, CoreConfig.defaultMathMode());
             assertTrue(CoreConfig.determinismFingerprint().startsWith("vectrix.math.mode=STRICT;"));
         });

@@ -26,7 +26,10 @@ package org.dynamisengine.vectrix.fft;
 /**
  * FFT-based convolution for interleaved complex sequences.
   * @since 1.0.0
-  */
+  *
+ * @deprecated use a {@link ComplexFftf} plan (forward, multiply, inverse), {@link BlockConvolverf} for streaming real filters, or {@code dsp.Correlation}
+ */
+@Deprecated(since = "2.6.0", forRemoval = true)
 public final class Convolutionf {
     private Convolutionf() {
     }

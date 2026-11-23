@@ -35,6 +35,15 @@ import org.dynamisengine.vectrix.core.Runtime;
 public class Intersectiond {
 
     /**
+     * Not meant to be instantiated: every member is static.
+     *
+     * @deprecated this utility class will not be instantiable from 3.0
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public Intersectiond() {
+    }
+
+    /**
      * Return value of
      * {@link #findClosestPointOnTriangle(double, double, double, double, double, double, double, double, double, double, double, double, Vector3d)},
      * {@link #findClosestPointOnTriangle(Vector3dc, Vector3dc, Vector3dc, Vector3dc, Vector3d)},

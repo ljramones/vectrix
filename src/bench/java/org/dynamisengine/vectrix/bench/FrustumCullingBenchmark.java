@@ -23,6 +23,8 @@
  */
 package org.dynamisengine.vectrix.bench;
 
+import org.dynamisengine.vectrix.core.CoreConfig;
+import org.dynamisengine.vectrix.simd.SimdSupport;
 import java.util.SplittableRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -33,7 +35,6 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.dynamisengine.vectrix.core.Matrix4f;
-import org.dynamisengine.vectrix.experimental.KernelConfig;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.geometry.CullingKernels;
 import org.dynamisengine.vectrix.geometry.FrustumIntersection;
@@ -74,8 +75,8 @@ public class FrustumCullingBenchmark extends ThroughputBenchmark {
 
     @Benchmark
     public int[] batchKernelAuto() {
-        KernelConfig.setMathMode(MathMode.FAST);
-        KernelConfig.setSimdEnabled(true);
+        CoreConfig.setMathMode(MathMode.FAST);
+        SimdSupport.setEnabled(true);
         CullingKernels.frustumCullAabbBatch(planes, aabbs, out, count);
         return out;
     }

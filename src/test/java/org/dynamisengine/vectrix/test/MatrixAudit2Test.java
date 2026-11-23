@@ -26,7 +26,7 @@ package org.dynamisengine.vectrix.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.dynamisengine.vectrix.camera.DepthRange;
+import org.dynamisengine.vectrix.core.DepthRange;
 import org.dynamisengine.vectrix.camera.Projectionsd;
 import org.dynamisengine.vectrix.core.Matrix4d;
 import org.dynamisengine.vectrix.core.Matrix4dc;

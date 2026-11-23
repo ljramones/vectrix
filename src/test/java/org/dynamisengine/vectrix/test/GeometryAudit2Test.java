@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.SplittableRandom;
 
-import org.dynamisengine.vectrix.camera.DepthRange;
+import org.dynamisengine.vectrix.core.DepthRange;
 import org.dynamisengine.vectrix.camera.Projectionsf;
 import org.dynamisengine.vectrix.core.Matrix4f;
 import org.dynamisengine.vectrix.core.Matrix4fc;

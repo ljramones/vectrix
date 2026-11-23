@@ -23,6 +23,7 @@
  */
 package org.dynamisengine.vectrix.test;
 
+import org.dynamisengine.vectrix.simd.SimdSupport;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.SplittableRandom;
 import java.util.function.DoubleUnaryOperator;
 
-import org.dynamisengine.vectrix.experimental.KernelConfig;
 import org.dynamisengine.vectrix.nn.Activations;
 import org.dynamisengine.vectrix.nn.NnMath;
 import org.dynamisengine.vectrix.nn.Norms;
@@ -120,14 +120,14 @@ class NnKernelsTest {
     @Test
     void simdAndScalarKernelsGiveTheSameBits() {
         SplittableRandom r = new SplittableRandom(1);
-        boolean was = KernelConfig.simdEnabled();
+        boolean was = SimdSupport.isEnabled();
         try {
             for (int n : new int[] {1, 7, 64, 1001}) {
                 float[] x = floats(r, n, 60);
                 x[0] = Float.NaN;
                 float[][][] out = new float[2][8][];
                 for (int mode = 0; mode < 2; mode++) {
-                    KernelConfig.setSimdEnabled(mode == 1);
+                    SimdSupport.setEnabled(mode == 1);
                     float[] y = new float[n];
                     Activations.sigmoid(x, 0, y, 0, n);
                     out[mode][0] = y.clone();
@@ -157,7 +157,7 @@ class NnKernelsTest {
                 }
             }
         } finally {
-            KernelConfig.setSimdEnabled(was);
+            SimdSupport.setEnabled(was);
         }
     }
 

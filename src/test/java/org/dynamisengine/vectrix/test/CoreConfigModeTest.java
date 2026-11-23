@@ -31,15 +31,13 @@ import org.dynamisengine.vectrix.core.CoreConfig;
 import org.junit.jupiter.api.Test;
 
 /**
- * Review finding H-8: loading {@code KernelConfig} used to re-apply the {@code vectrix.math.mode} property and
- * silently reset a mode already chosen through {@link CoreConfig#setMathMode}. Each scenario runs in a fresh
- * class loader so the class-initialisation order is exactly the one being tested, regardless of which classes
- * other tests have already loaded.
+ * The {@code vectrix.math.mode} property initializes {@link CoreConfig} (review finding H-8). Each scenario runs in
+ * a fresh class loader so the class-initialisation order is exactly the one being tested, regardless of which
+ * classes other tests have already loaded.
  */
 class CoreConfigModeTest {
 
     private static final String CORE = "org.dynamisengine.vectrix.core.CoreConfig";
-    private static final String KERNEL = "org.dynamisengine.vectrix.experimental.KernelConfig";
     private static final String MODE = "org.dynamisengine.vectrix.core.MathMode";
     /** The documented system property; a literal on purpose, since it is the public contract. */
     private static final String PROP = "vectrix.math.mode";
@@ -58,20 +56,7 @@ class CoreConfigModeTest {
     }
 
     @Test
-    void loadingKernelConfigDoesNotResetAnExplicitMode() throws Exception {
-        String saved = System.clearProperty(PROP);
-        try (URLClassLoader cl = isolatedLoader()) {
-            Class<?> core = cl.loadClass(CORE);
-            core.getMethod("setMathMode", cl.loadClass(MODE)).invoke(null, strict(cl));
-            assertEquals("STRICT", mode(cl, KERNEL), "KernelConfig initialisation reverted the mode");
-            assertEquals("STRICT", mode(cl, CORE));
-        } finally {
-            restore(saved);
-        }
-    }
-
-    @Test
-    void propertyIsHonouredWithoutLoadingKernelConfig() throws Exception {
+    void propertyIsHonoured() throws Exception {
         String saved = System.setProperty(PROP, "STRICT");
         try (URLClassLoader cl = isolatedLoader()) {
             assertEquals("STRICT", mode(cl, CORE), "CoreConfig ignored -Dvectrix.math.mode");

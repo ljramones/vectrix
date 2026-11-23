@@ -23,8 +23,8 @@
  */
 package org.dynamisengine.vectrix.geometry;
 
+import org.dynamisengine.vectrix.core.CoreConfig;
 import org.dynamisengine.vectrix.core.Matrix4fc;
-import org.dynamisengine.vectrix.experimental.KernelConfig;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.simd.SimdSupport;
 import org.dynamisengine.vectrix.soa.AABBSoA;
@@ -47,7 +47,7 @@ public final class CullingKernels {
     private static final String PROP_CULLING_SIMD = "vectrix.culling.simd";
     private static final int SIMD_BATCH_THRESHOLD = 64;
     private static final int SIMD_BATCH_MAX = 32768;
-    private static final boolean CULLING_SIMD = KernelConfig.parseBoolean(System.getProperty(PROP_CULLING_SIMD), true);
+    private static final boolean CULLING_SIMD = booleanProperty(PROP_CULLING_SIMD, true);
 
     private CullingKernels() {
     }
@@ -64,7 +64,7 @@ public final class CullingKernels {
         if (count <= 0) {
             return;
         }
-        if (KernelConfig.mathMode() == MathMode.STRICT || !KernelConfig.simdEnabled()
+        if (CoreConfig.mathMode() == MathMode.STRICT || !SimdSupport.isEnabled()
                 || SimdSupport.backend() != SimdSupport.Backend.VECTOR_API
                 || count < SIMD_BATCH_THRESHOLD || count > SIMD_BATCH_MAX
                 || !CULLING_SIMD) {
@@ -76,7 +76,10 @@ public final class CullingKernels {
 
     /**
      * Force scalar implementation regardless of runtime backend.
+     *
+     * @deprecated call {@code frustumCullAabbBatch}, which picks the backend ({@code SimdSupport})
      */
+    @Deprecated(since = "2.6.0", forRemoval = true)
     public static void frustumCullAabbBatchScalar(FrustumPlanes frustum, AABBSoA bounds, int[] outResult, int count) {
         float nxX = frustum.x[FrustumPlanes.PLANE_NX], nxY = frustum.y[FrustumPlanes.PLANE_NX], nxZ = frustum.z[FrustumPlanes.PLANE_NX], nxW = frustum.w[FrustumPlanes.PLANE_NX];
         float pxX = frustum.x[FrustumPlanes.PLANE_PX], pxY = frustum.y[FrustumPlanes.PLANE_PX], pxZ = frustum.z[FrustumPlanes.PLANE_PX], pxW = frustum.w[FrustumPlanes.PLANE_PX];
@@ -142,7 +145,10 @@ public final class CullingKernels {
 
     /**
      * Force SIMD-lane-style implementation (4-at-a-time loop structure).
+     *
+     * @deprecated call {@code frustumCullAabbBatch}, which picks the backend ({@code SimdSupport})
      */
+    @Deprecated(since = "2.6.0", forRemoval = true)
     public static void frustumCullAabbBatchSimd(FrustumPlanes frustum, AABBSoA bounds, int[] outResult, int count) {
 //#ifdef __HAS_VECTOR_API__
         if (SimdSupport.isVectorApiAvailable()) {
@@ -325,4 +331,9 @@ public final class CullingKernels {
         }
     }
 //#endif
+
+    private static boolean booleanProperty(String name, boolean defaultValue) {
+        String v = System.getProperty(name);
+        return v == null || v.isEmpty() ? defaultValue : Boolean.parseBoolean(v.trim());
+    }
 }

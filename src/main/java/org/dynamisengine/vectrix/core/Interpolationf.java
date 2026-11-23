@@ -31,6 +31,15 @@ package org.dynamisengine.vectrix.core;
 public class Interpolationf {
 
     /**
+     * Not meant to be instantiated: every member is static.
+     *
+     * @deprecated this utility class will not be instantiable from 3.0
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public Interpolationf() {
+    }
+
+    /**
      * Bilinearly interpolate the single scalar value <i>f</i> over the given triangle.
      * <p>
      * Reference: <a href="https://en.wikipedia.org/wiki/Barycentric_coordinate_system">https://en.wikipedia.org/</a>

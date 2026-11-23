@@ -5,13 +5,13 @@
  */
 package org.dynamisengine.vectrix.test;
 
+import org.dynamisengine.vectrix.core.CoreConfig;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 import org.dynamisengine.vectrix.core.MathMode;
 import org.dynamisengine.vectrix.core.Quaterniond;
 import org.dynamisengine.vectrix.core.Vector3d;
-import org.dynamisengine.vectrix.experimental.KernelConfig;
 
 class QuaternionDSwingTwistTest {
 
@@ -113,28 +113,28 @@ class QuaternionDSwingTwistTest {
 
     @Test
     void swingTwistStrictThrowsOnNonUnitQuaternion() {
-        MathMode prev = KernelConfig.mathMode();
+        MathMode prev = CoreConfig.mathMode();
         try {
-            KernelConfig.setMathMode(MathMode.STRICT);
+            CoreConfig.setMathMode(MathMode.STRICT);
             Quaterniond nonUnit = new Quaterniond(1, 1, 1, 1);
             assertThrows(IllegalArgumentException.class,
                     () -> nonUnit.swingTwist(new Vector3d(0, 1, 0), new Quaterniond(), new Quaterniond()));
         } finally {
-            KernelConfig.setMathMode(prev);
+            CoreConfig.setMathMode(prev);
         }
     }
 
     @Test
     void swingTwistStrictThrowsOnNonUnitAxis() {
-        MathMode prev = KernelConfig.mathMode();
+        MathMode prev = CoreConfig.mathMode();
         try {
-            KernelConfig.setMathMode(MathMode.STRICT);
+            CoreConfig.setMathMode(MathMode.STRICT);
             Quaterniond q = new Quaterniond(0, 0, 0, 1);
             Vector3d nonUnitAxis = new Vector3d(0, 2, 0);
             assertThrows(IllegalArgumentException.class,
                     () -> q.swingTwist(nonUnitAxis, new Quaterniond(), new Quaterniond()));
         } finally {
-            KernelConfig.setMathMode(prev);
+            CoreConfig.setMathMode(prev);
         }
     }
 

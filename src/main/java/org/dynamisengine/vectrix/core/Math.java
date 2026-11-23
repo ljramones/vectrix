@@ -41,6 +41,15 @@ package org.dynamisengine.vectrix.core;
  */
 public class Math {
 
+    /**
+     * Not meant to be instantiated: every member is static.
+     *
+     * @deprecated this utility class will not be instantiable from 3.0
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public Math() {
+    }
+
     /*
      * The following implementation of an approximation of sine and cosine was
      * thankfully donated by Riven from http://java-gaming.org/.

@@ -35,6 +35,15 @@ import org.dynamisengine.vectrix.core.Math;
 public class GeometryUtils {
 
     /**
+     * Not meant to be instantiated: every member is static.
+     *
+     * @deprecated this utility class will not be instantiable from 3.0
+     */
+    @Deprecated(since = "2.6.0", forRemoval = true)
+    public GeometryUtils() {
+    }
+
+    /**
      * Compute two arbitrary vectors perpendicular to the given normalized vector <code>(x, y, z)</code>, and store them in <code>dest1</code> and <code>dest2</code>,
      * respectively.
      * <p>
