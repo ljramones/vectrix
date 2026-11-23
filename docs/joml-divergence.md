@@ -67,6 +67,8 @@ The full list is in `CHANGELOG.md` (2.4.0, "Fixed"), and every fix has a regress
 | Plane and circle helpers | Sign and factor errors | Wrong circle centre (plane–sphere, line–circle); wrong closest point on a plane; swept spheres missing planes; circle–circle intersections reported absent | Fixed against their documented contracts |
 | `intersectSweptSphereTriangle` | Front-face-only sweep with an epsilon for parallel motion | Face hits at negative times when moving away; the exit time from behind; no hit while sliding parallel into an edge; exit time for a sphere starting on a vertex | Two-sided first contact; contact at t = 0 reports the closest point; stable quadratics, matching a bisection reference to 1e-9 |
 | Point-in-triangle tests (2D and 3D) | Sign tests that are inconsistent on the boundary | Two edges of three counted as inside in 3D; edges inside for one winding only in 2D | Closed triangles; exact orientation predicates in 2D |
+| Projection queries (`perspectiveNear`, `frustumCorner`/`Plane`/`Aabb`, `project`/`unproject`, `orthoCrop`, …) | Hard-wired to OpenGL's [-1, 1] depth | For a `zZeroToOne` projection: near distance 0.050 instead of 0.1, near corners misplaced, culling keeps points down to half the near distance | `DepthRange` forms (2.5.0) for [-1, 1], [0, 1] and reverse-Z |
+| `perspectiveFrustumSlice` | Scaled `m00`/`m11` by `near / oldNear` | Slicing a 1.1 rad projection to [1, 10] narrowed the field of view about tenfold | Only the depth terms change |
 | `PolygonsIntersection` | Bounds skipped each polygon's first vertex | Points inside the polygon rejected, depending on vertex order | Bounds over all vertices |
 
 Earlier releases fixed further inherited defects. For example, `findClosestPointsLineSegmentTriangle` missed

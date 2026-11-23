@@ -99,7 +99,8 @@ class AliasingTest {
     }
 
     private static boolean drivable(Class<?> t) {
-        return t == float.class || t == double.class || t == boolean.class || t == int.class || ValueFixtures.isValueType(t);
+        return t == float.class || t == double.class || t == boolean.class || t == int.class || ValueFixtures.isValueType(t)
+                || (t.isEnum() && t.getName().startsWith("org.dynamisengine.vectrix."));
     }
 
     private static Object primitive(Class<?> t, SplittableRandom rnd) {
@@ -121,6 +122,11 @@ class AliasingTest {
         Object[] args = new Object[pt.length];
         for (int i = 0; i < pt.length; i++) {
             SplittableRandom r = new SplittableRandom(seeds[i + 1]);
+            if (pt[i].isEnum()) {
+                Object[] constants = pt[i].getEnumConstants();
+                args[i] = constants[(int) Math.floorMod(seeds[i + 1], (long) constants.length)];
+                continue;
+            }
             args[i] = pt[i].isPrimitive() ? primitive(pt[i], r) : ValueFixtures.create(pt[i], seeds[i + 1]);
         }
         if (!Modifier.isStatic(m.getModifiers())) {

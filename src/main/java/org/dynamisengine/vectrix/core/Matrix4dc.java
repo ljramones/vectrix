@@ -23,6 +23,8 @@
  */
 package org.dynamisengine.vectrix.core;
 
+import org.dynamisengine.vectrix.camera.DepthRange;
+
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
@@ -3208,6 +3210,13 @@ public interface Matrix4dc {
     Vector4d unproject(double winX, double winY, double winZ, int[] viewport, Vector4d dest);
 
     /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    Vector4d unproject(double winX, double winY, double winZ, int[] viewport, DepthRange depthRange, Vector4d dest);
+
+    /**
      * Unproject the given window coordinates <code>(winX, winY, winZ)</code> by <code>this</code> matrix using the specified viewport.
      * <p>
      * This method first converts the given window coordinates to normalized device coordinates in the range <code>[-1..1]</code>
@@ -3235,6 +3244,13 @@ public interface Matrix4dc {
      * @return dest
      */
     Vector3d unproject(double winX, double winY, double winZ, int[] viewport, Vector3d dest);
+
+    /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    Vector3d unproject(double winX, double winY, double winZ, int[] viewport, DepthRange depthRange, Vector3d dest);
 
     /**
      * Unproject the given window coordinates <code>winCoords</code> by <code>this</code> matrix using the specified viewport.
@@ -3396,6 +3412,13 @@ public interface Matrix4dc {
     Vector4d unprojectInv(double winX, double winY, double winZ, int[] viewport, Vector4d dest);
 
     /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    Vector4d unprojectInv(double winX, double winY, double winZ, int[] viewport, DepthRange depthRange, Vector4d dest);
+
+    /**
      * Unproject the given window coordinates <code>winCoords</code> by <code>this</code> matrix using the specified viewport.
      * <p>
      * This method differs from {@link #unproject(Vector3dc, int[], Vector3d) unproject()} 
@@ -3446,6 +3469,13 @@ public interface Matrix4dc {
      * @return dest
      */
     Vector3d unprojectInv(double winX, double winY, double winZ, int[] viewport, Vector3d dest);
+
+    /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    Vector3d unprojectInv(double winX, double winY, double winZ, int[] viewport, DepthRange depthRange, Vector3d dest);
 
     /**
      * Unproject the given window coordinates <code>winCoords</code> by <code>this</code> matrix using the specified viewport
@@ -3518,6 +3548,13 @@ public interface Matrix4dc {
     Vector4d project(double x, double y, double z, int[] viewport, Vector4d winCoordsDest);
 
     /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    Vector4d project(double x, double y, double z, int[] viewport, DepthRange depthRange, Vector4d winCoordsDest);
+
+    /**
      * Project the given <code>(x, y, z)</code> position via <code>this</code> matrix using the specified viewport
      * and store the resulting window coordinates in <code>winCoordsDest</code>.
      * <p>
@@ -3540,6 +3577,13 @@ public interface Matrix4dc {
      * @return winCoordsDest
      */
     Vector3d project(double x, double y, double z, int[] viewport, Vector3d winCoordsDest);
+
+    /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    Vector3d project(double x, double y, double z, int[] viewport, DepthRange depthRange, Vector3d winCoordsDest);
 
     /**
      * Project the given <code>position</code> via <code>this</code> matrix using the specified viewport
@@ -4811,6 +4855,13 @@ public interface Matrix4dc {
     Vector4d frustumPlane(int plane, Vector4d dest);
 
     /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    Vector4d frustumPlane(int plane, DepthRange depthRange, Vector4d dest);
+
+    /**
      * Compute the corner coordinates of the frustum defined by <code>this</code> matrix, which
      * can be a projection matrix or a combined modelview-projection matrix, and store the result
      * in the given <code>point</code>.
@@ -4833,6 +4884,13 @@ public interface Matrix4dc {
      * @return point
      */
     Vector3d frustumCorner(int corner, Vector3d point);
+
+    /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    Vector3d frustumCorner(int corner, DepthRange depthRange, Vector3d point);
 
     /**
      * Compute the eye/origin of the perspective frustum transformation defined by <code>this</code> matrix, 
@@ -4916,6 +4974,15 @@ public interface Matrix4dc {
      * @return the far clip plane distance
      */
     double perspectiveFar();
+
+    /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    double perspectiveNear(DepthRange depthRange);
+
+    double perspectiveFar(DepthRange depthRange);
 
     /**
      * Obtain the direction of a ray starting at the center of the coordinate system and going
@@ -5321,6 +5388,13 @@ public interface Matrix4dc {
     Matrix4d projectedGridRange(Matrix4dc projector, double sLower, double sUpper, Matrix4d dest);
 
     /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    Matrix4d projectedGridRange(Matrix4dc projector, double sLower, double sUpper, DepthRange depthRange, Matrix4d dest);
+
+    /**
      * Change the near and far clip plane distances of <code>this</code> perspective frustum transformation matrix
      * and store the result in <code>dest</code>.
      * <p>
@@ -5341,6 +5415,13 @@ public interface Matrix4dc {
     Matrix4d perspectiveFrustumSlice(double near, double far, Matrix4d dest);
 
     /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    Matrix4d perspectiveFrustumSlice(double near, double far, DepthRange depthRange, Matrix4d dest);
+
+    /**
      * Build an ortographic projection transformation that fits the view-projection transformation represented by <code>this</code>
      * into the given affine <code>view</code> transformation.
      * <p>
@@ -5359,6 +5440,13 @@ public interface Matrix4dc {
      * @return dest
      */
     Matrix4d orthoCrop(Matrix4dc view, Matrix4d dest);
+
+    /**
+     * The {@link DepthRange} form of the method above.
+     *
+     * @since 2.5.0
+     */
+    Matrix4d orthoCrop(Matrix4dc view, DepthRange depthRange, Matrix4d dest);
 
     /**
      * Transform the axis-aligned box given as the minimum corner <code>(minX, minY, minZ)</code> and maximum corner <code>(maxX, maxY, maxZ)</code>

@@ -23,6 +23,8 @@
  */
 package org.dynamisengine.vectrix.geometry;
 
+import org.dynamisengine.vectrix.camera.DepthRange;
+
 import org.dynamisengine.vectrix.core.*;
 import org.dynamisengine.vectrix.core.Math;
 
@@ -203,6 +205,17 @@ public class FrustumIntersection {
      * @return this
      */
     public FrustumIntersection set(Matrix4fc m, boolean allowTestSpheres) {
+        return set(m, allowTestSpheres, DepthRange.NEGATIVE_ONE_TO_ONE);
+    }
+
+    /**
+     * Like {@link #set(Matrix4fc, boolean)}, with the near and far planes placed for {@code depthRange}. The
+     * OpenGL form places a {@code zZeroToOne} projection's near plane at about half the near distance (it culls too
+     * little), and a reverse-Z projection's near and far planes wrongly.
+     *
+     * @since 2.5.0
+     */
+    public FrustumIntersection set(Matrix4fc m, boolean allowTestSpheres, DepthRange depthRange) {
         float invl;
         nxX = m.m03() + m.m00(); nxY = m.m13() + m.m10(); nxZ = m.m23() + m.m20(); nxW = m.m33() + m.m30();
         if (allowTestSpheres) {
@@ -228,13 +241,22 @@ public class FrustumIntersection {
             pyX *= invl; pyY *= invl; pyZ *= invl; pyW *= invl;
         }
         planes[3].set(pyX, pyY, pyZ, pyW);
-        nzX = m.m03() + m.m02(); nzY = m.m13() + m.m12(); nzZ = m.m23() + m.m22(); nzW = m.m33() + m.m32();
+        // near and far planes at the depth range's NDC depths c: sgn * (row2 - c * row3), facing inwards
+        float cn = (float) depthRange.nearNdc(), cf = (float) depthRange.farNdc();
+        float sn = depthRange.farNdc() > depthRange.nearNdc() ? 1 : -1;
+        nzX = sn * (m.m02() - cn * m.m03());
+        nzY = sn * (m.m12() - cn * m.m13());
+        nzZ = sn * (m.m22() - cn * m.m23());
+        nzW = sn * (m.m32() - cn * m.m33());
         if (allowTestSpheres) {
             invl = Math.invsqrt(nzX * nzX + nzY * nzY + nzZ * nzZ);
             nzX *= invl; nzY *= invl; nzZ *= invl; nzW *= invl;
         }
         planes[4].set(nzX, nzY, nzZ, nzW);
-        pzX = m.m03() - m.m02(); pzY = m.m13() - m.m12(); pzZ = m.m23() - m.m22(); pzW = m.m33() - m.m32();
+        pzX = -sn * (m.m02() - cf * m.m03());
+        pzY = -sn * (m.m12() - cf * m.m13());
+        pzZ = -sn * (m.m22() - cf * m.m23());
+        pzW = -sn * (m.m32() - cf * m.m33());
         if (allowTestSpheres) {
             invl = Math.invsqrt(pzX * pzX + pzY * pzY + pzZ * pzZ);
             pzX *= invl; pzY *= invl; pzZ *= invl; pzW *= invl;

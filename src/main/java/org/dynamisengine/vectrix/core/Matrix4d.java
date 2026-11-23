@@ -23,6 +23,8 @@
  */
 package org.dynamisengine.vectrix.core;
 
+import org.dynamisengine.vectrix.camera.DepthRange;
+
 import org.intellij.lang.annotations.MagicConstant;
 
 import java.io.Externalizable;
@@ -9172,6 +9174,15 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Vector4d unproject(double winX, double winY, double winZ, int[] viewport, Vector4d dest) {
+        return unproject(winX, winY, winZ, viewport, DepthRange.NEGATIVE_ONE_TO_ONE, dest);
+    }
+
+    /**
+     * Like unproject, for the given {@link DepthRange} instead of OpenGL's [-1, 1].
+     *
+     * @since 2.5.0
+     */
+    public Vector4d unproject(double winX, double winY, double winZ, int[] viewport, DepthRange depthRange, Vector4d dest) {
         double a = m00 * m11 - m01 * m10;
         double b = m00 * m12 - m02 * m10;
         double c = m00 * m13 - m03 * m10;
@@ -9204,7 +9215,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         double im33 = ( m20 * d - m21 * b + m22 * a) * det;
         double ndcX = (winX-viewport[0])/viewport[2]*2.0-1.0;
         double ndcY = (winY-viewport[1])/viewport[3]*2.0-1.0;
-        double ndcZ = winZ+winZ-1.0;
+        double ndcZ = depthRange == DepthRange.NEGATIVE_ONE_TO_ONE ? winZ+winZ-1.0 : winZ;
         double invW = 1.0 / (im03 * ndcX + im13 * ndcY + im23 * ndcZ + im33);
         dest.x = (im00 * ndcX + im10 * ndcY + im20 * ndcZ + im30) * invW;
         dest.y = (im01 * ndcX + im11 * ndcY + im21 * ndcZ + im31) * invW;
@@ -9214,6 +9225,15 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Vector3d unproject(double winX, double winY, double winZ, int[] viewport, Vector3d dest) {
+        return unproject(winX, winY, winZ, viewport, DepthRange.NEGATIVE_ONE_TO_ONE, dest);
+    }
+
+    /**
+     * Like unproject, for the given {@link DepthRange} instead of OpenGL's [-1, 1].
+     *
+     * @since 2.5.0
+     */
+    public Vector3d unproject(double winX, double winY, double winZ, int[] viewport, DepthRange depthRange, Vector3d dest) {
         double a = m00 * m11 - m01 * m10;
         double b = m00 * m12 - m02 * m10;
         double c = m00 * m13 - m03 * m10;
@@ -9246,7 +9266,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         double im33 = ( m20 * d - m21 * b + m22 * a) * det;
         double ndcX = (winX-viewport[0])/viewport[2]*2.0-1.0;
         double ndcY = (winY-viewport[1])/viewport[3]*2.0-1.0;
-        double ndcZ = winZ+winZ-1.0;
+        double ndcZ = depthRange == DepthRange.NEGATIVE_ONE_TO_ONE ? winZ+winZ-1.0 : winZ;
         double invW = 1.0 / (im03 * ndcX + im13 * ndcY + im23 * ndcZ + im33);
         dest.x = (im00 * ndcX + im10 * ndcY + im20 * ndcZ + im30) * invW;
         dest.y = (im01 * ndcX + im11 * ndcY + im21 * ndcZ + im31) * invW;
@@ -9320,9 +9340,18 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Vector4d unprojectInv(double winX, double winY, double winZ, int[] viewport, Vector4d dest) {
+        return unprojectInv(winX, winY, winZ, viewport, DepthRange.NEGATIVE_ONE_TO_ONE, dest);
+    }
+
+    /**
+     * Like unprojectInv, for the given {@link DepthRange} instead of OpenGL's [-1, 1].
+     *
+     * @since 2.5.0
+     */
+    public Vector4d unprojectInv(double winX, double winY, double winZ, int[] viewport, DepthRange depthRange, Vector4d dest) {
         double ndcX = (winX-viewport[0])/viewport[2]*2.0-1.0;
         double ndcY = (winY-viewport[1])/viewport[3]*2.0-1.0;
-        double ndcZ = winZ+winZ-1.0;
+        double ndcZ = depthRange == DepthRange.NEGATIVE_ONE_TO_ONE ? winZ+winZ-1.0 : winZ;
         double invW = 1.0 / (m03 * ndcX + m13 * ndcY + m23 * ndcZ + m33);
         dest.x = (m00 * ndcX + m10 * ndcY + m20 * ndcZ + m30) * invW;
         dest.y = (m01 * ndcX + m11 * ndcY + m21 * ndcZ + m31) * invW;
@@ -9336,9 +9365,18 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Vector3d unprojectInv(double winX, double winY, double winZ, int[] viewport, Vector3d dest) {
+        return unprojectInv(winX, winY, winZ, viewport, DepthRange.NEGATIVE_ONE_TO_ONE, dest);
+    }
+
+    /**
+     * Like unprojectInv, for the given {@link DepthRange} instead of OpenGL's [-1, 1].
+     *
+     * @since 2.5.0
+     */
+    public Vector3d unprojectInv(double winX, double winY, double winZ, int[] viewport, DepthRange depthRange, Vector3d dest) {
         double ndcX = (winX-viewport[0])/viewport[2]*2.0-1.0;
         double ndcY = (winY-viewport[1])/viewport[3]*2.0-1.0;
-        double ndcZ = winZ+winZ-1.0;
+        double ndcZ = depthRange == DepthRange.NEGATIVE_ONE_TO_ONE ? winZ+winZ-1.0 : winZ;
         double invW = 1.0 / (m03 * ndcX + m13 * ndcY + m23 * ndcZ + m33);
         dest.x = (m00 * ndcX + m10 * ndcY + m20 * ndcZ + m30) * invW;
         dest.y = (m01 * ndcX + m11 * ndcY + m21 * ndcZ + m31) * invW;
@@ -9370,24 +9408,42 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Vector4d project(double x, double y, double z, int[] viewport, Vector4d winCoordsDest) {
+        return project(x, y, z, viewport, DepthRange.NEGATIVE_ONE_TO_ONE, winCoordsDest);
+    }
+
+    /**
+     * Like project, for the given {@link DepthRange} instead of OpenGL's [-1, 1].
+     *
+     * @since 2.5.0
+     */
+    public Vector4d project(double x, double y, double z, int[] viewport, DepthRange depthRange, Vector4d winCoordsDest) {
         double invW = 1.0 / Math.fma(m03, x, Math.fma(m13, y, Math.fma(m23, z, m33)));
         double nx = Math.fma(m00, x, Math.fma(m10, y, Math.fma(m20, z, m30))) * invW;
         double ny = Math.fma(m01, x, Math.fma(m11, y, Math.fma(m21, z, m31))) * invW;
         double nz = Math.fma(m02, x, Math.fma(m12, y, Math.fma(m22, z, m32))) * invW;
         return winCoordsDest.set(Math.fma(Math.fma(nx, 0.5, 0.5), viewport[2], viewport[0]),
                                  Math.fma(Math.fma(ny, 0.5, 0.5), viewport[3], viewport[1]),
-                                 Math.fma(0.5, nz, 0.5),
+                                 (depthRange == DepthRange.NEGATIVE_ONE_TO_ONE ? Math.fma(0.5, nz, 0.5) : nz),
                                  1.0);
     }
 
     public Vector3d project(double x, double y, double z, int[] viewport, Vector3d winCoordsDest) {
+        return project(x, y, z, viewport, DepthRange.NEGATIVE_ONE_TO_ONE, winCoordsDest);
+    }
+
+    /**
+     * Like project, for the given {@link DepthRange} instead of OpenGL's [-1, 1].
+     *
+     * @since 2.5.0
+     */
+    public Vector3d project(double x, double y, double z, int[] viewport, DepthRange depthRange, Vector3d winCoordsDest) {
         double invW = 1.0 / Math.fma(m03, x, Math.fma(m13, y, Math.fma(m23, z, m33)));
         double nx = Math.fma(m00, x, Math.fma(m10, y, Math.fma(m20, z, m30))) * invW;
         double ny = Math.fma(m01, x, Math.fma(m11, y, Math.fma(m21, z, m31))) * invW;
         double nz = Math.fma(m02, x, Math.fma(m12, y, Math.fma(m22, z, m32))) * invW;
         winCoordsDest.x = Math.fma(Math.fma(nx, 0.5, 0.5), viewport[2], viewport[0]);
         winCoordsDest.y = Math.fma(Math.fma(ny, 0.5, 0.5), viewport[3], viewport[1]);
-        winCoordsDest.z = Math.fma(0.5, nz, 0.5);
+        winCoordsDest.z = (depthRange == DepthRange.NEGATIVE_ONE_TO_ONE ? Math.fma(0.5, nz, 0.5) : nz);
         return winCoordsDest;
     }
 
@@ -14388,53 +14444,48 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         return dest;
     }
 
+    /**
+     * Like {@link #frustumPlane(int, Vector4d)}, with the near and far planes placed for {@code depthRange} (OpenGL's
+     * [-1, 1], Vulkan/D3D [0, 1], or reverse-Z). The other four planes do not depend on the depth range.
+     *
+     * @since 2.5.0
+     */
+    public Vector4d frustumPlane(int plane, DepthRange depthRange, Vector4d dest) {
+        if (plane != PLANE_NZ && plane != PLANE_PZ) {
+            return frustumPlane(plane, dest);
+        }
+        boolean near = plane == PLANE_NZ;
+        double c = (double) (near ? depthRange.nearNdc() : depthRange.farNdc());
+        double sgn = (depthRange.farNdc() > depthRange.nearNdc()) == near ? 1 : -1;
+        return dest.set(sgn * (m02() - c * m03()), sgn * (m12() - c * m13()), sgn * (m22() - c * m23()),
+                sgn * (m32() - c * m33())).normalize3();
+    }
+
     public Vector3d frustumCorner(int corner, Vector3d dest) {
-        double d1, d2, d3;
-        double n1x, n1y, n1z, n2x, n2y, n2z, n3x, n3y, n3z;
-        switch (corner) {
-        case CORNER_NXNYNZ: // left, bottom, near
-            n1x = m03 + m00; n1y = m13 + m10; n1z = m23 + m20; d1 = m33 + m30; // left
-            n2x = m03 + m01; n2y = m13 + m11; n2z = m23 + m21; d2 = m33 + m31; // bottom
-            n3x = m03 + m02; n3y = m13 + m12; n3z = m23 + m22; d3 = m33 + m32; // near
-            break;
-        case CORNER_PXNYNZ: // right, bottom, near
-            n1x = m03 - m00; n1y = m13 - m10; n1z = m23 - m20; d1 = m33 - m30; // right
-            n2x = m03 + m01; n2y = m13 + m11; n2z = m23 + m21; d2 = m33 + m31; // bottom
-            n3x = m03 + m02; n3y = m13 + m12; n3z = m23 + m22; d3 = m33 + m32; // near
-            break;
-        case CORNER_PXPYNZ: // right, top, near
-            n1x = m03 - m00; n1y = m13 - m10; n1z = m23 - m20; d1 = m33 - m30; // right
-            n2x = m03 - m01; n2y = m13 - m11; n2z = m23 - m21; d2 = m33 - m31; // top
-            n3x = m03 + m02; n3y = m13 + m12; n3z = m23 + m22; d3 = m33 + m32; // near
-            break;
-        case CORNER_NXPYNZ: // left, top, near
-            n1x = m03 + m00; n1y = m13 + m10; n1z = m23 + m20; d1 = m33 + m30; // left
-            n2x = m03 - m01; n2y = m13 - m11; n2z = m23 - m21; d2 = m33 - m31; // top
-            n3x = m03 + m02; n3y = m13 + m12; n3z = m23 + m22; d3 = m33 + m32; // near
-            break;
-        case CORNER_PXNYPZ: // right, bottom, far
-            n1x = m03 - m00; n1y = m13 - m10; n1z = m23 - m20; d1 = m33 - m30; // right
-            n2x = m03 + m01; n2y = m13 + m11; n2z = m23 + m21; d2 = m33 + m31; // bottom
-            n3x = m03 - m02; n3y = m13 - m12; n3z = m23 - m22; d3 = m33 - m32; // far
-            break;
-        case CORNER_NXNYPZ: // left, bottom, far
-            n1x = m03 + m00; n1y = m13 + m10; n1z = m23 + m20; d1 = m33 + m30; // left
-            n2x = m03 + m01; n2y = m13 + m11; n2z = m23 + m21; d2 = m33 + m31; // bottom
-            n3x = m03 - m02; n3y = m13 - m12; n3z = m23 - m22; d3 = m33 - m32; // far
-            break;
-        case CORNER_NXPYPZ: // left, top, far
-            n1x = m03 + m00; n1y = m13 + m10; n1z = m23 + m20; d1 = m33 + m30; // left
-            n2x = m03 - m01; n2y = m13 - m11; n2z = m23 - m21; d2 = m33 - m31; // top
-            n3x = m03 - m02; n3y = m13 - m12; n3z = m23 - m22; d3 = m33 - m32; // far
-            break;
-        case CORNER_PXPYPZ: // right, top, far
-            n1x = m03 - m00; n1y = m13 - m10; n1z = m23 - m20; d1 = m33 - m30; // right
-            n2x = m03 - m01; n2y = m13 - m11; n2z = m23 - m21; d2 = m33 - m31; // top
-            n3x = m03 - m02; n3y = m13 - m12; n3z = m23 - m22; d3 = m33 - m32; // far
-            break;
-        default:
+        return frustumCorner(corner, DepthRange.NEGATIVE_ONE_TO_ONE, dest);
+    }
+
+    /**
+     * Like {@link #frustumCorner(int, Vector3d)}, for the given {@link DepthRange}. With OpenGL's [-1, 1] assumption, a
+     * {@code zZeroToOne} projection's near corners come out at about half the near distance.
+     *
+     * @since 2.5.0
+     */
+    public Vector3d frustumCorner(int corner, DepthRange depthRange, Vector3d dest) {
+        if (corner < CORNER_NXNYNZ || corner > CORNER_PXPYPZ) {
             throw new IllegalArgumentException("corner"); //$NON-NLS-1$
         }
+        boolean px = corner == CORNER_PXNYNZ || corner == CORNER_PXPYNZ || corner == CORNER_PXNYPZ || corner == CORNER_PXPYPZ;
+        boolean py = corner == CORNER_PXPYNZ || corner == CORNER_NXPYNZ || corner == CORNER_NXPYPZ || corner == CORNER_PXPYPZ;
+        boolean pz = corner >= CORNER_PXNYPZ;
+        double n1x = px ? m03() - m00() : m03() + m00(), n1y = px ? m13() - m10() : m13() + m10();
+        double n1z = px ? m23() - m20() : m23() + m20(), d1 = px ? m33() - m30() : m33() + m30();
+        double n2x = py ? m03() - m01() : m03() + m01(), n2y = py ? m13() - m11() : m13() + m11();
+        double n2z = py ? m23() - m21() : m23() + m21(), d2 = py ? m33() - m31() : m33() + m31();
+        double c = (double) (pz ? depthRange.farNdc() : depthRange.nearNdc());
+        double sgn = (depthRange.farNdc() > depthRange.nearNdc()) != pz ? 1 : -1;
+        double n3x = sgn * (m02() - c * m03()), n3y = sgn * (m12() - c * m13());
+        double n3z = sgn * (m22() - c * m23()), d3 = sgn * (m32() - c * m33());
         double c23x, c23y, c23z;
         c23x = n2y * n3z - n2z * n3y;
         c23y = n2z * n3x - n2x * n3z;
@@ -14511,6 +14562,26 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
 
     public double perspectiveFar() {
         return m32 / (m22 - m23);
+    }
+
+    /**
+     * The near clip distance of this perspective projection under {@code depthRange}: the view distance whose NDC depth
+     * is {@code depthRange.nearNdc()}, {@code m32 / (m22 - c * m23)}. {@link #perspectiveNear()} assumes OpenGL's
+     * [-1, 1]; for a {@code zZeroToOne} projection it returns about half the near distance.
+     *
+     * @since 2.5.0
+     */
+    public double perspectiveNear(DepthRange depthRange) {
+        return m32() / (m22() - (double) depthRange.nearNdc() * m23());
+    }
+
+    /**
+     * The far clip distance of this perspective projection under {@code depthRange}; infinite for an infinite projection.
+     *
+     * @since 2.5.0
+     */
+    public double perspectiveFar(DepthRange depthRange) {
+        return m32() / (m22() - (double) depthRange.farNdc() * m23());
     }
 
     public Vector3d frustumRayDir(double x, double y, Vector3d dest) {
@@ -15307,6 +15378,16 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
      * @return this
      */
     public Matrix4d frustumAabb(Vector3d min, Vector3d max) {
+        return frustumAabb(DepthRange.NEGATIVE_ONE_TO_ONE, min, max);
+    }
+
+    /**
+     * Like frustumAabb, for the given {@link DepthRange} instead of OpenGL's [-1, 1].
+     *
+     * @since 2.5.0
+     */
+    public Matrix4d frustumAabb(DepthRange depthRange, Vector3d min, Vector3d max) {
+        double zNear = (double) depthRange.nearNdc(), zFar = (double) depthRange.farNdc();
         double minX = Double.POSITIVE_INFINITY;
         double minY = Double.POSITIVE_INFINITY;
         double minZ = Double.POSITIVE_INFINITY;
@@ -15316,7 +15397,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         for (int t = 0; t < 8; t++) {
             double x = ((t & 1) << 1) - 1.0;
             double y = (((t >>> 1) & 1) << 1) - 1.0;
-            double z = (((t >>> 2) & 1) << 1) - 1.0;
+            double z = ((t >>> 2) & 1) == 0 ? zNear : zFar;
             double invW = 1.0 / (m03 * x + m13 * y + m23 * z + m33);
             double nx = (m00 * x + m10 * y + m20 * z + m30) * invW;
             double ny = (m01 * x + m11 * y + m21 * z + m31) * invW;
@@ -15338,6 +15419,16 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Matrix4d projectedGridRange(Matrix4dc projector, double sLower, double sUpper, Matrix4d dest) {
+        return projectedGridRange(projector, sLower, sUpper, DepthRange.NEGATIVE_ONE_TO_ONE, dest);
+    }
+
+    /**
+     * Like projectedGridRange, for the given {@link DepthRange} instead of OpenGL's [-1, 1].
+     *
+     * @since 2.5.0
+     */
+    public Matrix4d projectedGridRange(Matrix4dc projector, double sLower, double sUpper, DepthRange depthRange, Matrix4d dest) {
+        double zNear = (double) depthRange.nearNdc(), zFar = (double) depthRange.farNdc();
         // Compute intersection with frustum edges and plane
         double minX = Double.POSITIVE_INFINITY, minY = Double.POSITIVE_INFINITY;
         double maxX = Double.NEGATIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY;
@@ -15349,15 +15440,15 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
                 // all x edges
                 c0X = -1; c1X = +1;
                 c0Y = c1Y = ((t & 1) << 1) - 1.0;
-                c0Z = c1Z = (((t >>> 1) & 1) << 1) - 1.0;
+                c0Z = c1Z = ((t >>> 1) & 1) == 0 ? zNear : zFar;
             } else if (t < 8) {
                 // all y edges
                 c0Y = -1; c1Y = +1;
                 c0X = c1X = ((t & 1) << 1) - 1.0;
-                c0Z = c1Z = (((t >>> 1) & 1) << 1) - 1.0;
+                c0Z = c1Z = ((t >>> 1) & 1) == 0 ? zNear : zFar;
             } else {
                 // all z edges
-                c0Z = -1; c1Z = +1;
+                c0Z = zNear; c1Z = zFar;
                 c0X = c1X = ((t & 1) << 1) - 1.0;
                 c0Y = c1Y = (((t >>> 1) & 1) << 1) - 1.0;
             }
@@ -15400,29 +15491,42 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Matrix4d perspectiveFrustumSlice(double near, double far, Matrix4d dest) {
-        double invOldNear = (m23 + m22) / m32;
-        double invNearFar = 1.0 / (near - far);
-        dest._m00(m00 * invOldNear * near)
-        ._m01(m01)
-        ._m02(m02)
-        ._m03(m03)
-        ._m10(m10)
-        ._m11(m11 * invOldNear * near)
-        ._m12(m12)
-        ._m13(m13)
-        ._m20(m20)
-        ._m21(m21)
-        ._m22((far + near) * invNearFar)
-        ._m23(m23)
-        ._m30(m30)
-        ._m31(m31)
-        ._m32((far + far) * near * invNearFar)
-        ._m33(m33)
-        ._properties(properties & ~(PROPERTY_IDENTITY | PROPERTY_TRANSLATION | PROPERTY_ORTHONORMAL));
+        return perspectiveFrustumSlice(near, far, DepthRange.NEGATIVE_ONE_TO_ONE, dest);
+    }
+
+    /**
+     * Changes the near and far distances of this perspective projection, keeping its field of view, aspect and
+     * off-centre terms, with the depth terms set for {@code depthRange}:
+     * {@code m22 = (cn·near − cf·far) / (far − near)} and {@code m32 = (cn − cf)·near·far / (far − near)}. Here
+     * {@code cn} and {@code cf} are the range's NDC depths of the near and far planes. Before 2.5.0 the slice also
+     * scaled {@code m00} and {@code m11} by {@code near / oldNear}, which narrowed the field of view: slicing a
+     * 1 rad projection to [1, 10] gave 0.109 rad.
+     *
+     * @since 2.5.0
+     */
+    public Matrix4d perspectiveFrustumSlice(double near, double far, DepthRange depthRange, Matrix4d dest) {
+        double cn = (double) depthRange.nearNdc(), cf = (double) depthRange.farNdc();
+        double inv = 1.0 / (far - near);
+        if (dest != this) {
+            dest.set(this);
+        }
+        dest._m22((cn * near - cf * far) * inv)
+            ._m32((cn - cf) * near * far * inv)
+            ._properties(properties & ~(PROPERTY_IDENTITY | PROPERTY_TRANSLATION | PROPERTY_ORTHONORMAL));
         return dest;
     }
 
     public Matrix4d orthoCrop(Matrix4dc view, Matrix4d dest) {
+        return orthoCrop(view, DepthRange.NEGATIVE_ONE_TO_ONE, dest);
+    }
+
+    /**
+     * Like orthoCrop, for the given {@link DepthRange} instead of OpenGL's [-1, 1].
+     *
+     * @since 2.5.0
+     */
+    public Matrix4d orthoCrop(Matrix4dc view, DepthRange depthRange, Matrix4d dest) {
+        double zNear = (double) depthRange.nearNdc(), zFar = (double) depthRange.farNdc();
         // determine min/max world z and min/max orthographically view-projected x/y
         double minX = Double.POSITIVE_INFINITY, maxX = Double.NEGATIVE_INFINITY;
         double minY = Double.POSITIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY;
@@ -15430,7 +15534,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
         for (int t = 0; t < 8; t++) {
             double x = ((t & 1) << 1) - 1.0;
             double y = (((t >>> 1) & 1) << 1) - 1.0;
-            double z = (((t >>> 2) & 1) << 1) - 1.0;
+            double z = ((t >>> 2) & 1) == 0 ? zNear : zFar;
             double invW = 1.0 / (m03 * x + m13 * y + m23 * z + m33);
             double wx = (m00 * x + m10 * y + m20 * z + m30) * invW;
             double wy = (m01 * x + m11 * y + m21 * z + m31) * invW;
@@ -15447,7 +15551,12 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
             maxZ = maxZ > vz ? maxZ : vz;
         }
         // build crop projection matrix to fit 'this' frustum into view
-        return dest.setOrtho(minX, maxX, minY, maxY, -maxZ, -minZ);
+        if (depthRange == DepthRange.NEGATIVE_ONE_TO_ONE) {
+            return dest.setOrtho(minX, maxX, minY, maxY, -maxZ, -minZ);
+        }
+        // [0, 1]; reverse-Z swaps the planes so the near one maps to 1
+        return depthRange == DepthRange.ZERO_TO_ONE ? dest.setOrtho(minX, maxX, minY, maxY, -maxZ, -minZ, true)
+                : dest.setOrtho(minX, maxX, minY, maxY, -minZ, -maxZ, true);
     }
 
     /**

@@ -152,7 +152,7 @@ class TwinParityTest {
             Class<?> e = c.getComponentType();
             return e == float.class || e == double.class || e == int.class || e == long.class || ValueFixtures.isValueType(e);
         }
-        return c == float.class || c == double.class || c == int.class || c == long.class || c == boolean.class
+        return (c.isEnum() && c.getName().startsWith("org.dynamisengine.vectrix.")) || c == float.class || c == double.class || c == int.class || c == long.class || c == boolean.class
                 || ValueFixtures.isValueType(c);
     }
 
@@ -200,6 +200,10 @@ class TwinParityTest {
         if (t == boolean.class) {
             return rnd.nextBoolean();
         }
+        if (t.isEnum()) {
+            Object[] constants = t.getEnumConstants();
+            return constants[rnd.nextInt(constants.length)];
+        }
         if (t.isArray()) {
             Class<?> e = t.getComponentType();
             int n = e.isPrimitive() ? PRIMITIVE_ARRAY_LENGTH : OBJECT_ARRAY_LENGTH;
@@ -215,6 +219,9 @@ class TwinParityTest {
     private static double[] numbers(Object o) throws IllegalAccessException {
         if (o == null) {
             return new double[0];
+        }
+        if (o instanceof Enum<?> e) {
+            return new double[] {e.ordinal()};
         }
         if (o.getClass().isArray()) {
             List<Double> v = new ArrayList<>();

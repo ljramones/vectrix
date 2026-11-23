@@ -23,6 +23,8 @@
  */
 package org.dynamisengine.vectrix.geometry;
 
+import org.dynamisengine.vectrix.camera.DepthRange;
+
 import org.dynamisengine.vectrix.core.Matrix4fc;
 
 /**
@@ -59,16 +61,27 @@ public class FrustumPlanes {
      *                   conservative but culls nothing near the camera.
      */
     public FrustumPlanes set(Matrix4fc m, boolean normalize, boolean zZeroToOne) {
+        return set(m, normalize, zZeroToOne ? DepthRange.ZERO_TO_ONE : DepthRange.NEGATIVE_ONE_TO_ONE);
+    }
+
+    /**
+     * Extracts the planes for {@code depthRange}, including reverse-Z, which the {@code zZeroToOne} flag cannot
+     * express.
+     *
+     * @since 2.5.0
+     */
+    public FrustumPlanes set(Matrix4fc m, boolean normalize, DepthRange depthRange) {
         setPlane(PLANE_NX, m.m03() + m.m00(), m.m13() + m.m10(), m.m23() + m.m20(), m.m33() + m.m30(), normalize);
         setPlane(PLANE_PX, m.m03() - m.m00(), m.m13() - m.m10(), m.m23() - m.m20(), m.m33() - m.m30(), normalize);
         setPlane(PLANE_NY, m.m03() + m.m01(), m.m13() + m.m11(), m.m23() + m.m21(), m.m33() + m.m31(), normalize);
         setPlane(PLANE_PY, m.m03() - m.m01(), m.m13() - m.m11(), m.m23() - m.m21(), m.m33() - m.m31(), normalize);
-        if (zZeroToOne) {
-            setPlane(PLANE_NZ, m.m02(), m.m12(), m.m22(), m.m32(), normalize);
-        } else {
-            setPlane(PLANE_NZ, m.m03() + m.m02(), m.m13() + m.m12(), m.m23() + m.m22(), m.m33() + m.m32(), normalize);
-        }
-        setPlane(PLANE_PZ, m.m03() - m.m02(), m.m13() - m.m12(), m.m23() - m.m22(), m.m33() - m.m32(), normalize);
+        // near and far planes at the depth range's NDC depths c: sgn * (row2 - c * row3), facing inwards
+        float cn = (float) depthRange.nearNdc(), cf = (float) depthRange.farNdc();
+        float sn = depthRange.farNdc() > depthRange.nearNdc() ? 1 : -1;
+        setPlane(PLANE_NZ, sn * (m.m02() - cn * m.m03()), sn * (m.m12() - cn * m.m13()), sn * (m.m22() - cn * m.m23()),
+                sn * (m.m32() - cn * m.m33()), normalize);
+        setPlane(PLANE_PZ, -sn * (m.m02() - cf * m.m03()), -sn * (m.m12() - cf * m.m13()), -sn * (m.m22() - cf * m.m23()),
+                -sn * (m.m32() - cf * m.m33()), normalize);
         return this;
     }
 

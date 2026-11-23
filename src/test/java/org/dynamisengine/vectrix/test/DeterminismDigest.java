@@ -135,7 +135,7 @@ public final class DeterminismDigest {
             return e == float.class || e == double.class || e == int.class || e == long.class
                     || ValueFixtures.isValueType(e);
         }
-        return c == float.class || c == double.class || c == int.class || c == long.class || c == boolean.class
+        return (c.isEnum() && c.getName().startsWith("org.dynamisengine.vectrix.")) || c == float.class || c == double.class || c == int.class || c == long.class || c == boolean.class
                 || ValueFixtures.isValueType(c);
     }
 
@@ -154,6 +154,10 @@ public final class DeterminismDigest {
         }
         if (t == boolean.class) {
             return rnd.nextBoolean();
+        }
+        if (t.isEnum()) {
+            Object[] constants = t.getEnumConstants();
+            return constants[rnd.nextInt(constants.length)];
         }
         if (t.isArray()) {
             Class<?> e = t.getComponentType();
@@ -346,6 +350,8 @@ public final class DeterminismDigest {
                 bits(num.intValue());
             } else if (o instanceof Boolean b) {
                 bits(b ? 1 : 0);
+            } else if (o instanceof Enum<?> e) {
+                text(e.name());
             } else if (o.getClass().isArray()) {
                 int n = Array.getLength(o);
                 bits(n);

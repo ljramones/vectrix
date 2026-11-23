@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
+## [Unreleased]
+### Added
+- `DepthRange` forms of the projection queries inherited from JOML, which assumed OpenGL's [-1, 1] depth:
+  - `Matrix4f/d`:
+    - `perspectiveNear`/`perspectiveFar`;
+    - `frustumPlane`, `frustumCorner`, `frustumAabb`;
+    - `orthoCrop`, `projectedGridRange`, `perspectiveFrustumSlice`;
+    - the scalar `project`, `unproject` and `unprojectInv`.
+  - `FrustumIntersection.set` and `FrustumPlanes.set`, which now also express reverse-Z.
+
+  For a `zZeroToOne` projection the OpenGL forms are wrong:
+  - `perspectiveNear` returns about half the near distance.
+  - Near corners are misplaced.
+  - Culling keeps points down to half the near distance.
+  - `unproject` of a Vulkan depth value of 0 misses the near plane.
+
+  The OpenGL forms are unchanged and documented as such. Each new form gives the same physical frustum for
+  [-1, 1], [0, 1] and reverse-Z.
+
+### Fixed
+- `Matrix4f/d.perspectiveFrustumSlice` scaled `m00` and `m11` by `near / oldNear`, which changed the field of view:
+  slicing a 1.1 rad projection to [1, 10] made it about ten times narrower. A slice now keeps the field of view,
+  aspect and off-centre terms, and changes only the depth terms. This is an inherited JOML defect.
+
+### Tests
+- The twin-parity, determinism and aliasing harnesses now drive methods with enum parameters, which they used to
+  skip.
+
 ## [2.4.0] - 2026-11-22
 New in this release:
 - **Inverse kinematics and pose kernels:** new package `ik`, and `animation.PoseKernels`.
