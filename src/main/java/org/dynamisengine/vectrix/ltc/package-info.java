@@ -27,8 +27,7 @@
  * {@code LtcEval*} integrates the transformed light polygon in the shading frame ({@code +z} is the normal).
  * <p>
  * <b>Contract.</b> Threading: the classes are stateless static functions, safe to call from any thread.
- * Allocation: no method allocates, except {@code formFactorRectClipped} and {@code formFactorPolygonClipped}, which
- * create a small clipping object per call. Determinism: the edge integrals and cap formulas use
+ * Allocation: no method allocates. Determinism: the edge integrals and cap formulas use
  * {@code AccurateMath}, so results match across platforms under {@code -Dvectrix.strictMath}. Errors: null or short
  * arrays, table sizes below 2, NaN table coordinates and polygon counts below 3 throw
  * {@code IllegalArgumentException} before any output is written; form factors are clamped to {@code [0, 1]}.

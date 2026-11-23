@@ -42,10 +42,10 @@ public final class Fresneld {
      * @param etaI the refractive index of the incident medium, greater than 0
      * @param etaT the refractive index of the transmitting medium, greater than 0
      * @return the reflectance, in {@code [0, 1]}
-     * @throws IllegalArgumentException if {@code etaI} or {@code etaT} is not greater than 0
+     * @throws IllegalArgumentException if {@code etaI} or {@code etaT} is not greater than 0 (NaN included)
      */
     public static double dielectric(double cosThetaI, double etaI, double etaT) {
-        if (etaI <= 0.0 || etaT <= 0.0) {
+        if (!(etaI > 0.0) || !(etaT > 0.0)) {
             throw new IllegalArgumentException("eta");
         }
         if (cosThetaI < 0.0) {
@@ -74,7 +74,7 @@ public final class Fresneld {
      * @param cosThetaI cosine of the incident angle, clamped to {@code [0, 1]}
      * @param eta the complex IOR: {@code n} in the real part and the extinction {@code k} in the imaginary part
      * @return the reflectance, in {@code [0, 1]}
-     * @throws IllegalArgumentException if {@code n} or {@code k} is negative
+     * @throws IllegalArgumentException if {@code n} or {@code k} is negative or NaN
      */
     public static double conductor(double cosThetaI, Complexd eta) {
         return conductor(cosThetaI, eta.real, eta.imag);
@@ -89,10 +89,10 @@ public final class Fresneld {
      * @param n the real part of the IOR, at least 0
      * @param k the extinction coefficient, at least 0
      * @return the reflectance, in {@code [0, 1]}
-     * @throws IllegalArgumentException if {@code n} or {@code k} is negative
+     * @throws IllegalArgumentException if {@code n} or {@code k} is negative or NaN
      */
     public static double conductor(double cosThetaI, double n, double k) {
-        if (n < 0.0 || k < 0.0) {
+        if (!(n >= 0.0) || !(k >= 0.0)) {
             throw new IllegalArgumentException("n/k");
         }
         // Exact unpolarized conductor Fresnel (pbrt-v3 FrConductor, incident IOR 1). The previous pbrt-v2

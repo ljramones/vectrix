@@ -64,7 +64,7 @@ class ShConsistencyTest {
             assertArrayEquals(s16.c, p16.c, 0f, "L3 projection");
 
             float[] out = new float[3];
-            ShConvolution.evaluateIrradiance(viaScratch, d.x, d.y, d.z, new float[9], out);
+            ShConvolution.evaluateL2(viaScratch, d.x, d.y, d.z, new float[9], out);
             Vector3f e = ShConvolution.evaluateL2(viaScratch, d, new Vector3f());
             assertEquals(out[0], e.x, 0f);
             assertEquals(out[1], e.y, 0f);

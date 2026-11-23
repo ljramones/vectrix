@@ -76,11 +76,14 @@ public enum CieObserver {
      * Returns one tabulated value of the color-matching functions.
      *
      * @param nm the wavelength in whole nanometres; outside [{@link #MIN_NM}, {@link #MAX_NM}] gives 0
-     * @param c the component: 0 for x̄, 1 for ȳ, 2 for z̄; not checked, so other values read a neighboring
-     *          wavelength's entry or throw {@code ArrayIndexOutOfBoundsException}
+     * @param c the component: 0 for x̄, 1 for ȳ, 2 for z̄
      * @return the tabulated value
+     * @throws IllegalArgumentException if {@code c} is not 0, 1 or 2 (checked for every {@code nm})
      */
     public double at(int nm, int c) {
+        if (c < 0 || c > 2) {
+            throw new IllegalArgumentException("component must be 0, 1 or 2: " + c);
+        }
         return nm < MIN_NM || nm > MAX_NM ? 0.0 : table[3 * (nm - MIN_NM) + c];
     }
 }

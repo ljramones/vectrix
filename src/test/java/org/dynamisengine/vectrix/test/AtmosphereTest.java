@@ -196,7 +196,8 @@ class AtmosphereTest {
         // the LUT (sun transmittance from a table) agrees with exact integration
         int w = 8, h = 4;
         long t0 = System.nanoTime();
-        float[] lut = Atmosphere.multipleScatteringLut(EARTH, w, h, 64, 20, new float[w * h * 3]);
+        float[] lut = Atmosphere.multipleScatteringLut(EARTH, w, h, 64, 20,
+                new double[Atmosphere.multipleScatteringLutScratchSize()], 0, new float[w * h * 3]);
         double ms = (System.nanoTime() - t0) / 1e6;
         System.out.printf("multiple-scattering LUT %dx%d (64 directions, 20 steps): %.0f ms%n", w, h, ms);
         for (int y = 0; y < h; y += 3) {

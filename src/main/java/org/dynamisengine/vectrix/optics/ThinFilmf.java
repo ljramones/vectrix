@@ -45,10 +45,10 @@ public final class ThinFilmf {
      * @param cosThetaI cosine of incident angle, clamped to {@code [0, 1]}
      * @param dest receives the reflectance per channel
      * @return {@code dest}
-     * @throws IllegalArgumentException if an IOR is not greater than 0 or the thickness is negative
+     * @throws IllegalArgumentException if an IOR is not greater than 0 or the thickness is negative (NaN included)
      */
     public static Vector3f reflectanceRgb(float etaI, float etaFilm, float etaSub, float thicknessNm, float cosThetaI, Vector3f dest) {
-        if (etaI <= 0.0f || etaFilm <= 0.0f || etaSub <= 0.0f || thicknessNm < 0.0f) {
+        if (!(etaI > 0.0f) || !(etaFilm > 0.0f) || !(etaSub > 0.0f) || !(thicknessNm >= 0.0f)) {
             throw new IllegalArgumentException("params");
         }
         float c0 = Fresnelf.clamp01(cosThetaI);
@@ -90,10 +90,10 @@ public final class ThinFilmf {
      * @param wavelengthNm the vacuum wavelength in nanometers, greater than 0
      * @return the reflectance, in {@code [0, 1]}
      * @throws IllegalArgumentException if an IOR or the wavelength is not greater than 0, or the thickness is
-     *         negative
+     *         negative (NaN included)
      */
     public static float reflectance(float etaI, float etaFilm, float etaSub, float thicknessNm, float cosThetaI, float wavelengthNm) {
-        if (etaI <= 0.0f || etaFilm <= 0.0f || etaSub <= 0.0f || thicknessNm < 0.0f || wavelengthNm <= 0.0f) {
+        if (!(etaI > 0.0f) || !(etaFilm > 0.0f) || !(etaSub > 0.0f) || !(thicknessNm >= 0.0f) || !(wavelengthNm > 0.0f)) {
             throw new IllegalArgumentException("params");
         }
         float c0 = Fresnelf.clamp01(cosThetaI);

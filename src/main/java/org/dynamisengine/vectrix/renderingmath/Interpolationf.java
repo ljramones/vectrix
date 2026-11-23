@@ -24,6 +24,7 @@
 package org.dynamisengine.vectrix.renderingmath;
 
 import org.dynamisengine.vectrix.core.Vector3f;
+import org.dynamisengine.vectrix.core.Vector3fc;
 
 /**
  * Bilinear and bicubic interpolation helpers (single-precision).
@@ -64,10 +65,11 @@ public final class Interpolationf {
      * @param dest receives the result
      * @return {@code dest}
      */
-    public static Vector3f bilinearVec3(Vector3f q00, Vector3f q10, Vector3f q01, Vector3f q11, float tx, float ty, Vector3f dest) {
-        float x = bilinear(q00.x, q10.x, q01.x, q11.x, tx, ty);
-        float y = bilinear(q00.y, q10.y, q01.y, q11.y, tx, ty);
-        float z = bilinear(q00.z, q10.z, q01.z, q11.z, tx, ty);
+    public static Vector3f bilinearVec3(Vector3fc q00, Vector3fc q10, Vector3fc q01, Vector3fc q11, float tx, float ty,
+            Vector3f dest) {
+        float x = bilinear(q00.x(), q10.x(), q01.x(), q11.x(), tx, ty);
+        float y = bilinear(q00.y(), q10.y(), q01.y(), q11.y(), tx, ty);
+        float z = bilinear(q00.z(), q10.z(), q01.z(), q11.z(), tx, ty);
         return dest.set(x, y, z);
     }
 

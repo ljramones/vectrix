@@ -136,7 +136,7 @@ class SphericalFunctionsTest {
                 w[i] = 1f / n;
             }
             Vector4f lobe = new Vector4f();
-            float amp = SphericalGaussiansf.fit(dirs, w, n, lobe);
+            float amp = SphericalGaussiansf.fit(dirs, 0, w, 0, n, lobe);
             assertEquals(lambda, lobe.w, 0.05 * lambda, "sharpness");
             assertTrue(new Vector3f(lobe.x, lobe.y, lobe.z).dot((float) axis.x, (float) axis.y, (float) axis.z) > 0.999f);
             assertEquals(1f, SphericalGaussiansf.integral(lobe.w, amp), 1e-5f, "integral equals the total weight");

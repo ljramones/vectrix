@@ -92,16 +92,18 @@ public final class DirectionMappingsf {
 
     /**
      * Returns the hemi-octahedral coordinates in {@code [−1, 1]²} of an upper-hemisphere direction, which need not
-     * be unit. The result is meaningless for {@code z < 0}, and the zero vector gives NaN.
+     * be unit. A direction with {@code z < 0} is folded onto the upper hemisphere: {@code (x, y, z)} and
+     * {@code (x, y, −z)} give the same coordinates, so {@link #hemiOctahedralDecode} returns the mirror image
+     * {@code (x, y, |z|)} (normalized). The zero vector gives NaN.
      *
      * @param x the x component of the direction
      * @param y the y component of the direction
-     * @param z the z component of the direction, at least 0
+     * @param z the z component of the direction; its sign is ignored
      * @param dest receives the coordinates {@code (u, v)}
      * @return {@code dest}
      */
     public static Vector2f hemiOctahedralEncode(float x, float y, float z, Vector2f dest) {
-        float s = java.lang.Math.abs(x) + java.lang.Math.abs(y) + z;
+        float s = java.lang.Math.abs(x) + java.lang.Math.abs(y) + java.lang.Math.abs(z);
         float px = x / s, py = y / s;
         return dest.set(px + py, px - py);
     }

@@ -66,9 +66,9 @@ public final class ShLighting {
         float[] up = new float[3];
         float[] side = new float[3];
         float[] down = new float[3];
-        ShConvolution.evaluateIrradiance(irradiance, 0, 1, 0, scratch, up);
-        ShConvolution.evaluateIrradiance(irradiance, 1, 0, 0, scratch, side);
-        ShConvolution.evaluateIrradiance(irradiance, 0, -1, 0, scratch, down);
+        ShConvolution.evaluateL2(irradiance, 0, 1, 0, scratch, up);
+        ShConvolution.evaluateL2(irradiance, 1, 0, 0, scratch, side);
+        ShConvolution.evaluateL2(irradiance, 0, -1, 0, scratch, down);
         // end::irradiance[]
         return new Result(irradiance, up, side, down);
     }

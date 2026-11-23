@@ -146,8 +146,8 @@ public final class ShConvolution {
 
     /**
      * Evaluates the 9-coefficient SH function {@code Σ c_i Y_i(n)} per RGB channel into an array, without
-     * allocating. Despite the name it does not convolve: pass irradiance coefficients (from
-     * {@code convolveLambertL2}) to get irradiance.
+     * allocating. Like the other {@code evaluate...} methods it does not convolve: pass irradiance coefficients
+     * (from {@code convolveLambertL2}) to get irradiance. Renamed from {@code evaluateIrradiance} in 3.0.0.
      *
      * @param coeffs the coefficients
      * @param nx the x component of the unit normal; it is not normalized
@@ -156,8 +156,9 @@ public final class ShConvolution {
      * @param scratchBasis caller scratch of length at least 9; receives the basis values
      * @param destRgb receives {@code r, g, b} in elements 0..2
      * @throws IllegalArgumentException if {@code scratchBasis.length < 9} or {@code destRgb.length < 3}
+     * @since 3.0.0
      */
-    public static void evaluateIrradiance(ShCoeffs9f coeffs, float nx, float ny, float nz, float[] scratchBasis, float[] destRgb) {
+    public static void evaluateL2(ShCoeffs9f coeffs, float nx, float ny, float nz, float[] scratchBasis, float[] destRgb) {
         if (scratchBasis.length < 9) {
             throw new IllegalArgumentException("scratchBasis");
         }
@@ -221,8 +222,8 @@ public final class ShConvolution {
 
     /**
      * Evaluates the 9-coefficient SH function {@code Σ c_i Y_i(n)} per RGB channel into an array, without
-     * allocating. Despite the name it does not convolve: pass irradiance coefficients (from
-     * {@code convolveLambertL2}) to get irradiance.
+     * allocating. Like the other {@code evaluate...} methods it does not convolve: pass irradiance coefficients
+     * (from {@code convolveLambertL2}) to get irradiance. Renamed from {@code evaluateIrradiance} in 3.0.0.
      *
      * @param coeffs the coefficients
      * @param nx the x component of the unit normal; it is not normalized
@@ -231,8 +232,9 @@ public final class ShConvolution {
      * @param scratchBasis caller scratch of length at least 9; receives the basis values
      * @param destRgb receives {@code r, g, b} in elements 0..2
      * @throws IllegalArgumentException if {@code scratchBasis.length < 9} or {@code destRgb.length < 3}
+     * @since 3.0.0
      */
-    public static void evaluateIrradiance(ShCoeffs9d coeffs, double nx, double ny, double nz, double[] scratchBasis, double[] destRgb) {
+    public static void evaluateL2(ShCoeffs9d coeffs, double nx, double ny, double nz, double[] scratchBasis, double[] destRgb) {
         if (scratchBasis.length < 9) {
             throw new IllegalArgumentException("scratchBasis");
         }

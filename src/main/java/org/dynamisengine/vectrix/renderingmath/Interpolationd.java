@@ -23,6 +23,9 @@
  */
 package org.dynamisengine.vectrix.renderingmath;
 
+import org.dynamisengine.vectrix.core.Vector3d;
+import org.dynamisengine.vectrix.core.Vector3dc;
+
 /**
  * Bilinear and bicubic interpolation helpers (double-precision).
   * @since 1.0.0
@@ -47,6 +50,28 @@ public final class Interpolationd {
         double x0 = lerp(q00, q10, tx);
         double x1 = lerp(q01, q11, tx);
         return lerp(x0, x1, ty);
+    }
+
+    /**
+     * Interpolates four corner vectors bilinearly, component by component, as {@link #bilinear}. {@code dest} may
+     * be any of the inputs.
+     *
+     * @param q00 the vector at {@code (0, 0)}
+     * @param q10 the vector at {@code (1, 0)}
+     * @param q01 the vector at {@code (0, 1)}
+     * @param q11 the vector at {@code (1, 1)}
+     * @param tx the position along x
+     * @param ty the position along y
+     * @param dest receives the result
+     * @return {@code dest}
+     * @since 3.0.0
+     */
+    public static Vector3d bilinearVec3(Vector3dc q00, Vector3dc q10, Vector3dc q01, Vector3dc q11, double tx, double ty,
+            Vector3d dest) {
+        double x = bilinear(q00.x(), q10.x(), q01.x(), q11.x(), tx, ty);
+        double y = bilinear(q00.y(), q10.y(), q01.y(), q11.y(), tx, ty);
+        double z = bilinear(q00.z(), q10.z(), q01.z(), q11.z(), tx, ty);
+        return dest.set(x, y, z);
     }
 
     /**

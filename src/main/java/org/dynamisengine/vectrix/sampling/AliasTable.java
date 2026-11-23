@@ -134,12 +134,17 @@ public final class AliasTable {
 
     /**
      * Draws an index from one uniform number {@code u}: {@code u * size} picks the column and its fraction is the coin
-     * flip between the column and its alias.
+     * flip between the column and its alias. {@code u = 1} is accepted (a float rounded up from just below 1) and
+     * draws from the last column.
      *
-     * @param u the uniform variate, in {@code [0, 1)}; a value below 0 can throw {@link ArrayIndexOutOfBoundsException}
+     * @param u the uniform variate, in {@code [0, 1]}
      * @return the drawn index, in {@code [0, size)}
+     * @throws IllegalArgumentException if {@code u} is outside {@code [0, 1]} or NaN
      */
     public int sample(float u) {
+        if (!(u >= 0.0f && u <= 1.0f)) {
+            throw new IllegalArgumentException("u must be in [0, 1]: " + u);
+        }
         float x = u * size;
         int i = java.lang.Math.min((int) x, size - 1);
         float coin = x - i;

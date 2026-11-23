@@ -74,26 +74,36 @@ public final class ShCoeffs9d {
     /**
      * Returns one coefficient of one channel.
      *
-     * @param band the coefficient index, 0..8 (not the SH band {@code l}; see the class comment)
+     * @param index the coefficient index {@code i = l * (l + 1) + m}, 0..8 (see the class comment)
      * @param channel the channel: 0 red, 1 green, 2 blue
-     * @return the value at {@code c[band * CHANNELS + channel]}
-     * @throws ArrayIndexOutOfBoundsException if the computed index is outside {@link #c}
+     * @return the value at {@code c[index * CHANNELS + channel]}
+     * @throws IllegalArgumentException if {@code index} is outside 0..8 or {@code channel} outside 0..2
      */
-    public double get(int band, int channel) {
-        return c[band * CHANNELS + channel];
+    public double get(int index, int channel) {
+        return c[slot(index, channel)];
     }
 
     /**
      * Sets one coefficient of one channel.
      *
-     * @param band the coefficient index, 0..8 (not the SH band {@code l}; see the class comment)
+     * @param index the coefficient index {@code i = l * (l + 1) + m}, 0..8 (see the class comment)
      * @param channel the channel: 0 red, 1 green, 2 blue
-     * @param value the new value of {@code c[band * CHANNELS + channel]}
+     * @param value the new value of {@code c[index * CHANNELS + channel]}
      * @return this
-     * @throws ArrayIndexOutOfBoundsException if the computed index is outside {@link #c}
+     * @throws IllegalArgumentException if {@code index} is outside 0..8 or {@code channel} outside 0..2
      */
-    public ShCoeffs9d set(int band, int channel, double value) {
-        c[band * CHANNELS + channel] = value;
+    public ShCoeffs9d set(int index, int channel, double value) {
+        c[slot(index, channel)] = value;
         return this;
+    }
+
+    private static int slot(int index, int channel) {
+        if (index < 0 || index >= COEFFS) {
+            throw new IllegalArgumentException("index must be in 0.." + (COEFFS - 1) + ": " + index);
+        }
+        if (channel < 0 || channel >= CHANNELS) {
+            throw new IllegalArgumentException("channel must be in 0.." + (CHANNELS - 1) + ": " + channel);
+        }
+        return index * CHANNELS + channel;
     }
 }

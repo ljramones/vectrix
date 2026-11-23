@@ -29,8 +29,9 @@
  * Allocation: no method allocates. Determinism: the Fresnel equations use only arithmetic and square roots, and the
  * thin-film phase uses {@code AccurateMath.cos}, so results match across platforms under
  * {@code -Dvectrix.strictMath}. Errors: a non-positive refractive index or wavelength, a negative extinction
- * coefficient or film thickness, and an invalid stratum throw {@code IllegalArgumentException}; cosines and random
- * numbers are clamped to {@code [0, 1]}, and NaN inputs are not rejected. Precision and naming: {@code ...d}
+ * coefficient or film thickness (a NaN one included), and an invalid stratum throw
+ * {@code IllegalArgumentException}; cosines and random numbers are clamped to {@code [0, 1]}, and a NaN cosine or
+ * random number is not rejected. Precision and naming: {@code ...d}
  * classes are double, {@code ...f} twins are float with the same methods.
  */
 package org.dynamisengine.vectrix.optics;

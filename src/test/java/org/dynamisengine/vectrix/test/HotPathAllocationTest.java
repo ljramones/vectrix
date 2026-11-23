@@ -549,4 +549,58 @@ class HotPathAllocationTest {
         assertEquals(expected, CatmullRom4f.derivative(p0, alias, p2, p3, 0.4f, 0.5f, alias));
     }
 
+    @Test
+    void renderingMathPathsDoNotAllocate() {
+        Vector3f v0 = new Vector3f(-0.5f, -0.5f, 0.3f), v1 = new Vector3f(0.5f, -0.5f, -0.2f);
+        Vector3f v2 = new Vector3f(0.5f, 0.5f, 0.6f), v3 = new Vector3f(-0.5f, 0.5f, 0.4f);
+        Vector3f[] poly = {v0, v1, v2, v3};
+        assertNoAllocation("LtcEvalf.formFactorRectClipped",
+            () -> org.dynamisengine.vectrix.ltc.LtcEvalf.formFactorRectClipped(v0, v1, v2, v3));
+        assertNoAllocation("LtcEvalf.formFactorPolygonClipped",
+            () -> org.dynamisengine.vectrix.ltc.LtcEvalf.formFactorPolygonClipped(poly, 4));
+        Vector3d w0 = new Vector3d(v0), w1 = new Vector3d(v1), w2 = new Vector3d(v2), w3 = new Vector3d(v3);
+        Vector3d[] polyD = {w0, w1, w2, w3};
+        assertNoAllocation("LtcEvald.formFactorRectClipped",
+            () -> org.dynamisengine.vectrix.ltc.LtcEvald.formFactorRectClipped(w0, w1, w2, w3));
+        assertNoAllocation("LtcEvald.formFactorPolygonClipped",
+            () -> org.dynamisengine.vectrix.ltc.LtcEvald.formFactorPolygonClipped(polyD, 4));
+
+        org.dynamisengine.vectrix.atmosphere.AtmosphereModel earth =
+            org.dynamisengine.vectrix.atmosphere.AtmosphereModel.earth();
+        double r = earth.bottomRadius() + 500.0;
+        double[] acc = new double[3], depth = new double[3];
+        assertNoAllocation("Atmosphere.densityIntegrals",
+            () -> org.dynamisengine.vectrix.atmosphere.Atmosphere.densityIntegrals(earth, r, 0.3, 2000.0, acc));
+        assertNoAllocation("Atmosphere.opticalDepth",
+            () -> org.dynamisengine.vectrix.atmosphere.Atmosphere.opticalDepth(earth, r, 0.3, 2000.0, depth));
+
+        float[] dirs = {0, 0, 1, 0, 0.6f, 0.8f, 0.6f, 0, 0.8f};
+        float[] weights = {1, 0.5f, 0.25f};
+        Vector4f lobe = new Vector4f();
+        assertNoAllocation("SphericalGaussiansf.fit",
+            () -> org.dynamisengine.vectrix.spherical.SphericalGaussiansf.fit(dirs, 0, weights, 0, 3, lobe));
+        Vector3f axis = new Vector3f(0, 0, 1), normal = new Vector3f(0, 0.6f, 0.8f);
+        assertNoAllocation("SphericalGaussiansf.irradianceFitted (exact branch)",
+            () -> org.dynamisengine.vectrix.spherical.SphericalGaussiansf.irradianceFitted(axis, 0.5f, 1f, normal));
+
+        Vector3f d65 = new Vector3f(0.95047f, 1f, 1.08883f), aces = new Vector3f(0.9526f, 1f, 1.0088f);
+        float[] m9 = new float[9];
+        double[] m9d = new double[9];
+        Vector3d d65d = new Vector3d(d65), acesd = new Vector3d(aces);
+        assertNoAllocation("ColorSpacesf.adaptationMatrix", () -> org.dynamisengine.vectrix.color.ColorSpacesf
+            .adaptationMatrix(d65, aces, org.dynamisengine.vectrix.color.ColorSpacesd.Adaptation.BRADFORD, m9));
+        assertNoAllocation("ColorSpacesd.adaptationMatrix", () -> org.dynamisengine.vectrix.color.ColorSpacesd
+            .adaptationMatrix(d65d, acesd, org.dynamisengine.vectrix.color.ColorSpacesd.Adaptation.CAT16, m9d));
+        Vector3f rgbOut = new Vector3f();
+        assertNoAllocation("ColorSpacesf.toXyz", () -> org.dynamisengine.vectrix.color.ColorSpacesf.toXyz(d65,
+            org.dynamisengine.vectrix.color.ColorGamut.DISPLAY_P3, rgbOut));
+
+        ShCoeffs9f c9 = new ShCoeffs9f();
+        float[] scratch = new float[9], rgb = new float[3];
+        assertNoAllocation("ShConvolution.evaluateL2 (arrays)",
+            () -> ShConvolution.evaluateL2(c9, 0f, 0.6f, 0.8f, scratch, rgb));
+        Vector3f bl = new Vector3f();
+        assertNoAllocation("Interpolationf.bilinearVec3", () -> org.dynamisengine.vectrix.renderingmath.Interpolationf
+            .bilinearVec3(v0, v1, v2, v3, 0.25f, 0.75f, bl));
+    }
 }
