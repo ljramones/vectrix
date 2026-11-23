@@ -422,6 +422,40 @@ class HotPathAllocationTest {
         org.dynamisengine.vectrix.nn.Pool2d pool = org.dynamisengine.vectrix.nn.Pool2d.of(8, 16, 16, 2, 2, 0);
         int[] parg = new int[8 * 8 * 8];
         assertNoAllocation("Pool2d.max", () -> pool.max(convOut, 0, cin, 0, parg, 0));
+        // estimation
+        org.dynamisengine.vectrix.dsp.ExtendedKalman ekf = new org.dynamisengine.vectrix.dsp.ExtendedKalman(2, 1,
+            (in, out) -> {
+                out[0] = in[0] + in[1];
+                out[1] = in[1];
+            }, (in, out) -> {
+                out[0] = 1;
+                out[1] = 1;
+                out[2] = 0;
+                out[3] = 1;
+            }, (in, out) -> out[0] = in[0], (in, out) -> {
+                out[0] = 1;
+                out[1] = 0;
+            });
+        double[] ex = {0, 1};
+        double[] ep = {1, 0, 0, 1};
+        double[] eq = {1e-3, 0, 0, 1e-3};
+        double[] er = {0.5};
+        double[] ez = {0.3};
+        assertNoAllocation("ExtendedKalman.update", () -> {
+            ekf.predict(ex, ep, eq);
+            ekf.update(ex, ep, er, ez);
+        });
+        double[] lw = new double[4096];
+        double[] pw = new double[4096];
+        assertNoAllocation("ParticleFilter.normalizeLogWeights", () ->
+            org.dynamisengine.vectrix.dsp.ParticleFilter.normalizeLogWeights(lw, 4096, pw));
+        org.dynamisengine.vectrix.fft.RealFftd wplan = org.dynamisengine.vectrix.fft.RealFftd.plan(512);
+        double[] wy = new double[512];
+        double[] wk = {0.6, 0.3, 0.1};
+        double[] wout = new double[512];
+        double[] wscr = new double[org.dynamisengine.vectrix.dsp.Wiener.deconvolveScratchSize(wplan)];
+        assertNoAllocation("Wiener.deconvolve", () -> org.dynamisengine.vectrix.dsp.Wiener.deconvolve(wplan, wy, 0, wk,
+            0, 3, 0.01, wout, 0, wscr, 0));
         double[] legacy = new double[2 * 4096];
         org.dynamisengine.vectrix.fft.FFT1d.forward(legacy); // builds the shared table once
         assertNoAllocation("FFT1d.forward", () -> org.dynamisengine.vectrix.fft.FFT1d.forward(legacy));

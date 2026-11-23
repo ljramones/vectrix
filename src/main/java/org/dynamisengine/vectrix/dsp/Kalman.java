@@ -86,6 +86,21 @@ public final class Kalman {
     public static double update(int n, int m, double[] x, double[] p, double[] h, double[] r, double[] z,
             double[] scratch) {
         need(scratch, scratchSize(n, m));
+        for (int i = 0; i < m; i++) {
+            double v = z[i];
+            for (int j = 0; j < n; j++) {
+                v = Math.fma(-h[i * n + j], x[j], v);
+            }
+            scratch[i] = v;
+        }
+        return correct(n, m, x, p, h, r, scratch);
+    }
+
+    /**
+     * The update given the innovation {@code y = scratch[0 .. m)} and the measurement Jacobian {@code h}: shared by
+     * the linear and the extended filter.
+     */
+    static double correct(int n, int m, double[] x, double[] p, double[] h, double[] r, double[] scratch) {
         int y = 0;
         int s = y + m;
         int ph = s + m * m;      // P·Hᵀ, n×m
@@ -94,13 +109,6 @@ public final class Kalman {
         int t1 = ikh + n * n;    // n×n
         int t2 = t1 + n * n;     // n×n
         int w = t2 + n * n;      // m + n
-        for (int i = 0; i < m; i++) {
-            double v = z[i];
-            for (int j = 0; j < n; j++) {
-                v = Math.fma(-h[i * n + j], x[j], v);
-            }
-            scratch[y + i] = v;
-        }
         matmul(n, n, m, p, 0, false, h, 0, true, scratch, ph);      // P·Hᵀ
         for (int i = 0; i < m; i++) {                                // S = H·(P·Hᵀ) + R
             for (int j = 0; j < m; j++) {
@@ -164,7 +172,7 @@ public final class Kalman {
 
     // ---- small dense helpers (fixed summation order) ----
 
-    private static void matmul(int rows, int inner, int cols, double[] a, int aOff, boolean ta, double[] b, int bOff,
+    static void matmul(int rows, int inner, int cols, double[] a, int aOff, boolean ta, double[] b, int bOff,
             boolean tb, double[] out, int oOff) {
         // out never aliases an input: callers pass distinct regions
         for (int i = 0; i < rows; i++) {
@@ -180,11 +188,11 @@ public final class Kalman {
         }
     }
 
-    private static void symmetrize(int n, double[] a) {
+    static void symmetrize(int n, double[] a) {
         symmetrize(n, a, 0);
     }
 
-    private static void symmetrize(int n, double[] a, int off) {
+    static void symmetrize(int n, double[] a, int off) {
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
                 double v = 0.5 * (a[off + i * n + j] + a[off + j * n + i]);
@@ -195,7 +203,7 @@ public final class Kalman {
     }
 
     /** In-place Cholesky factor {@code L} (lower triangle) of a symmetric positive-definite matrix. */
-    private static void cholesky(int m, double[] a, int off) {
+    static void cholesky(int m, double[] a, int off) {
         for (int j = 0; j < m; j++) {
             double d = a[off + j * m + j];
             for (int l = 0; l < j; l++) {
@@ -217,7 +225,7 @@ public final class Kalman {
     }
 
     /** Solves {@code L·Lᵀ·v = b} in place ({@code b} at {@code vOff}). */
-    private static void solve(int m, double[] l, int lOff, double[] v, int vOff) {
+    static void solve(int m, double[] l, int lOff, double[] v, int vOff) {
         for (int i = 0; i < m; i++) {
             double s = v[vOff + i];
             for (int k = 0; k < i; k++) {

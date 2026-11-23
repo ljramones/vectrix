@@ -133,6 +133,15 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - `AdaptiveFilter`: LMS, normalized LMS and RLS.
   - `Smoothers`: Savitzky–Golay coefficients (smoothing and derivatives), a running median, the alpha-beta
     tracker, and the One Euro filter for jittery input.
+  - Wiener deconvolution of signals and images (`Wiener.deconvolve`, `deconvolve2d`), with a constant or per-bin
+    noise-to-signal ratio.
+  - The adaptive image Wiener filter `Wiener.adaptive2d` (MATLAB's `wiener2`).
+  - The non-causal Wiener filter `H = P_xy/P_xx` (`Wiener.noncausal`, `impulseResponse`), with Welch cross
+    spectra (`Spectra.crossWelch`).
+  - `ExtendedKalman` and `UnscentedKalman` for nonlinear models, sharing `Kalman`'s numerics. On linear models
+    both equal the Kalman filter.
+  - `ParticleFilter`: log-space weight normalization with the evidence increment, effective sample size,
+    systematic resampling, gather and weighted mean. It is reproducible with `nn.Philox` noise.
 - **More neural-network kernels** (`nn`):
   - `Attention.groupedQuery` (and its backward): grouped-query and multi-query attention over shared caches.
   - Vector API paths for tanh, tanh-GELU and the layer/RMS norm loops (2–3.4 times faster). They give the same

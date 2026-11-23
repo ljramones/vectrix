@@ -8262,6 +8262,11 @@ dsp.Kalman.scratchSize(int,int) ef8e7356e5eca265
 dsp.Kalman.predict(int,double[],double[],double[],double[],double[]) 78de0aef86707d4f
 dsp.Mdctd.plan(int) d2ddba6bf7fafd30
 dsp.Mdctf.plan(int) a0b05e75d12bc9c2
+dsp.ParticleFilter.effectiveSampleSize(double[],int) 5da7383085f8d006
+dsp.ParticleFilter.normalizeLogWeights(double[],int,double[]) 07ae03d72f6ca837
+dsp.ParticleFilter.gather(double[],int,int,int[],double[]) 09d87f3b6bc3466c
+dsp.ParticleFilter.mean(double[],int,int,double[],double[]) 7971af59cb9cf4f2
+dsp.ParticleFilter.systematicResample(double[],int,double,int[]) b7b263824429599c
 dsp.Resampler.plan(int,int) c29155f9bef0eba9
 dsp.Resampler.plan(int,int,int,double) 3f971e328f8ebf27
 dsp.Smoothers.alphaBeta(double[],double,double,double,double) 14bd3996c336d587
@@ -8275,9 +8280,11 @@ dsp.Toeplitz.solve(double[],double[],int,double[],double[]) 3499fbf0942ff8b5
 dsp.Wavelet.daubechies(int) 012c7f197255f63e
 dsp.Wavelet.fromLowpass(double[]) 60a82fa164ec3cb5
 dsp.Wavelet.haar() bedd6e1b75862100
+dsp.Wiener.adaptive2d(double[],int,int,int,double,double[],double[]) 95f34e9ac00cec25
 dsp.Wiener.apply(double[],int,double[],int) 8fbc99d25a8d3e0b
 dsp.Wiener.fir(double[],double[],int,double[],double[]) 265b41954b54b956
 dsp.Wiener.gain(double[],double[],int,double,double[]) 8d5e740b586efca3
+dsp.Wiener.noncausal(double[],double[],int,double[]) 19952a07e553ec43
 dsp.Windows.coherentGain(double[],int,int) a6fadb0b6493caa8
 dsp.Windows.equivalentNoiseBandwidth(double[],int,int) 810bdd20b2728bee
 dsp.Windows.blackman(double[],int,int,boolean) 5cdd0c2f75475463

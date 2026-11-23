@@ -97,6 +97,69 @@ public final class Spectra {
         return segments;
     }
 
+    /** @return the scratch doubles {@link #crossWelch} needs with this plan */
+    public static int crossScratchSize(RealFftd plan) {
+        return 2 * plan.spectrumLength() + plan.scratchSize();
+    }
+
+    /**
+     * Welch's estimate of the one-sided cross power spectral density {@code P_xy[k] = c·conj(X[k])·Y[k] / Σw²},
+     * averaged over segments, scaled like {@link #welch} (so {@code P_xx} is the PSD of {@code x}).
+     *
+     * @param out receives {@code n/2 + 1} complex values, interleaved
+     * @return the number of segments averaged
+     */
+    public static int crossWelch(RealFftd plan, double[] window, int windowOff, int hop, double[] x, int xOff,
+            double[] y, int yOff, int length, double[] out, int outOff, double[] scratch, int scratchOff) {
+        int n = plan.size();
+        if (hop < 1 || length < n) {
+            throw new IllegalArgumentException("need hop >= 1 and length >= n: hop " + hop + ", length " + length);
+        }
+        check(x, xOff, length, "x");
+        check(y, yOff, length, "y");
+        check(out, outOff, 2 * (n / 2 + 1), "out");
+        check(scratch, scratchOff, crossScratchSize(plan), "scratch");
+        if (window != null) {
+            check(window, windowOff, n, "window");
+        }
+        int sp = plan.spectrumLength();
+        int bx = scratchOff;
+        int by = scratchOff + sp;
+        int work = scratchOff + 2 * sp;
+        java.util.Arrays.fill(out, outOff, outOff + 2 * (n / 2 + 1), 0.0);
+        int segments = 0;
+        for (int start = 0; start + n <= length; start += hop) {
+            for (int k = 0; k < n; k++) {
+                double w = window == null ? 1.0 : window[windowOff + k];
+                scratch[bx + k] = x[xOff + start + k] * w;
+                scratch[by + k] = y[yOff + start + k] * w;
+            }
+            plan.forward(scratch, bx, scratch, bx, scratch, work);
+            plan.forward(scratch, by, scratch, by, scratch, work);
+            for (int k = 0; k <= n / 2; k++) {
+                double xr = scratch[bx + 2 * k];
+                double xi = scratch[bx + 2 * k + 1];
+                double yr = scratch[by + 2 * k];
+                double yi = scratch[by + 2 * k + 1];
+                out[outOff + 2 * k] += xr * yr + xi * yi;     // conj(X)·Y
+                out[outOff + 2 * k + 1] += xr * yi - xi * yr;
+            }
+            segments++;
+        }
+        double s2 = 0.0;
+        for (int k = 0; k < n; k++) {
+            double w = window == null ? 1.0 : window[windowOff + k];
+            s2 += w * w;
+        }
+        double base = 1.0 / (s2 * segments);
+        for (int k = 0; k <= n / 2; k++) {
+            double c = k == 0 || 2 * k == n ? base : 2 * base;
+            out[outOff + 2 * k] *= c;
+            out[outOff + 2 * k + 1] *= c;
+        }
+        return segments;
+    }
+
     private static void accumulate(RealFftd plan, double[] window, int windowOff, double[] x, int xOff,
             double[] psd, int psdOff, double[] scratch, int scratchOff) {
         int n = plan.size();
