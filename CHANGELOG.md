@@ -95,6 +95,9 @@ The migration guide covers each of these.
 - `Matrix4dc.frustumAabb`.
 - `Interpolationd.bilinearVec3`.
 - `QuatCompression.IDENTITY` and `OctaNormal.UP`.
+- Float overloads for `Spectra` (`periodogram`, `welch`, `crossWelch`, `analytic`) and for every `Wiener` method,
+  with their float scratch sizes. Like the other float overloads, they compute in double and round once.
+- `ParticleFilter.systematicResample(w, count, seed, index, indices)` draws its uniform from `Philox.uniformDouble`.
 
 ### Fixed
 - `SphericalGaussians*.irradianceFitted` was wrong below sharpness 1: NaN at 0, about −3e15 at 1e-6, still negative
@@ -102,7 +105,10 @@ The migration guide covers each of these.
 - `QuatCompression` encoded a zero or NaN quaternion as a half turn. It is now the identity, and `OctaNormal`
   defines zero and NaN input too.
 - `RobustPredicates` threw `NumberFormatException` for NaN or infinite input. It now returns NaN.
-- `BoundingVolumes*.transformSphere` and `aabOfCylinder` could cut into the shape. Both are now conservative.
+- The `BoundingVolumes*` bounds could cut into their shape by up to half an ulp. `transformSphere`,
+  `aabOfCylinder`, `aabOfCapsule`, `aabOfObb` and `aabOfTransformedPoints` now round outward.
+- `Formats.quantizeInt8` underflowed to a zero scale for blocks of tiny values. Their scale now rounds up, so the
+  codes stay meaningful.
 - `SpatialCodes.morton2dX`/`Y` mis-decoded codes with the top bit set.
 - `GpuTransformLayout.write` silently used the compact encoding for mixed layouts.
 - `WorldPos.normalize`, `add` and `set` are atomic.
@@ -121,7 +127,10 @@ The migration guide covers each of these.
   - `PackedAffineKernels`, `PoseKernels*`, `IntegratorRK4*`, `Projections*.haltonJitter`;
   - the `soa` kernels;
   - every `nn` kernel;
-  - `InstanceSubmissionPipeline`, `PackedFormats.qTangent`, `Conv2d.of`/`Pool2d.of`.
+  - `InstanceSubmissionPipeline`, `PackedFormats.qTangent`, `Conv2d.of`/`Pool2d.of`;
+  - `ParticleFilter`;
+  - the curve batch evaluators in `curve.scalar`, `vec2`, `vec3` and `vec4`. A negative count used to do nothing,
+    and now throws.
 - Allocation removed from:
   - `ColorSpacesd.adaptationMatrix`, the LTC clipped form factors and the atmosphere quadrature;
   - `SpatialCodes.hilbert3d`, `MeshMath`, `BoundingVolumes*.kDop` and least squares;

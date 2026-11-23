@@ -39,7 +39,7 @@ import org.dynamisengine.vectrix.hash.Philox;
  * {@link org.dynamisengine.vectrix.core.ReproducibleMath}'s reproducible functions; nothing allocates.
  * <p>
  * All arrays are used from index 0, and particles are stored contiguously, {@code dim} doubles each. Only
- * {@link #normalizeLogWeights} validates its arguments; the other methods rely on Java's array bounds checks.
+ * Every method checks its arguments up front and throws {@link IllegalArgumentException} before writing anything.
  *
  * @since 2.5.0
  */
@@ -89,8 +89,11 @@ public final class ParticleFilter {
      * @param w {@code count} normalized weights
      * @param count the number of particles
      * @return the effective number of particles
+     * @throws IllegalArgumentException if {@code count < 1} or {@code w} is null or shorter than {@code count}
      */
     public static double effectiveSampleSize(double[] w, int count) {
+        needCount(count);
+        need(w == null ? -1 : w.length, count, "w");
         double s = 0;
         for (int i = 0; i < count; i++) {
             s = Math.fma(w[i], w[i], s);
@@ -107,8 +110,15 @@ public final class ParticleFilter {
      * @param count the number of particles, at least 1
      * @param u a uniform number in [0, 1)
      * @param indices receives {@code count} particle indices, ascending
+     * @throws IllegalArgumentException if {@code count < 1}, an array is null or too short, or {@code u} is not in [0, 1)
      */
     public static void systematicResample(double[] w, int count, double u, int[] indices) {
+        needCount(count);
+        need(w == null ? -1 : w.length, count, "w");
+        need(indices == null ? -1 : indices.length, count, "indices");
+        if (!(u >= 0 && u < 1)) {
+            throw new IllegalArgumentException("u must be in [0, 1): " + u);
+        }
         double cum = w[0];
         int i = 0;
         for (int j = 0; j < count; j++) {
@@ -147,8 +157,23 @@ public final class ParticleFilter {
      * @param count the number of particles to copy
      * @param indices {@code count} indices into {@code particles}, as {@link #systematicResample} writes them
      * @param out receives {@code count·dim} doubles
+     * @throws IllegalArgumentException if {@code dim < 1} or {@code count < 0}, an array is null or too short, {@code out} is {@code particles}, or an index is outside {@code particles}
      */
     public static void gather(double[] particles, int dim, int count, int[] indices, double[] out) {
+        if (dim < 1 || count < 0) {
+            throw new IllegalArgumentException("need dim >= 1 and count >= 0: " + dim + ", " + count);
+        }
+        need(indices == null ? -1 : indices.length, count, "indices");
+        need(out == null ? -1 : out.length, (long) count * dim, "out");
+        if (particles == null || out == particles) {
+            throw new IllegalArgumentException("particles must be non-null and distinct from out");
+        }
+        long available = particles.length / dim;
+        for (int j = 0; j < count; j++) {
+            if (indices[j] < 0 || indices[j] >= available) {
+                throw new IllegalArgumentException("index " + indices[j] + " at " + j + " is not a particle");
+            }
+        }
         for (int j = 0; j < count; j++) {
             System.arraycopy(particles, indices[j] * dim, out, j * dim, dim);
         }
@@ -162,14 +187,34 @@ public final class ParticleFilter {
      * @param count the number of particles
      * @param w {@code count} weights, normally normalized
      * @param mean receives {@code dim} doubles; must not overlap {@code particles} or {@code w}
+     * @throws IllegalArgumentException if {@code dim < 1} or {@code count < 1}, or an array is null or too short
      */
     public static void mean(double[] particles, int dim, int count, double[] w, double[] mean) {
+        if (dim < 1) {
+            throw new IllegalArgumentException("dim must be at least 1: " + dim);
+        }
+        needCount(count);
+        need(particles == null ? -1 : particles.length, (long) count * dim, "particles");
+        need(w == null ? -1 : w.length, count, "w");
+        need(mean == null ? -1 : mean.length, dim, "mean");
         for (int a = 0; a < dim; a++) {
             double v = 0;
             for (int i = 0; i < count; i++) {
                 v = Math.fma(w[i], particles[i * dim + a], v);
             }
             mean[a] = v;
+        }
+    }
+
+    private static void needCount(int count) {
+        if (count < 1) {
+            throw new IllegalArgumentException("need at least one particle: " + count);
+        }
+    }
+
+    private static void need(int length, long size, String name) {
+        if (length < size) {
+            throw new IllegalArgumentException(name + " must hold " + size + " values");
         }
     }
 }
