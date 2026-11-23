@@ -30,6 +30,7 @@ module org.dynamisengine.vectrix {
     exports org.dynamisengine.vectrix.fft;
     exports org.dynamisengine.vectrix.dsp;
     exports org.dynamisengine.vectrix.blas;
+    exports org.dynamisengine.vectrix.nn;
     exports org.dynamisengine.vectrix.simd;
     exports org.dynamisengine.vectrix.soa;
     exports org.dynamisengine.vectrix.world;

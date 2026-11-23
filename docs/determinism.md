@@ -90,3 +90,13 @@ re-record the file:
 ```
 mvn test -Dtest=CrossPlatformDeterminismTest -Dvectrix.determinism.write=$PWD/src/test/resources/determinism/golden.txt
 ```
+
+## Neural-network kernels
+
+`nn.NnMath` does not use `java.lang.Math` or `StrictMath` transcendentals at all. Its float functions (exp, log,
+tanh, erf, the normal CDF and density) are built from series with exact rational coefficients, exact argument
+reductions and fused multiply-adds, and its Vector API forms perform the same operations. They are therefore
+reproducible everywhere, independently of `-Dvectrix.strictMath`, and the golden hashes them on every CI platform.
+The `blas` reductions and matrix products have one documented order (see `Blasf`). Together these make the
+`blas` and `nn` kernels bit-identical across x86_64 and arm64, both jars and any batch size.
+

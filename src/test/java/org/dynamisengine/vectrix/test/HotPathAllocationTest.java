@@ -376,6 +376,18 @@ class HotPathAllocationTest {
         float[] gms = new float[org.dynamisengine.vectrix.blas.Gemmf.scratchSize(false, false, 48, 40, 300)];
         assertNoAllocation("Gemmf.gemm", () -> org.dynamisengine.vectrix.blas.Gemmf.gemm(false, false, 48, 40, 300, 1f,
             ga, 0, 300, gb, 0, 40, 0f, gc, 0, 40, gms, 0));
+        // neural-network kernels
+        float[] nx = new float[1024];
+        float[] ny = new float[1024];
+        float[] nscratch = new float[2048];
+        float[] nstats = new float[2];
+        assertNoAllocation("Softmax.softmax", () -> org.dynamisengine.vectrix.nn.Softmax.softmax(nx, 0, ny, 0, 1024));
+        assertNoAllocation("Activations.silu", () -> org.dynamisengine.vectrix.nn.Activations.silu(nx, 0, ny, 0, 1024));
+        assertNoAllocation("Activations.gelu", () -> org.dynamisengine.vectrix.nn.Activations.gelu(nx, 0, ny, 0, 1024));
+        assertNoAllocation("Norms.layerNorm", () -> org.dynamisengine.vectrix.nn.Norms.layerNorm(nx, 0, null, 0, null, 0,
+            1e-5f, ny, 0, 1024, nstats, 0));
+        assertNoAllocation("Norms.rmsNormBackward", () -> org.dynamisengine.vectrix.nn.Norms.rmsNormBackward(nx, 0,
+            null, 0, nstats, 0, nx, 0, ny, 0, null, 0, 1024, nscratch, 0));
         double[] legacy = new double[2 * 4096];
         org.dynamisengine.vectrix.fft.FFT1d.forward(legacy); // builds the shared table once
         assertNoAllocation("FFT1d.forward", () -> org.dynamisengine.vectrix.fft.FFT1d.forward(legacy));
