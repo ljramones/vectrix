@@ -8827,6 +8827,8 @@ nn.Activations.tanh(float[],int,float[],int,int) 03c26baa6fa1a93e
 nn.Activations.tanhBackward(float[],int,float[],int,float[],int,int) 22a72037beec5f21
 nn.Attention.backward(float[],int,int,float[],int,int,float[],int,int,int,int,float,float[],int,float[],int,float[],int,float[],int,float[],int,float[],int) 3f971e328f8ebf27
 nn.Attention.forward(float[],int,int,float[],int,int,float[],int,int,int,int,float,float[],int,float[],int,float[],int,float[],int) cfb5b3f8f80c9bb9
+nn.Conv2d.of(int,int,int,int,int,int,int,int,int,int) 6f9b5e99d6e6bffd
+nn.Conv2d.of(int,int,int,int,int,int,int,int,int,int,int,int,int) 3f971e328f8ebf27
 nn.Formats.toE4M3(float,boolean) 5419d77a1d1f23ba
 nn.Formats.toE5M2(float,boolean) 0cbb5aa493284e04
 nn.Formats.toBf16(float) 82c1c6fce97a54b7
@@ -8860,6 +8862,7 @@ nn.Philox.block(int,int,int,int,int,int,int[],int) 1ea4082fd543c9a3
 nn.Philox.dropout(long,long,float,float[],int,float[],int,int) c8735649b53ad34f
 nn.Philox.fillNormal(long,long,float,float,float[],int,int) 76a4c1932865533d
 nn.Philox.fillUniform(long,long,float[],int,int) 2cfd7f5081a956a6
+nn.Pool2d.of(int,int,int,int,int,int) 3f971e328f8ebf27
 nn.Rope.plan(double[],Layout) ef203179b943802b
 nn.Rope.plan(int,double,Layout) 3f971e328f8ebf27
 nn.Sampler.argmax(float[],int,int) 051cb827f06a4a79

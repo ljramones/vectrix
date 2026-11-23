@@ -412,6 +412,16 @@ class HotPathAllocationTest {
         float[] ov = new float[1024];
         assertNoAllocation("Optim.adamW", () -> org.dynamisengine.vectrix.nn.Optim.adamW(ny, 0, nx, 0, om, 0, ov, 0,
             1024, 1e-3f, 0.9f, 0.999f, 1e-8f, 0.01f, 5));
+        org.dynamisengine.vectrix.nn.Conv2d conv = org.dynamisengine.vectrix.nn.Conv2d.of(4, 8, 16, 16, 3, 3, 1, 1, 1, 1);
+        float[] cin = new float[4 * 16 * 16];
+        float[] cw = new float[conv.weightCount()];
+        float[] convOut = new float[8 * 16 * 16];
+        float[] convScr = new float[conv.scratchSize()];
+        assertNoAllocation("Conv2d.forward", () -> conv.forward(cin, 0, cw, 0, null, 0, convOut, 0, convScr, 0));
+        assertNoAllocation("Conv2d.backward", () -> conv.backward(cin, 0, cw, 0, convOut, 0, cin, 0, cw, 0, null, 0, convScr, 0));
+        org.dynamisengine.vectrix.nn.Pool2d pool = org.dynamisengine.vectrix.nn.Pool2d.of(8, 16, 16, 2, 2, 0);
+        int[] parg = new int[8 * 8 * 8];
+        assertNoAllocation("Pool2d.max", () -> pool.max(convOut, 0, cin, 0, parg, 0));
         double[] legacy = new double[2 * 4096];
         org.dynamisengine.vectrix.fft.FFT1d.forward(legacy); // builds the shared table once
         assertNoAllocation("FFT1d.forward", () -> org.dynamisengine.vectrix.fft.FFT1d.forward(legacy));

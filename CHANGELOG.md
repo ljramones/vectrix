@@ -113,6 +113,12 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     and a backward pass. It is built from the deterministic dot, softmax and transposed GEMV, so results are
     batch-invariant.
   - `Optim`: AdamW (decoupled weight decay), SGD with momentum and Nesterov, and the global-norm clip factor.
+- **Convolution and pooling** (`nn`):
+  - `Conv2d`: 2D convolution (1D as a special case) with stride, padding, dilation and groups (including depthwise),
+    forward and backward. It is im2col followed by the deterministic GEMM, so every output is one documented-order
+    dot product and results are batch-invariant.
+  - `Pool2d`: max pooling (with argmax for the backward pass) and average pooling over the in-bounds cells, forward
+    and backward.
 - `AccurateMath.cosTurns/sinTurns(e, d)`: cos and sin of `2π·e/d`, with the angle reduced exactly in integers. The
   symmetries are exact (odd multiples of π/4 give the correctly rounded √½ for both). The FFT twiddles now use
   them.
