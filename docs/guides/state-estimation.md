@@ -107,6 +107,7 @@ if (d2 > GATE) {
 - `Kalman.update(n, m, x, p, h, r, z, scratch)` computes the innovation `y = z - H·x`, the gain
   `K = P·Hᵀ·S⁻¹` with `S = H·P·Hᵀ + R`, then `x += K·y` and the new covariance. It returns the squared Mahalanobis
   distance `yᵀ·S⁻¹·y` of the innovation, which the loop above uses for gating (see below).
+- `Kalman.innovationDistance(n, m, x, p, h, r, z, scratch)` returns the same distance without changing `x` and `p`.
 
 If several sensors measure at different times, call `update` once per measurement with that sensor's `h`, `r` and
 `m`. If measurements are missing for a step, call `predict` only. If the time step varies, rebuild `F` and `Q` for
@@ -160,10 +161,20 @@ degrees of freedom, so you can reject measurements whose `d²` exceeds a thresho
 | 2 | 5.99 | 9.21 |
 | 3 | 7.81 | 11.34 |
 
-`update` changes `x` and `p` before you see the distance, so to gate, copy `x` and `p` before the call and copy them
-back when the distance is too large. The loop above does this with a threshold of 16 (four standard deviations for
-one measured value). The same pattern works for `ExtendedKalman.update` and `UnscentedKalman.update`, which return
-the same distance.
+To gate, compute the distance first with `Kalman.innovationDistance`, which leaves `x` and `p` unchanged and returns
+exactly what `update` would, and call `update` only when the measurement passes:
+
+```java
+double d2 = Kalman.innovationDistance(n, m, x, p, h, r, z, scratch);
+if (d2 <= GATE) {
+    Kalman.update(n, m, x, p, h, r, z, scratch);
+}
+```
+
+The example loop above instead copies `x` and `p` before `update` and restores them when the distance is too large,
+with a threshold of 16 (four standard deviations for one measured value); both give the same result.
+`ExtendedKalman.innovationDistance` and `UnscentedKalman.innovationDistance` do the same for the nonlinear filters,
+whose `update` returns the same distance.
 
 Gate only after the filter has settled. While `P` is still large, almost every measurement passes, and a filter that
 rejects too many measurements in a row can lose track; count consecutive rejections and reinitialize when they pile
@@ -187,10 +198,11 @@ above. The update uses the same numerics as `Kalman` and returns the same gating
 
 If the step length varies, let `f` and `fJacobian` read `dt` from a field you set before each `predict`.
 
-Angles need care. The filter computes the innovation `z - h(x)` itself, so a bearing measured as +179° against a
-prediction of -179° gives an innovation of 358°. Before each `update`, add or subtract 2π to the measured angle so
-that it lies within π of the predicted one, and wrap angle state values back into range after `predict` and
-`update` (they are in your `x` array).
+Angles need care. By default the filter computes the innovation as `z - h(x)`, so a bearing measured as +179°
+against a prediction of -179° gives an innovation of 358°. Pass an `InnovationFunction` as the seventh constructor
+argument, `new ExtendedKalman(n, m, f, fJacobian, h, hJacobian, innovation)`, to form the innovation yourself, for
+example wrapping the angle difference into [-π, π] (the `InnovationFunction` Javadoc shows one). Wrap angle state
+values back into range after `predict` and `update` (they are in your `x` array).
 
 ## Nonlinear models with the unscented Kalman filter
 
@@ -207,8 +219,8 @@ The three parameters place the sigma points `x ± columns of chol((n + λ)·P)`,
 | `kappa` | `0` | Secondary scaling |
 
 The UKF calls each model function `2n + 1` times per step, so its cost grows with the state size faster than the
-EKF's. It throws `IllegalStateException` when `P` or `S` is not positive definite; this usually means `Q` or `R` is
-too small or contains NaN. Angles need the same care as in the EKF; sigma points spread across ±π average to the
+EKF's. It throws `IllegalStateException` when `P` or `S` is not positive definite, and the message says which; this
+usually means `Q` or `R` is too small or contains NaN. The constructor requires `n + kappa > 0`. Angles need the same care as in the EKF; sigma points spread across ±π average to the
 wrong angle, so keep the angle uncertainty well below π.
 
 ## Multimodal beliefs with a particle filter
@@ -257,7 +269,9 @@ the measurements up to that step. For smoothing a signal, `Smoothers` has:
 - **Numerics.** `Kalman.update` and `ExtendedKalman.update` solve for the gain with a Cholesky factorization of `S`
   (no matrix inverse) and update the covariance in Joseph form, `P = (I - KH)P(I - KH)ᵀ + KRKᵀ`, which keeps `P`
   symmetric and positive semi-definite despite rounding. Both filter steps symmetrize `P` exactly.
-  `UnscentedKalman.update` uses `P -= K·S·Kᵀ` and also symmetrizes `P`.
+  `UnscentedKalman.update` computes the unscented `P - K·S·Kᵀ` in the equivalent Joseph form, with the statistically
+  linearized `H = Pxzᵀ·P⁻¹` and `R` plus the covariance of the sigma points' linearization residuals, so it too keeps
+  `P` symmetric and positive semi-definite (for any `beta >= alpha²`, which includes the usual `beta = 2`).
 - **Reproducibility.** Every sum runs in a fixed order with fused multiply-adds, so the same inputs give the same
   bits. `ParticleFilter.normalizeLogWeights` uses `ReproducibleMath` for its exponentials and logarithms.
 - **Allocation.** `Kalman` and `ParticleFilter` never allocate. `ExtendedKalman` and `UnscentedKalman` allocate their

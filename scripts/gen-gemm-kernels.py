@@ -80,6 +80,9 @@ public final class {cls} {{
      * @return the number of {T}s
      */
     public static int scratchSize(boolean transA, boolean transB, int m, int n, int k) {{
+        if (m < 0 || n < 0 || k < 0) {{
+            throw new IllegalArgumentException("negative size: " + m + ", " + n + ", " + k);
+        }}
         long s = (long) DEPTH * MR * NR;
         if (!transB) {{
             s += (long) Math.min(NC, n) * k;
@@ -185,14 +188,16 @@ public final class {cls} {{
         matrix(a, aOff, lda, transA ? n : m, transA ? m : n, "a");
         matrix(x, xOff, n, 1, n, "x");
         matrix(y, yOff, m, 1, m, "y");
+        if (transA && n > 0 && (scratch == null || scratchOff < 0 || scratchOff > scratch.length - n)) {{
+            throw new IllegalArgumentException("scratch must hold " + n + " values from offset " + scratchOff);
+        }}
         for (int i = 0; i < m; i++) {{
             {T} s;
-            if (!transA) {{
+            if (n == 0) {{
+                s = {z};
+            }} else if (!transA) {{
                 s = {blas}.dot(a, aOff + i * lda, x, xOff, n);
             }} else {{
-                if (scratch == null || scratchOff < 0 || scratchOff > scratch.length - n) {{
-                    throw new IllegalArgumentException("scratch must hold " + n + " values from offset " + scratchOff);
-                }}
                 for (int kk = 0; kk < n; kk++) {{
                     scratch[scratchOff + kk] = a[aOff + kk * lda + i];
                 }}

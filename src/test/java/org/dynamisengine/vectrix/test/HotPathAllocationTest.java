@@ -542,6 +542,9 @@ class HotPathAllocationTest {
         double[] cout = new double[corr.outputLength()];
         double[] cs = new double[corr.scratchSize()];
         assertNoAllocation("Correlation.correlate", () -> corr.correlate(cx, 0, cx, 0, cout, 0, cs, 0));
+        float[] cxf = new float[400];
+        float[] coutf = new float[corr.outputLength()];
+        assertNoAllocation("Correlation.correlate float", () -> corr.correlate(cxf, 0, cxf, 0, coutf, 0, cs, 0));
         assertNoAllocation("Goertzel.power", () -> org.dynamisengine.vectrix.dsp.Goertzel.power(sig, 0, 512, 0.1));
         org.dynamisengine.vectrix.dsp.Mdctd mdct = org.dynamisengine.vectrix.dsp.Mdctd.plan(256);
         double[] mc = new double[256];
@@ -651,6 +654,70 @@ class HotPathAllocationTest {
         double[] wscr = new double[org.dynamisengine.vectrix.dsp.Wiener.deconvolveScratchSize(wplan)];
         assertNoAllocation("Wiener.deconvolve", () -> org.dynamisengine.vectrix.dsp.Wiener.deconvolve(wplan, wy, 0, wk,
             0, 3, 0.01, wout, 0, wscr, 0));
+        // 3.0: gating, the Joseph-form UKF, validated dsp kernels and the 2D inverses
+        double[] kx = {0, 1};
+        double[] kp = {1, 0, 0, 1};
+        double[] kh = {1, 0};
+        double[] kscr = new double[org.dynamisengine.vectrix.dsp.Kalman.scratchSize(2, 1)];
+        assertNoAllocation("Kalman.innovationDistance", () -> org.dynamisengine.vectrix.dsp.Kalman.innovationDistance(
+            2, 1, kx, kp, kh, er, ez, kscr));
+        assertNoAllocation("ExtendedKalman.innovationDistance", () -> ekf.innovationDistance(ex, ep, er, ez));
+        org.dynamisengine.vectrix.dsp.UnscentedKalman ukf = new org.dynamisengine.vectrix.dsp.UnscentedKalman(2, 1,
+            (in, out) -> {
+                out[0] = in[0] + in[1];
+                out[1] = in[1];
+            }, (in, out) -> out[0] = in[0], 1e-3, 2, 0);
+        double[] ux = {0, 1};
+        double[] up = {1, 0, 0, 1};
+        assertNoAllocation("UnscentedKalman.update", () -> {
+            ukf.predict(ux, up, eq);
+            ukf.update(ux, up, er, ez);
+        });
+        assertNoAllocation("UnscentedKalman.innovationDistance", () -> ukf.innovationDistance(ux, up, er, ez));
+        double[] tr = {4, 1, 0.5, 0.25, 0.1};
+        double[] tb = {1, 2, 3, 4, 5};
+        double[] tx = new double[5];
+        double[] ta = new double[5];
+        double[] tk = new double[4];
+        double[] tscr = new double[10];
+        assertNoAllocation("Toeplitz.solve", () -> org.dynamisengine.vectrix.dsp.Toeplitz.solve(tr, tb, 5, tx, tscr));
+        assertNoAllocation("Toeplitz.levinsonDurbin", () -> org.dynamisengine.vectrix.dsp.Toeplitz.levinsonDurbin(tr,
+            4, ta, tk, tscr));
+        org.dynamisengine.vectrix.fft.RealFft2d r2 = org.dynamisengine.vectrix.fft.RealFft2d.plan(24, 30);
+        double[] r2in = new double[24 * 30];
+        double[] r2spec = new double[r2.spectrumLength()];
+        double[] r2s = new double[r2.scratchSize()];
+        assertNoAllocation("RealFft2d.inverse", () -> r2.inverse(r2spec, 0, r2in, 0, r2s, 0));
+        assertNoAllocation("ComplexFft2f.inverse", () -> g.inverse(grid, 0, gs, 0));
+        org.dynamisengine.vectrix.dsp.Wavelet wav = org.dynamisengine.vectrix.dsp.Wavelet.daubechies(3);
+        double[] wvOut = new double[512];
+        double[] wvScr = new double[512];
+        assertNoAllocation("Wavelet.forward multilevel", () -> wav.forward(sig, 0, 512, 4, wvOut, 0, wvScr, 0));
+        assertNoAllocation("Wavelet.inverse multilevel", () -> wav.inverse(wvOut, 0, 512, 4, sig, 0, wvScr, 0));
+        float[] wvOutf = new float[512];
+        double[] wvScr2 = new double[1024];
+        assertNoAllocation("Wavelet.forward float", () -> wav.forward(sigf, 0, 512, 4, wvOutf, 0, wvScr2, 0));
+        assertNoAllocation("Wavelet.inverse float", () -> wav.inverse(wvOutf, 0, 512, 4, sigf, 0, wvScr2, 0));
+        float[] trf = {4, 1, 0.5f, 0.25f, 0.1f};
+        float[] txf = new float[5];
+        assertNoAllocation("Toeplitz.solve float", () -> org.dynamisengine.vectrix.dsp.Toeplitz.solve(trf, trf, 5, txf,
+            tscr));
+        org.dynamisengine.vectrix.fft.RealFftd sp = org.dynamisengine.vectrix.fft.RealFftd.plan(128);
+        double[] psd = new double[65];
+        double[] spScr = new double[org.dynamisengine.vectrix.dsp.Spectra.scratchSize(sp)];
+        assertNoAllocation("Spectra.welch", () -> org.dynamisengine.vectrix.dsp.Spectra.welch(sp, hw, 0, 64, sig, 0,
+            512, psd, 0, spScr, 0));
+        float[] medOut = new float[512];
+        float[] medScr = new float[5];
+        assertNoAllocation("Smoothers.median", () -> org.dynamisengine.vectrix.dsp.Smoothers.median(sigf, 0, 512, 2,
+            medOut, 0, medScr));
+        double[] taps = new double[63];
+        assertNoAllocation("FirDesign.lowpass", () -> org.dynamisengine.vectrix.dsp.FirDesign.lowpass(taps, 0, 63, 0.2,
+            null, 0));
+        float[] gvScr = new float[300];
+        float[] gvy = new float[40];
+        assertNoAllocation("Gemmf.gemv transposed", () -> org.dynamisengine.vectrix.blas.Gemmf.gemv(true, 40, 300, 1f,
+            gb, 0, 40, bx, 0, 0f, gvy, 0, gvScr, 0));
     }
 
     /** The previous squadControlPoint, written with the public API (it allocated eight quaternions). */

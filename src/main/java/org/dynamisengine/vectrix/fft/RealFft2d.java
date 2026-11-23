@@ -29,8 +29,8 @@ package org.dynamisengine.vectrix.fft;
  * non-redundant half of each row: {@code rows × (cols/2 + 1)} complex values, row-major and interleaved, so row
  * {@code r} starts at {@code off + r·}{@link #spectrumRowLength()}.
  * <p>
- * {@link #forward} is unscaled and does not modify its input; {@link #inverse} divides by {@code rows·cols} and
- * <b>overwrites the spectrum</b> it reads. Rows use {@link RealFftd} and columns {@link ComplexFftd}, processed
+ * {@link #forward} is unscaled; {@link #inverse} divides by {@code rows·cols} once, after both passes. Neither
+ * modifies its input, like the 1D transforms. Rows use {@link RealFftd} and columns {@link ComplexFftd}, processed
  * 16 at a time. Accuracy, thread safety and determinism are those of {@link ComplexFftd}.
  *
  * @since 2.5.0
@@ -45,6 +45,7 @@ public final class RealFft2d {
     private final RealFftd rowPlan;
     private final ComplexFftd colPlan;
     private final int tile;
+    private final int buf;
     private final int scratchSize;
 
     private RealFft2d(int rows, int cols) {
@@ -54,10 +55,12 @@ public final class RealFft2d {
         rowPlan = RealFftd.plan(cols);
         colPlan = ComplexFftd.plan(rows);
         tile = java.lang.Math.min(TILE, half);
-        long need = 2L * rows * tile + java.lang.Math.max(rowPlan.scratchSize(), colPlan.scratchSize());
+        long b = java.lang.Math.max(2L * rows * tile, 2L * half); // column tiles, or one unpacked spectrum row
+        long need = b + java.lang.Math.max(rowPlan.scratchSize(), colPlan.scratchSize());
         if (need > Integer.MAX_VALUE - 8) {
             throw new IllegalArgumentException("grid too large: " + rows + " x " + cols);
         }
+        buf = (int) b;
         scratchSize = (int) need;
     }
 
@@ -137,19 +140,21 @@ public final class RealFft2d {
         check(in, inOff, (long) rows * cols, "in");
         check(out, outOff, spectrumLength(), "out");
         check(scratch, scratchOff, scratchSize, "scratch");
-        int work = scratchOff + 2 * rows * tile;
+        int work = scratchOff + buf;
         int rl = 2 * half;
         for (int r = 0; r < rows; r++) {
             rowPlan.forward(in, inOff + r * cols, out, outOff + r * rl, scratch, work);
         }
-        columns(out, outOff, scratch, scratchOff, work, false);
+        columns(out, outOff, scratch, scratchOff, work);
     }
 
     /**
-     * Inverse-transforms a half spectrum into the real grid, dividing by {@code rows·cols}. The spectrum is
-     * overwritten.
+     * Inverse-transforms a half spectrum into the real grid, dividing by {@code rows·cols} once. {@code in} is not
+     * modified. The columns are transformed first and kept in {@code out}, packed (each row's half spectrum has
+     * real values at {@code 0} and, for even {@code cols}, at {@code cols/2}, so it fits in {@code cols}
+     * values); then each row is unpacked into the scratch and transformed.
      *
-     * @param in the {@link #spectrumLength()} doubles of the spectrum, overwritten
+     * @param in the {@link #spectrumLength()} doubles of the spectrum, not modified
      * @param inOff the offset of the spectrum
      * @param out receives the grid, {@code rows·cols} doubles; must not overlap {@code in}
      * @param outOff the offset of element {@code (0, 0)}
@@ -161,37 +166,92 @@ public final class RealFft2d {
         check(in, inOff, spectrumLength(), "in");
         check(out, outOff, (long) rows * cols, "out");
         check(scratch, scratchOff, scratchSize, "scratch");
-        int work = scratchOff + 2 * rows * tile;
-        columns(in, inOff, scratch, scratchOff, work, true);
+        int work = scratchOff + buf;
         int rl = 2 * half;
+        boolean even = (cols & 1) == 0;
+        // columns: unscaled inverse transforms of the half spectrum's columns, packed into the rows of out
+        for (int c0 = 0; c0 < half; c0 += tile) {
+            int w = java.lang.Math.min(tile, half - c0);
+            for (int r = 0; r < rows; r++) {
+                int src = inOff + r * rl + 2 * c0;
+                for (int c = 0; c < w; c++) {
+                    int dst = scratchOff + 2 * (c * rows + r);
+                    scratch[dst] = in[src + 2 * c];
+                    scratch[dst + 1] = in[src + 2 * c + 1];
+                }
+            }
+            for (int c = 0; c < w; c++) {
+                colPlan.run(scratch, scratchOff + 2 * c * rows, scratch, work, true);
+            }
+            for (int r = 0; r < rows; r++) {
+                int row = outOff + r * cols;
+                for (int c = 0; c < w; c++) {
+                    int l = c0 + c;
+                    int src = scratchOff + 2 * (c * rows + r);
+                    if (l == 0) {
+                        out[row] = scratch[src];
+                    } else if (even && 2 * l == cols) {
+                        out[row + 1] = scratch[src];
+                    } else {
+                        int dst = row + (even ? 2 * l : 2 * l - 1);
+                        out[dst] = scratch[src];
+                        out[dst + 1] = scratch[src + 1];
+                    }
+                }
+            }
+        }
+        // rows: unpack each row's half spectrum into the scratch, then its unscaled real inverse into out
         for (int r = 0; r < rows; r++) {
-            rowPlan.inverse(in, inOff + r * rl, out, outOff + r * cols, scratch, work);
+            int row = outOff + r * cols;
+            int b = scratchOff;
+            scratch[b] = out[row];
+            scratch[b + 1] = 0;
+            for (int l = 1; 2 * l < cols; l++) {
+                int src = row + (even ? 2 * l : 2 * l - 1);
+                scratch[b + 2 * l] = out[src];
+                scratch[b + 2 * l + 1] = out[src + 1];
+            }
+            if (even) {
+                scratch[b + cols] = out[row + 1];
+                scratch[b + cols + 1] = 0;
+            }
+            rowPlan.inverse(scratch, b, out, row, scratch, work, false);
+        }
+        // one division by rows·cols for both passes (the even row transform has already halved)
+        int count = rows * rowPlan.unscaledFactor();
+        int end = outOff + rows * cols;
+        if (FftMath.isPowerOfTwo(count)) {
+            double s = 1.0 / count; // exact
+            for (int i = outOff; i < end; i++) {
+                out[i] *= s;
+            }
+        } else {
+            double s = count;
+            for (int i = outOff; i < end; i++) {
+                out[i] /= s; // correctly rounded
+            }
         }
     }
 
-    private void columns(double[] d, int off, double[] scratch, int buf, int work, boolean inv) {
+    private void columns(double[] d, int off, double[] scratch, int base, int work) {
         int rl = 2 * half;
         for (int c0 = 0; c0 < half; c0 += tile) {
             int w = java.lang.Math.min(tile, half - c0);
             for (int r = 0; r < rows; r++) {
                 int src = off + r * rl + 2 * c0;
                 for (int c = 0; c < w; c++) {
-                    int dst = buf + 2 * (c * rows + r);
+                    int dst = base + 2 * (c * rows + r);
                     scratch[dst] = d[src + 2 * c];
                     scratch[dst + 1] = d[src + 2 * c + 1];
                 }
             }
             for (int c = 0; c < w; c++) {
-                if (inv) {
-                    colPlan.inverse(scratch, buf + 2 * c * rows, scratch, work);
-                } else {
-                    colPlan.forward(scratch, buf + 2 * c * rows, scratch, work);
-                }
+                colPlan.forward(scratch, base + 2 * c * rows, scratch, work);
             }
             for (int r = 0; r < rows; r++) {
                 int dst = off + r * rl + 2 * c0;
                 for (int c = 0; c < w; c++) {
-                    int src = buf + 2 * (c * rows + r);
+                    int src = base + 2 * (c * rows + r);
                     d[dst + 2 * c] = scratch[src];
                     d[dst + 2 * c + 1] = scratch[src + 1];
                 }

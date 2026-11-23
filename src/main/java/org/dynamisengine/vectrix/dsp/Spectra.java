@@ -77,14 +77,14 @@ public final class Spectra {
      * @param psdOff the offset of the first density
      * @param scratch working memory of {@link #scratchSize(RealFftd)} doubles
      * @param scratchOff the offset into {@code scratch}
-     * @throws IllegalArgumentException if an array does not hold its values from its offset; when {@code window}
-     *         or {@code scratch} is the short one, {@code psd} has already been zeroed
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
      */
     public static void periodogram(RealFftd plan, double[] window, int windowOff, double[] x, int xOff,
             double[] psd, int psdOff, double[] scratch, int scratchOff) {
         int n = plan.size();
         check(x, xOff, n, "x");
-        check(psd, psdOff, n / 2 + 1, "psd");
+        checkCommon(plan, window, windowOff, psd, psdOff, scratch, scratchOff);
         java.util.Arrays.fill(psd, psdOff, psdOff + n / 2 + 1, 0.0);
         accumulate(plan, window, windowOff, x, xOff, psd, psdOff, scratch, scratchOff);
         scale(plan, window, windowOff, psd, psdOff, 1);
@@ -107,8 +107,7 @@ public final class Spectra {
      * @param scratchOff the offset into {@code scratch}
      * @return the number of segments averaged
      * @throws IllegalArgumentException if {@code hop < 1}, {@code length < plan.size()}, or an array does not hold
-     *         its values from its offset; when {@code window} or {@code scratch} is the short one, {@code psd} has
-     *         already been zeroed
+     *         its values from its offset (checked before anything is written)
      */
     public static int welch(RealFftd plan, double[] window, int windowOff, int hop, double[] x, int xOff,
             int length, double[] psd, int psdOff, double[] scratch, int scratchOff) {
@@ -117,7 +116,7 @@ public final class Spectra {
             throw new IllegalArgumentException("need hop >= 1 and length >= n: hop " + hop + ", length " + length);
         }
         check(x, xOff, length, "x");
-        check(psd, psdOff, n / 2 + 1, "psd");
+        checkCommon(plan, window, windowOff, psd, psdOff, scratch, scratchOff);
         java.util.Arrays.fill(psd, psdOff, psdOff + n / 2 + 1, 0.0);
         int segments = 0;
         for (int start = 0; start + n <= length; start += hop) {
@@ -214,10 +213,6 @@ public final class Spectra {
     private static void accumulate(RealFftd plan, double[] window, int windowOff, double[] x, int xOff,
             double[] psd, int psdOff, double[] scratch, int scratchOff) {
         int n = plan.size();
-        if (window != null) {
-            check(window, windowOff, n, "window");
-        }
-        check(scratch, scratchOff, scratchSize(plan), "scratch");
         int buf = scratchOff;
         for (int k = 0; k < n; k++) {
             scratch[buf + k] = window == null ? x[xOff + k] : x[xOff + k] * window[windowOff + k];
@@ -282,6 +277,16 @@ public final class Spectra {
             }
         }
         plan.inverse(out, outOff, scratch, scratchOff);
+    }
+
+    private static void checkCommon(RealFftd plan, double[] window, int windowOff, double[] psd, int psdOff,
+            double[] scratch, int scratchOff) {
+        int n = plan.size();
+        check(psd, psdOff, n / 2 + 1, "psd");
+        check(scratch, scratchOff, scratchSize(plan), "scratch");
+        if (window != null) {
+            check(window, windowOff, n, "window");
+        }
     }
 
     private static void check(double[] a, int off, int count, String name) {

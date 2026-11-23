@@ -45,13 +45,15 @@
  * however a stream is chunked; windows, twiddles and filter designs use {@code AccurateMath}, so they match across
  * platforms under {@code -Dvectrix.strictMath}, and the particle filter uses {@code ReproducibleMath}. Errors: bad
  * sizes, offsets and parameters throw {@link IllegalArgumentException}, in the methods that take offsets before
- * any element is written unless the method says otherwise; the Kalman filters, the adaptive and particle filters
- * and the Wiener helpers without offsets use their arrays from index 0 and rely on Java's bounds checks; a failed
- * numerical precondition (a covariance that is not positive definite, a DCT-IV of odd size) throws
- * {@link IllegalStateException}, and a singular Toeplitz system or a FIR design without gain throws
- * {@link IllegalArgumentException}. Precision and naming: unsuffixed classes are double; {@code Stftf},
+ * any element is written unless the method says otherwise; the Kalman filters, the Toeplitz solvers and the Wiener
+ * helpers without offsets use their arrays from index 0 and check their lengths up front, while the adaptive and
+ * particle filters rely on Java's bounds checks; a failed numerical precondition (a covariance that is not positive
+ * definite, a DCT-IV of odd size) throws {@link IllegalStateException}, and a singular Toeplitz system or a FIR
+ * design without gain throws {@link IllegalArgumentException} before any output is written. The Kalman filters
+ * give the gating distance of a measurement without updating ({@code innovationDistance}), and
+ * {@link org.dynamisengine.vectrix.dsp.InnovationFunction} lets the extended filter wrap angle innovations. Precision and naming: unsuffixed classes are double; {@code Stftf},
  * {@code Dctf} and {@code Mdctf} are the float twins of the {@code ...d} plans; the float overloads of
- * {@code Windows}, {@code Biquad}, {@code Goertzel} and {@code Resampler} compute in double and round only their
- * outputs, and {@code Smoothers.median} works on floats.
+ * {@code Windows}, {@code Biquad}, {@code Goertzel}, {@code Resampler}, {@code Correlation}, {@code Toeplitz} and
+ * {@code Wavelet} compute in double and round only their outputs, and {@code Smoothers.median} works on floats.
  */
 package org.dynamisengine.vectrix.dsp;
