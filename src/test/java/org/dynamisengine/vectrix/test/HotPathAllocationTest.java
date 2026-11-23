@@ -488,6 +488,63 @@ class HotPathAllocationTest {
     }
 
     @Test
+    void kinematicsFixesDoNotAllocate() {
+        org.dynamisengine.vectrix.affine.PackedAffineArray packed = new org.dynamisengine.vectrix.affine.PackedAffineArray(8);
+        int[] order = {7, 6, 5, 4, 3, 2, 1, 0};
+        float[] upload = new float[8 * 12 + 4];
+        float[][] box = new float[12][8];
+        assertNoAllocation("PackedAffineKernels.uploadPackedAffine(offset)", () -> org.dynamisengine.vectrix.affine
+                .PackedAffineKernels.uploadPackedAffine(packed, order, upload, 4, 8));
+        assertNoAllocation("PackedAffineKernels.uploadPackedAffineChunked", () -> org.dynamisengine.vectrix.affine
+                .PackedAffineKernels.uploadPackedAffineChunked(packed, order, upload, 4, 8, 3));
+        assertNoAllocation("PackedAffineKernels.transformAabbPackedAffineChunked", () -> org.dynamisengine.vectrix
+                .affine.PackedAffineKernels.transformAabbPackedAffineChunked(packed, order, box[0], box[1], box[2],
+                        box[3], box[4], box[5], box[6], box[7], box[8], box[9], box[10], box[11], 8, 3));
+        org.dynamisengine.vectrix.world.WorldPos pos = new org.dynamisengine.vectrix.world.WorldPos(10);
+        assertNoAllocation("WorldPos.add", () -> pos.add(700.0, -300.0, 2000.0));
+        assertNoAllocation("WorldPos.normalize", pos::normalize);
+        org.dynamisengine.vectrix.affine.Affine4f affine = new org.dynamisengine.vectrix.affine.Affine4f()
+                .translationRotateScale(1, 2, 3, 0.1f, 0.2f, 0.3f, 0.927f, -2, 1, 0.5f);
+        org.dynamisengine.vectrix.affine.Transformf trs = new org.dynamisengine.vectrix.affine.Transformf();
+        assertNoAllocation("Affine4f.getTransform", () -> affine.getTransform(trs));
+        org.dynamisengine.vectrix.affine.Transformf rigid = new org.dynamisengine.vectrix.affine.Transformf();
+        assertNoAllocation("Transformf.invertRigidFast", () -> rigid.invertRigidFast(rigid));
+        org.dynamisengine.vectrix.affine.DualQuatTransformf[] dqs = {
+            new org.dynamisengine.vectrix.affine.DualQuatTransformf(), new org.dynamisengine.vectrix.affine.DualQuatTransformf()};
+        float[] dqWeights = {0.3f, 0.7f};
+        float[] dqScales = {1, 1, 1, 2, 2, 2};
+        Vector3f dqScale = new Vector3f();
+        assertNoAllocation("DualQuatTransformf.blendScaled", () -> org.dynamisengine.vectrix.affine.DualQuatTransformf
+                .blendScaled(dqs, dqScales, dqWeights, 2, dqs[0], dqScale));
+        Vector3f p0 = new Vector3f(1, 0, 0), p1 = new Vector3f(), p2 = new Vector3f(0.2f, 1, 0), p3 = new Vector3f(0, 0, 1);
+        Vector3f d0 = new Vector3f(), d1 = new Vector3f(), d2 = new Vector3f(), d3 = new Vector3f();
+        assertNoAllocation("PbdConstraintsf.bendConstraint", () -> org.dynamisengine.vectrix.physics.PbdConstraintsf
+                .bendConstraint(p0, p1, p2, 1.0f, 1.0f, d0, d1, d2));
+        assertNoAllocation("PbdConstraintsf.volumeConstraint", () -> org.dynamisengine.vectrix.physics.PbdConstraintsf
+                .volumeConstraint(p0, p1, p2, p3, 0.5f, 1.0f, d0, d1, d2, d3));
+        int[] parents = {-1, 0, 1};
+        float[] t = {0, 0, 0, 1, 0, 0, 1, 1, 0};
+        float[] r = {0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1};
+        float[] sc = {1, 1, 1, 1, 1, 1, 1, 1, 1};
+        float[] lt = new float[9], lr = new float[12], ls = new float[9];
+        assertNoAllocation("PoseKernelsf.modelToLocal", () -> org.dynamisengine.vectrix.animation.PoseKernelsf
+                .modelToLocal(parents, 3, t, r, sc, lt, lr, ls));
+        float[] chain = {0, 0, 0, 1, 0, 0, 2, 0, 0};
+        float[] rotations = new float[6];
+        assertNoAllocation("DampedLeastSquaresf.step", () -> org.dynamisengine.vectrix.ik.DampedLeastSquaresf
+                .step(chain, 3, 3, 0, 0, 0.0f, 0.0f, rotations));
+        Quaternionf swing = new Quaternionf().rotationX(0.3f);
+        Quaternionf clamped = new Quaternionf();
+        Vector3f axis = new Vector3f(0, 1, 0), swingAxis = new Vector3f(0, 0, 1);
+        assertNoAllocation("JointLimitsf.clampSwingTwist", () -> org.dynamisengine.vectrix.ik.JointLimitsf
+                .clampSwingTwist(swing, axis, swingAxis, 0.0f, 0.2f, -1, 1, clamped));
+        org.dynamisengine.vectrix.core.Matrix4f proj = new org.dynamisengine.vectrix.core.Matrix4f();
+        assertNoAllocation("Projectionsf.ndcDepth(point)", () -> org.dynamisengine.vectrix.camera.Projectionsf
+                .ndcDepth(proj, 1, 2, -3));
+        assertNoAllocation("Easingf.spring", () -> org.dynamisengine.vectrix.easing.Easingf.spring(0.4f, 6, 20));
+    }
+
+    @Test
     void squadResultsAreUnchangedAndAliasSafe() {
         Quaternionf q = new Quaternionf().rotationXYZ(0.4f, -0.7f, 1.1f);
         Quaternionf prev = new Quaternionf().rotationXYZ(-0.2f, 0.3f, 0.9f);

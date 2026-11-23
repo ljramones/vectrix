@@ -49,8 +49,8 @@ public final class PoseKernelsf {
 
     /**
      * Forward kinematics: computes model-space transforms from local ones, joint by joint in index order. Model arrays
-     * may be the local arrays (in place). Pass {@code localS} and {@code modelS} both null for no scale; when
-     * {@code localS} is null, {@code modelS} is not written.
+     * may be the local arrays (in place). Pass {@code localS} and {@code modelS} both null for no scale, or both
+     * non-null. The arguments and the whole hierarchy are checked before anything is written.
      *
      * @param parents the parent index of each joint, {@code −1} for a root; every parent must precede its child
      * @param count the number of joints
@@ -59,12 +59,14 @@ public final class PoseKernelsf {
      * @param localS the local scales, 3 floats per joint, or null
      * @param modelT receives the model translations; may be {@code localT}
      * @param modelR receives the model rotations; may be {@code localR}
-     * @param modelS receives the model scales; may be {@code localS}; must not be null when {@code localS} is not
-     * @throws IllegalArgumentException if a parent index is not less than its joint's index; joints before it have
-     *         already been written
+     * @param modelS receives the model scales; may be {@code localS}; null exactly when {@code localS} is null
+     * @throws IllegalArgumentException if {@code count} is negative, an array is too short for {@code count} joints,
+     *         only one of {@code localS} and {@code modelS} is null, or a parent index is not less than its joint's
+     *         index; nothing is written in that case
      */
     public static void localToModel(int[] parents, int count, float[] localT, float[] localR, float[] localS,
             float[] modelT, float[] modelR, float[] modelS) {
+        checkHierarchy(parents, count, localT, localR, localS, modelT, modelR, modelS);
         boolean scaled = localS != null;
         for (int i = 0; i < count; i++) {
             int p = parents[i];
@@ -73,9 +75,6 @@ public final class PoseKernelsf {
             double sx = scaled ? localS[3 * i] : 1.0, sy = scaled ? localS[3 * i + 1] : 1.0;
             double sz = scaled ? localS[3 * i + 2] : 1.0;
             if (p >= 0) {
-                if (p >= i) {
-                    throw new IllegalArgumentException("parent " + p + " of joint " + i + " does not precede it");
-                }
                 double px = modelR[4 * p], py = modelR[4 * p + 1], pz = modelR[4 * p + 2], pw = modelR[4 * p + 3];
                 double psx = scaled ? modelS[3 * p] : 1.0, psy = scaled ? modelS[3 * p + 1] : 1.0;
                 double psz = scaled ? modelS[3 * p + 2] : 1.0;
@@ -115,7 +114,8 @@ public final class PoseKernelsf {
     /**
      * The inverse of {@link #localToModel}: computes local transforms from model-space ones. Children are processed
      * before their parents, so the local arrays may be the model arrays (in place). Pass {@code modelS} and
-     * {@code localS} both null for no scale; when {@code modelS} is null, {@code localS} is not written.
+     * {@code localS} both null for no scale, or both non-null. The arguments and the whole hierarchy are checked
+     * before anything is written.
      *
      * @param parents the parent index of each joint, {@code −1} for a root; every parent must precede its child
      * @param count the number of joints
@@ -124,12 +124,14 @@ public final class PoseKernelsf {
      * @param modelS the model scales, 3 floats per joint, nonzero, or null
      * @param localT receives the local translations; may be {@code modelT}
      * @param localR receives the local rotations; may be {@code modelR}
-     * @param localS receives the local scales; may be {@code modelS}; must not be null when {@code modelS} is not
-     * @throws IllegalArgumentException if a parent index is not less than its joint's index; joints after it have
-     *         already been written
+     * @param localS receives the local scales; may be {@code modelS}; null exactly when {@code modelS} is null
+     * @throws IllegalArgumentException if {@code count} is negative, an array is too short for {@code count} joints,
+     *         only one of {@code modelS} and {@code localS} is null, or a parent index is not less than its joint's
+     *         index; nothing is written in that case
      */
     public static void modelToLocal(int[] parents, int count, float[] modelT, float[] modelR, float[] modelS,
             float[] localT, float[] localR, float[] localS) {
+        checkHierarchy(parents, count, modelT, modelR, modelS, localT, localR, localS);
         boolean scaled = modelS != null;
         for (int i = count - 1; i >= 0; i--) {
             int p = parents[i];
@@ -138,9 +140,6 @@ public final class PoseKernelsf {
             double sx = scaled ? modelS[3 * i] : 1.0, sy = scaled ? modelS[3 * i + 1] : 1.0;
             double sz = scaled ? modelS[3 * i + 2] : 1.0;
             if (p >= 0) {
-                if (p >= i) {
-                    throw new IllegalArgumentException("parent " + p + " of joint " + i + " does not precede it");
-                }
                 // inverse parent rotation (conjugate of a unit quaternion)
                 double px = -modelR[4 * p], py = -modelR[4 * p + 1], pz = -modelR[4 * p + 2], pw = modelR[4 * p + 3];
                 double psx = scaled ? modelS[3 * p] : 1.0, psy = scaled ? modelS[3 * p + 1] : 1.0;
@@ -173,6 +172,27 @@ public final class PoseKernelsf {
                 localS[3 * i] = (float) sx;
                 localS[3 * i + 1] = (float) sy;
                 localS[3 * i + 2] = (float) sz;
+            }
+        }
+    }
+
+    /** Checks the arguments of the hierarchy kernels and every parent index, before anything is written. */
+    private static void checkHierarchy(int[] parents, int count, float[] inT, float[] inR, float[] inS,
+            float[] outT, float[] outR, float[] outS) {
+        if (count < 0) {
+            throw new IllegalArgumentException("count < 0: " + count);
+        }
+        if ((inS == null) != (outS == null)) {
+            throw new IllegalArgumentException("the scale arrays must be both null or both non-null");
+        }
+        long n3 = 3L * count, n4 = 4L * count;
+        if (parents.length < count || inT.length < n3 || outT.length < n3 || inR.length < n4 || outR.length < n4
+                || (inS != null && (inS.length < n3 || outS.length < n3))) {
+            throw new IllegalArgumentException("an array is too short for " + count + " joints");
+        }
+        for (int i = 0; i < count; i++) {
+            if (parents[i] >= i) {
+                throw new IllegalArgumentException("parent " + parents[i] + " of joint " + i + " does not precede it");
             }
         }
     }

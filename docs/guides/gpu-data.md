@@ -253,11 +253,12 @@ two forms.
 The batch kernels take an `order` array of instance indices. The upload writers gather: output slot `i` receives
 transform `order[i]`, so the upload array is in draw order. `PackedAffineKernels.transformAabbPackedAffineBatch`
 only uses `order` for its traversal; it writes each result back at the instance's own index. Pass `0, 1, 2, ...`
-when you have no draw order. The upload kernels fill a `float[]`; copy it into your mapped buffer with
-`FloatBuffer.put(float[], int, int)`.
+when you have no draw order. The upload kernels fill a `float[]`, from index 0 or from an output offset; copy it
+into your mapped buffer with `FloatBuffer.put(float[], int, int)`. Every `PackedAffineKernels` method checks its
+counts, array sizes, `order` indices and offsets before writing, and throws `IllegalArgumentException` on a bad one.
 
-The `...Chunked` variants run the same kernel over sub-ranges through `BatchChunks`. They help you schedule work;
-they are not faster on their own.
+The `...Chunked` variants run the same kernel over consecutive sub-ranges, as `BatchChunks` splits them. They help
+you schedule work; they are not faster on their own.
 
 `InstanceSubmissionPipeline` chains the whole per-frame path in one call: skinning, TRS to packed affine, bounds
 and upload. Its `InstanceSubmissionPipeline.Path` selects the packed-affine path or a `Matrix4f` fallback (also

@@ -309,7 +309,7 @@ Inverse mass 0 pins a particle. `stiffness` is in `[0, 1]`, where 1 solves the l
 The bend and volume constraints read all inputs before writing any output, so outputs may alias inputs. Degenerate
 configurations give zero corrections: zero-length or parallel edges for bending, and for volume a tetrahedron whose
 gradients all vanish (collinear points, or every particle pinned). A flat tetrahedron is pushed back toward its rest
-volume. The degeneracy thresholds are absolute, so keep coordinates within a few orders of magnitude of 1.
+volume. The degeneracy tests are relative to the size of the configuration, so they behave the same at any scale.
 `PbdConstraintsf.shapeMatchingGoal` does not allocate; it extracts the rotation iteratively, starting from a
 Gram-Schmidt estimate so that large rotations converge too.
 

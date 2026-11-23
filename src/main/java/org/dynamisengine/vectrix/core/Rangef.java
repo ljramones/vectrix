@@ -86,20 +86,20 @@ public final class Rangef {
      * @return {@code value} clamped to {@code [0, 1]}
      */
     public static float saturate(float value) {
-        return clamp(value, 0.0f, 1.0f);
+        return clamp(0.0f, 1.0f, value);
     }
 
     /**
-     * Clamps a value to {@code [min, max]}. Note the argument order: value first, like
-     * {@code java.lang.Math.clamp} and unlike {@link Math#clamp(float, float, float)}.
+     * Clamps a value to {@code [min, max]}. The argument order is {@code (min, max, value)}, the same as
+     * {@link Math#clamp(float, float, float)}.
      *
-     * @param value the value to clamp
      * @param min the lower bound
      * @param max the upper bound, at least {@code min}
+     * @param value the value to clamp
      * @return {@code value} clamped to {@code [min, max]}
      * @throws IllegalArgumentException if {@code min > max}
      */
-    public static float clamp(float value, float min, float max) {
+    public static float clamp(float min, float max, float value) {
         if (min > max) {
             throw new IllegalArgumentException("min > max");
         }

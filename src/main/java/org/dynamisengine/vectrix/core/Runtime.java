@@ -86,7 +86,8 @@ public final class Runtime {
 
     /**
      * Formats a number with {@code format}, writing NaN and infinities as {@code NaN}, {@code +Inf} and {@code -Inf},
-     * padded on the left with spaces to about the width {@code format} gives zero.
+     * padded on the left with spaces to the width {@code format} gives zero, so they line up with formatted numbers
+     * of that width.
      *
      * @param number the number to format
      * @param format the format to use
@@ -103,11 +104,10 @@ public final class Runtime {
 
     private static String padLeft(NumberFormat format, String str) {
         int len = format.format(0.0).length();
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < len - str.length() + 1; i++) {
-            sb.append(" ");
+        if (str.length() >= len) {
+            return str;
         }
-        return sb.append(str).toString();
+        return " ".repeat(len - str.length()) + str;
     }
 
     /**

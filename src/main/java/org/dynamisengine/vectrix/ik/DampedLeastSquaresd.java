@@ -40,15 +40,20 @@ public final class DampedLeastSquaresd {
     /**
      * One step: writes the rotation vector of each bone ({@code count − 1} entries, xyz, radians) to
      * {@code rotationsOut} without moving the chain; if any exceeds {@code maxStepAngle} (when positive), the whole
-     * step is scaled down uniformly, preserving its direction. With {@code lambda = 0} a straight chain makes the
-     * system singular and the step NaN; use a positive damping.
+     * step is scaled down uniformly, preserving its direction.
+     * <p>
+     * The damping has a floor relative to the chain's scale, {@code λ² ≥ 1e-6 · trace(J Jᵀ)} (about 0.1% of the
+     * distance from the joints to the end effector), so {@code lambda = 0} gives a practically undamped
+     * (Gauss-Newton) step for a bent chain and still a finite, small step for a straight one, where the undamped
+     * system is singular: the direction the chain cannot move in (along its own line) gets no rotation. A chain whose
+     * joints all coincide with the end effector cannot move, and gets zero rotations.
      *
      * @param positions the joint positions, 3 doubles per joint from index 0; not modified
      * @param count the number of joints, at least 2
      * @param targetX the x coordinate of the target
      * @param targetY the y coordinate of the target
      * @param targetZ the z coordinate of the target
-     * @param lambda the damping {@code λ}, in the unit of the positions
+     * @param lambda the damping {@code λ}, in the unit of the positions; 0 for none
      * @param maxStepAngle the largest rotation of any bone in this step, in radians, or {@code ≤ 0} for no cap
      * @param rotationsOut receives the world-space rotation vector of each bone, 3 doubles per bone for
      *        {@code count − 1} bones; for {@link #apply}
@@ -71,7 +76,14 @@ public final class DampedLeastSquaresd {
             a02 -= rx * rz;
             a12 -= ry * rz;
         }
-        double l2 = (double) lambda * lambda;
+        // damping floor relative to the chain's scale: keeps the Cholesky pivots positive when the chain is straight
+        double l2 = java.lang.Math.max((double) lambda * lambda, 1e-6 * (a00 + a11 + a22));
+        if (l2 == 0.0) { // every joint at the end effector: the chain cannot move the end
+            for (int i = 0; i < 3 * last; i++) {
+                rotationsOut[i] = 0;
+            }
+            return java.lang.Math.sqrt(rx0 * rx0 + ry0 * ry0 + rz0 * rz0);
+        }
         a00 += l2;
         a11 += l2;
         a22 += l2;
@@ -137,7 +149,7 @@ public final class DampedLeastSquaresd {
      * @param targetX the x coordinate of the target
      * @param targetY the y coordinate of the target
      * @param targetZ the z coordinate of the target
-     * @param lambda the damping {@code λ}, in the unit of the positions, greater than 0
+     * @param lambda the damping {@code λ}, in the unit of the positions, at least 0 (see {@link #step})
      * @param maxStepAngle the largest rotation of any bone per step, in radians, or {@code ≤ 0} for no cap
      * @param tolerance the end-effector distance at which to stop
      * @param maxIterations the maximum number of steps

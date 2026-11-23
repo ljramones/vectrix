@@ -39,7 +39,7 @@ class RangeTest {
         assertEquals(20.0f, Rangef.remapClamped(1.5f, 0.0f, 1.0f, 10.0f, 20.0f), 1E-7f);
         assertEquals(0.0f, Rangef.saturate(-2.0f), 1E-7f);
         assertEquals(1.0f, Rangef.saturate(2.0f), 1E-7f);
-        assertEquals(3.0f, Rangef.clamp(5.0f, -1.0f, 3.0f), 1E-7f);
+        assertEquals(3.0f, Rangef.clamp(-1.0f, 3.0f, 5.0f), 1E-7f);
     }
 
     @Test
@@ -50,14 +50,14 @@ class RangeTest {
         assertEquals(20.0, Ranged.remapClamped(1.5, 0.0, 1.0, 10.0, 20.0), 1E-12);
         assertEquals(0.0, Ranged.saturate(-2.0), 1E-12);
         assertEquals(1.0, Ranged.saturate(2.0), 1E-12);
-        assertEquals(3.0, Ranged.clamp(5.0, -1.0, 3.0), 1E-12);
+        assertEquals(3.0, Ranged.clamp(-1.0, 3.0, 5.0), 1E-12);
     }
 
     @Test
     void invalidRangesThrow() {
         assertThrows(IllegalArgumentException.class, () -> Rangef.inverseLerp(1.0f, 1.0f, 1.0f));
         assertThrows(IllegalArgumentException.class, () -> Ranged.inverseLerp(1.0, 1.0, 1.0));
-        assertThrows(IllegalArgumentException.class, () -> Rangef.clamp(0.0f, 2.0f, 1.0f));
-        assertThrows(IllegalArgumentException.class, () -> Ranged.clamp(0.0, 2.0, 1.0));
+        assertThrows(IllegalArgumentException.class, () -> Rangef.clamp(2.0f, 1.0f, 0.0f));
+        assertThrows(IllegalArgumentException.class, () -> Ranged.clamp(2.0, 1.0, 0.0));
     }
 }

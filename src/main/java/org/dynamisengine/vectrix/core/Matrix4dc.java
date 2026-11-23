@@ -5662,6 +5662,46 @@ public interface Matrix4dc {
     Matrix4d arcball(double radius, Vector3dc center, double angleX, double angleY, Matrix4d dest);
 
     /**
+     * Compute the axis-aligned bounding box of the frustum described by <code>this</code> matrix and store the minimum corner
+     * coordinates in the given <code>min</code> and the maximum corner coordinates in the given <code>max</code> vector.
+     * <p>
+     * The matrix <code>this</code> is assumed to be the {@link #invert(Matrix4d) inverse} of the original view-projection
+     * matrix for which to compute the axis-aligned bounding box in world-space. The depth convention is OpenGL's
+     * <code>[-1, 1]</code>; use {@link #frustumAabb(DepthRange, Vector3d, Vector3d)} for the others.
+     * <p>
+     * The axis-aligned bounding box of the unit frustum is <code>(-1, -1, -1)</code>, <code>(1, 1, 1)</code>.
+     *
+     * @param min
+     *          will hold the minimum corner coordinates of the axis-aligned bounding box
+     * @param max
+     *          will hold the maximum corner coordinates of the axis-aligned bounding box
+     * @return this
+     * @since 3.0.0
+     */
+    Matrix4d frustumAabb(Vector3d min, Vector3d max);
+
+    /**
+     * Compute the axis-aligned bounding box of the frustum described by <code>this</code> matrix, with the near and far
+     * planes placed for the given depth convention, and store the minimum corner coordinates in the given
+     * <code>min</code> and the maximum corner coordinates in the given <code>max</code> vector.
+     * <p>
+     * The matrix <code>this</code> is assumed to be the {@link #invert(Matrix4d) inverse} of the original
+     * view-projection matrix for which to compute the axis-aligned bounding box in world-space. The method transforms
+     * the eight corners of the NDC box <code>[-1..1] x [-1..1] x [nearNdc..farNdc]</code> by <code>this</code> matrix,
+     * with perspective division, and takes their minimum and maximum. For an infinite projection the box is not finite.
+     *
+     * @param depthRange
+     *          the depth convention of the view-projection matrix whose inverse is <code>this</code>
+     * @param min
+     *          will hold the minimum corner coordinates of the axis-aligned bounding box
+     * @param max
+     *          will hold the maximum corner coordinates of the axis-aligned bounding box
+     * @return this
+     * @since 3.0.0
+     */
+    Matrix4d frustumAabb(DepthRange depthRange, Vector3d min, Vector3d max);
+
+    /**
      * Compute the <i>range matrix</i> for the Projected Grid transformation as described in chapter "2.4.2 Creating the range conversion matrix"
      * of the paper <a href="http://fileadmin.cs.lth.se/graphics/theses/projects/projgrid/projgrid-lq.pdf">Real-time water rendering - Introducing the projected grid concept</a>
      * based on the <i>inverse</i> of the view-projection matrix which is assumed to be <code>this</code>, and store that range matrix into <code>dest</code>.

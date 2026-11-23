@@ -68,8 +68,10 @@ public final class JointLimitsf {
      * @param q the joint's local rotation, unit length
      * @param axis the bone axis, unit length
      * @param swingAxisA the direction of limit {@code limitA}, unit length and perpendicular to {@code axis}
-     * @param limitA the largest swing angle toward {@code swingAxisA}, in radians, greater than 0
-     * @param limitB the largest swing angle toward {@code axis × swingAxisA}, in radians, greater than 0
+     * @param limitA the largest swing angle toward {@code swingAxisA}, in radians, at least 0; 0 allows no swing
+     *        that way
+     * @param limitB the largest swing angle toward {@code axis × swingAxisA}, in radians, at least 0; 0 allows no
+     *        swing that way
      * @param minTwist the smallest twist angle, in radians
      * @param maxTwist the largest twist angle, in radians
      * @param dest receives the clamped rotation; may be {@code q}
@@ -132,7 +134,10 @@ public final class JointLimitsf {
             double bz = ax * swingAxisA.y() - ay * swingAxisA.x();
             double va = vx * swingAxisA.x() + vy * swingAxisA.y() + vz * swingAxisA.z();
             double vb = vx * bx + vy * by + vz * bz;
-            double e = (va / limitA) * (va / limitA) + (vb / limitB) * (vb / limitB);
+            // a zero limit allows no swing that way: its term is 0 when there is none and +inf otherwise (never 0/0)
+            double ea = va == 0.0 ? 0.0 : (va / limitA) * (va / limitA);
+            double eb = vb == 0.0 ? 0.0 : (vb / limitB) * (vb / limitB);
+            double e = ea + eb;
             if (e > 1.0) {
                 clamped = true;
                 double k = 1.0 / java.lang.Math.sqrt(e);
@@ -158,7 +163,7 @@ public final class JointLimitsf {
      * @param q the joint's local rotation, unit length
      * @param axis the bone axis, unit length
      * @param anyPerpendicular any unit vector perpendicular to {@code axis}
-     * @param maxSwing the cone half-angle in radians, greater than 0
+     * @param maxSwing the cone half-angle in radians, at least 0; 0 removes all swing
      * @param dest receives the clamped rotation; may be {@code q}
      * @return {@code true} if the swing was clamped
      */

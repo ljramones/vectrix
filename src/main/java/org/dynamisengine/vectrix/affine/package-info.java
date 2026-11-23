@@ -32,13 +32,15 @@
  * <p>
  * <b>Contract.</b> Threading: the transform classes are mutable and not thread-safe; the static kernels keep no
  * state and are safe to call from any thread on disjoint outputs. Allocation: no method allocates, except the
- * constructors, the chunked kernels (one lambda per call) and {@code new PackedAffineArray(int)}. Determinism:
+ * constructors. Determinism:
  * there are no SIMD paths; the {@code Affine4} products round as {@code -Dvectrix.useMathFma} selects, and the
  * transcendentals of {@code DualQuatTransform.sclerp} use {@code AccurateMath}, so they match across platforms
- * under {@code -Dvectrix.strictMath}. Errors: inputs are not validated in either math mode (rotations are expected to
- * be unit quaternions and are used as given); the only explicit exception is the {@code IllegalArgumentException}
- * from {@code new PackedAffineArray(float[])} for a length that is not a multiple of 12, and the batch kernels take
- * no offsets and fail with {@code ArrayIndexOutOfBoundsException} on short arrays. Precision and naming: classes
+ * under {@code -Dvectrix.strictMath}. Errors: values are not validated in either math mode (rotations are expected
+ * to be unit quaternions and are used as given). Arguments are: the {@code PackedAffineArray} constructors and the
+ * {@code PackedAffineKernels} check sizes, indices and offsets up front, {@code invertRigidFast} rejects a transform
+ * with scale, and the {@code DualQuatTransform} blends reject an empty or zero-weight blend, all with
+ * {@code IllegalArgumentException} before writing anything; {@code PackedAffineArray.set} throws
+ * {@code IndexOutOfBoundsException} for an index out of range. Precision and naming: classes
  * ending in {@code f} are float and their twins ending in {@code d} are double ({@code DualQuatTransformf} stores
  * floats but computes products, interpolation and blends in double); the packed arrays and kernels are float.
  */

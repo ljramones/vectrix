@@ -105,4 +105,16 @@ class IntegratorRK4Test {
         assertThrows(IllegalArgumentException.class,
             () -> IntegratorRK4f.step(deriv, 0.0f, 0.1f, new float[] {1f}, 1, 1, new float[5], 0, new float[] {0f}, 0));
     }
+
+    @Test
+    void offsetsNearIntMaxThrowInsteadOfOverflowing() {
+        OdeDerivativef deriv = (t, s, so, d, doff) -> d[doff] = s[so];
+        assertThrows(IllegalArgumentException.class, () -> IntegratorRK4f.step(deriv, 0.0f, 0.1f, new float[] {1f},
+            Integer.MAX_VALUE, 1, new float[5], 0, new float[] {0f}, 0));
+        assertThrows(IllegalArgumentException.class, () -> IntegratorRK4f.step(deriv, 0.0f, 0.1f, new float[] {1f}, 0,
+            1, new float[5], Integer.MAX_VALUE - 2, new float[] {0f}, 0));
+        OdeDerivatived derivD = (t, s, so, d, doff) -> d[doff] = s[so];
+        assertThrows(IllegalArgumentException.class, () -> IntegratorRK4d.step(derivD,
+            0.0, 0.1, new double[] {1}, 0, 1, new double[5], 0, new double[] {0}, Integer.MAX_VALUE));
+    }
 }

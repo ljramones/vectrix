@@ -38,9 +38,9 @@ package org.dynamisengine.vectrix.affine;
  * JOML-style accessors name elements by column first: {@code Matrix4f.mCR()} is column C, row R. The mapping is
  * therefore {@code rRC = m.mCR()}, for example {@code r01 = m.m10()} and {@code tx = m.m30()}.
  * <p>
- * Transform {@code i} occupies {@code raw()[12 * i]} to {@code raw()[12 * i + 11]}. The class does not check indices;
- * an index out of range throws {@link ArrayIndexOutOfBoundsException} from the array access. Threads may write
- * disjoint transforms concurrently.
+ * Transform {@code i} occupies {@code raw()[12 * i]} to {@code raw()[12 * i + 11]}. {@link #set} throws
+ * {@link IndexOutOfBoundsException} for an index outside {@code [0, size())}; {@link #offsetOf} does not check.
+ * Threads may write disjoint transforms concurrently.
  */
 public final class PackedAffineArray {
     /** The number of floats per transform: 12. */
@@ -49,12 +49,22 @@ public final class PackedAffineArray {
     private final float[] data;
 
     /**
-     * Creates storage for {@code count} transforms, all zero (not identity).
+     * Creates storage for {@code count} transforms, each the identity.
      *
      * @param count the number of transforms, at least 0
+     * @throws IllegalArgumentException if {@code count} is negative or {@code 12 * count} does not fit in an
+     *         {@code int}
      */
     public PackedAffineArray(int count) {
+        if (count < 0 || count > Integer.MAX_VALUE / STRIDE_FLOATS) {
+            throw new IllegalArgumentException("count: " + count);
+        }
         this.data = new float[count * STRIDE_FLOATS];
+        for (int o = 0; o < data.length; o += STRIDE_FLOATS) {
+            data[o] = 1.0f;
+            data[o + 5] = 1.0f;
+            data[o + 10] = 1.0f;
+        }
     }
 
     /**
@@ -114,12 +124,13 @@ public final class PackedAffineArray {
      * @param r21 row 2, column 1
      * @param r22 row 2, column 2
      * @param tz the translation z (row 2, column 3)
+     * @throws IndexOutOfBoundsException if {@code index} is outside {@code [0, size())}; nothing is written then
      */
     public void set(int index,
                     float r00, float r01, float r02, float tx,
                     float r10, float r11, float r12, float ty,
                     float r20, float r21, float r22, float tz) {
-        int o = offsetOf(index);
+        int o = java.util.Objects.checkIndex(index, size()) * STRIDE_FLOATS;
         data[o] = r00;
         data[o + 1] = r01;
         data[o + 2] = r02;
