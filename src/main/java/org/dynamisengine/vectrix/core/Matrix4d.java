@@ -3391,9 +3391,9 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Vector3d getScale(Vector3d dest) {
-        dest.x = Math.sqrt(m00 * m00 + m01 * m01 + m02 * m02);
-        dest.y = Math.sqrt(m10 * m10 + m11 * m11 + m12 * m12);
-        dest.z = Math.sqrt(m20 * m20 + m21 * m21 + m22 * m22);
+        dest.x = Norms.norm3(m00, m01, m02);
+        dest.y = Norms.norm3(m10, m11, m12);
+        dest.z = Norms.norm3(m20, m21, m22);
         return dest;
     }
 
@@ -9155,9 +9155,9 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Matrix4d normalize3x3(Matrix4d dest) {
-        double invXlen = Math.invsqrt(m00 * m00 + m01 * m01 + m02 * m02);
-        double invYlen = Math.invsqrt(m10 * m10 + m11 * m11 + m12 * m12);
-        double invZlen = Math.invsqrt(m20 * m20 + m21 * m21 + m22 * m22);
+        double invXlen = 1.0 / Norms.norm3(m00, m01, m02);
+        double invYlen = 1.0 / Norms.norm3(m10, m11, m12);
+        double invZlen = 1.0 / Norms.norm3(m20, m21, m22);
         dest._m00(m00 * invXlen)._m01(m01 * invXlen)._m02(m02 * invXlen)
             ._m10(m10 * invYlen)._m11(m11 * invYlen)._m12(m12 * invYlen)
             ._m20(m20 * invZlen)._m21(m21 * invZlen)._m22(m22 * invZlen)
@@ -9168,9 +9168,9 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
     }
 
     public Matrix3d normalize3x3(Matrix3d dest) {
-        double invXlen = Math.invsqrt(m00 * m00 + m01 * m01 + m02 * m02);
-        double invYlen = Math.invsqrt(m10 * m10 + m11 * m11 + m12 * m12);
-        double invZlen = Math.invsqrt(m20 * m20 + m21 * m21 + m22 * m22);
+        double invXlen = 1.0 / Norms.norm3(m00, m01, m02);
+        double invYlen = 1.0 / Norms.norm3(m10, m11, m12);
+        double invZlen = 1.0 / Norms.norm3(m20, m21, m22);
         dest.m00(m00 * invXlen); dest.m01(m01 * invXlen); dest.m02(m02 * invXlen);
         dest.m10(m10 * invYlen); dest.m11(m11 * invYlen); dest.m12(m12 * invYlen);
         dest.m20(m20 * invZlen); dest.m21(m21 * invZlen); dest.m22(m22 * invZlen);
@@ -16518,7 +16518,7 @@ public class Matrix4d implements Externalizable, Cloneable, Matrix4dc {
                    (upX * m11 - upY * m01) * m22;
         double x = upX * m01 + upY * m11 + upZ * m21;
         if ((properties & PROPERTY_ORTHONORMAL) == 0)
-            x *= Math.sqrt(m01 * m01 + m11 * m11 + m21 * m21);
+            x *= Norms.norm3(m01, m11, m21);
         double invsqrt = Math.invsqrt(y * y + x * x);
         double c = x * invsqrt, s = y * invsqrt;
         double nm00 = c * m00 - s * m01, nm10 = c * m10 - s * m11, nm20 = c * m20 - s * m21, nm31 = s * m30 + c * m31;

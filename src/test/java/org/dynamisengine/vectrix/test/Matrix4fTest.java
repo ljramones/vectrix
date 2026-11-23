@@ -626,7 +626,9 @@ class Matrix4fTest {
         Matrix4f result2 = t.invertAffine(new Matrix4f());
         p.mul(result1, result1);
         p.mul0(result2, result2);
-        assertMatrix4fEquals(result1, result2, 0.0f);
+        // the perspective-affine fast path and the generic product use different operation orders: they agree to
+        // rounding, not bit for bit (they happened to coincide on this input before 2.5.0's double-precision invertAffine)
+        assertMatrix4fEquals(result1, result2, 1E-5f);
     }
 
     @Test

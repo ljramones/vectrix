@@ -104,6 +104,12 @@ Each fix has a regression test in `MatrixAudit2Test`, `VectorQuatAudit2Test` or 
     to 200 ulp.
   - The masked `intersectAab` forms are documented: `INSIDE` always refers to all six planes. Masked planes are
     skipped only for culling; this is conservative and unchanged.
+- **Matrix precision at extreme scales:**
+  - `getScale` and `normalize3x3` (`Matrix3/4/4x3`, both twins) used plain square roots. A column of length 2e19
+    gave ∞ in float, and 1e-162 gave 0 in double. They now use the overflow-safe norm.
+  - Float `Matrix4f.invert`/`invertAffine`, `Matrix3f.invert` and `Matrix4x3f.invert` gave ∞ or NaN for
+    well-conditioned matrices of extreme scale, because the float determinant underflowed below about 1e-15 per
+    axis. They now compute in double and round each element once, which is also more precise.
 - **Documentation:**
   - `obliqueZ` documented `y' = y + a·z`; the code correctly uses `b`.
 

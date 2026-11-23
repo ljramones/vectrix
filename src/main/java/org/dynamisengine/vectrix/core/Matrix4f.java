@@ -2610,87 +2610,93 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
         return invertGenericThis(dest);
     }
     private Matrix4f invertGenericNonThis(Matrix4f dest) {
-        float a = m00() * m11() - m01() * m10();
-        float b = m00() * m12() - m02() * m10();
-        float c = m00() * m13() - m03() * m10();
-        float d = m01() * m12() - m02() * m11();
-        float e = m01() * m13() - m03() * m11();
-        float f = m02() * m13() - m03() * m12();
-        float g = m20() * m31() - m21() * m30();
-        float h = m20() * m32() - m22() * m30();
-        float i = m20() * m33() - m23() * m30();
-        float j = m21() * m32() - m22() * m31();
-        float k = m21() * m33() - m23() * m31();
-        float l = m22() * m33() - m23() * m32();
-        float det = a * l - b * k + c * j + d * i - e * h + f * g;
-        det = 1.0f / det;
+        // computed in double and rounded once: a float determinant over- or underflows for well-conditioned
+        // matrices of extreme scale (translation(...).scale(1e-15) gave Inf), and every float of the result rounds once
+        double a00 = m00(), a01 = m01(), a02 = m02(), a03 = m03(), a10 = m10(), a11 = m11(), a12 = m12(), a13 = m13(), a20 = m20(), a21 = m21(), a22 = m22(), a23 = m23(), a30 = m30(), a31 = m31(), a32 = m32(), a33 = m33();
+        double a = a00 * a11 - a01 * a10;
+        double b = a00 * a12 - a02 * a10;
+        double c = a00 * a13 - a03 * a10;
+        double d = a01 * a12 - a02 * a11;
+        double e = a01 * a13 - a03 * a11;
+        double f = a02 * a13 - a03 * a12;
+        double g = a20 * a31 - a21 * a30;
+        double h = a20 * a32 - a22 * a30;
+        double i = a20 * a33 - a23 * a30;
+        double j = a21 * a32 - a22 * a31;
+        double k = a21 * a33 - a23 * a31;
+        double l = a22 * a33 - a23 * a32;
+        double det = a * l - b * k + c * j + d * i - e * h + f * g;
+        det = 1.0 / det;
         return dest
-        ._m00(Math.fma( m11(), l, Math.fma(-m12(), k,  m13() * j)) * det)
-        ._m01(Math.fma(-m01(), l, Math.fma( m02(), k, -m03() * j)) * det)
-        ._m02(Math.fma( m31(), f, Math.fma(-m32(), e,  m33() * d)) * det)
-        ._m03(Math.fma(-m21(), f, Math.fma( m22(), e, -m23() * d)) * det)
-        ._m10(Math.fma(-m10(), l, Math.fma( m12(), i, -m13() * h)) * det)
-        ._m11(Math.fma( m00(), l, Math.fma(-m02(), i,  m03() * h)) * det)
-        ._m12(Math.fma(-m30(), f, Math.fma( m32(), c, -m33() * b)) * det)
-        ._m13(Math.fma( m20(), f, Math.fma(-m22(), c,  m23() * b)) * det)
-        ._m20(Math.fma( m10(), k, Math.fma(-m11(), i,  m13() * g)) * det)
-        ._m21(Math.fma(-m00(), k, Math.fma( m01(), i, -m03() * g)) * det)
-        ._m22(Math.fma( m30(), e, Math.fma(-m31(), c,  m33() * a)) * det)
-        ._m23(Math.fma(-m20(), e, Math.fma( m21(), c, -m23() * a)) * det)
-        ._m30(Math.fma(-m10(), j, Math.fma( m11(), h, -m12() * g)) * det)
-        ._m31(Math.fma( m00(), j, Math.fma(-m01(), h,  m02() * g)) * det)
-        ._m32(Math.fma(-m30(), d, Math.fma( m31(), b, -m32() * a)) * det)
-        ._m33(Math.fma( m20(), d, Math.fma(-m21(), b,  m22() * a)) * det)
+        ._m00((float) (Math.fma( a11, l, Math.fma(-a12, k,  a13 * j)) * det))
+        ._m01((float) (Math.fma(-a01, l, Math.fma( a02, k, -a03 * j)) * det))
+        ._m02((float) (Math.fma( a31, f, Math.fma(-a32, e,  a33 * d)) * det))
+        ._m03((float) (Math.fma(-a21, f, Math.fma( a22, e, -a23 * d)) * det))
+        ._m10((float) (Math.fma(-a10, l, Math.fma( a12, i, -a13 * h)) * det))
+        ._m11((float) (Math.fma( a00, l, Math.fma(-a02, i,  a03 * h)) * det))
+        ._m12((float) (Math.fma(-a30, f, Math.fma( a32, c, -a33 * b)) * det))
+        ._m13((float) (Math.fma( a20, f, Math.fma(-a22, c,  a23 * b)) * det))
+        ._m20((float) (Math.fma( a10, k, Math.fma(-a11, i,  a13 * g)) * det))
+        ._m21((float) (Math.fma(-a00, k, Math.fma( a01, i, -a03 * g)) * det))
+        ._m22((float) (Math.fma( a30, e, Math.fma(-a31, c,  a33 * a)) * det))
+        ._m23((float) (Math.fma(-a20, e, Math.fma( a21, c, -a23 * a)) * det))
+        ._m30((float) (Math.fma(-a10, j, Math.fma( a11, h, -a12 * g)) * det))
+        ._m31((float) (Math.fma( a00, j, Math.fma(-a01, h,  a02 * g)) * det))
+        ._m32((float) (Math.fma(-a30, d, Math.fma( a31, b, -a32 * a)) * det))
+        ._m33((float) (Math.fma( a20, d, Math.fma(-a21, b,  a22 * a)) * det))
         ._properties(PROPERTY_UNKNOWN);
     }
     private Matrix4f invertGenericThis(Matrix4f dest) {
-        float a = m00() * m11() - m01() * m10();
-        float b = m00() * m12() - m02() * m10();
-        float c = m00() * m13() - m03() * m10();
-        float d = m01() * m12() - m02() * m11();
-        float e = m01() * m13() - m03() * m11();
-        float f = m02() * m13() - m03() * m12();
-        float g = m20() * m31() - m21() * m30();
-        float h = m20() * m32() - m22() * m30();
-        float i = m20() * m33() - m23() * m30();
-        float j = m21() * m32() - m22() * m31();
-        float k = m21() * m33() - m23() * m31();
-        float l = m22() * m33() - m23() * m32();
-        float det = a * l - b * k + c * j + d * i - e * h + f * g;
-        det = 1.0f / det;
-        float nm00 = Math.fma( m11(), l, Math.fma(-m12(), k,  m13() * j)) * det;
-        float nm01 = Math.fma(-m01(), l, Math.fma( m02(), k, -m03() * j)) * det;
-        float nm02 = Math.fma( m31(), f, Math.fma(-m32(), e,  m33() * d)) * det;
-        float nm03 = Math.fma(-m21(), f, Math.fma( m22(), e, -m23() * d)) * det;
-        float nm10 = Math.fma(-m10(), l, Math.fma( m12(), i, -m13() * h)) * det;
-        float nm11 = Math.fma( m00(), l, Math.fma(-m02(), i,  m03() * h)) * det;
-        float nm12 = Math.fma(-m30(), f, Math.fma( m32(), c, -m33() * b)) * det;
-        float nm13 = Math.fma( m20(), f, Math.fma(-m22(), c,  m23() * b)) * det;
-        float nm20 = Math.fma( m10(), k, Math.fma(-m11(), i,  m13() * g)) * det;
-        float nm21 = Math.fma(-m00(), k, Math.fma( m01(), i, -m03() * g)) * det;
-        float nm22 = Math.fma( m30(), e, Math.fma(-m31(), c,  m33() * a)) * det;
-        float nm23 = Math.fma(-m20(), e, Math.fma( m21(), c, -m23() * a)) * det;
-        float nm30 = Math.fma(-m10(), j, Math.fma( m11(), h, -m12() * g)) * det;
-        float nm31 = Math.fma( m00(), j, Math.fma(-m01(), h,  m02() * g)) * det;
-        float nm32 = Math.fma(-m30(), d, Math.fma( m31(), b, -m32() * a)) * det;
-        float nm33 = Math.fma( m20(), d, Math.fma(-m21(), b,  m22() * a)) * det;
+        // computed in double and rounded once: a float determinant over- or underflows for well-conditioned
+        // matrices of extreme scale (translation(...).scale(1e-15) gave Inf), and every float of the result rounds once
+        double a00 = m00(), a01 = m01(), a02 = m02(), a03 = m03(), a10 = m10(), a11 = m11(), a12 = m12(), a13 = m13(), a20 = m20(), a21 = m21(), a22 = m22(), a23 = m23(), a30 = m30(), a31 = m31(), a32 = m32(), a33 = m33();
+        double a = a00 * a11 - a01 * a10;
+        double b = a00 * a12 - a02 * a10;
+        double c = a00 * a13 - a03 * a10;
+        double d = a01 * a12 - a02 * a11;
+        double e = a01 * a13 - a03 * a11;
+        double f = a02 * a13 - a03 * a12;
+        double g = a20 * a31 - a21 * a30;
+        double h = a20 * a32 - a22 * a30;
+        double i = a20 * a33 - a23 * a30;
+        double j = a21 * a32 - a22 * a31;
+        double k = a21 * a33 - a23 * a31;
+        double l = a22 * a33 - a23 * a32;
+        double det = a * l - b * k + c * j + d * i - e * h + f * g;
+        det = 1.0 / det;
+        double nm00 = Math.fma( a11, l, Math.fma(-a12, k,  a13 * j)) * det;
+        double nm01 = Math.fma(-a01, l, Math.fma( a02, k, -a03 * j)) * det;
+        double nm02 = Math.fma( a31, f, Math.fma(-a32, e,  a33 * d)) * det;
+        double nm03 = Math.fma(-a21, f, Math.fma( a22, e, -a23 * d)) * det;
+        double nm10 = Math.fma(-a10, l, Math.fma( a12, i, -a13 * h)) * det;
+        double nm11 = Math.fma( a00, l, Math.fma(-a02, i,  a03 * h)) * det;
+        double nm12 = Math.fma(-a30, f, Math.fma( a32, c, -a33 * b)) * det;
+        double nm13 = Math.fma( a20, f, Math.fma(-a22, c,  a23 * b)) * det;
+        double nm20 = Math.fma( a10, k, Math.fma(-a11, i,  a13 * g)) * det;
+        double nm21 = Math.fma(-a00, k, Math.fma( a01, i, -a03 * g)) * det;
+        double nm22 = Math.fma( a30, e, Math.fma(-a31, c,  a33 * a)) * det;
+        double nm23 = Math.fma(-a20, e, Math.fma( a21, c, -a23 * a)) * det;
+        double nm30 = Math.fma(-a10, j, Math.fma( a11, h, -a12 * g)) * det;
+        double nm31 = Math.fma( a00, j, Math.fma(-a01, h,  a02 * g)) * det;
+        double nm32 = Math.fma(-a30, d, Math.fma( a31, b, -a32 * a)) * det;
+        double nm33 = Math.fma( a20, d, Math.fma(-a21, b,  a22 * a)) * det;
         return dest
-        ._m00(nm00)
-        ._m01(nm01)
-        ._m02(nm02)
-        ._m03(nm03)
-        ._m10(nm10)
-        ._m11(nm11)
-        ._m12(nm12)
-        ._m13(nm13)
-        ._m20(nm20)
-        ._m21(nm21)
-        ._m22(nm22)
-        ._m23(nm23)
-        ._m30(nm30)
-        ._m31(nm31)
-        ._m32(nm32)
-        ._m33(nm33)
+        ._m00((float) (nm00))
+        ._m01((float) (nm01))
+        ._m02((float) (nm02))
+        ._m03((float) (nm03))
+        ._m10((float) (nm10))
+        ._m11((float) (nm11))
+        ._m12((float) (nm12))
+        ._m13((float) (nm13))
+        ._m20((float) (nm20))
+        ._m21((float) (nm21))
+        ._m22((float) (nm22))
+        ._m23((float) (nm23))
+        ._m30((float) (nm30))
+        ._m31((float) (nm31))
+        ._m32((float) (nm32))
+        ._m33((float) (nm33))
         ._properties(PROPERTY_UNKNOWN);
     }
 
@@ -2924,32 +2930,35 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
     }
 
     public Matrix4f invertAffine(Matrix4f dest) {
-        float m11m00 = m00() * m11(), m10m01 = m01() * m10(), m10m02 = m02() * m10();
-        float m12m00 = m00() * m12(), m12m01 = m01() * m12(), m11m02 = m02() * m11();
-        float det = (m11m00 - m10m01) * m22() + (m10m02 - m12m00) * m21() + (m12m01 - m11m02) * m20();
-        float s = 1.0f / det;
-        float m10m22 = m10() * m22(), m10m21 = m10() * m21(), m11m22 = m11() * m22();
-        float m11m20 = m11() * m20(), m12m21 = m12() * m21(), m12m20 = m12() * m20();
-        float m20m02 = m20() * m02(), m20m01 = m20() * m01(), m21m02 = m21() * m02();
-        float m21m00 = m21() * m00(), m22m01 = m22() * m01(), m22m00 = m22() * m00();
-        float nm31 = (m20m02 * m31() - m20m01 * m32() + m21m00 * m32() - m21m02 * m30() + m22m01 * m30() - m22m00 * m31()) * s;
-        float nm32 = (m11m02 * m30() - m12m01 * m30() + m12m00 * m31() - m10m02 * m31() + m10m01 * m32() - m11m00 * m32()) * s;
+        // computed in double and rounded once: a float determinant over- or underflows for well-conditioned
+        // matrices of extreme scale (translation(...).scale(1e-15) gave Inf), and every float of the result rounds once
+        double a00 = m00(), a01 = m01(), a02 = m02(), a10 = m10(), a11 = m11(), a12 = m12(), a20 = m20(), a21 = m21(), a22 = m22(), a30 = m30(), a31 = m31(), a32 = m32();
+        double m11m00 = a00 * a11, m10m01 = a01 * a10, m10m02 = a02 * a10;
+        double m12m00 = a00 * a12, m12m01 = a01 * a12, m11m02 = a02 * a11;
+        double det = (m11m00 - m10m01) * a22 + (m10m02 - m12m00) * a21 + (m12m01 - m11m02) * a20;
+        double s = 1.0 / det;
+        double m10m22 = a10 * a22, m10m21 = a10 * a21, m11m22 = a11 * a22;
+        double m11m20 = a11 * a20, m12m21 = a12 * a21, m12m20 = a12 * a20;
+        double m20m02 = a20 * a02, m20m01 = a20 * a01, m21m02 = a21 * a02;
+        double m21m00 = a21 * a00, m22m01 = a22 * a01, m22m00 = a22 * a00;
+        double nm31 = (m20m02 * a31 - m20m01 * a32 + m21m00 * a32 - m21m02 * a30 + m22m01 * a30 - m22m00 * a31) * s;
+        double nm32 = (m11m02 * a30 - m12m01 * a30 + m12m00 * a31 - m10m02 * a31 + m10m01 * a32 - m11m00 * a32) * s;
         return dest
-        ._m00((m11m22 - m12m21) * s)
-        ._m01((m21m02 - m22m01) * s)
-        ._m02((m12m01 - m11m02) * s)
+        ._m00((float) ((m11m22 - m12m21) * s))
+        ._m01((float) ((m21m02 - m22m01) * s))
+        ._m02((float) ((m12m01 - m11m02) * s))
         ._m03(0.0f)
-        ._m10((m12m20 - m10m22) * s)
-        ._m11((m22m00 - m20m02) * s)
-        ._m12((m10m02 - m12m00) * s)
+        ._m10((float) ((m12m20 - m10m22) * s))
+        ._m11((float) ((m22m00 - m20m02) * s))
+        ._m12((float) ((m10m02 - m12m00) * s))
         ._m13(0.0f)
-        ._m20((m10m21 - m11m20) * s)
-        ._m21((m20m01 - m21m00) * s)
-        ._m22((m11m00 - m10m01) * s)
+        ._m20((float) ((m10m21 - m11m20) * s))
+        ._m21((float) ((m20m01 - m21m00) * s))
+        ._m22((float) ((m11m00 - m10m01) * s))
         ._m23(0.0f)
-        ._m30((m10m22 * m31() - m10m21 * m32() + m11m20 * m32() - m11m22 * m30() + m12m21 * m30() - m12m20 * m31()) * s)
-        ._m31(nm31)
-        ._m32(nm32)
+        ._m30((float) ((m10m22 * a31 - m10m21 * a32 + m11m20 * a32 - m11m22 * a30 + m12m21 * a30 - m12m20 * a31) * s))
+        ._m31((float) (nm31))
+        ._m32((float) (nm32))
         ._m33(1.0f)
         ._properties(PROPERTY_AFFINE);
     }
@@ -3164,9 +3173,9 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
     }
 
     public Vector3f getScale(Vector3f dest) {
-        dest.x = Math.sqrt(m00() * m00() + m01() * m01() + m02() * m02());
-        dest.y = Math.sqrt(m10() * m10() + m11() * m11() + m12() * m12());
-        dest.z = Math.sqrt(m20() * m20() + m21() * m21() + m22() * m22());
+        dest.x = (float) Norms.norm3(m00(), m01(), m02());
+        dest.y = (float) Norms.norm3(m10(), m11(), m12());
+        dest.z = (float) Norms.norm3(m20(), m21(), m22());
         return dest;
     }
 
@@ -13158,9 +13167,9 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
     }
 
     public Matrix4f normalize3x3(Matrix4f dest) {
-        float invXlen = Math.invsqrt(m00() * m00() + m01() * m01() + m02() * m02());
-        float invYlen = Math.invsqrt(m10() * m10() + m11() * m11() + m12() * m12());
-        float invZlen = Math.invsqrt(m20() * m20() + m21() * m21() + m22() * m22());
+        float invXlen = (float) (1.0 / Norms.norm3(m00(), m01(), m02()));
+        float invYlen = (float) (1.0 / Norms.norm3(m10(), m11(), m12()));
+        float invZlen = (float) (1.0 / Norms.norm3(m20(), m21(), m22()));
         return dest
         ._m00(m00() * invXlen)._m01(m01() * invXlen)._m02(m02() * invXlen)
         ._m10(m10() * invYlen)._m11(m11() * invYlen)._m12(m12() * invYlen)
@@ -13171,9 +13180,9 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
     }
 
     public Matrix3f normalize3x3(Matrix3f dest) {
-        float invXlen = Math.invsqrt(m00() * m00() + m01() * m01() + m02() * m02());
-        float invYlen = Math.invsqrt(m10() * m10() + m11() * m11() + m12() * m12());
-        float invZlen = Math.invsqrt(m20() * m20() + m21() * m21() + m22() * m22());
+        float invXlen = (float) (1.0 / Norms.norm3(m00(), m01(), m02()));
+        float invYlen = (float) (1.0 / Norms.norm3(m10(), m11(), m12()));
+        float invZlen = (float) (1.0 / Norms.norm3(m20(), m21(), m22()));
         return dest
         ._m00(m00() * invXlen)._m01(m01() * invXlen)._m02(m02() * invXlen)
         ._m10(m10() * invYlen)._m11(m11() * invYlen)._m12(m12() * invYlen)
@@ -15265,7 +15274,7 @@ public class Matrix4f implements Externalizable, Cloneable, Matrix4fc {
                   (upX * m11() - upY * m01()) * m22();
         float x = upX * m01() + upY * m11() + upZ * m21();
         if ((properties & PROPERTY_ORTHONORMAL) == 0)
-            x *= Math.sqrt(m01() * m01() + m11() * m11() + m21() * m21());
+            x *= (float) Norms.norm3(m01(), m11(), m21());
         float invsqrt = Math.invsqrt(y * y + x * x);
         float c = x * invsqrt, s = y * invsqrt;
         float nm00 = c * m00() - s * m01(), nm10 = c * m10() - s * m11(), nm20 = c * m20() - s * m21(), nm31 = s * m30() + c * m31();

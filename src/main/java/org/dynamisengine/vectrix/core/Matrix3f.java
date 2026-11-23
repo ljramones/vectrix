@@ -809,29 +809,32 @@ public class Matrix3f implements Externalizable, Cloneable, Matrix3fc {
     }
 
     public Matrix3f invert(Matrix3f dest) {
-        float a = Math.fma(m00, m11, -m01 * m10);
-        float b = Math.fma(m02, m10, -m00 * m12);
-        float c = Math.fma(m01, m12, -m02 * m11);
-        float d = Math.fma(a, m22, Math.fma(b, m21, c * m20));
-        float s = 1.0f / d;
-        float nm00 = Math.fma(m11, m22, -m21 * m12) * s;
-        float nm01 = Math.fma(m21, m02, -m01 * m22) * s;
-        float nm02 = c * s;
-        float nm10 = Math.fma(m20, m12, -m10 * m22) * s;
-        float nm11 = Math.fma(m00, m22, -m20 * m02) * s;
-        float nm12 = b * s;
-        float nm20 = Math.fma(m10, m21, -m20 * m11) * s;
-        float nm21 = Math.fma(m20, m01, -m00 * m21) * s;
-        float nm22 = a * s;
-        dest.m00 = nm00;
-        dest.m01 = nm01;
-        dest.m02 = nm02;
-        dest.m10 = nm10;
-        dest.m11 = nm11;
-        dest.m12 = nm12;
-        dest.m20 = nm20;
-        dest.m21 = nm21;
-        dest.m22 = nm22;
+        // computed in double and rounded once: a float determinant over- or underflows for well-conditioned
+        // matrices of extreme scale (translation(...).scale(1e-15) gave Inf), and every float of the result rounds once
+        double a00 = m00, a01 = m01, a02 = m02, a10 = m10, a11 = m11, a12 = m12, a20 = m20, a21 = m21, a22 = m22;
+        double a = Math.fma(a00, a11, -a01 * a10);
+        double b = Math.fma(a02, a10, -a00 * a12);
+        double c = Math.fma(a01, a12, -a02 * a11);
+        double d = Math.fma(a, a22, Math.fma(b, a21, c * a20));
+        double s = 1.0 / d;
+        double nm00 = Math.fma(a11, a22, -a21 * a12) * s;
+        double nm01 = Math.fma(a21, a02, -a01 * a22) * s;
+        double nm02 = c * s;
+        double nm10 = Math.fma(a20, a12, -a10 * a22) * s;
+        double nm11 = Math.fma(a00, a22, -a20 * a02) * s;
+        double nm12 = b * s;
+        double nm20 = Math.fma(a10, a21, -a20 * a11) * s;
+        double nm21 = Math.fma(a20, a01, -a00 * a21) * s;
+        double nm22 = a * s;
+        dest.m00 = (float) (nm00);
+        dest.m01 = (float) (nm01);
+        dest.m02 = (float) (nm02);
+        dest.m10 = (float) (nm10);
+        dest.m11 = (float) (nm11);
+        dest.m12 = (float) (nm12);
+        dest.m20 = (float) (nm20);
+        dest.m21 = (float) (nm21);
+        dest.m22 = (float) (nm22);
         return dest;
     }
 
@@ -3381,9 +3384,9 @@ public class Matrix3f implements Externalizable, Cloneable, Matrix3fc {
     }
 
     public Vector3f getScale(Vector3f dest) {
-        return dest.set(Math.sqrt(m00 * m00 + m01 * m01 + m02 * m02),
-                        Math.sqrt(m10 * m10 + m11 * m11 + m12 * m12),
-                        Math.sqrt(m20 * m20 + m21 * m21 + m22 * m22));
+        return dest.set((float) Norms.norm3(m00, m01, m02),
+                        (float) Norms.norm3(m10, m11, m12),
+                        (float) Norms.norm3(m20, m21, m22));
     }
 
     public Vector3f positiveZ(Vector3f dir) {

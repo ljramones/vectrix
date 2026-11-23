@@ -183,4 +183,38 @@ class MatrixAudit2Test {
         assertTrue(new Vector3d(d).normalize().dot(forward) > 1 - 1e-9, "infinite reverse-Z direction");
         assertTrue(Double.isFinite(d.length()));
     }
+
+    @Test
+    void extremeScales() {
+        // column lengths: no overflow or underflow at representable scales
+        for (double sc : new double[] {1e155, 1e-162, 1e200, 1e-300}) {
+            Vector3d sd = new Matrix4d().scaling(sc, 2 * sc, 0.5 * sc).getScale(new Vector3d());
+            assertTrue(Math.abs(sd.x / sc - 1) < 1e-15 && Math.abs(sd.y / sc - 2) < 1e-15, "double getScale at " + sc + ": " + sd);
+            assertEquals(1.0, new Matrix4d().scaling(sc, 1, 1).normalize3x3().m00(), 1e-15, "normalize3x3 at " + sc);
+        }
+        for (float sc : new float[] {2e19f, 1e-25f, 1e-35f}) {
+            org.dynamisengine.vectrix.core.Vector3f sf = new Matrix4f().scaling(sc, sc, sc).getScale(new org.dynamisengine.vectrix.core.Vector3f());
+            assertEquals(1.0, sf.x / sc, 1e-6, "float getScale at " + sc);
+            assertEquals(1.0f, new Matrix4f().scaling(sc, 1, 1).normalize3x3().m00(), 1e-6f, "float normalize3x3 at " + sc);
+        }
+        // float inverses are computed in double: no Inf/NaN for well-conditioned matrices of extreme scale
+        for (float sc : new float[] {1e-15f, 1e20f, 1e-30f}) {
+            Matrix4f m = new Matrix4f().translation(1, 2, 3).rotateXYZ(0.3f, 0.2f, 0.1f).scale(sc);
+            Matrix4d exact = new Matrix4d().set(m).invert();
+            for (Matrix4f inv : new Matrix4f[] {new Matrix4f(m).invert(), new Matrix4f(m).invertAffine(), new Matrix4f(m).assume(0).invert()}) {
+                for (int c = 0; c < 4; c++) {
+                    for (int r = 0; r < 4; r++) {
+                        double e = exact.get(c, r), g = inv.get(c, r);
+                        assertTrue(Double.isFinite(g) && Math.abs(g - e) <= 1e-6 * (Math.abs(e) + 1e-30 + Math.abs(exact.get(c, c))), "float invert at " + sc
+                                + " [" + c + "," + r + "] " + g + " vs " + e);
+                    }
+                }
+            }
+            org.dynamisengine.vectrix.core.Matrix3f m3 = new org.dynamisengine.vectrix.core.Matrix3f().scaling(sc).invert();
+            assertEquals(1.0, m3.m00() * (double) sc, 1e-6, "Matrix3f.invert at " + sc);
+            org.dynamisengine.vectrix.core.Matrix4x3f m43 = new org.dynamisengine.vectrix.core.Matrix4x3f().translation(1, 2, 3).scale(sc).invert();
+            assertEquals(1.0, m43.m00() * (double) sc, 1e-6, "Matrix4x3f.invert at " + sc);
+        }
+    }
+
 }

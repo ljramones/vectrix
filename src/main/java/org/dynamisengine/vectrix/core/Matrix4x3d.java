@@ -1935,9 +1935,9 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
     }
 
     public Vector3d getScale(Vector3d dest) {
-        dest.x = Math.sqrt(m00 * m00 + m01 * m01 + m02 * m02);
-        dest.y = Math.sqrt(m10 * m10 + m11 * m11 + m12 * m12);
-        dest.z = Math.sqrt(m20 * m20 + m21 * m21 + m22 * m22);
+        dest.x = Norms.norm3(m00, m01, m02);
+        dest.y = Norms.norm3(m10, m11, m12);
+        dest.z = Norms.norm3(m20, m21, m22);
         return dest;
     }
 
@@ -6398,9 +6398,9 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
     }
 
     public Matrix4x3d normalize3x3(Matrix4x3d dest) {
-        double invXlen = Math.invsqrt(m00 * m00 + m01 * m01 + m02 * m02);
-        double invYlen = Math.invsqrt(m10 * m10 + m11 * m11 + m12 * m12);
-        double invZlen = Math.invsqrt(m20 * m20 + m21 * m21 + m22 * m22);
+        double invXlen = 1.0 / Norms.norm3(m00, m01, m02);
+        double invYlen = 1.0 / Norms.norm3(m10, m11, m12);
+        double invZlen = 1.0 / Norms.norm3(m20, m21, m22);
         dest.m00 = m00 * invXlen; dest.m01 = m01 * invXlen; dest.m02 = m02 * invXlen;
         dest.m10 = m10 * invYlen; dest.m11 = m11 * invYlen; dest.m12 = m12 * invYlen;
         dest.m20 = m20 * invZlen; dest.m21 = m21 * invZlen; dest.m22 = m22 * invZlen;
@@ -6410,9 +6410,9 @@ public class Matrix4x3d implements Externalizable, Cloneable, Matrix4x3dc {
     }
 
     public Matrix3d normalize3x3(Matrix3d dest) {
-        double invXlen = Math.invsqrt(m00 * m00 + m01 * m01 + m02 * m02);
-        double invYlen = Math.invsqrt(m10 * m10 + m11 * m11 + m12 * m12);
-        double invZlen = Math.invsqrt(m20 * m20 + m21 * m21 + m22 * m22);
+        double invXlen = 1.0 / Norms.norm3(m00, m01, m02);
+        double invYlen = 1.0 / Norms.norm3(m10, m11, m12);
+        double invZlen = 1.0 / Norms.norm3(m20, m21, m22);
         dest.m00(m00 * invXlen); dest.m01(m01 * invXlen); dest.m02(m02 * invXlen);
         dest.m10(m10 * invYlen); dest.m11(m11 * invYlen); dest.m12(m12 * invYlen);
         dest.m20(m20 * invZlen); dest.m21(m21 * invZlen); dest.m22(m22 * invZlen);
