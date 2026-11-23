@@ -360,6 +360,9 @@ class HotPathAllocationTest {
         double[] cout = new double[corr.outputLength()];
         double[] cs = new double[corr.scratchSize()];
         assertNoAllocation("Correlation.correlate", () -> corr.correlate(cx, 0, cx, 0, cout, 0, cs, 0));
+        float[] cxf = new float[400];
+        float[] coutf = new float[corr.outputLength()];
+        assertNoAllocation("Correlation.correlate float", () -> corr.correlate(cxf, 0, cxf, 0, coutf, 0, cs, 0));
         assertNoAllocation("Goertzel.power", () -> org.dynamisengine.vectrix.dsp.Goertzel.power(sig, 0, 512, 0.1));
         org.dynamisengine.vectrix.dsp.Mdctd mdct = org.dynamisengine.vectrix.dsp.Mdctd.plan(256);
         double[] mc = new double[256];
@@ -509,6 +512,14 @@ class HotPathAllocationTest {
         double[] wvScr = new double[512];
         assertNoAllocation("Wavelet.forward multilevel", () -> wav.forward(sig, 0, 512, 4, wvOut, 0, wvScr, 0));
         assertNoAllocation("Wavelet.inverse multilevel", () -> wav.inverse(wvOut, 0, 512, 4, sig, 0, wvScr, 0));
+        float[] wvOutf = new float[512];
+        double[] wvScr2 = new double[1024];
+        assertNoAllocation("Wavelet.forward float", () -> wav.forward(sigf, 0, 512, 4, wvOutf, 0, wvScr2, 0));
+        assertNoAllocation("Wavelet.inverse float", () -> wav.inverse(wvOutf, 0, 512, 4, sigf, 0, wvScr2, 0));
+        float[] trf = {4, 1, 0.5f, 0.25f, 0.1f};
+        float[] txf = new float[5];
+        assertNoAllocation("Toeplitz.solve float", () -> org.dynamisengine.vectrix.dsp.Toeplitz.solve(trf, trf, 5, txf,
+            tscr));
         org.dynamisengine.vectrix.fft.RealFftd sp = org.dynamisengine.vectrix.fft.RealFftd.plan(128);
         double[] psd = new double[65];
         double[] spScr = new double[org.dynamisengine.vectrix.dsp.Spectra.scratchSize(sp)];

@@ -702,4 +702,112 @@ class DspFftBlasFixesTest {
         Gemmd.gemv(false, 2, 0, 1, new double[0], 0, 0, null, 0, 0.5, yd, 0, null, 0);
         assertArrayEquals(new double[] {3.5, 3.5}, yd);
     }
+
+    // ---- float overloads: the double computation on the widened inputs, rounded once ----
+
+    private static float[] randomFloats(SplittableRandom rnd, int n) {
+        float[] a = new float[n];
+        for (int i = 0; i < n; i++) {
+            a[i] = (float) rnd.nextDouble(-1, 1);
+        }
+        return a;
+    }
+
+    private static double[] widen(float[] a) {
+        double[] d = new double[a.length];
+        for (int i = 0; i < a.length; i++) {
+            d[i] = a[i];
+        }
+        return d;
+    }
+
+    private static float[] narrow(double[] a) {
+        float[] f = new float[a.length];
+        for (int i = 0; i < a.length; i++) {
+            f[i] = (float) a[i];
+        }
+        return f;
+    }
+
+    @Test
+    void correlationFloatOverloadRoundsTheDoubleResult() {
+        SplittableRandom rnd = new SplittableRandom(11);
+        for (int[] size : new int[][] {{5, 7}, {300, 400}}) { // direct and FFT paths
+            org.dynamisengine.vectrix.dsp.Correlation c = org.dynamisengine.vectrix.dsp.Correlation.plan(size[0],
+                size[1]);
+            float[] x = randomFloats(rnd, size[0] + 2);
+            float[] y = randomFloats(rnd, size[1] + 1);
+            double[] out = new double[c.outputLength()];
+            double[] scratch = new double[c.scratchSize() + 3];
+            c.correlate(widen(x), 2, widen(y), 1, out, 0, scratch, 3);
+            float[] outf = new float[c.outputLength() + 1];
+            c.correlate(x, 2, y, 1, outf, 1, scratch, 3);
+            assertArrayEquals(narrow(out), Arrays.copyOfRange(outf, 1, outf.length), "usesFft " + c.usesFft());
+            assertThrows(IllegalArgumentException.class, () -> c.correlate(x, 3, y, 1, outf, 1, scratch, 3));
+        }
+    }
+
+    @Test
+    void toeplitzFloatOverloadsRoundTheDoubleResults() {
+        float[] r = {2.0f, 1.3f, 0.7f, 0.2f, -0.1f, -0.15f, -0.05f};
+        int p = 6;
+        double[] a = new double[p + 1];
+        double[] k = new double[p];
+        double err = Toeplitz.levinsonDurbin(widen(r), p, a, k, new double[2 * p + 1]);
+        float[] af = new float[p + 1];
+        float[] kf = new float[p];
+        assertEquals(err, Toeplitz.levinsonDurbin(r, p, af, kf, new double[2 * p + 1]));
+        assertArrayEquals(narrow(a), af);
+        assertArrayEquals(narrow(k), kf);
+        float[] b = {1, -2, 3, 0.5f, 0.25f, -1, 2};
+        double[] x = new double[7];
+        Toeplitz.solve(widen(r), widen(b), 7, x, new double[14]);
+        float[] xf = new float[7];
+        Toeplitz.solve(r, b, 7, xf, new double[14]);
+        assertArrayEquals(narrow(x), xf);
+        float[] singular = {1, 1, 1};
+        float[] untouched = {5, 5, 5};
+        assertThrows(IllegalArgumentException.class,
+            () -> Toeplitz.solve(singular, new float[] {1, 2, 3}, 3, untouched, new double[6]));
+        assertThrows(IllegalArgumentException.class,
+            () -> Toeplitz.levinsonDurbin(new float[] {1, 2, 0}, 2, untouched, null, new double[5]));
+        assertArrayEquals(new float[] {5, 5, 5}, untouched);
+    }
+
+    @Test
+    void waveletFloatOverloadsRoundTheDoubleResults() {
+        SplittableRandom rnd = new SplittableRandom(13);
+        Wavelet w = Wavelet.daubechies(3);
+        int n = 64;
+        float[] x = randomFloats(rnd, n);
+        double[] c = new double[n];
+        w.forward(widen(x), 0, n, c, 0);
+        float[] cf = new float[n];
+        w.forward(x, 0, n, cf, 0);
+        assertArrayEquals(narrow(c), cf, "one level");
+        double[] back = new double[n];
+        w.inverse(widen(cf), 0, n, back, 0);
+        float[] backf = new float[n];
+        w.inverse(cf, 0, n, backf, 0, new double[n], 0);
+        assertArrayEquals(narrow(back), backf, "one level inverse");
+        double[] scr = new double[n];
+        double[] cm = new double[n];
+        w.forward(widen(x), 0, n, 3, cm, 0, scr, 0);
+        float[] cmf = x.clone();
+        w.forward(cmf, 0, n, 3, cmf, 0, new double[2 * n], 0); // out may be x
+        assertArrayEquals(narrow(cm), cmf, "three levels");
+        double[] bm = new double[n];
+        w.inverse(widen(cmf), 0, n, 3, bm, 0, scr, 0);
+        float[] bmf = cmf.clone();
+        w.inverse(bmf, 0, n, 3, bmf, 0, new double[2 * n], 0); // x may be coeffs
+        assertArrayEquals(narrow(bm), bmf, "three levels inverse");
+        for (int i = 0; i < n; i++) {
+            assertEquals(x[i], bmf[i], 1e-6f);
+        }
+        float[] out = new float[n];
+        assertThrows(IllegalArgumentException.class, () -> w.forward(x, 0, n, 3, out, 0, new double[2 * n - 1], 0));
+        assertThrows(IllegalArgumentException.class, () -> w.inverse(x, 0, n, out, 0, new double[n - 1], 0));
+        assertThrows(IllegalArgumentException.class, () -> w.forward(x, 1, n, out, 0));
+        assertArrayEquals(new float[n], out);
+    }
 }

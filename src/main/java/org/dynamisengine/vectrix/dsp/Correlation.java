@@ -34,7 +34,8 @@ import org.dynamisengine.vectrix.fft.RealFftd;
  * <p>
  * Like {@link org.dynamisengine.vectrix.fft.BlockConvolverd}, the plan sums directly (with fused multiply-adds) when
  * that is cheaper and otherwise uses real FFTs of a fast size. Plans are immutable and shareable; calls take
- * caller scratch, do not allocate, and are deterministic.
+ * caller scratch, do not allocate, and are deterministic. The float overload computes in double and rounds only
+ * its outputs.
  *
  * @since 2.5.0
  */
@@ -148,6 +149,67 @@ public final class Correlation {
         java.util.Arrays.fill(scratch, a + nx, a + m, 0.0);
         System.arraycopy(y, yOff, scratch, b, ny);
         java.util.Arrays.fill(scratch, b + ny, b + m, 0.0);
+        spectrumProduct(scratch, a, b, sp, work);
+        System.arraycopy(scratch, a, out, outOff, nx + ny - 1);
+    }
+
+    /**
+     * Correlates float sequences, computing in double exactly as
+     * {@link #correlate(double[], int, double[], int, double[], int, double[], int)} does on the widened values; only
+     * the outputs are rounded to float.
+     *
+     * @param x the {@code nx} values of the first sequence
+     * @param xOff the offset of the first value of {@code x}
+     * @param y the {@code ny} values of the second sequence
+     * @param yOff the offset of the first value of {@code y}
+     * @param out receives {@link #outputLength()} values, lag {@code -(nx - 1)} first; must not overlap the inputs
+     * @param outOff the offset of the first output
+     * @param scratch working memory of {@link #scratchSize()} doubles; may be {@code null} when that is 0
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if an array does not hold its values from its offset (checked before
+     *         anything is written)
+     * @since 3.0.0
+     */
+    public void correlate(float[] x, int xOff, float[] y, int yOff, float[] out, int outOff, double[] scratch,
+            int scratchOff) {
+        check(x == null ? -1 : x.length, xOff, nx, "x");
+        check(y == null ? -1 : y.length, yOff, ny, "y");
+        check(out == null ? -1 : out.length, outOff, nx + ny - 1, "out");
+        if (fft == null) {
+            for (int k = 0; k < nx + ny - 1; k++) {
+                int lag = k - (nx - 1);
+                int i0 = java.lang.Math.max(0, -lag);
+                int i1 = java.lang.Math.min(nx - 1, ny - 1 - lag);
+                double s = 0.0;
+                for (int i = i0; i <= i1; i++) {
+                    s = java.lang.Math.fma((double) x[xOff + i], (double) y[yOff + i + lag], s);
+                }
+                out[outOff + k] = (float) s;
+            }
+            return;
+        }
+        check(scratch, scratchOff, scratchSize, "scratch");
+        int m = fft.size();
+        int sp = fft.spectrumLength();
+        int a = scratchOff;
+        int b = scratchOff + sp;
+        int work = scratchOff + 2 * sp;
+        for (int i = 0; i < nx; i++) {
+            scratch[a + i] = x[xOff + nx - 1 - i];
+        }
+        java.util.Arrays.fill(scratch, a + nx, a + m, 0.0);
+        for (int i = 0; i < ny; i++) {
+            scratch[b + i] = y[yOff + i];
+        }
+        java.util.Arrays.fill(scratch, b + ny, b + m, 0.0);
+        spectrumProduct(scratch, a, b, sp, work);
+        for (int k = 0; k < nx + ny - 1; k++) {
+            out[outOff + k] = (float) scratch[a + k];
+        }
+    }
+
+    /** Transforms both padded buffers, multiplies the spectra into {@code a} and inverse-transforms it in place. */
+    private void spectrumProduct(double[] scratch, int a, int b, int sp, int work) {
         fft.forward(scratch, a, scratch, a, scratch, work);
         fft.forward(scratch, b, scratch, b, scratch, work);
         for (int k = 0; k < sp; k += 2) {
@@ -159,7 +221,12 @@ public final class Correlation {
             scratch[a + k + 1] = ar * bi + ai * br;
         }
         fft.inverse(scratch, a, scratch, a, scratch, work);
-        System.arraycopy(scratch, a, out, outOff, nx + ny - 1);
+    }
+
+    private static void check(int length, int off, int count, String name) {
+        if (length < 0 || off < 0 || off > length - count) {
+            throw new IllegalArgumentException(name + " must hold " + count + " values from offset " + off);
+        }
     }
 
     private static void check(double[] v, int off, int count, String name) {

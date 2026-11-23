@@ -31,7 +31,8 @@ package org.dynamisengine.vectrix.dsp;
  * Both algorithms require the leading submatrices to be nonsingular (true for any positive-definite autocorrelation)
  * and report failure otherwise. Both work in the caller's scratch and write their outputs only on success: a bad
  * argument or a failure throws {@link IllegalArgumentException} with the outputs unchanged. Sums run in a fixed
- * order; nothing allocates. Arrays are used from index 0.
+ * order; nothing allocates. Arrays are used from index 0. The float overloads compute in double, with double
+ * scratch, and round only their outputs.
  *
  * @since 2.5.0
  */
@@ -187,5 +188,127 @@ public final class Toeplitz {
             }
         }
         System.arraycopy(scratch, xs, x, 0, n);
+    }
+
+    /**
+     * Levinson–Durbin on float data, computing in double exactly as
+     * {@link #levinsonDurbin(double[], int, double[], double[], double[])} does on the widened values; only the
+     * coefficients are rounded to float.
+     *
+     * @param r the autocorrelation at lags {@code 0..p}
+     * @param p the prediction order, {@code >= 0}
+     * @param a receives {@code p + 1} coefficients with {@code a[0] = 1}; may be {@code r}
+     * @param reflection receives the {@code p} reflection (PARCOR) coefficients, or {@code null}
+     * @param scratch at least {@link #levinsonDurbinScratchSize(int) levinsonDurbinScratchSize(p)} doubles of working
+     *        memory, {@code 2p + 1}
+     * @return the final prediction error power, in double
+     * @throws IllegalArgumentException as the double overload; {@code a} and {@code reflection} are then unchanged
+     * @since 3.0.0
+     */
+    public static double levinsonDurbin(float[] r, int p, float[] a, float[] reflection, double[] scratch) {
+        int need = levinsonDurbinScratchSize(p);
+        if (r == null || a == null || scratch == null || r.length < p + 1 || a.length < p + 1
+                || scratch.length < need || reflection != null && reflection.length < p) {
+            throw new IllegalArgumentException("need r and a of p + 1 values, reflection of p values (or null) and "
+                    + "2p + 1 doubles of scratch: p = " + p);
+        }
+        if (!(r[0] > 0)) {
+            throw new IllegalArgumentException("r[0] must be positive");
+        }
+        int ks = p + 1;
+        java.util.Arrays.fill(scratch, 0, p + 1, 0.0);
+        scratch[0] = 1;
+        double err = r[0];
+        for (int i = 1; i <= p; i++) {
+            double acc = r[i];
+            for (int j = 1; j < i; j++) {
+                acc = Math.fma(scratch[j], (double) r[i - j], acc);
+            }
+            double k = -acc / err;
+            if (!(Math.abs(k) < 1)) {
+                throw new IllegalArgumentException("the autocorrelation is not positive definite at order " + i);
+            }
+            scratch[ks + i - 1] = k;
+            for (int j = 1, l = i - 1; j <= l; j++, l--) {
+                double aj = scratch[j];
+                double al = scratch[l];
+                scratch[j] = Math.fma(k, al, aj);
+                if (l != j) {
+                    scratch[l] = Math.fma(k, aj, al);
+                }
+            }
+            scratch[i] = k;
+            err *= (1 - k) * (1 + k);
+        }
+        for (int i = 0; i <= p; i++) {
+            a[i] = (float) scratch[i];
+        }
+        if (reflection != null) {
+            for (int i = 0; i < p; i++) {
+                reflection[i] = (float) scratch[ks + i];
+            }
+        }
+        return err;
+    }
+
+    /**
+     * Solves {@code T·x = b} on float data, computing in double exactly as
+     * {@link #solve(double[], double[], int, double[], double[])} does on the widened values; only the unknowns are
+     * rounded to float.
+     *
+     * @param r the first row of the matrix, {@code n} values
+     * @param b the right-hand side, {@code n} values
+     * @param n the order of the system, at least 1
+     * @param x receives the {@code n} unknowns; may be {@code b} or {@code r}
+     * @param scratch at least {@link #solveScratchSize(int) solveScratchSize(n)} doubles of working memory,
+     *        {@code 2n}
+     * @throws IllegalArgumentException as the double overload; {@code x} is then unchanged
+     * @since 3.0.0
+     */
+    public static void solve(float[] r, float[] b, int n, float[] x, double[] scratch) {
+        int need = solveScratchSize(n);
+        if (r == null || b == null || x == null || scratch == null || r.length < n || b.length < n || x.length < n
+                || scratch.length < need) {
+            throw new IllegalArgumentException("need n values in r, b and x, and 2n doubles of scratch: n = " + n);
+        }
+        if (r[0] == 0) {
+            throw new IllegalArgumentException("singular leading submatrix");
+        }
+        double r0 = r[0];
+        int f = 0;
+        int xs = n;
+        scratch[f] = 1 / r0;
+        scratch[xs] = b[0] / r0;
+        for (int i = 1; i < n; i++) {
+            double eps = 0;
+            for (int j = 0; j < i; j++) {
+                eps = Math.fma((double) r[i - j], scratch[f + j], eps);
+            }
+            double den = 1 - eps * eps;
+            if (den == 0) {
+                throw new IllegalArgumentException("singular leading submatrix of order " + (i + 1));
+            }
+            scratch[f + i] = 0;
+            for (int j = 0, l = i; j <= l; j++, l--) {
+                double fj = scratch[f + j];
+                double fl = scratch[f + l];
+                scratch[f + j] = (fj - eps * fl) / den;
+                if (l != j) {
+                    scratch[f + l] = (fl - eps * fj) / den;
+                }
+            }
+            double ex = 0;
+            for (int j = 0; j < i; j++) {
+                ex = Math.fma((double) r[i - j], scratch[xs + j], ex);
+            }
+            double c = b[i] - ex;
+            scratch[xs + i] = 0;
+            for (int j = 0; j <= i; j++) {
+                scratch[xs + j] = Math.fma(c, scratch[f + i - j], scratch[xs + j]);
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            x[i] = (float) scratch[xs + i];
+        }
     }
 }

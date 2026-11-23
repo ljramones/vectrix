@@ -8302,9 +8302,11 @@ dsp.Smoothers.savitzkyGolay(int,int,int,double[]) fc3271dea8ed0dc2
 dsp.Stftd.plan(int,int,double[],int,double[],int) f4ca60a0e56aff63
 dsp.Stftf.plan(int,int,float[],int,float[],int) 1fd12712e4348d7a
 dsp.Toeplitz.levinsonDurbin(double[],int,double[],double[],double[]) a65dc12a1e846c50
+dsp.Toeplitz.levinsonDurbin(float[],int,float[],float[],double[]) 3f971e328f8ebf27
 dsp.Toeplitz.levinsonDurbinScratchSize(int) c75013d834b6afd1
 dsp.Toeplitz.solveScratchSize(int) 04517d47cebfb727
 dsp.Toeplitz.solve(double[],double[],int,double[],double[]) e86c208fe7c68eba
+dsp.Toeplitz.solve(float[],float[],int,float[],double[]) daf49bad6fc45be5
 dsp.Wavelet.daubechies(int) 012c7f197255f63e
 dsp.Wavelet.fromLowpass(double[]) 3f971e328f8ebf27
 dsp.Wavelet.haar() bedd6e1b75862100

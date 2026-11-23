@@ -33,7 +33,8 @@ package org.dynamisengine.vectrix.dsp;
  * conventional ordering ({@code db2} starts {@code (1 + √3)/(4√2)}), is orthonormal to about 1e-15, and has
  * {@code p} vanishing moments. A level of the transform splits {@code n} samples (even) into {@code n/2}
  * approximation and {@code n/2} detail coefficients; the inverse reconstructs exactly up to rounding. A plan is
- * immutable and shareable; transforms do not allocate.
+ * immutable and shareable; transforms do not allocate. The float overloads compute in double (with double scratch
+ * where intermediate values must be kept) and round only their outputs.
  *
  * @since 2.5.0
  */
@@ -282,6 +283,164 @@ public final class Wavelet {
             System.arraycopy(coeffs, cOff + len, scratch, scratchOff + len, len);
             inverse(scratch, scratchOff, 2 * len, x, xOff);
             len *= 2;
+        }
+    }
+
+    /**
+     * One level on float samples, computing in double exactly as
+     * {@link #forward(double[], int, int, double[], int)} does on the widened values; only the coefficients are
+     * rounded to float.
+     *
+     * @param x the samples
+     * @param xOff the offset of the first sample
+     * @param n the number of samples, even and at least 2
+     * @param out receives {@code n} coefficients; must not overlap {@code x}
+     * @param outOff the offset of the first coefficient
+     * @throws IllegalArgumentException if {@code n} is odd or less than 2, or an array does not hold {@code n}
+     *         values from its offset (checked before anything is written)
+     * @since 3.0.0
+     */
+    public void forward(float[] x, int xOff, int n, float[] out, int outOff) {
+        checkLevel(n, x == null ? -1 : x.length, xOff, out == null ? -1 : out.length, outOff);
+        int half = n / 2;
+        for (int k = 0; k < half; k++) {
+            double a = 0;
+            double d = 0;
+            for (int m = 0; m < lo.length; m++) {
+                double v = x[xOff + (int) ((2L * k + m) % n)];
+                a = Math.fma(lo[m], v, a);
+                d = Math.fma(hi[m], v, d);
+            }
+            out[outOff + k] = (float) a;
+            out[outOff + half + k] = (float) d;
+        }
+    }
+
+    /**
+     * The inverse of one level on float coefficients, accumulating in {@code n} doubles of scratch exactly as
+     * {@link #inverse(double[], int, int, double[], int)} does on the widened values; only the samples are rounded to
+     * float.
+     *
+     * @param coeffs {@code n} coefficients, the approximation followed by the detail
+     * @param cOff the offset of the first coefficient
+     * @param n the number of samples, even and at least 2
+     * @param x receives the {@code n} samples; may overlap {@code coeffs} (it is written last)
+     * @param xOff the offset of the first sample
+     * @param scratch {@code n} doubles of working memory
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if {@code n} is odd or less than 2, or an array does not hold {@code n}
+     *         values from its offset (checked before anything is written)
+     * @since 3.0.0
+     */
+    public void inverse(float[] coeffs, int cOff, int n, float[] x, int xOff, double[] scratch, int scratchOff) {
+        checkLevel(n, coeffs == null ? -1 : coeffs.length, cOff, x == null ? -1 : x.length, xOff);
+        checkLevel(n, scratch == null ? -1 : scratch.length, scratchOff, n, 0);
+        int half = n / 2;
+        java.util.Arrays.fill(scratch, scratchOff, scratchOff + n, 0.0);
+        for (int k = 0; k < half; k++) {
+            double a = coeffs[cOff + k];
+            double d = coeffs[cOff + half + k];
+            for (int m = 0; m < lo.length; m++) {
+                int i = scratchOff + (int) ((2L * k + m) % n);
+                scratch[i] = Math.fma(lo[m], a, Math.fma(hi[m], d, scratch[i]));
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            x[xOff + i] = (float) scratch[scratchOff + i];
+        }
+    }
+
+    /**
+     * A multilevel transform of float samples, computing in double exactly as
+     * {@link #forward(double[], int, int, int, double[], int, double[], int)} does on the widened values; only the
+     * coefficients are rounded to float.
+     *
+     * @param x the samples
+     * @param xOff the offset of the first sample
+     * @param n the number of samples, at least 2 and divisible by {@code 2^levels}
+     * @param levels the number of levels, at least 1
+     * @param out receives {@code n} coefficients laid out as {@code [aL, dL, d(L-1), ..., d1]}; may be {@code x}
+     * @param outOff the offset of the first coefficient
+     * @param scratch {@code 2n} doubles of working memory
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if {@code levels < 1}, {@code n} is not divisible by {@code 2^levels}, or an
+     *         array does not hold its values from its offset (checked before anything is written)
+     * @since 3.0.0
+     */
+    public void forward(float[] x, int xOff, int n, int levels, float[] out, int outOff, double[] scratch,
+            int scratchOff) {
+        checkLevels(n, levels);
+        checkFloatArrays(x, xOff, out, outOff, scratch, scratchOff, n);
+        int a = scratchOff;
+        int b = scratchOff + n;
+        for (int i = 0; i < n; i++) {
+            scratch[a + i] = x[xOff + i];
+        }
+        int len = n;
+        for (int lv = 0; lv < levels; lv++) {
+            forward(scratch, a, len, scratch, b);
+            for (int i = len / 2; i < len; i++) {
+                out[outOff + i] = (float) scratch[b + i];
+            }
+            System.arraycopy(scratch, b, scratch, a, len / 2);
+            len /= 2;
+        }
+        for (int i = 0; i < len; i++) {
+            out[outOff + i] = (float) scratch[a + i];
+        }
+    }
+
+    /**
+     * The inverse of the float multilevel transform, computing in double exactly as
+     * {@link #inverse(double[], int, int, int, double[], int, double[], int)} does on the widened values; only the
+     * samples are rounded to float.
+     *
+     * @param coeffs {@code n} coefficients laid out as {@code [aL, dL, d(L-1), ..., d1]}
+     * @param cOff the offset of the first coefficient
+     * @param n the number of samples, at least 2 and divisible by {@code 2^levels}
+     * @param levels the number of levels, at least 1
+     * @param x receives the {@code n} samples; may overlap {@code coeffs} (it is written last)
+     * @param xOff the offset of the first sample
+     * @param scratch {@code 2n} doubles of working memory
+     * @param scratchOff the offset into {@code scratch}
+     * @throws IllegalArgumentException if {@code levels < 1}, {@code n} is not divisible by {@code 2^levels}, or an
+     *         array does not hold its values from its offset (checked before anything is written)
+     * @since 3.0.0
+     */
+    public void inverse(float[] coeffs, int cOff, int n, int levels, float[] x, int xOff, double[] scratch,
+            int scratchOff) {
+        checkLevels(n, levels);
+        checkFloatArrays(coeffs, cOff, x, xOff, scratch, scratchOff, n);
+        int a = scratchOff;      // the current approximation
+        int b = scratchOff + n;  // one level's input: the approximation, then the detail
+        int len = n >> levels;
+        for (int i = 0; i < len; i++) {
+            scratch[a + i] = coeffs[cOff + i];
+        }
+        for (int lv = 0; lv < levels; lv++) {
+            System.arraycopy(scratch, a, scratch, b, len);
+            for (int i = 0; i < len; i++) {
+                scratch[b + len + i] = coeffs[cOff + len + i];
+            }
+            inverse(scratch, b, 2 * len, scratch, a);
+            len *= 2;
+        }
+        for (int i = 0; i < n; i++) {
+            x[xOff + i] = (float) scratch[a + i];
+        }
+    }
+
+    private static void checkFloatArrays(float[] a, int aOff, float[] b, int bOff, double[] c, int cOff, int n) {
+        if (a == null || b == null || c == null || aOff < 0 || aOff > a.length - n || bOff < 0
+                || bOff > b.length - n || cOff < 0 || cOff > c.length - 2L * n) {
+            throw new IllegalArgumentException("need n = " + n + " values from each offset and 2n doubles of scratch");
+        }
+    }
+
+    private static void checkLevel(int n, int aLength, int aOff, int bLength, int bOff) {
+        if (n < 2 || (n & 1) != 0 || aLength < 0 || bLength < 0 || aOff < 0 || aOff > aLength - n || bOff < 0
+                || bOff > bLength - n) {
+            throw new IllegalArgumentException("need an even n and arrays holding n values");
         }
     }
 

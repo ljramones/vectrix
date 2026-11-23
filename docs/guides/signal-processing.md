@@ -35,7 +35,9 @@ guide: [state-estimation.md](state-estimation.md).
 
 Unsuffixed `dsp` classes work in double. Classes ending in `f` work in float; where a `dsp` method has a float
 overload without a float class (`Biquad.process`, `Resampler.process`, `Goertzel.dft`, `Windows.hann` and the other
-windows), it computes in double and rounds once.
+windows, `Correlation.correlate`, `Toeplitz.solve`, `Toeplitz.levinsonDurbin`, `Wavelet.forward` and
+`Wavelet.inverse`), it computes in double and rounds once: the result is the double method's on the widened inputs,
+rounded to float. Their scratch arrays are double.
 
 ## Units and conventions
 
@@ -346,6 +348,8 @@ Boundaries are periodic.
   `2^levels` and `n` doubles of scratch. The layout is `[aL, dL, d(L-1), ..., d1]`: the coarsest approximation
   first.
 - `inverse` with the same arguments reconstructs the signal to rounding.
+- The float overloads compute in double. The one-level float `inverse` takes `n` doubles of scratch, and the
+  multilevel float overloads `2n`, to keep the intermediate levels in double.
 
 A typical use is denoising: transform, shrink small detail coefficients towards zero, inverse-transform.
 `lowpass()` and `highpass()` return copies of the filters.
@@ -360,7 +364,8 @@ c[ℓ] = Σ x[i]·y[i + ℓ]      for ℓ = -(nx - 1) .. ny - 1, stored at out[�
 
 `correlate(x, xOff, y, yOff, out, outOff, scratch, scratchOff)` writes `outputLength()` = `nx + ny - 1` values;
 `out` must not overlap the inputs. Scratch is `scratchSize()` (0 when the plan sums directly; `usesFft()` tells
-you). Correlate a sequence with itself for its autocorrelation (lag 0 is at `out[nx - 1]`). To find the delay of
+you). A float overload takes float sequences and the same double scratch. Correlate a sequence with itself for its
+autocorrelation (lag 0 is at `out[nx - 1]`). To find the delay of
 `y` relative to `x`, take the index of the largest value and subtract `nx - 1`.
 
 ## Goertzel: single frequencies
