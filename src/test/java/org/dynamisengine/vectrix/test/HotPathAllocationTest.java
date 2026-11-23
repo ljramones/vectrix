@@ -311,6 +311,98 @@ class HotPathAllocationTest {
         assertTrue(perTable <= 64, "arc-length table builder allocates " + perTable + " bytes per table");
     }
 
+    /** 3.0: geometry, linalg and hash methods that allocated temporaries before. */
+    @Test
+    void geometryLinalgHashDoNotAllocate() {
+        int[] xyz = new int[3];
+        assertNoAllocation("SpatialCodes.hilbert3d", () -> org.dynamisengine.vectrix.geometry.SpatialCodes.hilbert3d(5, 9,
+                13, 10));
+        assertNoAllocation("SpatialCodes.hilbert3dToXyz", () -> org.dynamisengine.vectrix.geometry.SpatialCodes
+                .hilbert3dToXyz(123456L, 10, xyz));
+        assertNoAllocation("SpatialCodes.morton2dX", () -> org.dynamisengine.vectrix.geometry.SpatialCodes.morton2dX(-5));
+        // a cube: 8 vertices, 12 triangles
+        float[] pos = {0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1};
+        int[] idx = {0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4, 2, 3, 7, 2, 7, 6, 1, 2, 6, 1, 6, 5, 0, 4, 7,
+            0, 7, 3};
+        float[] nrm = new float[24];
+        float[] uv = new float[16];
+        for (int i = 0; i < 16; i++) {
+            uv[i] = (i * 7 % 5) * 0.25f;
+        }
+        float[] tan = new float[32];
+        double[] scratch = new double[org.dynamisengine.vectrix.geometry.MeshMath.vertexTangentsScratchSize(8)];
+        assertNoAllocation("MeshMath.vertexNormals", () -> org.dynamisengine.vectrix.geometry.MeshMath.vertexNormals(pos,
+                idx, 12, true, nrm));
+        assertNoAllocation("MeshMath.vertexTangents", () -> org.dynamisengine.vectrix.geometry.MeshMath.vertexTangents(pos,
+                nrm, uv, idx, 12, tan, scratch, 0));
+        Vector3f ta = new Vector3f(0, 0, 0), tb = new Vector3f(1, 0, 0), tc = new Vector3f(0.3f, 0.8f, 0);
+        assertNoAllocation("MeshMath.triangleMinAngle", () -> org.dynamisengine.vectrix.geometry.MeshMath.triangleMinAngle(
+                ta, tb, tc));
+        float[] dirs = new float[39];
+        float[] minMax = new float[26];
+        assertNoAllocation("BoundingVolumesf.kDopDirections", () -> org.dynamisengine.vectrix.geometry.BoundingVolumesf
+                .kDopDirections(26, dirs));
+        assertNoAllocation("BoundingVolumesf.kDop", () -> org.dynamisengine.vectrix.geometry.BoundingVolumesf.kDop(pos, 8,
+                26, minMax));
+        double[] dirsD = new double[39];
+        double[] posD = new double[24];
+        double[] minMaxD = new double[26];
+        assertNoAllocation("BoundingVolumesd.kDop", () -> org.dynamisengine.vectrix.geometry.BoundingVolumesd.kDop(posD, 8,
+                26, minMaxD));
+        assertNoAllocation("BoundingVolumesd.kDopDirections", () -> org.dynamisengine.vectrix.geometry.BoundingVolumesd
+                .kDopDirections(14, dirsD));
+        Vector3f cmin = new Vector3f(), cmax = new Vector3f();
+        assertNoAllocation("BoundingVolumesf.aabOfCylinder", () -> org.dynamisengine.vectrix.geometry.BoundingVolumesf
+                .aabOfCylinder(ta, tc, 0.7f, cmin, cmax));
+        Vector3d da = new Vector3d(0, 0, 0), dc = new Vector3d(0.3, 0.8, 0.1), dmin = new Vector3d(), dmax = new Vector3d();
+        assertNoAllocation("BoundingVolumesd.aabOfCylinder", () -> org.dynamisengine.vectrix.geometry.BoundingVolumesd
+                .aabOfCylinder(da, dc, 0.7, dmin, dmax));
+        org.dynamisengine.vectrix.core.Vector4d sphD = new org.dynamisengine.vectrix.core.Vector4d(0.1, 0.2, 0.3, 1.5);
+        org.dynamisengine.vectrix.core.Matrix4x3d mD = new org.dynamisengine.vectrix.core.Matrix4x3d().rotateXYZ(0.3, 0.2,
+                0.1).translate(1e5, 2, 3);
+        assertNoAllocation("BoundingVolumesd.transformSphere", () -> org.dynamisengine.vectrix.geometry.BoundingVolumesd
+                .transformSphere(sphD, mD, sphD));
+        Vector3f face = new Vector3f();
+        assertNoAllocation("Contactsf.nearestFace", () -> org.dynamisengine.vectrix.geometry.Contactsf.nearestFace(tc, ta,
+                tb, face));
+        assertNoAllocation("RobustPredicates.incircle(float)", () -> org.dynamisengine.vectrix.geometry.RobustPredicates
+                .incircle(0f, 0f, 1f, 0f, 0f, 1f, 0.2f, 0.3f));
+        assertNoAllocation("RobustPredicates.insphere(float)", () -> org.dynamisengine.vectrix.geometry.RobustPredicates
+                .insphere(0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f, 0.2f, 0.2f, 0.2f));
+        // least squares with caller scratch: a 6 x 3 fit
+        double[] a = new double[18];
+        double[] b = new double[6];
+        for (int i = 0; i < 18; i++) {
+            a[i] = Math.sin(i + 1.0);
+        }
+        for (int i = 0; i < 6; i++) {
+            b[i] = Math.cos(i + 1.0);
+        }
+        double[] x = new double[3];
+        double[] lsScratch = new double[org.dynamisengine.vectrix.linalg.LeastSquaresd.scratchSize(6, 3)];
+        assertNoAllocation("LeastSquaresd.solve(scratch)", () -> org.dynamisengine.vectrix.linalg.LeastSquaresd.solve(a, b,
+                6, 3, x, lsScratch, 0));
+        float[] af = new float[18];
+        float[] bf = new float[6];
+        for (int i = 0; i < 18; i++) {
+            af[i] = (float) a[i];
+        }
+        for (int i = 0; i < 6; i++) {
+            bf[i] = (float) b[i];
+        }
+        float[] xf = new float[3];
+        double[] lsScratchF = new double[org.dynamisengine.vectrix.linalg.LeastSquaresf.scratchSize(6, 3)];
+        assertNoAllocation("LeastSquaresf.solve(scratch)", () -> org.dynamisengine.vectrix.linalg.LeastSquaresf.solve(af, bf,
+                6, 3, xf, lsScratchF, 0));
+        int[] words = new int[4];
+        assertNoAllocation("Philox.block", () -> org.dynamisengine.vectrix.hash.Philox.block(1, 2, 3, 4, 5, 6, words, 0));
+        double[] normals = new double[16];
+        assertNoAllocation("Philox.fillNormal(double)", () -> org.dynamisengine.vectrix.hash.Philox.fillNormal(42L, 7L, 0.0,
+                1.0, normals, 0, 16));
+        assertNoAllocation("Philox.fillUniform(double)", () -> org.dynamisengine.vectrix.hash.Philox.fillUniform(42L, 7L,
+                normals, 0, 16));
+    }
+
     @Test
     void fftPlansDoNotAllocate() {
         for (int n : new int[] {1024, 1000, 1009}) { // power of two, mixed radix, Bluestein

@@ -39,22 +39,73 @@ public final class LeastSquaresd {
     /**
      * Minimises {@code ||A x - b||₂} for the {@code rows × cols} matrix {@code a} (row-major, {@code rows >= cols})
      * by Householder QR, computed in double. A diagonal element of {@code R} at most {@code 1e-13} times the largest
-     * counts as rank deficient. Arrays start at index 0. Allocates {@code O(rows²)} scratch per call: meant for
-     * fitting, not per-frame loops.
+     * counts as rank deficient. Arrays start at index 0. Allocates {@link #scratchSize scratchSize(rows, cols)}
+     * doubles per call ({@code rows · cols + rows}; {@code Q} is never formed); for repeated solves use
+     * {@link #solve(double[], double[], int, int, double[], double[], int)} with your own scratch. {@code x} may alias
+     * {@code a} or {@code b}.
      *
      * @param a the matrix, row-major, {@code rows * cols} elements
      * @param b the right-hand side, {@code rows} elements
      * @param rows the number of equations
      * @param cols the number of unknowns, at least 1 and at most {@code rows}
      * @param x receives the solution, {@code cols} elements
-     * @return false if {@code A} is rank deficient (to working precision); {@code x} is then unspecified
-     * @throws IllegalArgumentException if {@code rows < cols} or {@code cols <= 0}
+     * @return false if {@code A} is rank deficient (to working precision); {@code x} is then left unchanged
+     * @throws IllegalArgumentException if {@code rows < cols} or {@code cols <= 0}, or if an array is too short;
+     *         nothing is written then
      */
     public static boolean solve(double[] a, double[] b, int rows, int cols, double[] x) {
+        return solve(a, b, rows, cols, x, new double[checkSizes(a, b, rows, cols, x)], 0);
+    }
+
+    /**
+     * {@link #solve(double[], double[], int, int, double[])} with caller-owned scratch, so it does not allocate.
+     *
+     * @param a the matrix, row-major, {@code rows * cols} elements
+     * @param b the right-hand side, {@code rows} elements
+     * @param rows the number of equations
+     * @param cols the number of unknowns, at least 1 and at most {@code rows}
+     * @param x receives the solution, {@code cols} elements
+     * @param scratch working memory, {@link #scratchSize scratchSize(rows, cols)} doubles from {@code scratchOffset};
+     *        its previous contents are ignored
+     * @param scratchOffset the first element of {@code scratch} to use
+     * @return false if {@code A} is rank deficient (to working precision); {@code x} is then left unchanged
+     * @throws IllegalArgumentException if {@code rows < cols} or {@code cols <= 0}, if an array is too short or if
+     *         {@code scratchOffset} is negative; nothing is written then
+     * @since 3.0.0
+     */
+    public static boolean solve(double[] a, double[] b, int rows, int cols, double[] x, double[] scratch,
+            int scratchOffset) {
+        int need = checkSizes(a, b, rows, cols, x);
+        if (scratchOffset < 0 || (long) scratchOffset + need > scratch.length) {
+            throw new IllegalArgumentException("scratch needs " + need + " elements from offset " + scratchOffset);
+        }
+        return LinalgKernels.leastSquares(a, b, rows, cols, x, scratch, scratchOffset);
+    }
+
+    /**
+     * The scratch size of {@link #solve(double[], double[], int, int, double[], double[], int)}:
+     * {@code rows · cols + rows} doubles.
+     *
+     * @param rows the number of equations
+     * @param cols the number of unknowns
+     * @return the number of {@code double} elements of scratch
+     * @throws IllegalArgumentException if {@code rows < cols}, {@code cols <= 0} or the size exceeds the maximum array
+     *         length
+     * @since 3.0.0
+     */
+    public static int scratchSize(int rows, int cols) {
         if (rows < cols || cols <= 0) {
             throw new IllegalArgumentException("need rows >= cols > 0");
         }
-        return LinalgKernels.leastSquares(a, b, rows, cols, x);
+        return LinalgKernels.leastSquaresScratchSize(rows, cols);
+    }
+
+    private static int checkSizes(double[] a, double[] b, int rows, int cols, double[] x) {
+        int need = scratchSize(rows, cols);
+        if ((long) rows * cols > a.length || b.length < rows || x.length < cols) {
+            throw new IllegalArgumentException("a, b or x too short for " + rows + " x " + cols);
+        }
+        return need;
     }
 
     /**

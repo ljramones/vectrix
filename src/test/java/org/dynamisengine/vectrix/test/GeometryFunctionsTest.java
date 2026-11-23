@@ -483,12 +483,14 @@ class GeometryFunctionsTest {
         float[] gn = {0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1};
         int[] gi = {0, 1, 2, 0, 2, 3};
         float[] tan = new float[16];
-        MeshMath.vertexTangents(gp, gn, new float[] {0, 0, 1, 0, 1, 1, 0, 1}, gi, 2, tan);
+        double[] scr = new double[MeshMath.vertexTangentsScratchSize(4) + 3];
+        java.util.Arrays.fill(scr, 7.5); // stale contents are ignored
+        MeshMath.vertexTangents(gp, gn, new float[] {0, 0, 1, 0, 1, 1, 0, 1}, gi, 2, tan, scr, 3);
         for (int v = 0; v < 4; v++) {
             assertEquals(1f, tan[4 * v], 1e-6f);
             assertEquals(1f, tan[4 * v + 3], 0f);
         }
-        MeshMath.vertexTangents(gp, gn, new float[] {0, 0, -1, 0, -1, 1, 0, 1}, gi, 2, tan);
+        MeshMath.vertexTangents(gp, gn, new float[] {0, 0, -1, 0, -1, 1, 0, 1}, gi, 2, tan, scr, 3);
         for (int v = 0; v < 4; v++) {
             assertEquals(-1f, tan[4 * v], 1e-6f);
             assertEquals(-1f, tan[4 * v + 3], 0f);
@@ -496,7 +498,7 @@ class GeometryFunctionsTest {
         // curved surface: tangents are unit and perpendicular to the normals
         float[] sp = {0, 0, 1, 1, 0, 0.8f, 1, 1, 0.5f, 0, 1, 0.9f}, sn = new float[12];
         MeshMath.vertexNormals(sp, gi, 2, true, sn);
-        MeshMath.vertexTangents(sp, sn, new float[] {0, 0, 1, 0, 1, 1, 0, 1}, gi, 2, tan);
+        MeshMath.vertexTangents(sp, sn, new float[] {0, 0, 1, 0, 1, 1, 0, 1}, gi, 2, tan, scr, 3);
         for (int v = 0; v < 4; v++) {
             Vector3f t = new Vector3f(tan[4 * v], tan[4 * v + 1], tan[4 * v + 2]);
             assertEquals(1f, t.length(), 1e-5f);

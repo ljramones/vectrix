@@ -28,14 +28,14 @@
  * Matrices are the column-major {@code core} types, except the row-major array of {@code LeastSquares*.solve}.
  * <p>
  * <b>Contract.</b> Threading: the classes are stateless static functions that use a per-thread workspace, so they
- * are safe to call from any thread. Allocation: no method allocates after a thread's first call, except
- * {@code LeastSquares*.solve}, which allocates {@code O(rows²)} scratch per call (it is meant for fitting, not
- * per-frame loops). Every input is read before an output is written, so outputs may alias inputs. Determinism: the
+ * are safe to call from any thread. Allocation: no method allocates after a thread's first call, except the
+ * {@code LeastSquares*.solve} overloads without a scratch argument, which allocate {@code O(rows · cols)} scratch per
+ * call; the overloads that take scratch do not allocate. Every input is read before an output is written, so outputs may alias inputs. Determinism: the
  * kernels sum in a fixed order; the SO(3) and SE(3) maps use {@code AccurateMath}, so they give the same bits across
  * platforms under {@code -Dvectrix.strictMath}. Errors: {@code LeastSquares*} throws
  * {@link java.lang.IllegalArgumentException} for bad sizes or counts; the factorizations and solves report a
  * singular or indefinite matrix by returning {@code false} (the {@code Solvers*} methods then leave their outputs
- * unchanged; {@code LeastSquares*.solve} leaves {@code x} unspecified); other methods do not validate, and NaN
+ * unchanged; so does {@code LeastSquares*.solve} with {@code x}); other methods do not validate, and NaN
  * inputs give NaN results. Precision and naming: {@code ...d} classes take and return double
  * types; their {@code ...f} twins take float types, compute in double and round each result once.
  */

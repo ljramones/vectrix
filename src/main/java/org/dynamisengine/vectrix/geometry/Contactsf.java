@@ -81,9 +81,7 @@ public final class Contactsf {
 
     /**
      * Returns whether the solid spheres overlap or touch, including when one contains the other. The radii are not
-     * squared. This differs from {@link Intersectionf#testSphereSphere(Vector3fc, float, Vector3fc, float)}, which
-     * takes squared radii and tests whether the surfaces meet, so it returns false when one sphere lies strictly inside
-     * the other.
+     * squared. Gives the same answer as {@link Intersectionf#testSphereSphere(Vector3fc, float, Vector3fc, float)}.
      *
      * @param c0 the center of the first sphere
      * @param r0 the radius of the first sphere
@@ -210,15 +208,17 @@ public final class Contactsf {
     }
 
     /**
-     * Returns the face of box {@code [min, max]} nearest to point {@code p}, for a point inside the box. For a point
-     * outside, the face chosen is the one whose plane {@code p} lies farthest beyond. Ties go to the first of -X, +X,
-     * -Y, +Y, -Z, +Z.
+     * Returns the face of box {@code [min, max]} nearest to point {@code p}, inside or outside the box. For a point
+     * outside, every face whose plane {@code p} lies beyond contains the box point closest to {@code p}, so all of them
+     * are nearest; the one whose plane {@code p} lies farthest beyond is returned. Ties go to the first of -X, +X, -Y,
+     * +Y, -Z, +Z.
      *
      * @param p the point
      * @param min the box's minimum corner
      * @param max the box's maximum corner
      * @param outwardNormal receives that face's outward unit normal; may alias an input
-     * @return the signed distance from {@code p} to that face: positive inside the box, negative outside
+     * @return the signed distance from {@code p} to that face (the face rectangle, not its plane): positive inside the
+     *        box, negative outside (minus the distance from {@code p} to the box), 0 on the surface
      */
     public static float nearestFace(Vector3fc p, Vector3fc min, Vector3fc max, Vector3f outwardNormal) {
         return nearestFace(p.x(), p.y(), p.z(), min.x(), min.y(), min.z(), max.x(), max.y(), max.z(), outwardNormal);
@@ -258,6 +258,14 @@ public final class Contactsf {
             nx = 0;
             ny = 0;
             nz = 1;
+        }
+        if (best < 0) {
+            // outside: the faces whose planes p lies beyond all contain the closest box point, so the one chosen is a
+            // nearest face; its distance is the distance to the box, not to its plane (before 3.0 the plane distance)
+            double dx = x < minX ? (double) minX - x : x > maxX ? (double) x - maxX : 0;
+            double dy = y < minY ? (double) minY - y : y > maxY ? (double) y - maxY : 0;
+            double dz = z < minZ ? (double) minZ - z : z > maxZ ? (double) z - maxZ : 0;
+            best = (float) -Math.sqrt(dx * dx + dy * dy + dz * dz);
         }
         outwardNormal.set(nx, ny, nz);
         return best;

@@ -29,18 +29,17 @@
  * predicates, mesh normals and tangents, and Morton and Hilbert codes. The package provides functions on plain
  * coordinates and vectors; it defines no shape types.
  * <p>
- * Sphere and circle methods are not uniform about radii: some take the radius and others its square, as each
- * method's parameter documentation states.
+ * Every sphere and circle method of {@code Intersectionf} and {@code Intersectiond} takes the radius itself, never its
+ * square. Sphere-sphere and circle-circle overlap tests count containment as intersecting.
  * <p>
  * <b>Contract.</b> Threading: the static classes keep no state and are safe to call from any thread;
  * {@code FrustumIntersection}, {@code FrustumPlanes}, {@code FrustumRayBuilder}, {@code RayAabIntersection} and
  * {@code PolygonsIntersection} are mutable objects, safe for concurrent queries only while nobody updates them.
  * Allocation: the per-object queries and the culling batch do not allocate; construction-time methods do
- * ({@code BoundingVolumes*} hulls, spheres and k-DOPs, the {@code PolygonsIntersection} constructor, the
- * {@code MeshMath} per-vertex methods), as do {@code ClosestPoints*.distanceSquaredTriangleTriangle},
- * {@code SpatialCodes.hilbert3d}/{@code hilbert3dToXyz}, {@code MeshMath.triangleMinAngle} and the exact path of
- * {@code RobustPredicates}. Determinism: results follow the library's determinism settings (see
- * {@code docs/determinism.md}); the culling batch gives the same results on its SIMD and scalar paths, and
+ * ({@code BoundingVolumes*} hulls, spheres and boxes, the {@code PolygonsIntersection} constructor), as do
+ * {@code ClosestPoints*.distanceSquaredTriangleTriangle} and the exact path of {@code RobustPredicates};
+ * {@code MeshMath.vertexTangents} takes caller-owned scratch. Determinism: results follow the library's determinism
+ * settings (see {@code docs/determinism.md}); the culling batch gives the same results on its SIMD and scalar paths, and
  * {@code RobustPredicates} gives the exact sign on every platform. Errors: most methods do not validate their
  * arguments, so NaN inputs give NaN or {@code false} results and degenerate input gives the result each method
  * documents; methods that take counts or option codes ({@code BoundingVolumes*}, {@code PolygonsIntersection})

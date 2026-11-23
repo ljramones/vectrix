@@ -75,11 +75,17 @@ Every test exists in two forms: one taking vector objects (`Vector3fc`, `Vector2
 as a separate `float`. The scalar form avoids reading through an interface and is useful when your data is in arrays.
 
 Things to watch:
-- **Squared or plain radius.** Most sphere and circle tests take the squared radius: `Intersectionf.testRaySphere`,
-  `Intersectionf.intersectRaySphere`, `Intersectionf.testSphereSphere`, `Intersectionf.testAabSphere`,
-  `Intersectionf.testLineSegmentSphere`, `Intersectionf.testCircleCircle`, `Intersectionf.testPointCircle` and
-  `Intersectionf.intersectRayCircle`. The plane–sphere, line–circle, sphere–triangle, swept-sphere and moving-circle
-  tests take the plain radius. Check the parameter name (`radiusSquared` or `radius`) before you call.
+- **Plain radius.** Every sphere and circle test takes the radius itself, never its square (parameters `radius`,
+  `radiusA`, `radiusB`). Before 3.0, `Intersectionf.testRaySphere`, `Intersectionf.intersectRaySphere`,
+  `Intersectionf.testSphereSphere`, `Intersectionf.intersectSphereSphere`, `Intersectionf.testAabSphere`,
+  `Intersectionf.testLineSegmentSphere`, `Intersectionf.testCircleCircle`, `Intersectionf.intersectCircleCircle`,
+  `Intersectionf.testAarCircle`, `Intersectionf.testPointCircle`, `Intersectionf.testCircleTriangle`,
+  `Intersectionf.testRayCircle` and `Intersectionf.intersectRayCircle` took the squared radius; the signatures did not
+  change, so pass `r` where you passed `r * r`.
+- **Overlap or surfaces.** `Intersectionf.testSphereSphere` and `Intersectionf.testCircleCircle` test whether the
+  solid shapes overlap or touch, so one inside the other counts. `Intersectionf.intersectSphereSphere` and
+  `Intersectionf.intersectCircleCircle` compute where the surfaces meet: they return `false` when one shape lies
+  inside the other and for concentric shapes, and leave the destination unchanged then.
 - **Ray direction.** `Intersectionf.intersectRaySphere` expects a unit direction. The box and triangle tests do not.
 - **Ray results.** `Intersectionf.intersectRayAab` returns a boolean and writes the near and far `t` into a
   `Vector2f`; it returns `true` when the origin is inside the box. `Intersectionf.intersectRayTriangle` and
@@ -139,7 +145,8 @@ follow the same rules:
 Radii here are plain radii, not squared. Two spheres with the same center get the normal `+X`. For an oriented box,
 transform the other volume into the box's frame, call the AABB version, and rotate the normal and point back.
 `Contactsf.testSphereSphere` is the boolean-only check, and `Contactsf.nearestFace` gives the face of a box nearest to
-a point (positive distance inside).
+a point, inside or outside, with the signed distance to that face (positive inside, minus the distance to the box
+outside).
 
 ## Exact predicates
 
@@ -157,8 +164,8 @@ as Delaunay triangulation, convex hulls and mesh booleans then makes inconsisten
 Zero means exactly collinear, coplanar, cocircular or cospherical. Each predicate first evaluates in double and
 returns that value when it is above Shewchuk's error bound. Otherwise it recomputes exactly with `BigDecimal`, which
 allocates; this happens only for near-degenerate input. Only the sign is guaranteed; the magnitude is the
-determinant when the fast path is taken. `orient2d` and `orient3d` have float overloads, which convert to double
-exactly.
+determinant when the fast path is taken. All four predicates have float overloads, which convert to double
+exactly. A NaN or infinite coordinate gives NaN.
 
 ## Bounding volumes
 
@@ -173,10 +180,12 @@ pairs) in a flat array, with a `count`.
 | `BoundingVolumesf.minimalAreaRectangle` | The minimal-area 2D rectangle (rotating calipers): center, unit direction of the first side, half extents. Returns the area |
 | `BoundingVolumesf.kDop` | A k-DOP for k = 6, 14, 18 or 26: min and max of `p · direction` for each of the k/2 directions of `BoundingVolumesf.kDopDirections` (not normalized) |
 
-The fitting methods above allocate scratch proportional to the input, so call them at load or build time. The
-bounds helpers allocate nothing and suit per-frame use: `BoundingVolumesf.aabOfObb`, `BoundingVolumesf.aabOfCapsule`,
+The fitting methods above, except `BoundingVolumesf.kDop`, allocate scratch proportional to the input, so call them
+at load or build time; `BoundingVolumesf.kDop` allocates nothing. The bounds helpers allocate nothing and suit
+per-frame use: `BoundingVolumesf.aabOfObb`, `BoundingVolumesf.aabOfCapsule`,
 `BoundingVolumesf.aabOfCylinder`, `BoundingVolumesf.aabOfTransformedPoints` (points under a `Matrix4x3f`), and
-`BoundingVolumesf.transformSphere` (a bounding sphere under an affine transform).
+`BoundingVolumesf.transformSphere` (a bounding sphere under an affine transform). `BoundingVolumesf.aabOfCylinder`
+and `BoundingVolumesf.transformSphere` round outward, so their bounds always contain the shape.
 
 ## Spatial codes
 
@@ -194,7 +203,8 @@ built. `SpatialCodes` takes non-negative integer grid coordinates; quantize floa
 | `SpatialCodes.hilbert2d`, `SpatialCodes.hilbert3d` | A `2^bits` grid (`bits <= 31` in 2D, `<= 21` in 3D) | Hilbert index; consecutive indices are adjacent cells |
 
 `SpatialCodes.morton2dX`, `SpatialCodes.morton3dX` (and the `Y`, `Z` versions), `SpatialCodes.hilbert2dToXy` and
-`SpatialCodes.hilbert3dToXyz` decode. To hash a grid cell into a hash-table bucket instead, use
+`SpatialCodes.hilbert3dToXyz` decode. Pass a 32-bit `SpatialCodes.morton2d` code as an `int`: that overload reads it
+as unsigned, so codes with the top bit set decode correctly. None of these methods allocates. To hash a grid cell into a hash-table bucket instead, use
 `SpatialHash.hashCell3i` (see [curves-sampling-noise.md](curves-sampling-noise.md)).
 
 ## Triangles and meshes
@@ -213,6 +223,8 @@ built. `SpatialCodes` takes non-negative integer grid coordinates; quantize floa
   does not depend on how faces are triangulated. Vertices with no usable face get the zero vector.
 - `MeshMath.vertexTangents` writes 4 floats per vertex in the style of MikkTSpace: a unit tangent and a handedness
   `w = ±1`, with the bitangent `w · (n × t)`. It does not split vertices at mirrored UV seams; split the mesh first.
+  It accumulates in a caller-owned `double` scratch array of `MeshMath.vertexTangentsScratchSize` elements, so no
+  `MeshMath` method allocates.
 
 `GeometryUtils` has the per-triangle helpers: `GeometryUtils.normal` (unit normal of three points),
 `GeometryUtils.tangent`, `GeometryUtils.bitangent` and `GeometryUtils.tangentBitangent` from positions and UVs, and
@@ -346,7 +358,7 @@ types, which are column-major.
 | `Solversf.ldlt`, `Solversf.solveLdlt` | Symmetric, possibly indefinite 3×3 systems |
 | `Solversf.solve` | General 3×3 or 4×4 system by LU with partial pivoting; false (dest unchanged) when singular |
 | `Solversf.condition1` | 1-norm condition number |
-| `LeastSquaresf.solve` | Minimizes `‖A x − b‖₂` for a row-major `rows × cols` array, `rows >= cols`, by QR. False when `A` is rank deficient |
+| `LeastSquaresf.solve` | Minimizes `‖A x − b‖₂` for a row-major `rows × cols` array, `rows >= cols`, by QR. False when `A` is rank deficient, leaving `x` unchanged. An overload takes scratch of `LeastSquaresf.scratchSize` doubles |
 | `LeastSquaresf.fitPlane` | Best-fit plane `n·p + d = 0` through packed points, as `(n, d)` |
 | `LeastSquaresf.fitLine` | Best-fit line: the centroid and a unit direction |
 | `Lie3f.expSo3`, `Lie3f.logSo3` | Rotation vector (axis times angle, radians) to rotation matrix and back; the log is exact up to π |
@@ -364,9 +376,11 @@ when you also need the singular values (for example, to detect inverted elements
 - No allocation: the `Intersectionf` tests, the contact kernels, the `Sdf3f` functions, the inertia and spring
   kernels, `PbdConstraintsf`, `IntegratorRK4f.step`, the `aabOf*` bounds helpers and the fixed-size `linalg` kernels.
   The fixed-size `linalg` kernels use per-thread scratch arrays created on a thread's first call.
-- Allocation proportional to the input: the `BoundingVolumesf` fitting methods, `MeshMath.vertexTangents` and
-  `LeastSquaresf.solve` (which builds a full `rows × rows` Q, so keep `rows` small).
-- `RobustPredicates` allocates only when it falls back to exact arithmetic for near-degenerate input.
+- Allocation proportional to the input: the `BoundingVolumesf` fitting methods and `LeastSquaresf.solve`
+  (`rows · cols + rows` doubles; `Q` is never formed). The `LeastSquaresf.solve` overload that takes scratch
+  (`LeastSquaresf.scratchSize`) and `MeshMath.vertexTangents` allocate nothing.
+- `RobustPredicates` allocates only when it falls back to exact arithmetic for near-degenerate input. A NaN or
+  infinite coordinate gives NaN.
 - `ClosestPointsf.segmentAab` is exact (every candidate evaluated in double). `Contactsf.aabbAabb` gives the exact
   minimum translation. `Contactsf.capsuleAabb` is exact for the segment against the box.
 - `SpringDamperf.dampedStep` and `SpringDamperf.criticallyDamped` are exact for any `dt` and compute in double.

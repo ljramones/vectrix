@@ -29,6 +29,9 @@ import org.dynamisengine.vectrix.core.Runtime;
 
 /**
  * Contains intersection and distance tests for some 2D and 3D geometric primitives.
+ * <p>
+ * Every sphere and circle method takes the radius itself (parameters named <code>radius</code>,
+ * <code>radiusA</code>, <code>radiusB</code>), never its square.
  * 
  * @author Kai Burjack
  */
@@ -537,11 +540,11 @@ public final class Intersectiond {
      * @return <code>true</code> if both boxes intersect; <code>false</code> otherwise
      */
     public static boolean testObOb(
-            Vector3d b0c, Vector3d b0uX, Vector3d b0uY, Vector3d b0uZ, Vector3d b0hs,
-            Vector3d b1c, Vector3d b1uX, Vector3d b1uY, Vector3d b1uZ, Vector3d b1hs) {
+            Vector3dc b0c, Vector3dc b0uX, Vector3dc b0uY, Vector3dc b0uZ, Vector3dc b0hs,
+            Vector3dc b1c, Vector3dc b1uX, Vector3dc b1uY, Vector3dc b1uZ, Vector3dc b1hs) {
         return testObOb(
-                b0c.x, b0c.y, b0c.z, b0uX.x, b0uX.y, b0uX.z, b0uY.x, b0uY.y, b0uY.z, b0uZ.x, b0uZ.y, b0uZ.z, b0hs.x, b0hs.y, b0hs.z,
-                b1c.x, b1c.y, b1c.z, b1uX.x, b1uX.y, b1uX.z, b1uY.x, b1uY.y, b1uY.z, b1uZ.x, b1uZ.y, b1uZ.z, b1hs.x, b1hs.y, b1hs.z);
+                b0c.x(), b0c.y(), b0c.z(), b0uX.x(), b0uX.y(), b0uX.z(), b0uY.x(), b0uY.y(), b0uY.z(), b0uZ.x(), b0uZ.y(), b0uZ.z(), b0hs.x(), b0hs.y(), b0hs.z(),
+                b1c.x(), b1c.y(), b1c.z(), b1uX.x(), b1uX.y(), b1uX.z(), b1uY.x(), b1uY.y(), b1uY.z(), b1uZ.x(), b1uZ.y(), b1uZ.z(), b1hs.x(), b1hs.y(), b1hs.z());
     }
 
     /**
@@ -710,15 +713,17 @@ public final class Intersectiond {
     }
 
     /**
-     * Test whether the one sphere with center <code>(aX, aY, aZ)</code> and square radius <code>radiusSquaredA</code> intersects the other
-     * sphere with center <code>(bX, bY, bZ)</code> and square radius <code>radiusSquaredB</code>, and store the center of the circle of
+     * Test whether the one sphere with center <code>(aX, aY, aZ)</code> and radius <code>radiusA</code> intersects the other
+     * sphere with center <code>(bX, bY, bZ)</code> and radius <code>radiusB</code>, and store the center of the circle of
      * intersection in the <code>(x, y, z)</code> components of the supplied vector and the radius of that circle in the w component.
      * <p>
      * The normal vector of the circle of intersection can simply be obtained by subtracting the center of either sphere from the other.
      * <p>
-     * <code>radiusSquaredA</code> and <code>radiusSquaredB</code> are squared radii, not radii. The w component
-     * receives the circle's radius, not its square. Concentric spheres (equal centers) always give <code>false</code>,
-     * even with equal radii.
+     * <code>radiusA</code> and <code>radiusB</code> are radii, not squared radii. The w component
+     * receives the circle's radius, not its square. Only meeting surfaces count: a sphere strictly inside the other gives
+     * <code>false</code>, and so do concentric spheres (equal centers), even with equal radii, since their surfaces
+     * do not meet in one circle. On <code>false</code> the destination is left unchanged. To test whether the
+     * solid spheres overlap, use {@link #testSphereSphere}.
      * <p>
      * Reference: <a href="http://gamedev.stackexchange.com/questions/75756/sphere-sphere-intersection-and-circle-sphere-intersection">http://gamedev.stackexchange.com</a>
      * 
@@ -728,27 +733,31 @@ public final class Intersectiond {
      *              the y coordinate of the first sphere's center
      * @param aZ
      *              the z coordinate of the first sphere's center
-     * @param radiusSquaredA
-     *              the square of the first sphere's radius
+     * @param radiusA
+     *              the first sphere's radius
      * @param bX
      *              the x coordinate of the second sphere's center
      * @param bY
      *              the y coordinate of the second sphere's center
      * @param bZ
      *              the z coordinate of the second sphere's center
-     * @param radiusSquaredB
-     *              the square of the second sphere's radius
+     * @param radiusB
+     *              the second sphere's radius
      * @param centerAndRadiusOfIntersectionCircle
      *              will hold the center of the circle of intersection in the <code>(x, y, z)</code> components and its
      *              radius (not squared) in the w component
      * @return <code>true</code> iff both spheres intersect; <code>false</code> otherwise
      */
     public static boolean intersectSphereSphere(
-            double aX, double aY, double aZ, double radiusSquaredA,
-            double bX, double bY, double bZ, double radiusSquaredB,
+            double aX, double aY, double aZ, double radiusA,
+            double bX, double bY, double bZ, double radiusB,
             Vector4d centerAndRadiusOfIntersectionCircle) {
+        double radiusSquaredA = radiusA * radiusA, radiusSquaredB = radiusB * radiusB;
         double dX = bX - aX, dY = bY - aY, dZ = bZ - aZ;
         double distSquared = dX * dX + dY * dY + dZ * dZ;
+        if (distSquared == 0.0) { // concentric: no circle of intersection (0/0 before 3.0)
+            return false;
+        }
         double h = 0.5 + (radiusSquaredA - radiusSquaredB) / (2.0 * distSquared);
         double r_i = radiusSquaredA - h * h * distSquared;
         if (r_i >= 0.0) {
@@ -762,33 +771,35 @@ public final class Intersectiond {
     }
 
     /**
-     * Test whether the one sphere with center <code>centerA</code> and square radius <code>radiusSquaredA</code> intersects the other
-     * sphere with center <code>centerB</code> and square radius <code>radiusSquaredB</code>, and store the center of the circle of
+     * Test whether the one sphere with center <code>centerA</code> and radius <code>radiusA</code> intersects the other
+     * sphere with center <code>centerB</code> and radius <code>radiusB</code>, and store the center of the circle of
      * intersection in the <code>(x, y, z)</code> components of the supplied vector and the radius of that circle in the w component.
      * <p>
      * The normal vector of the circle of intersection can simply be obtained by subtracting the center of either sphere from the other.
      * <p>
-     * <code>radiusSquaredA</code> and <code>radiusSquaredB</code> are squared radii, not radii. The w component
-     * receives the circle's radius, not its square. Concentric spheres (equal centers) always give <code>false</code>,
-     * even with equal radii.
+     * <code>radiusA</code> and <code>radiusB</code> are radii, not squared radii. The w component
+     * receives the circle's radius, not its square. Only meeting surfaces count: a sphere strictly inside the other gives
+     * <code>false</code>, and so do concentric spheres (equal centers), even with equal radii, since their surfaces
+     * do not meet in one circle. On <code>false</code> the destination is left unchanged. To test whether the
+     * solid spheres overlap, use {@link #testSphereSphere}.
      * <p>
      * Reference: <a href="http://gamedev.stackexchange.com/questions/75756/sphere-sphere-intersection-and-circle-sphere-intersection">http://gamedev.stackexchange.com</a>
      * 
      * @param centerA
      *              the first sphere's center
-     * @param radiusSquaredA
-     *              the square of the first sphere's radius
+     * @param radiusA
+     *              the first sphere's radius
      * @param centerB
      *              the second sphere's center
-     * @param radiusSquaredB
-     *              the square of the second sphere's radius
+     * @param radiusB
+     *              the second sphere's radius
      * @param centerAndRadiusOfIntersectionCircle
      *              will hold the center of the circle of intersection in the <code>(x, y, z)</code> components and its
      *              radius (not squared) in the w component
      * @return <code>true</code> iff both spheres intersect; <code>false</code> otherwise
      */
-    public static boolean intersectSphereSphere(Vector3dc centerA, double radiusSquaredA, Vector3dc centerB, double radiusSquaredB, Vector4d centerAndRadiusOfIntersectionCircle) {
-        return intersectSphereSphere(centerA.x(), centerA.y(), centerA.z(), radiusSquaredA, centerB.x(), centerB.y(), centerB.z(), radiusSquaredB, centerAndRadiusOfIntersectionCircle);
+    public static boolean intersectSphereSphere(Vector3dc centerA, double radiusA, Vector3dc centerB, double radiusB, Vector4d centerAndRadiusOfIntersectionCircle) {
+        return intersectSphereSphere(centerA.x(), centerA.y(), centerA.z(), radiusA, centerB.x(), centerB.y(), centerB.z(), radiusB, centerAndRadiusOfIntersectionCircle);
     }
 
     /**
@@ -797,7 +808,7 @@ public final class Intersectiond {
      * <p>
      * This method also returns whether the point of intersection is on one of the triangle's vertices, edges or on the face.
      * <p>
-     * <code>sR</code> is the radius itself, not its square.
+     * <code>radius</code> is the radius itself, not its square.
      * <p>
      * Reference: Book "Real-Time Collision Detection" chapter 5.2.7 "Testing Sphere Against Triangle"
      * 
@@ -807,7 +818,7 @@ public final class Intersectiond {
      *          the y coordinate of the sphere's center
      * @param sZ
      *          the z coordinate of the sphere's center
-     * @param sR
+     * @param radius
      *          the sphere's radius (not squared)
      * @param v0X
      *          the x coordinate of the first vertex of the triangle
@@ -834,7 +845,7 @@ public final class Intersectiond {
      *                {@link #POINT_ON_TRIANGLE_FACE} or <code>0</code>
      */
     public static int intersectSphereTriangle(
-            double sX, double sY, double sZ, double sR,
+            double sX, double sY, double sZ, double radius,
             double v0X, double v0Y, double v0Z,
             double v1X, double v1Y, double v1Z,
             double v2X, double v2Y, double v2Z,
@@ -842,21 +853,21 @@ public final class Intersectiond {
         int closest = findClosestPointOnTriangle(v0X, v0Y, v0Z, v1X, v1Y, v1Z, v2X, v2Y, v2Z, sX, sY, sZ, result);
         double vX = result.x - sX, vY = result.y - sY, vZ = result.z - sZ;
         double dot = vX * vX + vY * vY + vZ * vZ;
-        if (dot <= sR * sR) {
+        if (dot <= radius * radius) {
             return closest;
         }
         return 0;
     }
 
     /**
-     * Test whether the one sphere with center <code>(aX, aY, aZ)</code> and square radius <code>radiusSquaredA</code> intersects the other
-     * sphere with center <code>(bX, bY, bZ)</code> and square radius <code>radiusSquaredB</code>.
+     * Test whether the one sphere with center <code>(aX, aY, aZ)</code> and radius <code>radiusA</code> intersects the other
+     * sphere with center <code>(bX, bY, bZ)</code> and radius <code>radiusB</code>.
      * <p>
-     * "Intersects" means the two sphere <em>surfaces</em> meet (there is a circle of intersection, see
-     * {@link #intersectSphereSphere}); a sphere strictly inside the other does not count. For overlapping volumes test
-     * {@code distance² <= (rA + rB)²}.
+     * "Intersects" means the solid spheres overlap or touch: the distance between the centers is at most
+     * <code>radiusA + radiusB</code>, so a sphere inside the other counts, as in {@link #testCircleCircle}. The test is
+     * computed in double. For the circle where the surfaces meet, use {@link #intersectSphereSphere}.
      * <p>
-     * <code>radiusSquaredA</code> and <code>radiusSquaredB</code> are squared radii, not radii.
+     * <code>radiusA</code> and <code>radiusB</code> are radii, not squared radii.
      * <p>
      * Reference: <a href="http://gamedev.stackexchange.com/questions/75756/sphere-sphere-intersection-and-circle-sphere-intersection">http://gamedev.stackexchange.com</a>
      * 
@@ -866,53 +877,49 @@ public final class Intersectiond {
      *              the y coordinate of the first sphere's center
      * @param aZ
      *              the z coordinate of the first sphere's center
-     * @param radiusSquaredA
-     *              the square of the first sphere's radius
+     * @param radiusA
+     *              the first sphere's radius
      * @param bX
      *              the x coordinate of the second sphere's center
      * @param bY
      *              the y coordinate of the second sphere's center
      * @param bZ
      *              the z coordinate of the second sphere's center
-     * @param radiusSquaredB
-     *              the square of the second sphere's radius
+     * @param radiusB
+     *              the second sphere's radius
      * @return <code>true</code> iff both spheres intersect; <code>false</code> otherwise
      */
     public static boolean testSphereSphere(
-            double aX, double aY, double aZ, double radiusSquaredA,
-            double bX, double bY, double bZ, double radiusSquaredB) {
-        double dX = bX - aX, dY = bY - aY, dZ = bZ - aZ;
-        double distSquared = dX * dX + dY * dY + dZ * dZ;
-        if (distSquared == 0.0) { // concentric: the surfaces meet only if the radii are equal (0/0 before 2.4.0)
-            return radiusSquaredA == radiusSquaredB;
-        }
-        double h = 0.5 + (radiusSquaredA - radiusSquaredB) / (2.0 * distSquared);
-        double r_i = radiusSquaredA - h * h * distSquared;
-        return r_i >= 0.0;
+            double aX, double aY, double aZ, double radiusA,
+            double bX, double bY, double bZ, double radiusB) {
+        // volumes, computed in double: containment counts (before 3.0 only meeting surfaces did)
+        double dX = (double) bX - aX, dY = (double) bY - aY, dZ = (double) bZ - aZ;
+        double radiusSum = (double) radiusA + radiusB;
+        return dX * dX + dY * dY + dZ * dZ <= radiusSum * radiusSum;
     }
 
     /**
-     * Test whether the one sphere with center <code>centerA</code> and square radius <code>radiusSquaredA</code> intersects the other
-     * sphere with center <code>centerB</code> and square radius <code>radiusSquaredB</code>.
+     * Test whether the one sphere with center <code>centerA</code> and radius <code>radiusA</code> intersects the other
+     * sphere with center <code>centerB</code> and radius <code>radiusB</code>.
      * <p>
-     * "Intersects" means the two sphere <em>surfaces</em> meet; a sphere strictly inside the other does not count.
+     * "Intersects" means the solid spheres overlap or touch, so a sphere inside the other counts.
      * <p>
-     * <code>radiusSquaredA</code> and <code>radiusSquaredB</code> are squared radii, not radii.
+     * <code>radiusA</code> and <code>radiusB</code> are radii, not squared radii.
      * <p>
      * Reference: <a href="http://gamedev.stackexchange.com/questions/75756/sphere-sphere-intersection-and-circle-sphere-intersection">http://gamedev.stackexchange.com</a>
      * 
      * @param centerA
      *              the first sphere's center
-     * @param radiusSquaredA
-     *              the square of the first sphere's radius
+     * @param radiusA
+     *              the first sphere's radius
      * @param centerB
      *              the second sphere's center
-     * @param radiusSquaredB
-     *              the square of the second sphere's radius
+     * @param radiusB
+     *              the second sphere's radius
      * @return <code>true</code> iff both spheres intersect; <code>false</code> otherwise
      */
-    public static boolean testSphereSphere(Vector3dc centerA, double radiusSquaredA, Vector3dc centerB, double radiusSquaredB) {
-        return testSphereSphere(centerA.x(), centerA.y(), centerA.z(), radiusSquaredA, centerB.x(), centerB.y(), centerB.z(), radiusSquaredB);
+    public static boolean testSphereSphere(Vector3dc centerA, double radiusA, Vector3dc centerB, double radiusB) {
+        return testSphereSphere(centerA.x(), centerA.y(), centerA.z(), radiusA, centerB.x(), centerB.y(), centerB.z(), radiusB);
     }
 
     /**
@@ -1113,9 +1120,9 @@ public final class Intersectiond {
 
     /**
      * Test whether the axis-aligned box with minimum corner <code>(minX, minY, minZ)</code> and maximum corner <code>(maxX, maxY, maxZ)</code>
-     * intersects the sphere with the given center <code>(centerX, centerY, centerZ)</code> and square radius <code>radiusSquared</code>.
+     * intersects the sphere with the given center <code>(centerX, centerY, centerZ)</code> and radius <code>radius</code>.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius.
+     * <code>radius</code> is the radius itself, not its square.
      * <p>
      * Reference: <a href="http://stackoverflow.com/questions/4578967/cube-sphere-intersection-test#answer-4579069">http://stackoverflow.com</a>
      * 
@@ -1137,14 +1144,15 @@ public final class Intersectiond {
      *          the y coordinate of the sphere's center
      * @param centerZ
      *          the z coordinate of the sphere's center
-     * @param radiusSquared
-     *          the square of the sphere's radius
+     * @param radius
+     *          the sphere's radius
      * @return <code>true</code> iff the axis-aligned box intersects the sphere; <code>false</code> otherwise
      */
     public static boolean testAabSphere(
             double minX, double minY, double minZ,
             double maxX, double maxY, double maxZ,
-            double centerX, double centerY, double centerZ, double radiusSquared) {
+            double centerX, double centerY, double centerZ, double radius) {
+        double radiusSquared = radius * radius;
         double radius2 = radiusSquared;
         if (centerX < minX) {
             double d = (centerX - minX);
@@ -1172,9 +1180,9 @@ public final class Intersectiond {
 
     /**
      * Test whether the axis-aligned box with minimum corner <code>min</code> and maximum corner <code>max</code>
-     * intersects the sphere with the given <code>center</code> and square radius <code>radiusSquared</code>.
+     * intersects the sphere with the given <code>center</code> and radius <code>radius</code>.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius.
+     * <code>radius</code> is the radius itself, not its square.
      * <p>
      * Reference: <a href="http://stackoverflow.com/questions/4578967/cube-sphere-intersection-test#answer-4579069">http://stackoverflow.com</a>
      * 
@@ -1184,12 +1192,12 @@ public final class Intersectiond {
      *          the maximum corner of the axis-aligned box
      * @param center
      *          the sphere's center
-     * @param radiusSquared
-     *          the square of the sphere's radius
+     * @param radius
+     *          the sphere's radius
      * @return <code>true</code> iff the axis-aligned box intersects the sphere; <code>false</code> otherwise
      */
-    public static boolean testAabSphere(Vector3dc min, Vector3dc max, Vector3dc center, double radiusSquared) {
-        return testAabSphere(min.x(), min.y(), min.z(), max.x(), max.y(), max.z(), center.x(), center.y(), center.z(), radiusSquared);
+    public static boolean testAabSphere(Vector3dc min, Vector3dc max, Vector3dc center, double radius) {
+        return testAabSphere(min.x(), min.y(), min.z(), max.x(), max.y(), max.z(), center.x(), center.y(), center.z(), radius);
     }
 
     /**
@@ -2037,13 +2045,13 @@ public final class Intersectiond {
 
     /**
      * Test whether the given ray with the origin <code>(originX, originY, originZ)</code> and normalized direction <code>(dirX, dirY, dirZ)</code>
-     * intersects the given sphere with center <code>(centerX, centerY, centerZ)</code> and square radius <code>radiusSquared</code>,
+     * intersects the given sphere with center <code>(centerX, centerY, centerZ)</code> and radius <code>radius</code>,
      * and store the values of the parameter <i>t</i> in the ray equation <i>p(t) = origin + t * dir</i> for both points (near
      * and far) of intersections into the given <code>result</code> vector.
      * <p>
      * This method returns <code>true</code> for a ray whose origin lies inside the sphere.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius.
+     * <code>radius</code> is the radius itself, not its square.
      * <p>
      * Reference: <a href="http://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection">http://www.scratchapixel.com/</a>
      * 
@@ -2065,15 +2073,16 @@ public final class Intersectiond {
      *              the y coordinate of the sphere's center
      * @param centerZ
      *              the z coordinate of the sphere's center
-     * @param radiusSquared
-     *              the square of the sphere's radius
+     * @param radius
+     *              the sphere's radius
      * @param result
      *              a vector that will contain the values of the parameter <i>t</i> in the ray equation
      *              <i>p(t) = origin + t * dir</i> for both points (near, far) of intersections with the sphere
      * @return <code>true</code> if the ray intersects the sphere; <code>false</code> otherwise
      */
     public static boolean intersectRaySphere(double originX, double originY, double originZ, double dirX, double dirY, double dirZ,
-            double centerX, double centerY, double centerZ, double radiusSquared, Vector2d result) {
+            double centerX, double centerY, double centerZ, double radius, Vector2d result) {
+        double radiusSquared = radius * radius;
         double lx = centerX - (double) originX, ly = centerY - (double) originY, lz = centerZ - (double) originZ;
         double tca = lx * dirX + ly * dirY + lz * dirZ;
         // the perpendicular distance directly: |L|² − tca² cancels for distant spheres (thousands of wrong answers per
@@ -2084,7 +2093,7 @@ public final class Intersectiond {
             return false;
         double thc = java.lang.Math.sqrt(radiusSquared - d2);
         // the root of larger magnitude without cancellation, the other from t0 t1 = (|L| − r)(|L| + r)
-        double len = java.lang.Math.sqrt(lx * lx + ly * ly + lz * lz), r = java.lang.Math.sqrt(radiusSquared);
+        double len = java.lang.Math.sqrt(lx * lx + ly * ly + lz * lz), r = radius;
         double prod = (len - r) * (len + r);
         double t0, t1;
         if (tca >= 0.0) {
@@ -2104,13 +2113,13 @@ public final class Intersectiond {
 
     /**
      * Test whether the ray with the given <code>origin</code> and normalized direction <code>dir</code>
-     * intersects the sphere with the given <code>center</code> and square radius <code>radiusSquared</code>,
+     * intersects the sphere with the given <code>center</code> and radius <code>radius</code>,
      * and store the values of the parameter <i>t</i> in the ray equation <i>p(t) = origin + t * dir</i> for both points (near
      * and far) of intersections into the given <code>result</code> vector.
      * <p>
      * This method returns <code>true</code> for a ray whose origin lies inside the sphere.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius.
+     * <code>radius</code> is the radius itself, not its square.
      * <p>
      * Reference: <a href="http://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection">http://www.scratchapixel.com/</a>
      * 
@@ -2120,24 +2129,24 @@ public final class Intersectiond {
      *              the ray's normalized direction
      * @param center
      *              the sphere's center
-     * @param radiusSquared
-     *              the square of the sphere's radius
+     * @param radius
+     *              the sphere's radius
      * @param result
      *              a vector that will contain the values of the parameter <i>t</i> in the ray equation
      *              <i>p(t) = origin + t * dir</i> for both points (near, far) of intersections with the sphere
      * @return <code>true</code> if the ray intersects the sphere; <code>false</code> otherwise
      */
-    public static boolean intersectRaySphere(Vector3dc origin, Vector3dc dir, Vector3dc center, double radiusSquared, Vector2d result) {
-        return intersectRaySphere(origin.x(), origin.y(), origin.z(), dir.x(), dir.y(), dir.z(), center.x(), center.y(), center.z(), radiusSquared, result);
+    public static boolean intersectRaySphere(Vector3dc origin, Vector3dc dir, Vector3dc center, double radius, Vector2d result) {
+        return intersectRaySphere(origin.x(), origin.y(), origin.z(), dir.x(), dir.y(), dir.z(), center.x(), center.y(), center.z(), radius, result);
     }
 
     /**
      * Test whether the given ray with the origin <code>(originX, originY, originZ)</code> and normalized direction <code>(dirX, dirY, dirZ)</code>
-     * intersects the given sphere with center <code>(centerX, centerY, centerZ)</code> and square radius <code>radiusSquared</code>.
+     * intersects the given sphere with center <code>(centerX, centerY, centerZ)</code> and radius <code>radius</code>.
      * <p>
      * This method returns <code>true</code> for a ray whose origin lies inside the sphere.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius.
+     * <code>radius</code> is the radius itself, not its square.
      * <p>
      * Reference: <a href="http://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection">http://www.scratchapixel.com/</a>
      * 
@@ -2159,12 +2168,13 @@ public final class Intersectiond {
      *              the y coordinate of the sphere's center
      * @param centerZ
      *              the z coordinate of the sphere's center
-     * @param radiusSquared
-     *              the square of the sphere's radius
+     * @param radius
+     *              the sphere's radius
      * @return <code>true</code> if the ray intersects the sphere; <code>false</code> otherwise
      */
     public static boolean testRaySphere(double originX, double originY, double originZ, double dirX, double dirY, double dirZ,
-            double centerX, double centerY, double centerZ, double radiusSquared) {
+            double centerX, double centerY, double centerZ, double radius) {
+        double radiusSquared = radius * radius;
         double lx = centerX - (double) originX, ly = centerY - (double) originY, lz = centerZ - (double) originZ;
         double tca = lx * dirX + ly * dirY + lz * dirZ;
         // the perpendicular distance directly: |L|² − tca² cancels for distant spheres (thousands of wrong answers per
@@ -2175,7 +2185,7 @@ public final class Intersectiond {
             return false;
         double thc = java.lang.Math.sqrt(radiusSquared - d2);
         // the root of larger magnitude without cancellation, the other from t0 t1 = (|L| − r)(|L| + r)
-        double len = java.lang.Math.sqrt(lx * lx + ly * ly + lz * lz), r = java.lang.Math.sqrt(radiusSquared);
+        double len = java.lang.Math.sqrt(lx * lx + ly * ly + lz * lz), r = radius;
         double prod = (len - r) * (len + r);
         double t1 = tca >= 0.0 ? tca + thc : prod / (tca - thc); // the far root
         return t1 >= 0.0;
@@ -2183,11 +2193,11 @@ public final class Intersectiond {
 
     /**
      * Test whether the ray with the given <code>origin</code> and normalized direction <code>dir</code>
-     * intersects the sphere with the given <code>center</code> and square radius.
+     * intersects the sphere with the given <code>center</code> and radius <code>radius</code>.
      * <p>
      * This method returns <code>true</code> for a ray whose origin lies inside the sphere.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius.
+     * <code>radius</code> is the radius itself, not its square.
      * <p>
      * Reference: <a href="http://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection">http://www.scratchapixel.com/</a>
      * 
@@ -2197,20 +2207,20 @@ public final class Intersectiond {
      *              the ray's normalized direction
      * @param center
      *              the sphere's center
-     * @param radiusSquared
-     *              the square of the sphere's radius
+     * @param radius
+     *              the sphere's radius
      * @return <code>true</code> if the ray intersects the sphere; <code>false</code> otherwise
      */
-    public static boolean testRaySphere(Vector3dc origin, Vector3dc dir, Vector3dc center, double radiusSquared) {
-        return testRaySphere(origin.x(), origin.y(), origin.z(), dir.x(), dir.y(), dir.z(), center.x(), center.y(), center.z(), radiusSquared);
+    public static boolean testRaySphere(Vector3dc origin, Vector3dc dir, Vector3dc center, double radius) {
+        return testRaySphere(origin.x(), origin.y(), origin.z(), dir.x(), dir.y(), dir.z(), center.x(), center.y(), center.z(), radius);
     }
 
     /**
      * Test whether the line segment with the end points <code>(p0X, p0Y, p0Z)</code> and <code>(p1X, p1Y, p1Z)</code>
-     * intersects the given sphere with center <code>(centerX, centerY, centerZ)</code> and square radius <code>radiusSquared</code>.
+     * intersects the given sphere with center <code>(centerX, centerY, centerZ)</code> and radius <code>radius</code>.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius. A segment whose end points are equal
-     * always gives <code>false</code>.
+     * <code>radius</code> is the radius itself, not its square. A segment whose end points are equal
+     * is treated as the point <code>p0</code>.
      * <p>
      * Reference: <a href="http://paulbourke.net/geometry/circlesphere/index.html#linesphere">http://paulbourke.net/</a>
      * 
@@ -2232,12 +2242,13 @@ public final class Intersectiond {
      *              the y coordinate of the sphere's center
      * @param centerZ
      *              the z coordinate of the sphere's center
-     * @param radiusSquared
-     *              the square of the sphere's radius
+     * @param radius
+     *              the sphere's radius
      * @return <code>true</code> if the line segment intersects the sphere; <code>false</code> otherwise
      */
     public static boolean testLineSegmentSphere(double p0X, double p0Y, double p0Z, double p1X, double p1Y, double p1Z,
-            double centerX, double centerY, double centerZ, double radiusSquared) {
+            double centerX, double centerY, double centerZ, double radius) {
+        double radiusSquared = radius * radius;
         double dX = p1X - p0X;
         double dY = p1Y - p0Y;
         double dZ = p1Z - p0Z;
@@ -2266,10 +2277,10 @@ public final class Intersectiond {
 
     /**
      * Test whether the line segment with the end points <code>p0</code> and <code>p1</code>
-     * intersects the given sphere with center <code>center</code> and square radius <code>radiusSquared</code>.
+     * intersects the given sphere with center <code>center</code> and radius <code>radius</code>.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius. A segment whose end points are equal
-     * always gives <code>false</code>.
+     * <code>radius</code> is the radius itself, not its square. A segment whose end points are equal
+     * is treated as the point <code>p0</code>.
      * <p>
      * Reference: <a href="http://paulbourke.net/geometry/circlesphere/index.html#linesphere">http://paulbourke.net/</a>
      * 
@@ -2279,12 +2290,12 @@ public final class Intersectiond {
      *              the line segment's second end point
      * @param center
      *              the sphere's center
-     * @param radiusSquared
-     *              the square of the sphere's radius
+     * @param radius
+     *              the sphere's radius
      * @return <code>true</code> if the line segment intersects the sphere; <code>false</code> otherwise
      */
-    public static boolean testLineSegmentSphere(Vector3dc p0, Vector3dc p1, Vector3dc center, double radiusSquared) {
-        return testLineSegmentSphere(p0.x(), p0.y(), p0.z(), p1.x(), p1.y(), p1.z(), center.x(), center.y(), center.z(), radiusSquared);
+    public static boolean testLineSegmentSphere(Vector3dc p0, Vector3dc p1, Vector3dc center, double radius) {
+        return testLineSegmentSphere(p0.x(), p0.y(), p0.z(), p1.x(), p1.y(), p1.z(), center.x(), center.y(), center.z(), radius);
     }
 
     /**
@@ -3484,15 +3495,15 @@ public final class Intersectiond {
     }
 
     /**
-     * Test whether a given circle with center <code>(aX, aY)</code> and radius <code>aR</code> and travelled distance vector <code>(maX, maY)</code>
-     * intersects a given static circle with center <code>(bX, bY)</code> and radius <code>bR</code>.
+     * Test whether a given circle with center <code>(aX, aY)</code> and radius <code>radiusA</code> and travelled distance vector <code>(maX, maY)</code>
+     * intersects a given static circle with center <code>(bX, bY)</code> and radius <code>radiusB</code>.
      * <p>
      * Note that the case of two moving circles can always be reduced to this case by expressing the moved distance of one of the circles relative
      * to the other.
      * <p>
      * Circles that already touch or overlap at the start intersect, whichever way they move. Touching counts.
      * <p>
-     * <code>aR</code> and <code>bR</code> are radii, not squared radii.
+     * <code>radiusA</code> and <code>radiusB</code> are radii, not squared radii.
      * <p>
      * Reference: <a href="https://www.gamasutra.com/view/feature/131424/pool_hall_lessons_fast_accurate_.php?page=2">https://www.gamasutra.com</a>
      * 
@@ -3504,19 +3515,19 @@ public final class Intersectiond {
      *              the x coordinate of the first circle's travelled distance vector
      * @param maY
      *              the y coordinate of the first circle's travelled distance vector
-     * @param aR
+     * @param radiusA
      *              the radius of the first circle (not squared)
      * @param bX
      *              the x coordinate of the second circle's center
      * @param bY
      *              the y coordinate of the second circle's center
-     * @param bR
+     * @param radiusB
      *              the radius of the second circle (not squared)
      * @return <code>true</code> if both circle intersect; <code>false</code> otherwise
      */
-    public static boolean testMovingCircleCircle(double aX, double aY, double maX, double maY, double aR, double bX, double bY, double bR) {
+    public static boolean testMovingCircleCircle(double aX, double aY, double maX, double maY, double radiusA, double bX, double bY, double radiusB) {
         double cX = bX - aX, cY = bY - aY;
-        double rr = aR + bR;
+        double rr = radiusA + radiusB;
         double cLen = Math.sqrt(cX * cX + cY * cY);
         if (cLen <= rr) {
             return true; // touching or overlapping at the start
@@ -3537,15 +3548,15 @@ public final class Intersectiond {
     }
 
     /**
-     * Test whether a given circle with center <code>centerA</code> and radius <code>aR</code> and travelled distance vector <code>moveA</code>
-     * intersects a given static circle with center <code>centerB</code> and radius <code>bR</code>.
+     * Test whether a given circle with center <code>centerA</code> and radius <code>radiusA</code> and travelled distance vector <code>moveA</code>
+     * intersects a given static circle with center <code>centerB</code> and radius <code>radiusB</code>.
      * <p>
      * Note that the case of two moving circles can always be reduced to this case by expressing the moved distance of one of the circles relative
      * to the other.
      * <p>
      * Circles that already touch or overlap at the start intersect, whichever way they move. Touching counts.
      * <p>
-     * <code>aR</code> and <code>bR</code> are radii, not squared radii.
+     * <code>radiusA</code> and <code>radiusB</code> are radii, not squared radii.
      * <p>
      * Reference: <a href="https://www.gamasutra.com/view/feature/131424/pool_hall_lessons_fast_accurate_.php?page=2">https://www.gamasutra.com</a>
      * 
@@ -3553,28 +3564,30 @@ public final class Intersectiond {
      *              the coordinates of the first circle's center
      * @param moveA
      *              the coordinates of the first circle's travelled distance vector
-     * @param aR
+     * @param radiusA
      *              the radius of the first circle (not squared)
      * @param centerB
      *              the coordinates of the second circle's center
-     * @param bR
+     * @param radiusB
      *              the radius of the second circle (not squared)
      * @return <code>true</code> if both circle intersect; <code>false</code> otherwise
      */
-    public static boolean testMovingCircleCircle(Vector2d centerA, Vector2d moveA, double aR, Vector2d centerB, double bR) {
-        return testMovingCircleCircle(centerA.x, centerA.y, moveA.x, moveA.y, aR, centerB.x, centerB.y, bR);
+    public static boolean testMovingCircleCircle(Vector2dc centerA, Vector2dc moveA, double radiusA, Vector2dc centerB, double radiusB) {
+        return testMovingCircleCircle(centerA.x(), centerA.y(), moveA.x(), moveA.y(), radiusA, centerB.x(), centerB.y(), radiusB);
     }
 
     /**
-     * Test whether the one circle with center <code>(aX, aY)</code> and square radius <code>radiusSquaredA</code> intersects the other
-     * circle with center <code>(bX, bY)</code> and square radius <code>radiusSquaredB</code>, and store the center of the line segment of
+     * Test whether the one circle with center <code>(aX, aY)</code> and radius <code>radiusA</code> intersects the other
+     * circle with center <code>(bX, bY)</code> and radius <code>radiusB</code>, and store the center of the line segment of
      * intersection in the <code>(x, y)</code> components of the supplied vector and the half-length of that line segment in the z component.
      * <p>
      * This method returns <code>false</code> when one circle contains the other circle.
      * <p>
-     * <code>radiusSquaredA</code> and <code>radiusSquaredB</code> are squared radii, not radii. The z component
-     * receives the half-length, not its square. Concentric circles (equal centers) always give <code>false</code>, even
-     * with equal radii.
+     * <code>radiusA</code> and <code>radiusB</code> are radii, not squared radii. The z component
+     * receives the half-length, not its square. Only meeting boundaries count: concentric circles (equal centers)
+     * give <code>false</code>, even with equal radii, since their boundaries do not cross at two points. On
+     * <code>false</code> the destination is left unchanged. To test whether the discs overlap, use
+     * {@link #testCircleCircle}.
      * <p>
      * Reference: <a href="http://gamedev.stackexchange.com/questions/75756/sphere-sphere-intersection-and-circle-sphere-intersection">http://gamedev.stackexchange.com</a>
      * 
@@ -3582,22 +3595,26 @@ public final class Intersectiond {
      *              the x coordinate of the first circle's center
      * @param aY
      *              the y coordinate of the first circle's center
-     * @param radiusSquaredA
-     *              the square of the first circle's radius
+     * @param radiusA
+     *              the first circle's radius
      * @param bX
      *              the x coordinate of the second circle's center
      * @param bY
      *              the y coordinate of the second circle's center
-     * @param radiusSquaredB
-     *              the square of the second circle's radius
+     * @param radiusB
+     *              the second circle's radius
      * @param intersectionCenterAndHL
      *              will hold the center of the line segment of intersection in the <code>(x, y)</code> components and
      *              the half-length in the z component
      * @return <code>true</code> iff both circles intersect; <code>false</code> otherwise
      */
-    public static boolean intersectCircleCircle(double aX, double aY, double radiusSquaredA, double bX, double bY, double radiusSquaredB, Vector3d intersectionCenterAndHL) {
+    public static boolean intersectCircleCircle(double aX, double aY, double radiusA, double bX, double bY, double radiusB, Vector3d intersectionCenterAndHL) {
+        double radiusSquaredA = radiusA * radiusA, radiusSquaredB = radiusB * radiusB;
         double dX = bX - aX, dY = bY - aY;
         double distSquared = dX * dX + dY * dY;
+        if (distSquared == 0.0) { // concentric: no points of intersection (0/0 before 3.0)
+            return false;
+        }
         double h = 0.5 + (radiusSquaredA - radiusSquaredB) / (2.0 * distSquared);
         double r2 = radiusSquaredA - h * h * distSquared;
         if (r2 >= 0.0) {
@@ -3611,40 +3628,44 @@ public final class Intersectiond {
     }
 
     /**
-     * Test whether the one circle with center <code>centerA</code> and square radius <code>radiusSquaredA</code> intersects the other
-     * circle with center <code>centerB</code> and square radius <code>radiusSquaredB</code>, and store the center of the line segment of
+     * Test whether the one circle with center <code>centerA</code> and radius <code>radiusA</code> intersects the other
+     * circle with center <code>centerB</code> and radius <code>radiusB</code>, and store the center of the line segment of
      * intersection in the <code>(x, y)</code> components of the supplied vector and the half-length of that line segment in the z component.
      * <p>
      * This method returns <code>false</code> when one circle contains the other circle.
      * <p>
-     * <code>radiusSquaredA</code> and <code>radiusSquaredB</code> are squared radii, not radii. The z component
-     * receives the half-length, not its square. Concentric circles (equal centers) always give <code>false</code>, even
-     * with equal radii.
+     * <code>radiusA</code> and <code>radiusB</code> are radii, not squared radii. The z component
+     * receives the half-length, not its square. Only meeting boundaries count: concentric circles (equal centers)
+     * give <code>false</code>, even with equal radii, since their boundaries do not cross at two points. On
+     * <code>false</code> the destination is left unchanged. To test whether the discs overlap, use
+     * {@link #testCircleCircle}.
      * <p>
      * Reference: <a href="http://gamedev.stackexchange.com/questions/75756/sphere-sphere-intersection-and-circle-sphere-intersection">http://gamedev.stackexchange.com</a>
      * 
      * @param centerA
      *              the first circle's center
-     * @param radiusSquaredA
-     *              the square of the first circle's radius
+     * @param radiusA
+     *              the first circle's radius
      * @param centerB
      *              the second circle's center
-     * @param radiusSquaredB
-     *              the square of the second circle's radius
+     * @param radiusB
+     *              the second circle's radius
      * @param intersectionCenterAndHL
      *              will hold the center of the line segment of intersection in the <code>(x, y)</code> components and the half-length in the z component
      * @return <code>true</code> iff both circles intersect; <code>false</code> otherwise
      */
-    public static boolean intersectCircleCircle(Vector2dc centerA, double radiusSquaredA, Vector2dc centerB, double radiusSquaredB, Vector3d intersectionCenterAndHL) {
-        return intersectCircleCircle(centerA.x(), centerA.y(), radiusSquaredA, centerB.x(), centerB.y(), radiusSquaredB, intersectionCenterAndHL);
+    public static boolean intersectCircleCircle(Vector2dc centerA, double radiusA, Vector2dc centerB, double radiusB, Vector3d intersectionCenterAndHL) {
+        return intersectCircleCircle(centerA.x(), centerA.y(), radiusA, centerB.x(), centerB.y(), radiusB, intersectionCenterAndHL);
     }
 
     /**
-     * Test whether the one circle with center <code>(aX, aY)</code> and squared radius <code>rA</code> intersects the
-     * other circle with center <code>(bX, bY)</code> and squared radius <code>rB</code>.
-     * Both are squared radii, not radii.
+     * Test whether the one circle with center <code>(aX, aY)</code> and radius <code>radiusA</code> intersects the
+     * other circle with center <code>(bX, bY)</code> and radius <code>radiusB</code>.
+     * Both are radii, not squared radii.
      * <p>
-     * This method returns <code>true</code> when one circle contains the other circle.
+     * "Intersects" means the discs overlap or touch: the distance between the centers is at most
+     * <code>radiusA + radiusB</code>, so a circle inside the other counts, as in {@link #testSphereSphere}. The test
+     * is computed in double.
      * <p>
      * Reference: <a href="http://math.stackexchange.com/questions/275514/two-circles-overlap">http://math.stackexchange.com/</a>
      * 
@@ -3652,45 +3673,45 @@ public final class Intersectiond {
      *              the x coordinate of the first circle's center
      * @param aY
      *              the y coordinate of the first circle's center
-     * @param rA
-     *              the square of the first circle's radius
+     * @param radiusA
+     *              the first circle's radius
      * @param bX
      *              the x coordinate of the second circle's center
      * @param bY
      *              the y coordinate of the second circle's center
-     * @param rB
-     *              the square of the second circle's radius
+     * @param radiusB
+     *              the second circle's radius
      * @return <code>true</code> iff both circles intersect; <code>false</code> otherwise
      */
-    public static boolean testCircleCircle(double aX, double aY, double rA, double bX, double bY, double rB) {
-        double d = (aX - bX) * (aX - bX) + (aY - bY) * (aY - bY);
-        // rA and rB are squared radii, as documented (before 2.4.0 they were used as radii)
-        double ra = Math.sqrt(rA), rb = Math.sqrt(rB);
-        return d <= (ra + rb) * (ra + rb);
+    public static boolean testCircleCircle(double aX, double aY, double radiusA, double bX, double bY, double radiusB) {
+        // computed in double, like testSphereSphere
+        double dX = (double) bX - aX, dY = (double) bY - aY;
+        double radiusSum = (double) radiusA + radiusB;
+        return dX * dX + dY * dY <= radiusSum * radiusSum;
     }
 
     /**
-     * Test whether the one circle with center <code>centerA</code> and square radius <code>radiusSquaredA</code> intersects the other
-     * circle with center <code>centerB</code> and square radius <code>radiusSquaredB</code>.
+     * Test whether the one circle with center <code>centerA</code> and radius <code>radiusA</code> intersects the other
+     * circle with center <code>centerB</code> and radius <code>radiusB</code>.
      * <p>
      * This method returns <code>true</code> when one circle contains the other circle.
      * <p>
-     * <code>radiusSquaredA</code> and <code>radiusSquaredB</code> are squared radii, not radii.
+     * <code>radiusA</code> and <code>radiusB</code> are radii, not squared radii.
      * <p>
      * Reference: <a href="http://gamedev.stackexchange.com/questions/75756/sphere-sphere-intersection-and-circle-sphere-intersection">http://gamedev.stackexchange.com</a>
      * 
      * @param centerA
      *              the first circle's center
-     * @param radiusSquaredA
-     *              the square of the first circle's radius
+     * @param radiusA
+     *              the first circle's radius
      * @param centerB
      *              the second circle's center
-     * @param radiusSquaredB
-     *              the square of the second circle's radius
+     * @param radiusB
+     *              the second circle's radius
      * @return <code>true</code> iff both circles intersect; <code>false</code> otherwise
      */
-    public static boolean testCircleCircle(Vector2dc centerA, double radiusSquaredA, Vector2dc centerB, double radiusSquaredB) {
-        return testCircleCircle(centerA.x(), centerA.y(), radiusSquaredA, centerB.x(), centerB.y(), radiusSquaredB);
+    public static boolean testCircleCircle(Vector2dc centerA, double radiusA, Vector2dc centerB, double radiusB) {
+        return testCircleCircle(centerA.x(), centerA.y(), radiusA, centerB.x(), centerB.y(), radiusB);
     }
 
     /**
@@ -3906,9 +3927,9 @@ public final class Intersectiond {
 
     /**
      * Test whether the axis-aligned rectangle with minimum corner <code>(minX, minY)</code> and maximum corner <code>(maxX, maxY)</code>
-     * intersects the circle with the given center <code>(centerX, centerY)</code> and square radius <code>radiusSquared</code>.
+     * intersects the circle with the given center <code>(centerX, centerY)</code> and radius <code>radius</code>.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius.
+     * <code>radius</code> is the radius itself, not its square.
      * <p>
      * Reference: <a href="http://stackoverflow.com/questions/4578967/cube-sphere-intersection-test#answer-4579069">http://stackoverflow.com</a>
      * 
@@ -3924,11 +3945,12 @@ public final class Intersectiond {
      *          the x coordinate of the circle's center
      * @param centerY
      *          the y coordinate of the circle's center
-     * @param radiusSquared
-     *          the square of the circle's radius
+     * @param radius
+     *          the circle's radius
      * @return <code>true</code> iff the axis-aligned rectangle intersects the circle; <code>false</code> otherwise
      */
-    public static boolean testAarCircle(double minX, double minY, double maxX, double maxY, double centerX, double centerY, double radiusSquared) {
+    public static boolean testAarCircle(double minX, double minY, double maxX, double maxY, double centerX, double centerY, double radius) {
+        double radiusSquared = radius * radius;
         double radius2 = radiusSquared;
         if (centerX < minX) {
             double d = (centerX - minX);
@@ -3949,9 +3971,9 @@ public final class Intersectiond {
 
     /**
      * Test whether the axis-aligned rectangle with minimum corner <code>min</code> and maximum corner <code>max</code>
-     * intersects the circle with the given <code>center</code> and square radius <code>radiusSquared</code>.
+     * intersects the circle with the given <code>center</code> and radius <code>radius</code>.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius.
+     * <code>radius</code> is the radius itself, not its square.
      * <p>
      * Reference: <a href="http://stackoverflow.com/questions/4578967/cube-sphere-intersection-test#answer-4579069">http://stackoverflow.com</a>
      * 
@@ -3961,12 +3983,12 @@ public final class Intersectiond {
      *          the maximum corner of the axis-aligned rectangle
      * @param center
      *          the circle's center
-     * @param radiusSquared
-     *          the square of the circle's radius
+     * @param radius
+     *          the circle's radius
      * @return <code>true</code> iff the axis-aligned rectangle intersects the circle; <code>false</code> otherwise
      */
-    public static boolean testAarCircle(Vector2dc min, Vector2dc max, Vector2dc center, double radiusSquared) {
-        return testAarCircle(min.x(), min.y(), max.x(), max.y(), center.x(), center.y(), radiusSquared);
+    public static boolean testAarCircle(Vector2dc min, Vector2dc max, Vector2dc center, double radius) {
+        return testAarCircle(min.x(), min.y(), max.x(), max.y(), center.x(), center.y(), radius);
     }
 
     /**
@@ -4075,13 +4097,13 @@ public final class Intersectiond {
     /**
      * Test whether the given ray with the origin <code>(originX, originY)</code> and normalized direction
      * <code>(dirX, dirY)</code> intersects the given circle with center <code>(centerX, centerY)</code>
-     * and square radius <code>radiusSquared</code>,
+     * and radius <code>radius</code>,
      * and store the values of the parameter <i>t</i> in the ray equation <i>p(t) = origin + t * dir</i> for both points (near
      * and far) of intersections into the given <code>result</code> vector.
      * <p>
      * This method returns <code>true</code> for a ray whose origin lies inside the circle.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius. The direction must be unit length: the
+     * <code>radius</code> is the radius itself, not its square. The direction must be unit length: the
      * returned <i>t</i> values are distances along it.
      * <p>
      * Reference: <a href="http://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection">http://www.scratchapixel.com/</a>
@@ -4098,15 +4120,16 @@ public final class Intersectiond {
      *              the x coordinate of the circle's center
      * @param centerY
      *              the y coordinate of the circle's center
-     * @param radiusSquared
-     *              the square of the circle's radius
+     * @param radius
+     *              the circle's radius
      * @param result
      *              a vector that will contain the values of the parameter <i>t</i> in the ray equation
      *              <i>p(t) = origin + t * dir</i> for both points (near, far) of intersections with the circle
      * @return <code>true</code> if the ray intersects the circle; <code>false</code> otherwise
      */
     public static boolean intersectRayCircle(double originX, double originY, double dirX, double dirY, 
-            double centerX, double centerY, double radiusSquared, Vector2d result) {
+            double centerX, double centerY, double radius, Vector2d result) {
+        double radiusSquared = radius * radius;
         double lx = centerX - (double) originX, ly = centerY - (double) originY;
         double tca = lx * dirX + ly * dirY;
         // the perpendicular distance directly: |L|² − tca² cancels for distant circles (thousands of wrong answers per
@@ -4117,7 +4140,7 @@ public final class Intersectiond {
             return false;
         double thc = java.lang.Math.sqrt(radiusSquared - d2);
         // the root of larger magnitude without cancellation, the other from t0 t1 = (|L| − r)(|L| + r)
-        double len = java.lang.Math.sqrt(lx * lx + ly * ly), r = java.lang.Math.sqrt(radiusSquared);
+        double len = java.lang.Math.sqrt(lx * lx + ly * ly), r = radius;
         double prod = (len - r) * (len + r);
         double t0, t1;
         if (tca >= 0.0) {
@@ -4137,13 +4160,13 @@ public final class Intersectiond {
 
     /**
      * Test whether the ray with the given <code>origin</code> and normalized direction <code>dir</code>
-     * intersects the circle with the given <code>center</code> and square radius <code>radiusSquared</code>,
+     * intersects the circle with the given <code>center</code> and radius <code>radius</code>,
      * and store the values of the parameter <i>t</i> in the ray equation <i>p(t) = origin + t * dir</i> for both points (near
      * and far) of intersections into the given <code>result</code> vector.
      * <p>
      * This method returns <code>true</code> for a ray whose origin lies inside the circle.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius. The direction must be unit length: the
+     * <code>radius</code> is the radius itself, not its square. The direction must be unit length: the
      * returned <i>t</i> values are distances along it.
      * <p>
      * Reference: <a href="http://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection">http://www.scratchapixel.com/</a>
@@ -4154,25 +4177,25 @@ public final class Intersectiond {
      *              the ray's normalized direction
      * @param center
      *              the circle's center
-     * @param radiusSquared
-     *              the square of the circle's radius
+     * @param radius
+     *              the circle's radius
      * @param result
      *              a vector that will contain the values of the parameter <i>t</i> in the ray equation
      *              <i>p(t) = origin + t * dir</i> for both points (near, far) of intersections with the circle
      * @return <code>true</code> if the ray intersects the circle; <code>false</code> otherwise
      */
-    public static boolean intersectRayCircle(Vector2dc origin, Vector2dc dir, Vector2dc center, double radiusSquared, Vector2d result) {
-        return intersectRayCircle(origin.x(), origin.y(), dir.x(), dir.y(), center.x(), center.y(), radiusSquared, result);
+    public static boolean intersectRayCircle(Vector2dc origin, Vector2dc dir, Vector2dc center, double radius, Vector2d result) {
+        return intersectRayCircle(origin.x(), origin.y(), dir.x(), dir.y(), center.x(), center.y(), radius, result);
     }
 
     /**
      * Test whether the given ray with the origin <code>(originX, originY)</code> and normalized direction
      * <code>(dirX, dirY)</code> intersects the given circle with center <code>(centerX, centerY)</code>
-     * and square radius <code>radiusSquared</code>.
+     * and radius <code>radius</code>.
      * <p>
      * This method returns <code>true</code> for a ray whose origin lies inside the circle.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius. The direction must be unit length.
+     * <code>radius</code> is the radius itself, not its square. The direction must be unit length.
      * <p>
      * Reference: <a href="http://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection">http://www.scratchapixel.com/</a>
      * 
@@ -4188,12 +4211,13 @@ public final class Intersectiond {
      *              the x coordinate of the circle's center
      * @param centerY
      *              the y coordinate of the circle's center
-     * @param radiusSquared
-     *              the square of the circle's radius
+     * @param radius
+     *              the circle's radius
      * @return <code>true</code> if the ray intersects the circle; <code>false</code> otherwise
      */
     public static boolean testRayCircle(double originX, double originY, double dirX, double dirY, 
-            double centerX, double centerY, double radiusSquared) {
+            double centerX, double centerY, double radius) {
+        double radiusSquared = radius * radius;
         double lx = centerX - (double) originX, ly = centerY - (double) originY;
         double tca = lx * dirX + ly * dirY;
         // the perpendicular distance directly: |L|² − tca² cancels for distant circles (thousands of wrong answers per
@@ -4204,7 +4228,7 @@ public final class Intersectiond {
             return false;
         double thc = java.lang.Math.sqrt(radiusSquared - d2);
         // the root of larger magnitude without cancellation, the other from t0 t1 = (|L| − r)(|L| + r)
-        double len = java.lang.Math.sqrt(lx * lx + ly * ly), r = java.lang.Math.sqrt(radiusSquared);
+        double len = java.lang.Math.sqrt(lx * lx + ly * ly), r = radius;
         double prod = (len - r) * (len + r);
         double t1 = tca >= 0.0 ? tca + thc : prod / (tca - thc); // the far root
         return t1 >= 0.0;
@@ -4212,11 +4236,11 @@ public final class Intersectiond {
 
     /**
      * Test whether the ray with the given <code>origin</code> and normalized direction <code>dir</code>
-     * intersects the circle with the given <code>center</code> and square radius.
+     * intersects the circle with the given <code>center</code> and radius <code>radius</code>.
      * <p>
      * This method returns <code>true</code> for a ray whose origin lies inside the circle.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius. The direction must be unit length.
+     * <code>radius</code> is the radius itself, not its square. The direction must be unit length.
      * <p>
      * Reference: <a href="http://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection">http://www.scratchapixel.com/</a>
      * 
@@ -4226,12 +4250,12 @@ public final class Intersectiond {
      *              the ray's normalized direction
      * @param center
      *              the circle's center
-     * @param radiusSquared
-     *              the square of the circle's radius
+     * @param radius
+     *              the circle's radius
      * @return <code>true</code> if the ray intersects the circle; <code>false</code> otherwise
      */
-    public static boolean testRayCircle(Vector2dc origin, Vector2dc dir, Vector2dc center, double radiusSquared) {
-        return testRayCircle(origin.x(), origin.y(), dir.x(), dir.y(), center.x(), center.y(), radiusSquared);
+    public static boolean testRayCircle(Vector2dc origin, Vector2dc dir, Vector2dc center, double radius) {
+        return testRayCircle(origin.x(), origin.y(), dir.x(), dir.y(), center.x(), center.y(), radius);
     }
 
     /**
@@ -4620,9 +4644,9 @@ public final class Intersectiond {
     }
 
     /**
-     * Test whether the point <code>(pX, pY)</code> lies inside the circle with center <code>(centerX, centerY)</code> and square radius <code>radiusSquared</code>.
+     * Test whether the point <code>(pX, pY)</code> lies inside the circle with center <code>(centerX, centerY)</code> and radius <code>radius</code>.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius. A point on the circle counts as inside.
+     * <code>radius</code> is the radius itself, not its square. A point on the circle counts as inside.
      * 
      * @param pX
      *          the x coordinate of the point
@@ -4632,11 +4656,12 @@ public final class Intersectiond {
      *          the x coordinate of the circle's center
      * @param centerY
      *          the y coordinate of the circle's center
-     * @param radiusSquared
-     *          the square of the circle's radius
+     * @param radius
+     *          the circle's radius
      * @return <code>true</code> iff the point lies inside the circle; <code>false</code> otherwise
      */
-    public static boolean testPointCircle(double pX, double pY, double centerX, double centerY, double radiusSquared) {
+    public static boolean testPointCircle(double pX, double pY, double centerX, double centerY, double radius) {
+        double radiusSquared = radius * radius;
         double dx = pX - centerX;
         double dy = pY - centerY;
         double dx2 = dx * dx;
@@ -4645,12 +4670,12 @@ public final class Intersectiond {
     }
 
     /**
-     * Test whether the circle with center <code>(centerX, centerY)</code> and square radius <code>radiusSquared</code> intersects the triangle with counter-clockwise vertices
+     * Test whether the circle with center <code>(centerX, centerY)</code> and radius <code>radius</code> intersects the triangle with counter-clockwise vertices
      * <code>(v0X, v0Y)</code>, <code>(v1X, v1Y)</code>, <code>(v2X, v2Y)</code>.
      * <p>
      * The vertices of the triangle must be specified in counter-clockwise order.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius.
+     * <code>radius</code> is the radius itself, not its square.
      * <p>
      * Reference: <a href="http://www.phatcode.net/articles.php?id=459">http://www.phatcode.net/</a>
      * 
@@ -4658,8 +4683,8 @@ public final class Intersectiond {
      *          the x coordinate of the circle's center
      * @param centerY
      *          the y coordinate of the circle's center
-     * @param radiusSquared
-     *          the square of the circle's radius
+     * @param radius
+     *          the circle's radius
      * @param v0X
      *          the x coordinate of the first vertex of the triangle
      * @param v0Y
@@ -4674,7 +4699,8 @@ public final class Intersectiond {
      *          the y coordinate of the third vertex of the triangle
      * @return <code>true</code> iff the circle intersects the triangle; <code>false</code> otherwise
      */
-    public static boolean testCircleTriangle(double centerX, double centerY, double radiusSquared, double v0X, double v0Y, double v1X, double v1Y, double v2X, double v2Y) {
+    public static boolean testCircleTriangle(double centerX, double centerY, double radius, double v0X, double v0Y, double v1X, double v1Y, double v2X, double v2Y) {
+        double radiusSquared = radius * radius;
         double c1x = centerX - v0X, c1y = centerY - v0Y;
         double c1sqr = c1x * c1x + c1y * c1y - radiusSquared;
         if (c1sqr <= 0.0)
@@ -4720,19 +4746,19 @@ public final class Intersectiond {
     }
 
     /**
-     * Test whether the circle with given <code>center</code> and square radius <code>radiusSquared</code> intersects the triangle with counter-clockwise vertices
+     * Test whether the circle with given <code>center</code> and radius <code>radius</code> intersects the triangle with counter-clockwise vertices
      * <code>v0</code>, <code>v1</code>, <code>v2</code>.
      * <p>
      * The vertices of the triangle must be specified in counter-clockwise order.
      * <p>
-     * <code>radiusSquared</code> is the square of the radius, not the radius.
+     * <code>radius</code> is the radius itself, not its square.
      * <p>
      * Reference: <a href="http://www.phatcode.net/articles.php?id=459">http://www.phatcode.net/</a>
      * 
      * @param center
      *          the circle's center
-     * @param radiusSquared
-     *          the square of the circle's radius
+     * @param radius
+     *          the circle's radius
      * @param v0
      *          the first vertex of the triangle
      * @param v1
@@ -4741,8 +4767,8 @@ public final class Intersectiond {
      *          the third vertex of the triangle
      * @return <code>true</code> iff the circle intersects the triangle; <code>false</code> otherwise
      */
-    public static boolean testCircleTriangle(Vector2dc center, double radiusSquared, Vector2dc v0, Vector2dc v1, Vector2dc v2) {
-        return testCircleTriangle(center.x(), center.y(), radiusSquared, v0.x(), v0.y(), v1.x(), v1.y(), v2.x(), v2.y());
+    public static boolean testCircleTriangle(Vector2dc center, double radius, Vector2dc v0, Vector2dc v1, Vector2dc v2) {
+        return testCircleTriangle(center.x(), center.y(), radius, v0.x(), v0.y(), v1.x(), v1.y(), v2.x(), v2.y());
     }
 
     /**

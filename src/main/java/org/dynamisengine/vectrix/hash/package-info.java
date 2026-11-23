@@ -29,9 +29,9 @@
  * <b>Contract.</b> Threading: every method is a pure function of its arguments, safe to call from any thread; there
  * is no generator state. Allocation: no method allocates. Determinism: the hashes and the Philox words are integer
  * operations, the same bits on every platform; {@code Philox.fillNormal} uses {@code ReproducibleMath}, so its
- * results are also the same bits everywhere. Errors: the {@code Philox} fill methods check their offset and count
- * and throw {@link java.lang.IllegalArgumentException} before writing anything; {@code Philox.block} relies on
- * array bounds checks. Precision and naming: hashes are 32-bit {@code int}s; {@code Philox} produces 32-bit words
- * and float uniforms and normals.
+ * results are also the same bits everywhere. Errors: the {@code Philox} fill methods and {@code Philox.block} check
+ * their offset and count and throw {@link java.lang.IllegalArgumentException} before writing anything. Precision and
+ * naming: hashes are 32-bit {@code int}s; {@code Philox} produces 32-bit words, float uniforms and normals (24 random
+ * bits) and double uniforms and normals (53 random bits).
  */
 package org.dynamisengine.vectrix.hash;

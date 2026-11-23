@@ -36,8 +36,9 @@ import java.math.BigDecimal;
  * ({@code -1.0}, {@code 0.0} or {@code 1.0}), so only the sign is guaranteed. Float coordinates convert to double
  * exactly. The fast path does not allocate; the exact path allocates {@link BigDecimal} temporaries.
  * <p>
- * Coordinates must be finite: a NaN or infinite coordinate can send a predicate to the exact path, where it throws
- * {@link NumberFormatException}. The class is stateless and safe to call from any thread.
+ * Every predicate returns {@link Double#NaN} when any coordinate is NaN or infinite (before 3.0 such input could
+ * reach the exact path and throw {@link NumberFormatException}). Finite coordinates whose products overflow are
+ * handled exactly. The class is stateless and safe to call from any thread.
  *
  * @since 2.2.0
  */
@@ -61,9 +62,13 @@ public final class RobustPredicates {
      * @param by the y coordinate of b
      * @param cx the x coordinate of c
      * @param cy the y coordinate of c
-     * @return the orientation determinant, or only its sign when it was computed exactly
+     * @return the orientation determinant, or only its sign when it was computed exactly; NaN if a coordinate is NaN
+     *         or infinite
      */
     public static double orient2d(double ax, double ay, double bx, double by, double cx, double cy) {
+        if ((ax - ax) + (ay - ay) + (bx - bx) + (by - by) + (cx - cx) + (cy - cy) != 0.0) {
+            return Double.NaN; // x - x is NaN exactly for NaN and infinite x
+        }
         double detLeft = (ax - cx) * (by - cy);
         double detRight = (ay - cy) * (bx - cx);
         double det = detLeft - detRight;
@@ -99,7 +104,8 @@ public final class RobustPredicates {
      * @param by the y coordinate of b
      * @param cx the x coordinate of c
      * @param cy the y coordinate of c
-     * @return the orientation determinant, or only its sign when it was computed exactly
+     * @return the orientation determinant, or only its sign when it was computed exactly; NaN if a coordinate is NaN
+     *         or infinite
      */
     public static double orient2d(float ax, float ay, float bx, float by, float cx, float cy) {
         return orient2d((double) ax, ay, bx, by, cx, cy);
@@ -121,10 +127,15 @@ public final class RobustPredicates {
      * @param dx the x coordinate of the tested point d
      * @param dy the y coordinate of the tested point d
      * @param dz the z coordinate of the tested point d
-     * @return the orientation determinant, or only its sign when it was computed exactly
+     * @return the orientation determinant, or only its sign when it was computed exactly; NaN if a coordinate is NaN
+     *         or infinite
      */
     public static double orient3d(double ax, double ay, double az, double bx, double by, double bz, double cx, double cy,
             double cz, double dx, double dy, double dz) {
+        if ((ax - ax) + (ay - ay) + (az - az) + (bx - bx) + (by - by) + (bz - bz) + (cx - cx) + (cy - cy) + (cz - cz)
+                + (dx - dx) + (dy - dy) + (dz - dz) != 0.0) {
+            return Double.NaN;
+        }
         double adx = ax - dx, bdx = bx - dx, cdx = cx - dx;
         double ady = ay - dy, bdy = by - dy, cdy = cy - dy;
         double adz = az - dz, bdz = bz - dz, cdz = cz - dz;
@@ -157,10 +168,14 @@ public final class RobustPredicates {
      * @param cy the y coordinate of c
      * @param dx the x coordinate of the tested point d
      * @param dy the y coordinate of the tested point d
-     * @return the incircle determinant, or only its sign when it was computed exactly
+     * @return the incircle determinant, or only its sign when it was computed exactly; NaN if a coordinate is NaN or
+     *         infinite
      */
     public static double incircle(double ax, double ay, double bx, double by, double cx, double cy, double dx,
             double dy) {
+        if ((ax - ax) + (ay - ay) + (bx - bx) + (by - by) + (cx - cx) + (cy - cy) + (dx - dx) + (dy - dy) != 0.0) {
+            return Double.NaN;
+        }
         double adx = ax - dx, bdx = bx - dx, cdx = cx - dx;
         double ady = ay - dy, bdy = by - dy, cdy = cy - dy;
         double bdxcdy = bdx * cdy, cdxbdy = cdx * bdy;
@@ -204,10 +219,15 @@ public final class RobustPredicates {
      * @param ex the x coordinate of the tested point e
      * @param ey the y coordinate of the tested point e
      * @param ez the z coordinate of the tested point e
-     * @return the insphere determinant, or only its sign when it was computed exactly
+     * @return the insphere determinant, or only its sign when it was computed exactly; NaN if a coordinate is NaN or
+     *         infinite
      */
     public static double insphere(double ax, double ay, double az, double bx, double by, double bz, double cx,
             double cy, double cz, double dx, double dy, double dz, double ex, double ey, double ez) {
+        if ((ax - ax) + (ay - ay) + (az - az) + (bx - bx) + (by - by) + (bz - bz) + (cx - cx) + (cy - cy) + (cz - cz)
+                + (dx - dx) + (dy - dy) + (dz - dz) + (ex - ex) + (ey - ey) + (ez - ez) != 0.0) {
+            return Double.NaN;
+        }
         double aex = ax - ex, bex = bx - ex, cex = cx - ex, dex = dx - ex;
         double aey = ay - ey, bey = by - ey, cey = cy - ey, dey = dy - ey;
         double aez = az - ez, bez = bz - ez, cez = cz - ez, dez = dz - ez;
@@ -285,11 +305,60 @@ public final class RobustPredicates {
      * @param dx the x coordinate of the tested point d
      * @param dy the y coordinate of the tested point d
      * @param dz the z coordinate of the tested point d
-     * @return the orientation determinant, or only its sign when it was computed exactly
+     * @return the orientation determinant, or only its sign when it was computed exactly; NaN if a coordinate is NaN
+     *         or infinite
      */
     public static double orient3d(float ax, float ay, float az, float bx, float by, float bz, float cx, float cy,
             float cz, float dx, float dy, float dz) {
         return orient3d((double) ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
+    }
+
+    /**
+     * {@link #incircle(double, double, double, double, double, double, double, double) incircle} for float
+     * coordinates, which are widened to double exactly.
+     *
+     * @param ax the x coordinate of a
+     * @param ay the y coordinate of a
+     * @param bx the x coordinate of b
+     * @param by the y coordinate of b
+     * @param cx the x coordinate of c
+     * @param cy the y coordinate of c
+     * @param dx the x coordinate of the tested point d
+     * @param dy the y coordinate of the tested point d
+     * @return the incircle determinant, or only its sign when it was computed exactly; NaN if a coordinate is NaN or
+     *         infinite
+     * @since 3.0.0
+     */
+    public static double incircle(float ax, float ay, float bx, float by, float cx, float cy, float dx, float dy) {
+        return incircle((double) ax, ay, bx, by, cx, cy, dx, dy);
+    }
+
+    /**
+     * {@link #insphere(double, double, double, double, double, double, double, double, double, double, double, double,
+     * double, double, double) insphere} for float coordinates, which are widened to double exactly.
+     *
+     * @param ax the x coordinate of a
+     * @param ay the y coordinate of a
+     * @param az the z coordinate of a
+     * @param bx the x coordinate of b
+     * @param by the y coordinate of b
+     * @param bz the z coordinate of b
+     * @param cx the x coordinate of c
+     * @param cy the y coordinate of c
+     * @param cz the z coordinate of c
+     * @param dx the x coordinate of d
+     * @param dy the y coordinate of d
+     * @param dz the z coordinate of d
+     * @param ex the x coordinate of the tested point e
+     * @param ey the y coordinate of the tested point e
+     * @param ez the z coordinate of the tested point e
+     * @return the insphere determinant, or only its sign when it was computed exactly; NaN if a coordinate is NaN or
+     *         infinite
+     * @since 3.0.0
+     */
+    public static double insphere(float ax, float ay, float az, float bx, float by, float bz, float cx, float cy,
+            float cz, float dx, float dy, float dz, float ex, float ey, float ez) {
+        return insphere((double) ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, ex, ey, ez);
     }
 
     private static BigDecimal d(double v) {

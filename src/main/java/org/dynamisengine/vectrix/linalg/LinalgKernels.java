@@ -482,35 +482,100 @@ final class LinalgKernels {
     }
 
     /**
-     * Least squares {@code min ||a x - b||} for an {@code m × n} matrix ({@code m >= n}) by Householder QR. Allocates
-     * {@code O(m²)} scratch: it is meant for fitting, not per-frame loops.
+     * The scratch size of {@link #leastSquares}: {@code m · n + m} doubles, for the matrix being reduced to {@code R}
+     * and the right-hand side being reduced to {@code Qᵀ b}.
+     *
+     * @throws IllegalArgumentException if the size does not fit in an array
      */
-    static boolean leastSquares(double[] a, double[] b, int m, int n, double[] x) {
-        double[] q = new double[m * m], r = new double[m * n];
-        qr(a, m, n, q, r);
-        double[] qtb = new double[n];
-        for (int i = 0; i < n; i++) {
-            double s = 0.0;
-            for (int k = 0; k < m; k++) {
-                s += q[k * m + i] * b[k];
+    static int leastSquaresScratchSize(int m, int n) {
+        long size = (long) m * n + m;
+        if (m < 0 || n < 0 || size > Integer.MAX_VALUE - 8) {
+            throw new IllegalArgumentException("rows * cols too large: " + m + " x " + n);
+        }
+        return (int) size;
+    }
+
+    /**
+     * Least squares {@code min ||a x - b||} for an {@code m × n} matrix ({@code m >= n}) by Householder QR. The
+     * reflectors are applied to {@code b} as they are found, so {@code Q} is never formed: the scratch is the
+     * {@code m · n + m} doubles from {@code off} of {@code w} (an {@code m × m} {@code Q} before 3.0). {@code a} and
+     * {@code b} are copied first, so {@code x} may alias either; {@code x} is written only on success. Sizes are
+     * checked by the callers.
+     */
+    static boolean leastSquares(double[] a, double[] b, int m, int n, double[] x, double[] w, int off) {
+        int c = off + m * n;
+        System.arraycopy(a, 0, w, off, m * n);
+        System.arraycopy(b, 0, w, c, m);
+        if (!leastSquaresInPlace(w, off, c, m, n, w, c)) {
+            return false; // x unchanged
+        }
+        System.arraycopy(w, c, x, 0, n);
+        return true;
+    }
+
+    /**
+     * {@link #leastSquares} on a copy already in {@code w}: the row-major {@code m × n} matrix from {@code r} and the
+     * right-hand side from {@code c}, both overwritten. Writes the solution to {@code x} from {@code xOff}, which may
+     * be {@code w} from {@code c}: back substitution reads {@code (Qᵀ b)[i]} before writing {@code x[i]} there.
+     */
+    static boolean leastSquaresInPlace(double[] w, int r, int c, int m, int n, double[] x, int xOff) {
+        for (int k = 0; k < java.lang.Math.min(n, m - 1); k++) {
+            double norm = 0.0;
+            for (int i = k; i < m; i++) {
+                norm += w[r + i * n + k] * w[r + i * n + k];
             }
-            qtb[i] = s;
+            norm = java.lang.Math.sqrt(norm);
+            if (norm == 0.0) {
+                continue;
+            }
+            double alpha = w[r + k * n + k] > 0.0 ? -norm : norm;
+            // v = column k - alpha e_k: v_k in a local, v_i (i > k) still in column k
+            double vk = w[r + k * n + k] - alpha;
+            double vv = vk * vk;
+            for (int i = k + 1; i < m; i++) {
+                vv += w[r + i * n + k] * w[r + i * n + k];
+            }
+            if (vv == 0.0) {
+                continue;
+            }
+            // (I - 2 v vᵀ / vᵀv) applied to the remaining columns and to b; column k becomes alpha e_k
+            for (int j = k + 1; j < n; j++) {
+                double dot = vk * w[r + k * n + j];
+                for (int i = k + 1; i < m; i++) {
+                    dot += w[r + i * n + k] * w[r + i * n + j];
+                }
+                double f = 2.0 * dot / vv;
+                w[r + k * n + j] -= f * vk;
+                for (int i = k + 1; i < m; i++) {
+                    w[r + i * n + j] -= f * w[r + i * n + k];
+                }
+            }
+            double dot = vk * w[c + k];
+            for (int i = k + 1; i < m; i++) {
+                dot += w[r + i * n + k] * w[c + i];
+            }
+            double f = 2.0 * dot / vv;
+            w[c + k] -= f * vk;
+            for (int i = k + 1; i < m; i++) {
+                w[c + i] -= f * w[r + i * n + k];
+            }
+            w[r + k * n + k] = alpha;
         }
         double tiny = 0.0;
         for (int i = 0; i < n; i++) {
-            tiny = java.lang.Math.max(tiny, java.lang.Math.abs(r[i * n + i]));
+            tiny = java.lang.Math.max(tiny, java.lang.Math.abs(w[r + i * n + i]));
         }
         tiny *= 1e-13;
         for (int i = n - 1; i >= 0; i--) {
-            double rii = r[i * n + i];
+            double rii = w[r + i * n + i];
             if (java.lang.Math.abs(rii) <= tiny) {
                 return false;
             }
-            double s = qtb[i];
+            double s = w[c + i];
             for (int k = i + 1; k < n; k++) {
-                s -= r[i * n + k] * x[k];
+                s -= w[r + i * n + k] * x[xOff + k];
             }
-            x[i] = s / rii;
+            x[xOff + i] = s / rii;
         }
         return true;
     }

@@ -109,14 +109,16 @@ Most code ports unchanged. Differences in results:
 - **Tiny rotations are kept.** `AxisAngle` of a 1e-9 rad quaternion is that rotation, not the identity.
 - **Ray–triangle `epsilon`** is the minimum hit distance along the ray. In JOML it was a tolerance on the determinant.
   Parallel rays are handled exactly.
-- **Squared radii.** `testCircleCircle(x, y, rA, x, y, rB)` takes squared radii, as JOML documented, though JOML's
-  implementation used plain radii.
+- **Plain radii.** Since 3.0 every sphere and circle method of `Intersection*` takes the radius itself. JOML mixed
+  radii and squared radii across these methods (and documented squared radii for `testCircleCircle` while using plain
+  ones).
 - **Matrix Euler angles** remove scale before extracting the rotation.
 - **`intersectSweptSphereTriangle`** works from both sides, ignores `epsilon`, and reports time 0 for a sphere that
   starts in contact.
 - **Triangle boundaries are inside** for `testPointInTriangle` and `testPointTriangle`, for either winding.
-- **`testSphereSphere` asks whether the surfaces meet.** That is the existing behavior, now documented: a sphere
-  strictly inside another reports false.
+- **`testSphereSphere` asks whether the solid spheres overlap**, like `testCircleCircle`: a sphere inside another
+  reports true (3.0; JOML and earlier Vectrix asked whether the surfaces meet). `intersectSphereSphere` still asks
+  where the surfaces meet.
 - **Default memory backend:** FFM, not `sun.misc.Unsafe`. Options select the old backends (`docs/determinism.md`,
   `CLAUDE.md`).
 

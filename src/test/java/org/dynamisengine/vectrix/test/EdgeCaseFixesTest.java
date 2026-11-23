@@ -53,8 +53,8 @@ class EdgeCaseFixesTest {
 
     @Test
     void zeroLengthSegmentIsAPoint() {
-        assertTrue(Intersectionf.testLineSegmentSphere(1, 0, 0, 1, 0, 0, 0, 0, 0, 4));
-        assertFalse(Intersectionf.testLineSegmentSphere(3, 0, 0, 3, 0, 0, 0, 0, 0, 4));
+        assertTrue(Intersectionf.testLineSegmentSphere(1, 0, 0, 1, 0, 0, 0, 0, 0, 2));
+        assertFalse(Intersectionf.testLineSegmentSphere(3, 0, 0, 3, 0, 0, 0, 0, 0, 2));
     }
 
     @Test
