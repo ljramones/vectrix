@@ -32,8 +32,8 @@ import org.dynamisengine.vectrix.curve.CubicCurveMath;
  * control points.
  * <p>
  * The parameter {@code t} runs over {@code [0, 1]} on the segment and is not clamped: values outside extrapolate the
- * cubic. The constructor keeps the caller's array, so later changes to it change the curve; an instance is safe to
- * share between threads while nobody writes that array. Nothing allocates.
+ * cubic. The constructor copies the control points, so an instance is immutable and safe to share between threads,
+ * like the 2D to 4D splines. Nothing allocates after construction.
  * {@link UniformBSpline1d} is the double twin.
  *
  * @since 1.0.0
@@ -42,16 +42,17 @@ public final class UniformBSpline1f {
     private final float[] controlPoints;
 
     /**
-     * Creates a spline from {@code controlPoints}, keeping a reference to the array (not a copy).
+     * Creates a spline from {@code controlPoints}, copying them: later changes to the caller's array do not alter the
+     * curve.
      *
      * @param controlPoints the control points, at least 4
-     * @throws IllegalArgumentException if there are fewer than 4 control points
+     * @throws IllegalArgumentException if {@code controlPoints} is null or holds fewer than 4 points
      */
     public UniformBSpline1f(float[] controlPoints) {
-        if (controlPoints.length < 4) {
+        if (controlPoints == null || controlPoints.length < 4) {
             throw new IllegalArgumentException("controlPoints");
         }
-        this.controlPoints = controlPoints;
+        this.controlPoints = controlPoints.clone();
     }
 
     /**
@@ -103,18 +104,24 @@ public final class UniformBSpline1f {
     }
 
     /**
-     * Evaluates the segment {@code segmentIndex} at {@code length} parameters, writing one value. The arrays are not
-     * checked up front; an output array may be {@code tValues} at the same offset.
+     * Evaluates the segment {@code segmentIndex} at {@code length} parameters, writing one value each. The arguments
+     * are checked before anything is written; the output array may be {@code tValues} at the same offset.
      *
      * @param segmentIndex the segment, in {@code [0, segmentCount())}
      * @param tValues the curve parameters
      * @param tOffset the offset of the first parameter in {@code tValues}
-     * @param length the number of parameters to evaluate
+     * @param length the number of parameters to evaluate, at least 0
      * @param outValues receives the {@code length} values
      * @param outOffset the offset of the first value in {@code outValues}
-     * @throws IllegalArgumentException if {@code segmentIndex} is out of range
+     * @throws IllegalArgumentException if {@code segmentIndex} is out of range, {@code length} is negative, or an
+     *         array is null or too short for its offset; nothing is written then
      */
     public void evaluateBatch(int segmentIndex, float[] tValues, int tOffset, int length, float[] outValues, int outOffset) {
+        checkedSegment(segmentIndex);
+        if (length < 0 || tValues == null || outValues == null || tOffset < 0 || tOffset > tValues.length - length
+                || outOffset < 0 || outOffset > outValues.length - length) {
+            throw new IllegalArgumentException("tValues and outValues must hold " + length + " values from their offsets");
+        }
         for (int i = 0; i < length; i++) {
             outValues[outOffset + i] = evaluate(segmentIndex, tValues[tOffset + i]);
         }

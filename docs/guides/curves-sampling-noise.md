@@ -66,9 +66,9 @@ tangent on its own.
 **Uniform B-spline.** `UniformBSpline3f` is an object built from an array of at least four control points. A curve
 with `n` control points has `UniformBSpline3f.segmentCount` = `n − 3` segments. Methods take a segment index from 0
 to `segmentCount() − 1` and a local `t`; an index out of range throws `IllegalArgumentException`. Neighbouring segments
-meet with matching position, first and second derivative. The 2D, 3D and 4D classes copy the control points when you
-construct them, so later changes to your array do not affect the curve. The scalar `UniformBSpline1f` and
-`UniformBSpline1d` keep a reference to your array: changing the array changes the curve.
+meet with matching position, first and second derivative. Every B-spline class, the scalar `UniformBSpline1f` and
+`UniformBSpline1d` included, copies the control points when you construct it, so later changes to your array do not
+affect the curve.
 
 `CubicCurveMath` holds the scalar formulas the classes use: `CubicCurveMath.bezier`, `CubicCurveMath.hermite`,
 `CubicCurveMath.bspline` and their `...Derivative` and `...SecondDerivative` forms. Use them on your own data
@@ -96,25 +96,27 @@ curve. There are three steps.
 **The table length rule.** A table built with `samples` = N needs a `float[]` of at least N + 1 entries. The builder
 evaluates the curve at the N + 1 parameters `t = i / N` for `i = 0..N` and writes the normalized cumulative chord
 length at each: entry 0 is 0 and entry N is 1. A shorter array throws `IllegalArgumentException`, and so does N <= 0.
-For the default `CurveConstants.DEFAULT_ARCLEN_SAMPLES` (64), allocate 65 floats.
+For the default `CurveConstants.DEFAULT_ARCLEN_SAMPLES` (64), allocate 65 floats. Each builder returns the segment's
+absolute length (of the sampled polyline), which you need to move across several segments.
 
 **2. Map `s` to `t`** each frame with `CurveReparameterizer3f.mapArcLengthToT`. The two-argument form
 `mapArcLengthToT(s, table)` assumes the table was built with N = `table.length − 1`. If your array is longer than
 N + 1 (a reused or oversized buffer), pass N explicitly with the three-argument form `mapArcLengthToT(s, table, N)`;
-otherwise the lookup reads entries the builder never wrote. Values of `s` below 0 or above 1 clamp; NaN gives NaN.
+otherwise the lookup would read entries the builder never wrote, so it throws `IllegalArgumentException` when entry
+0 is not 0 or entry N is not 1. Values of `s` below 0 or above 1 clamp; NaN gives NaN.
 The lookup is a binary search plus a linear interpolation.
 
 **3. Evaluate** the curve at the returned `t` with the family's `evaluate`. For a `UniformBSpline3f`,
 `CurveReparameterizer3f.evaluateByArcLength` maps and evaluates in one call. It uses the two-argument mapping, so its
-table must be exactly N + 1 long.
+table must be exactly N + 1 long; an oversized table is rejected.
 
 Things to watch:
 - The table is a polyline approximation: the length between samples is the straight chord. More samples give a closer
   match to the true arc length; tight bends need more.
-- Each table is normalized to its own segment. It does not record the segment's absolute length. To move at constant
-  speed across several segments, measure each segment's length yourself (for example by summing chords) and divide
-  the global distance among the segments accordingly.
-- A segment of zero length gets the uniform table `i / N`.
+- Each table is normalized to its own segment. To move at constant speed across several segments, keep the length
+  each builder returns, find the segment that contains the travelled distance from the running sum of the lengths,
+  and map `(distance − lengthBefore) / segmentLength` with that segment's table.
+- A segment whose length is zero (or infinite or NaN) gets the uniform table `i / N`.
 - Building a table allocates two temporary vectors. Mapping and evaluating allocate nothing.
 
 ## Easing

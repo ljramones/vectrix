@@ -56,13 +56,13 @@ public class GpuLayoutBenchmark extends ThroughputBenchmark {
 
     @Benchmark
     public ByteBuffer writeFullFloat() {
-        GpuTransformWriteKernels.writeFloatTrs(full, transforms, identityOrder, fullBuf, count);
+        GpuTransformWriteKernels.writeTrs(full, transforms, identityOrder, fullBuf, count);
         return fullBuf;
     }
 
     @Benchmark
     public ByteBuffer writeCompactPacked() {
-        GpuTransformWriteKernels.writeCompactTrs(compact, transforms, identityOrder, compactBuf, count);
+        GpuTransformWriteKernels.writeTrs(compact, transforms, identityOrder, compactBuf, count);
         return compactBuf;
     }
 }

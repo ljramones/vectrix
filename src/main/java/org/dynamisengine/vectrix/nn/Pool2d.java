@@ -51,8 +51,8 @@ public final class Pool2d {
         this.k = k;
         this.stride = stride;
         this.pad = pad;
-        this.hout = (h + 2 * pad - k) / stride + 1;
-        this.wout = (w + 2 * pad - k) / stride + 1;
+        this.hout = (int) (Math.floorDiv((long) h + 2L * pad - k, stride) + 1);
+        this.wout = (int) (Math.floorDiv((long) w + 2L * pad - k, stride) + 1);
     }
 
     /**
@@ -65,15 +65,22 @@ public final class Pool2d {
      * @param stride the step between windows, at least 1
      * @param pad padding on every side, at least 0 and at most {@code k/2}
      * @return the shape
-     * @throws IllegalArgumentException if a size is out of range or the window does not fit the padded input
+     * @throws IllegalArgumentException if a size is out of range, the window does not fit the padded input, or the
+     *         input or output does not fit in an {@code int}-indexed array
      */
     public static Pool2d of(int c, int h, int w, int k, int stride, int pad) {
-        if (c < 1 || h < 1 || w < 1 || k < 1 || stride < 1 || pad < 0 || 2 * pad > k) {
+        if (c < 1 || h < 1 || w < 1 || k < 1 || stride < 1 || pad < 0 || 2L * pad > k) {
             throw new IllegalArgumentException("invalid pooling shape");
+        }
+        if ((long) c * h * w > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("the input does not fit in an int-indexed array");
         }
         Pool2d p = new Pool2d(c, h, w, k, stride, pad);
         if (p.hout < 1 || p.wout < 1) {
             throw new IllegalArgumentException("the window does not fit the padded input");
+        }
+        if ((long) c * p.hout * p.wout > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("the output does not fit in an int-indexed array");
         }
         return p;
     }
@@ -97,7 +104,8 @@ public final class Pool2d {
     }
 
     /**
-     * Max pooling. NaN wins over numbers.
+     * Max pooling: each output is its window's largest value, the first in row-major order among equals. A NaN wins
+     * over every number (the window's first NaN), so NaNs propagate; {@link Sampler#argmax} picks the same way.
      *
      * @param in the input image, {@code c·h·w} floats, channel-major
      * @param inOff the offset in {@code in}
@@ -147,25 +155,34 @@ public final class Pool2d {
     }
 
     /**
-     * Max-pooling backward: {@code dIn} is cleared, then each {@code dOut} adds to its window's maximum. The indices
-     * in {@code argmax} are not validated.
+     * Max-pooling backward: {@code dIn} is cleared, then each {@code dOut} adds to its window's maximum. Every index in
+     * {@code argmax} is checked to lie in {@code [0, c·h·w)} before anything is written.
      *
-     * @param argmax the indices {@link #max} recorded
+     * @param argmax the indices {@link #max} recorded, each in {@code [0, c·h·w)}
      * @param argOff the offset in {@code argmax}
      * @param dOut the gradient of the output, {@code c·outHeight·outWidth} floats
      * @param dOutOff the offset in {@code dOut}
      * @param dIn receives the gradient of the input, {@code c·h·w} floats; must not overlap {@code dOut}
      * @param dInOff the offset in {@code dIn}
-     * @throws IllegalArgumentException if an array is null or too short for its offset
+     * @throws IllegalArgumentException if an array is null or too short for its offset, or an {@code argmax} index is
+     *         out of range; nothing is written then
      */
     public void maxBackward(int[] argmax, int argOff, float[] dOut, int dOutOff, float[] dIn, int dInOff) {
         if (dIn == null || dOut == null) {
             throw new IllegalArgumentException("dIn and dOut must not be null");
         }
         int n = c * hout * wout;
+        int inSize = c * h * w;
         range(argmax == null ? -1 : argmax.length, argOff, n, "argmax");
         range(dOut.length, dOutOff, n, "dOut");
-        range(dIn.length, dInOff, c * h * w, "dIn");
+        range(dIn.length, dInOff, inSize, "dIn");
+        for (int o = 0; o < n; o++) {
+            int at = argmax[argOff + o];
+            if (at < 0 || at >= inSize) {
+                throw new IllegalArgumentException("argmax[" + (argOff + o) + "] = " + at + " is outside [0, "
+                        + inSize + ")");
+            }
+        }
         java.util.Arrays.fill(dIn, dInOff, dInOff + c * h * w, 0f);
         for (int o = 0; o < n; o++) {
             dIn[dInOff + argmax[argOff + o]] += dOut[dOutOff + o];

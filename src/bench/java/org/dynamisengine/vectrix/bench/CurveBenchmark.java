@@ -41,7 +41,8 @@ public class CurveBenchmark extends ThroughputBenchmark {
             tValues[i] = (float) i / (float) (count - 1);
         }
         tmp = new Vector3f();
-        arcTable = CurveReparameterizer3f.buildArcLengthTableForBezier(p0, p1, p2, p3, 128, new float[129]);
+        arcTable = new float[129];
+        CurveReparameterizer3f.buildArcLengthTableForBezier(p0, p1, p2, p3, 128, arcTable);
     }
 
     @Benchmark

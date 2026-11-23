@@ -164,7 +164,7 @@ class CoverageGapsTest {
         // the packed upload, expanded by the GPU writer, is exactly the matrix upload
         float[] expanded = new float[16 * n];
         int[] identityOrder = {0, 1, 2, 3, 4};
-        GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(new PackedAffineArray(packedUpload), identityOrder, expanded, n);
+        GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(new PackedAffineArray(packedUpload), identityOrder, expanded, 0, n);
         assertArrayEquals(matrixUpload, expanded, 1e-5f);
         assertArrayEquals(vin, vout, 0f, "identity joint leaves vertices in place");
     }

@@ -17,7 +17,6 @@ types. The packed 3x4 layout, matrix storage order and other shared rules are de
 | Write a matrix as a 12-float row-major affine | `Matrix4f.get4x3Transposed`, `Matrix4x3f.getTransposed` | The packed 3x4 layout from [conventions](../conventions.md). |
 | Write to off-heap memory by address | `Matrix4f.getToAddress`, `Vector4f.getToAddress` | No bounds checks. Needs `--enable-native-access`. |
 | Lay out a uniform or storage block | `ShaderLayout` | std140, std430 and scalar rules; arrays, structs, matrices; emits GLSL. |
-| Quick offsets for flat blocks of float, vec2-4 and mat4 | `StdLayout` | No arrays or structs. |
 | Describe and validate an interleaved vertex format | `VertexLayout`, `VertexAttribute`, `VertexAttributeFormat` | Checks alignment, overlap and stride. |
 | Half floats | `Half` | IEEE binary16, round to nearest even. |
 | unorm/snorm 8 and 16 bit | `PackedNorm` | Vulkan's normalized-integer rules. |
@@ -25,7 +24,7 @@ types. The packed 3x4 layout, matrix storage order and other shared rules are de
 | Unit normals in 32 bits | `OctaNormal` | Octahedral mapping, two snorm16. |
 | Rotations in 64 bits | `QuatCompression` | Smallest-three, 16 bits per component. |
 | Instance transforms as packed 3x4 affine | `PackedAffineArray`, `PackedAffineKernels`, `GpuTransformWriteKernels` | The default instancing format. |
-| Instance transforms as TRS structs | `GpuTransformLayout` | 40-byte float or 28-byte compact form, always little-endian. |
+| Instance transforms as TRS structs | `GpuTransformLayout` | Float or compact encodings per field, always little-endian. |
 | Model matrices far from the origin | `CameraRelative` | Subtracts the camera before rounding to float. |
 | Meshlet back-face cone culling | `MeshletCones` | Build, test and quantize normal cones. |
 
@@ -140,12 +139,11 @@ type helpers (`ShaderLayout.vec`, `ShaderLayout.mat`, `ShaderLayout.array`, `Sha
   share one definition. It adds `#extension GL_EXT_scalar_block_layout : require` where the rules need it.
 
 The test suite checks `ShaderLayout` against glslang's own layout on randomly generated blocks. It allocates, so
-build layouts at startup and keep the offsets.
+build layouts at startup and keep the offsets. `toGlsl` takes `"uniform"` or `"buffer"` as the storage and rejects
+two different structs with the same name, since GLSL has one declaration per struct name.
 
-`StdLayout` is a small helper for flat blocks of `StdLayout.Type` members (`FLOAT`, `VEC2`, `VEC3`, `VEC4`,
-`MAT4`): `StdLayout.offsetsStd140` and `StdLayout.offsetsStd430` return the member offsets, and
-`StdLayout.structSizeStd140` and `StdLayout.structSizeStd430` the struct size. It has no arrays or nested structs;
-use `ShaderLayout` for those.
+(The 2.x `StdLayout` helper, which only handled flat blocks of `float`, `vec2` to `vec4` and `mat4`, was removed in
+3.0: `ShaderLayout` gives the same offsets and sizes for those types.)
 
 ## Vertex layouts
 
@@ -153,7 +151,8 @@ use `ShaderLayout` for those.
 attribute has a name, a component count (1 to 4), a `VertexAttributeFormat` (`FLOAT32`, `FLOAT16`, `UNORM8`,
 `SNORM16`, `UINT32`, ...) and a byte offset. Build one with `VertexLayout.ofInterleaved` or the constructor. It
 throws `IllegalArgumentException` when an attribute is not aligned to its component size, runs past the stride,
-overlaps another attribute, or repeats a name.
+overlaps another attribute, or repeats a name, for a null attribute, and when the stride is not a multiple of
+every attribute's component size (otherwise the attributes of the second vertex would be misaligned).
 
 The layout is a descriptor: it validates offsets and gives you `VertexLayout.attribute` (by name, or `null`),
 `VertexAttribute.byteSize` and `VertexAttributeFormat.normalized`, which your GPU layer maps to the API's vertex
@@ -216,8 +215,11 @@ values. The error is spread evenly over the sphere, unlike spherical angles, whi
 `PackedFormats.qTangent` encodes a whole tangent frame (normal, tangent and bitangent sign) as one unit quaternion.
 The bitangent sign is the glTF `tangent.w`, stored in the sign of the quaternion's w. The tangent is first made
 orthogonal to the normal. `PackedFormats.packQTangent` stores the quaternion as four snorm16 values, and
-`PackedFormats.unpackQTangent` returns the unit normal and tangent and the bitangent sign. The encoder allocates and
-is meant for asset processing; decoding allocates nothing.
+`PackedFormats.unpackQTangent` returns the unit normal and tangent and the bitangent sign. Degenerate frames still
+encode as a unit quaternion: a zero or NaN normal becomes +Z, and a tangent that is zero or parallel to the normal is
+replaced by a fixed tangent orthogonal to the normal. Neither direction allocates.
+
+`OctaNormal.encodeSnorm16` encodes a zero, NaN or infinite vector as `OctaNormal.UP`, the code of +Z.
 
 ### Quaternions
 
@@ -225,7 +227,8 @@ is meant for asset processing; decoding allocates nothing.
 of the whole quaternion so that component is positive), and stores the other three, in x, y, z, w order, as snorm16
 of `c * sqrt(2)`. The dropped component is rebuilt from the unit-length constraint. Stored as two 32-bit words, low
 word first (a GLSL `uvec2`), word 0 holds `c1 << 16 | c2` and word 1 holds `index << 16 | c0`, with index 0 to 3
-meaning x, y, z, w. `QuatCompression.angularErrorDegrees` measures the rotation error between an original and a
+meaning x, y, z, w. A zero, NaN or infinite quaternion encodes as the identity, `QuatCompression.IDENTITY`.
+`QuatCompression.angularErrorDegrees` measures the rotation error between an original and a
 decoded quaternion, so you can check the precision on your own data.
 
 ## Instance transforms
@@ -246,7 +249,7 @@ two forms.
 | `PackedAffineKernels.quatTranslationToPackedAffineBatch` | Rotation and translation arrays, unit scale. |
 | `PackedAffineKernels.matrix4fToPackedAffineBatch` | `Matrix4f[]` to packed affines. |
 | `PackedAffineKernels.transformAabbPackedAffineBatch` | Transforms local AABBs (SoA min/max arrays) to world AABBs. |
-| `PackedAffineKernels.uploadPackedAffine`, `GpuTransformWriteKernels.writePackedAffine` | Copy the transforms, in a draw order, into a contiguous upload array. |
+| `PackedAffineKernels.uploadPackedAffine` | Copy the transforms, in a draw order, into a contiguous upload array. |
 | `GpuTransformWriteKernels.writeMatrix4fFromPackedAffine` | Expand to 16-float column-major `mat4` for shaders that need full matrices. |
 | `Matrix4f.get4x3Transposed`, `Matrix4x3f.getTransposed` | Write a single matrix in the packed layout straight into a buffer. |
 
@@ -260,14 +263,19 @@ The `...Chunked` variants run the same kernel over sub-ranges through `BatchChun
 they are not faster on their own.
 
 `InstanceSubmissionPipeline` chains the whole per-frame path in one call: skinning, TRS to packed affine, bounds
-and upload. Its `InstanceSubmissionPipeline.Path` selects the packed-affine path or a `Matrix4f` fallback (also
-forced by the `vectrix.runtime.instanceSubmission.forceMatrix` system property) for comparing the two. It reuses
-internal scratch arrays, growing them when a frame has more instances than before, so use one instance per thread.
+and upload. Bounds and upload are both written per draw slot: slot `i` gets the transform and the world bounds of
+instance `order[i]`. Its `InstanceSubmissionPipeline.Path` selects the packed-affine path or a `Matrix4f` fallback
+(also forced by the `vectrix.runtime.instanceSubmission.forceMatrix` system property) for comparing the two. It
+checks every argument before writing and reuses internal scratch arrays, growing them when a frame has more
+instances than before (the `Matrix4f` scratch only when the fallback runs), so use one instance per thread.
 
 ### TRS structs
 
-`GpuTransformLayout` writes a transform as separate translation, rotation and scale instead of a matrix. Two layouts
-are predefined:
+`GpuTransformLayout` writes a transform as separate translation, rotation and scale instead of a matrix. A layout
+names a stride, the three field offsets, a `GpuTransformLayout.RotationEncoding` (`FLOAT4` or the smallest-three
+`QUAT_SMALLEST3_16`) and a `GpuTransformLayout.ScaleEncoding` (`FLOAT3` or `HALF3`). The constructor rejects a
+layout whose fields overlap, run past the stride, or are not aligned to their component size. Two layouts are
+predefined:
 
 | Layout | Stride | GLSL (`layout(scalar)`) |
 |---|---|---|
@@ -275,13 +283,12 @@ are predefined:
 | `GpuTransformLayout.compactTRS` | 28 bytes | `struct { vec3 t; uvec2 q; uint16_t s[3]; }`: smallest-three rotation, half-float scale |
 
 Neither fits std430, where the `vec4` would need 16-byte alignment, so the shader needs the scalar block layout.
-`GpuTransformLayout.write` writes instance `index` at byte offset `index * strideBytes`. It uses the float form
-only when the layout has both `FLOAT4` rotation and `FLOAT3` scale; any other combination is written in the compact
-form (smallest-three rotation and half-float scale). `GpuTransformLayout.writeFloatTrs` and
-`GpuTransformLayout.writeCompactTrs` force one form. The bytes are
-always little-endian. `GpuTransformLayout.requiredBytes` gives the buffer size and throws `ArithmeticException` if
-it overflows an `int`. `GpuTransformWriteKernels.writeFloatTrs` and `GpuTransformWriteKernels.writeCompactTrs`
-write a whole array in draw order.
+`GpuTransformLayout.write` writes instance `index` at byte offset `index * strideBytes`, each field in the
+encoding the layout names, so a mixed layout such as `FLOAT4` rotation with `HALF3` scale is written as it says. The
+bytes are always little-endian, and a record that does not fit in the buffer throws `IllegalArgumentException`
+before anything is written. `GpuTransformLayout.requiredBytes` gives the buffer size and throws
+`ArithmeticException` if it overflows an `int`. `GpuTransformWriteKernels.writeTrs` writes a whole array in draw
+order.
 
 The shader has to rebuild a matrix from TRS, and the compact form also has to decode the rotation, so prefer the
 packed affine unless memory size is the constraint.
@@ -323,9 +330,8 @@ inside the cone.
 - `PackedFormats` and `PackedNorm` are bit-exact to their Vulkan definitions, and `Half.pack` matches
   `Float.floatToFloat16`. `ShaderLayout` is checked against glslang. Normal cones, quantized or not, are
   conservative.
-- The codecs allocate nothing, except the QTangent encoders (`PackedFormats.qTangent`,
-  `PackedFormats.packQTangent`). `MeshletCones.normalCone`, `ShaderLayout` and the `StdLayout` offset arrays also
-  allocate. All of these are meant for setup and asset processing, not per-frame work.
+- The codecs, the QTangent encoders included, allocate nothing. `MeshletCones.normalCone` and `ShaderLayout`
+  allocate; they are meant for setup and asset processing, not per-frame work.
 - The batch kernels write only into the arrays and buffers you pass. They are static and keep no state, so threads
   can run them on disjoint output ranges. NIO buffers themselves are not thread-safe: give each thread its own
   buffer or slice. `InstanceSubmissionPipeline` keeps scratch state; use one per thread.

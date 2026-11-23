@@ -44,9 +44,13 @@ import org.dynamisengine.vectrix.curve.vec3.UniformBSpline3d;
  * A table for {@code samples} samples has {@code samples + 1} entries: entry {@code i} is the length of the polyline
  * through the curve points at {@code t = k/samples}, {@code k <= i}, divided by the polyline's total length, so it
  * runs from 0 to 1. The polyline slightly underestimates the true length; more samples reduce the error. Each table
- * is normalized per segment: the absolute length is not kept. A segment of zero length gets the uniform table
- * {@code i/samples}. The table builders allocate two temporary vectors per call; the lookups do not allocate. The
- * functions are static and stateless. {@link CurveReparameterizer3f} is the float twin.
+ * is normalized per segment, and each builder returns the segment's absolute (polyline) length. A segment whose
+ * length is zero, infinite or NaN gets the uniform table {@code i/samples}. The table builders allocate two temporary
+ * vectors per call; the lookups do not allocate. The functions are static and stateless.
+ * <p>
+ * To move at constant speed across several segments, build one table per segment, keep the lengths the builders
+ * return, find the segment that contains the travelled distance from the running sum of those lengths, and map the
+ * distance into it: {@code s01 = (distance - lengthBefore) / segmentLength}. {@link CurveReparameterizer3f} is the float twin.
  */
 public final class CurveReparameterizer3d {
     private CurveReparameterizer3d() {}
@@ -61,13 +65,13 @@ public final class CurveReparameterizer3d {
      * @param samples the number of samples along the segment, at least 1 (see
      *     {@link CurveConstants#DEFAULT_ARCLEN_SAMPLES})
      * @param dest receives the table in {@code dest[0 .. samples]}; at least {@code samples + 1} long
-     * @return {@code dest}
+     * @return the segment's absolute arc length (the length of the sampled polyline, before normalization)
      * @throws IllegalArgumentException if {@code samples < 1} or {@code dest} is too short
      * @since 1.0.0
      */
-    public static double[] buildArcLengthTableForBezier(Vector3dc p0, Vector3dc p1, Vector3dc p2, Vector3dc p3, int samples, double[] dest) {
+    public static double buildArcLengthTableForBezier(Vector3dc p0, Vector3dc p1, Vector3dc p2, Vector3dc p3, int samples, double[] dest) {
         checkSamples(samples);
-        if (dest.length < samples + 1) throw new IllegalArgumentException("dest");
+        if (dest == null || dest.length < samples + 1) throw new IllegalArgumentException("dest");
         Vector3d prev = Bezier3d.evaluate(p0, p1, p2, p3, 0.0, new Vector3d());
         Vector3d curr = new Vector3d();
         dest[0] = 0.0;
@@ -82,7 +86,7 @@ public final class CurveReparameterizer3d {
             curr = swap;
         }
         normalize(dest, samples, acc);
-        return dest;
+        return acc;
     }
 
     /**
@@ -93,13 +97,13 @@ public final class CurveReparameterizer3d {
      * @param samples the number of samples along the segment, at least 1 (see
      *     {@link CurveConstants#DEFAULT_ARCLEN_SAMPLES})
      * @param dest receives the table in {@code dest[0 .. samples]}; at least {@code samples + 1} long
-     * @return {@code dest}
+     * @return the segment's absolute arc length (the length of the sampled polyline, before normalization)
      * @throws IllegalArgumentException if {@code samples < 1} or {@code dest} is too short, or {@code segmentIndex} is
      *     out of range
      */
-    public static double[] buildArcLengthTable(UniformBSpline3d curve, int segmentIndex, int samples, double[] dest) {
+    public static double buildArcLengthTable(UniformBSpline3d curve, int segmentIndex, int samples, double[] dest) {
         checkSamples(samples);
-        if (dest.length < samples + 1) throw new IllegalArgumentException("dest");
+        if (dest == null || dest.length < samples + 1) throw new IllegalArgumentException("dest");
         Vector3d prev = curve.evaluate(segmentIndex, 0.0, new Vector3d());
         Vector3d curr = new Vector3d();
         dest[0] = 0.0;
@@ -114,7 +118,7 @@ public final class CurveReparameterizer3d {
             curr = swap;
         }
         normalize(dest, samples, acc);
-        return dest;
+        return acc;
     }
 
     /**
@@ -127,13 +131,13 @@ public final class CurveReparameterizer3d {
      * @param samples the number of samples along the segment, at least 1 (see
      *     {@link CurveConstants#DEFAULT_ARCLEN_SAMPLES})
      * @param dest receives the table in {@code dest[0 .. samples]}; at least {@code samples + 1} long
-     * @return {@code dest}
+     * @return the segment's absolute arc length (the length of the sampled polyline, before normalization)
      * @throws IllegalArgumentException if {@code samples < 1} or {@code dest} is too short
      * @since 1.0.0
      */
-    public static double[] buildArcLengthTableForHermite(Vector3dc p0, Vector3dc m0, Vector3dc p1, Vector3dc m1, int samples, double[] dest) {
+    public static double buildArcLengthTableForHermite(Vector3dc p0, Vector3dc m0, Vector3dc p1, Vector3dc m1, int samples, double[] dest) {
         checkSamples(samples);
-        if (dest.length < samples + 1) throw new IllegalArgumentException("dest");
+        if (dest == null || dest.length < samples + 1) throw new IllegalArgumentException("dest");
         Vector3d prev = Hermite3d.evaluate(p0, m0, p1, m1, 0.0, new Vector3d());
         Vector3d curr = new Vector3d();
         dest[0] = 0.0;
@@ -148,7 +152,7 @@ public final class CurveReparameterizer3d {
             curr = swap;
         }
         normalize(dest, samples, acc);
-        return dest;
+        return acc;
     }
 
     /**
@@ -163,14 +167,14 @@ public final class CurveReparameterizer3d {
      * @param samples the number of samples along the segment, at least 1 (see
      *     {@link CurveConstants#DEFAULT_ARCLEN_SAMPLES})
      * @param dest receives the table in {@code dest[0 .. samples]}; at least {@code samples + 1} long
-     * @return {@code dest}
+     * @return the segment's absolute arc length (the length of the sampled polyline, before normalization)
      * @throws IllegalArgumentException if {@code samples < 1} or {@code dest} is too short
      * @since 1.0.0
      */
-    public static double[] buildArcLengthTableForCatmullRom(Vector3dc p0, Vector3dc p1, Vector3dc p2, Vector3dc p3, double tension,
+    public static double buildArcLengthTableForCatmullRom(Vector3dc p0, Vector3dc p1, Vector3dc p2, Vector3dc p3, double tension,
         int samples, double[] dest) {
         checkSamples(samples);
-        if (dest.length < samples + 1) throw new IllegalArgumentException("dest");
+        if (dest == null || dest.length < samples + 1) throw new IllegalArgumentException("dest");
         Vector3d prev = CatmullRom3d.evaluate(p0, p1, p2, p3, 0.0, tension, new Vector3d());
         Vector3d curr = new Vector3d();
         dest[0] = 0.0;
@@ -185,7 +189,7 @@ public final class CurveReparameterizer3d {
             curr = swap;
         }
         normalize(dest, samples, acc);
-        return dest;
+        return acc;
     }
 
     /**
@@ -196,10 +200,13 @@ public final class CurveReparameterizer3d {
      * @param s01 the normalized arc length; values outside {@code [0, 1]} clamp, NaN propagates
      * @param arcLengthTable a table from one of the {@code buildArcLengthTable...} methods, filled to its last entry
      * @return the curve parameter, in {@code [0, 1]}
-     * @throws IllegalArgumentException if the table has fewer than 2 entries
+     * @throws IllegalArgumentException if the table is null or has fewer than 2 entries, or if it is not a normalized
+     *     table of {@code arcLengthTable.length - 1} samples (its first entry is not 0 or its last entry is not 1),
+     *     which is what a table built for fewer samples than the array holds looks like
      * @since 1.0.0
      */
     public static double mapArcLengthToT(double s01, double[] arcLengthTable) {
+        if (arcLengthTable == null) throw new IllegalArgumentException("arcLengthTable");
         return mapArcLengthToT(s01, arcLengthTable, arcLengthTable.length - 1);
     }
 
@@ -213,11 +220,16 @@ public final class CurveReparameterizer3d {
      * @param arcLengthTable the table, non-decreasing in {@code [0 .. samples]}
      * @param samples the sample count the table was built with
      * @return the curve parameter, in {@code [0, 1]}
-     * @throws IllegalArgumentException if {@code samples < 1} or the table has fewer than {@code samples + 1} entries
+     * @throws IllegalArgumentException if {@code samples < 1}, the table is null or has fewer than {@code samples + 1}
+     *     entries, or entry 0 is not 0 or entry {@code samples} is not 1 (the table was not built for that sample
+     *     count)
      */
     public static double mapArcLengthToT(double s01, double[] arcLengthTable, int samples) {
-        if (samples <= 0 || samples > arcLengthTable.length - 1) {
+        if (arcLengthTable == null || samples <= 0 || samples > arcLengthTable.length - 1) {
             throw new IllegalArgumentException("samples");
+        }
+        if (arcLengthTable[0] != 0 || arcLengthTable[samples] != 1) {
+            throw new IllegalArgumentException("arcLengthTable is not a normalized table of " + samples + " samples");
         }
         if (Double.isNaN(s01)) return Double.NaN;
         if (s01 <= 0) return 0;
@@ -241,7 +253,7 @@ public final class CurveReparameterizer3d {
     /**
      * Evaluates one segment of a uniform B-spline at the normalized arc length {@code s01}, using
      * {@link #mapArcLengthToT(double, double[])}. The table must be filled to its last entry, so its length must be the
-     * sample count plus 1.
+     * sample count plus 1; a table built for fewer samples than the array holds is rejected.
      *
      * @param curve the spline
      * @param segmentIndex the segment the table was built for
@@ -249,7 +261,8 @@ public final class CurveReparameterizer3d {
      * @param arcLengthTable the table of that segment
      * @param dest receives the point
      * @return {@code dest}
-     * @throws IllegalArgumentException if {@code segmentIndex} is out of range or the table has fewer than 2 entries
+     * @throws IllegalArgumentException if {@code segmentIndex} is out of range, or the table has fewer than 2 entries
+     *     or is not a normalized table of {@code arcLengthTable.length - 1} samples
      */
     public static Vector3d evaluateByArcLength(UniformBSpline3d curve, int segmentIndex, double s01, double[] arcLengthTable, Vector3d dest) {
         double t = mapArcLengthToT(s01, arcLengthTable);
@@ -258,7 +271,7 @@ public final class CurveReparameterizer3d {
 
     private static void checkSamples(int samples) { if (samples <= 0) throw new IllegalArgumentException("samples"); }
     private static void normalize(double[] dest, int samples, double total) {
-        if (total <= 0.0) {
+        if (!(total > 0.0 && total < Double.POSITIVE_INFINITY)) {
             for (int i = 0; i <= samples; i++) dest[i] = (double) i / (double) samples;
             return;
         }

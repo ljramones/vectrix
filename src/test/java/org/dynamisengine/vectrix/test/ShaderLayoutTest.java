@@ -41,7 +41,6 @@ import org.dynamisengine.vectrix.gpu.ShaderLayout.Entry;
 import org.dynamisengine.vectrix.gpu.ShaderLayout.Rules;
 import org.dynamisengine.vectrix.gpu.ShaderLayout.Struct;
 import org.dynamisengine.vectrix.gpu.ShaderLayout.Type;
-import org.dynamisengine.vectrix.gpu.StdLayout;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -208,11 +207,39 @@ class ShaderLayoutTest {
         Struct bad = ShaderLayout.struct("Bad", ShaderLayout.member("m", ShaderLayout.rowMajor(ShaderLayout.mat(3, 3))));
         Block withBad = ShaderLayout.layout(Rules.STD430, ShaderLayout.struct("B", ShaderLayout.member("b", bad)));
         assertThrows(IllegalArgumentException.class, () -> withBad.toGlsl("buffer", "B", "b", 0));
-        // the simple calculator agrees on its types
-        assertEquals(StdLayout.structSizeStd430(StdLayout.Type.FLOAT, StdLayout.Type.VEC3, StdLayout.Type.MAT4),
-                ShaderLayout.layout(Rules.STD430, ShaderLayout.struct("S", ShaderLayout.member("a", ShaderLayout.FLOAT),
-                        ShaderLayout.member("b", ShaderLayout.vec(3)), ShaderLayout.member("c", ShaderLayout.mat(4, 4))))
-                        .paddedSize());
+        // float at 0, vec3 at 16, mat4 at 32: 96 bytes (formerly checked against StdLayout, removed in 3.0)
+        assertEquals(96, ShaderLayout.layout(Rules.STD430, ShaderLayout.struct("S",
+                ShaderLayout.member("a", ShaderLayout.FLOAT), ShaderLayout.member("b", ShaderLayout.vec(3)),
+                ShaderLayout.member("c", ShaderLayout.mat(4, 4)))).paddedSize());
+    }
+
+    @Test
+    void glslRejectsConflictingStructNamesAndBadArguments() {
+        Struct a = ShaderLayout.struct("Light", ShaderLayout.member("color", ShaderLayout.vec(3)));
+        Struct b = ShaderLayout.struct("Light", ShaderLayout.member("range", ShaderLayout.FLOAT));
+        Block conflict = ShaderLayout.layout(Rules.STD430, ShaderLayout.struct("B",
+                ShaderLayout.member("a", a), ShaderLayout.member("b", b)));
+        // two different Light structs used to be declared once, silently giving member b the wrong type
+        assertThrows(IllegalArgumentException.class, () -> conflict.toGlsl("buffer", "B", "b", 0));
+        Struct outer = ShaderLayout.struct("Light", ShaderLayout.member("inner", b));
+        Block nested = ShaderLayout.layout(Rules.STD430, ShaderLayout.struct("B", ShaderLayout.member("o", outer)));
+        assertThrows(IllegalArgumentException.class, () -> nested.toGlsl("buffer", "B", "b", 0));
+        // the same struct used twice is declared once
+        Block twice = ShaderLayout.layout(Rules.STD430, ShaderLayout.struct("B",
+                ShaderLayout.member("a", a), ShaderLayout.member("c", ShaderLayout.array(a, 2))));
+        String glsl = twice.toGlsl("buffer", "B", "b", 1);
+        assertEquals(glsl.indexOf("struct Light"), glsl.lastIndexOf("struct Light"), glsl);
+        assertTrue(twice.toGlsl("buffer", "B", "", 1).endsWith("};\n"), "anonymous instance");
+        assertThrows(IllegalArgumentException.class, () -> twice.toGlsl("ssbo", "B", "b", 0));
+        assertThrows(IllegalArgumentException.class, () -> twice.toGlsl(null, "B", "b", 0));
+        assertThrows(IllegalArgumentException.class, () -> twice.toGlsl("buffer", "", "b", 0));
+        assertThrows(IllegalArgumentException.class, () -> twice.toGlsl("buffer", "B", null, 0));
+        assertThrows(IllegalArgumentException.class, () -> twice.toGlsl("buffer", "B", "b", -1));
+        assertThrows(IllegalArgumentException.class, () -> ShaderLayout.struct("", ShaderLayout.member("x", a)));
+        assertThrows(IllegalArgumentException.class,
+                () -> ShaderLayout.struct("S", ShaderLayout.member("x", a), null));
+        assertThrows(IllegalArgumentException.class, () -> ShaderLayout.layout(null, a));
+        assertThrows(IllegalArgumentException.class, () -> new ShaderLayout.Basic(null, 1, 1, false));
     }
 
     /** Local check, with -Dvectrix.glslang=glslangValidator: every emitted declaration compiles. */

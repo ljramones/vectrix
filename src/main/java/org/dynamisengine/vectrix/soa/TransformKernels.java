@@ -51,21 +51,29 @@ public final class TransformKernels {
      * would need a shear that TRS cannot hold. The rotations should be unit quaternions; the result is not
      * renormalized.
      * <p>
-     * {@code out} may be {@code parents} or {@code locals}. Elements {@code [0, count)} are processed; the arrays are
-     * not checked up front, so a container smaller than {@code count} throws {@code ArrayIndexOutOfBoundsException}.
-     * With the {@code simd} jar, batches of at least 32 use the Vector API, with results identical to the scalar path.
-     * In {@link MathMode#STRICT} every parent and local rotation must be a unit quaternion (see
-     * {@link CoreConfig#withinStrictUnitTolerance(float)}), otherwise nothing is written; the results are then bitwise
-     * identical to FAST.
+     * {@code out} may be {@code parents} or {@code locals}. Elements {@code [0, count)} are processed; the containers
+     * are checked first, so a container smaller than {@code count} throws {@link IllegalArgumentException} before
+     * anything is written. With the {@code simd} jar, batches of at least 32 use the Vector API, with results
+     * identical to the scalar path. In {@link MathMode#STRICT} every parent and local rotation must be a unit
+     * quaternion (see {@link CoreConfig#withinStrictUnitTolerance(float)}), otherwise nothing is written; the results
+     * are then bitwise identical to FAST.
      *
-     * @param parents the parent transforms
-     * @param locals the local transforms
-     * @param out receives the composed transforms
-     * @param count the number of transforms; 0 or less does nothing
-     * @throws IllegalArgumentException in STRICT mode, if a rotation is not a unit quaternion
+     * @param parents the parent transforms, at least {@code count}
+     * @param locals the local transforms, at least {@code count}
+     * @param out receives the composed transforms; at least {@code count}
+     * @param count the number of transforms, at least 0
+     * @throws IllegalArgumentException if a container is null or smaller than {@code count}, if {@code count} is
+     *         negative, or, in STRICT mode, if a rotation is not a unit quaternion
      */
     public static void composeBatch(TransformSoA parents, TransformSoA locals, TransformSoA out, int count) {
-        if (count <= 0) {
+        if (count < 0) {
+            throw new IllegalArgumentException("count must not be negative: " + count);
+        }
+        if (parents == null || locals == null || out == null || parents.size() < count || locals.size() < count
+                || out.size() < count) {
+            throw new IllegalArgumentException("parents, locals and out must hold " + count + " transforms");
+        }
+        if (count == 0) {
             return;
         }
         if (CoreConfig.mathMode() == MathMode.STRICT) {

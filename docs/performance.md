@@ -76,15 +76,16 @@ influence. The kernels do not normalize the weights.
 | Kernel | Joint data | When |
 |---|---|---|
 | `SkinningKernels.skinLbs4MatrixPalette` | 12-float matrix palette | **Default.** Fastest linear blend skinning. |
-| `SkinningKernels.skinLbs4` | `TransformSoA` (quaternion and translation) | Linear blend skinning without building a palette. Slower per vertex. |
+| `SkinningKernels.skinLbs4` | `TransformSoA` (translation, rotation, scale) | Linear blend skinning without building a palette. Slower per vertex. |
 | `SkinningKernels.skinLbs4SoA` | `TransformSoA`, per-influence arrays | When your influences are already stored one array per slot. Same speed class as `SkinningKernels.skinLbs4`. |
 | `SkinningKernels.skinDualQuat4`, `SkinningKernels.skinDualQuat4SoA` | `DualQuatSoA` | Quality mode: dual quaternions keep volume at twisting joints (no "candy-wrapper" collapse). Slower. |
 
-For the default path, build the palette once per frame with `SkinningKernels.buildRigidMatrixPalette12`, then call
-`SkinningKernels.skinLbs4MatrixPalette` for each mesh. `SkinningKernels.buildRigidMatrixPalette12` and
-`SkinningKernels.skinLbs4` use only each joint's rotation and translation and ignore its scale. If your skinning
-transforms carry scale, build the palette with `PackedAffineKernels.trsToPackedAffineBatch` instead and pass
-`PackedAffineArray.raw()`, which has the same layout.
+For the default path, build the palette once per frame with `SkinningKernels.buildMatrixPalette12`, then call
+`SkinningKernels.skinLbs4MatrixPalette` for each mesh. `SkinningKernels.buildMatrixPalette12`,
+`SkinningKernels.skinLbs4` and `SkinningKernels.skinLbs4SoA` apply each joint's full translation, rotation and
+scale; with unit scale they give the same bits as rigid skinning. `SkinningKernels.buildRigidMatrixPalette12` ignores
+the scale. The dual quaternion kernels are rigid, since a unit dual quaternion holds no scale. A `PackedAffineArray`
+from `PackedAffineKernels.trsToPackedAffineBatch` also works as a palette through `PackedAffineArray.raw()`.
 
 Choose dual quaternion skinning explicitly, per asset or in configuration, where artifacts at elbows and wrists
 matter more than speed.

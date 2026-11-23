@@ -118,8 +118,9 @@ skinning.set(0, Transformf.compose(shoulderPosed, shoulderBind.invertRigidFast(i
 skinning.set(1, Transformf.compose(elbowPosed, elbowBind.invertRigidFast(inverse), skin));
 ```
 
-`SkinningKernels.skinLbs4` applies linear blend skinning with up to four joints per vertex. Indices and weights
-are interleaved, four per vertex. Positions are separate `x`, `y`, `z` arrays.
+`SkinningKernels.skinLbs4` applies linear blend skinning with up to four joints per vertex, each joint with its
+translation, rotation and scale. Indices and weights are interleaved, four per vertex. Positions are separate `x`,
+`y`, `z` arrays. Array sizes and joint indices are checked before anything is written.
 
 <!-- snippet: Animation#skin -->
 ```java
@@ -149,8 +150,9 @@ The other entry points:
 - `SkinningKernels.skinLbs4SoA` takes the indices and weights as four separate arrays each.
 - `SkinningKernels.skinDualQuat4` and `SkinningKernels.skinDualQuat4SoA` blend dual quaternions (`soa.DualQuatSoA`).
   This avoids the volume loss of linear blending at twisting joints, at a higher cost.
-- `SkinningKernels.buildRigidMatrixPalette12` with `SkinningKernels.skinLbs4MatrixPalette` skins from a packed 3×4
-  matrix palette, the layout shaders use.
+- `SkinningKernels.buildMatrixPalette12` (or `SkinningKernels.buildRigidMatrixPalette12`, which ignores joint
+  scale) with `SkinningKernels.skinLbs4MatrixPalette` skins from a packed 3×4 matrix palette, the layout shaders
+  use.
 
 [Performance](../performance.md) explains which skinning path to choose.
 

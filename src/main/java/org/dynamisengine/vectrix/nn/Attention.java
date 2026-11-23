@@ -45,17 +45,18 @@ public final class Attention {
 
     /**
      * Forward pass: writes the attention probabilities to {@code p} and the attended value to {@code out}.
-     * {@code p}, {@code out} and {@code scratch} must not overlap each other or the inputs.
+     * {@code p}, {@code out} and {@code scratch} must not overlap each other or the inputs. Every array is checked
+     * before anything is written.
      *
      * @param q the query, {@code d} floats
      * @param qOff the offset of the query in {@code q}
      * @param d the key dimension, at least 1
      * @param k the keys, {@code t} rows of {@code d} floats with stride {@code ldk}
      * @param kOff the offset of key row 0 in {@code k}
-     * @param ldk the row stride of the keys
+     * @param ldk the row stride of the keys, at least {@code d}
      * @param v the values, {@code t} rows of {@code dv} floats with stride {@code ldv}
      * @param vOff the offset of value row 0 in {@code v}
-     * @param ldv the row stride of the values
+     * @param ldv the row stride of the values, at least {@code dv}
      * @param dv the value dimension, at least 1
      * @param t the number of keys, at least 1
      * @param scale usually {@code 1/√d}
@@ -67,8 +68,8 @@ public final class Attention {
      * @param outOff the offset in {@code out}
      * @param scratch {@code t} floats of working memory
      * @param scratchOff the offset in {@code scratch}
-     * @throws IllegalArgumentException if {@code t}, {@code d} or {@code dv} is below 1, or an array is too short for
-     *         its offset
+     * @throws IllegalArgumentException if {@code t}, {@code d} or {@code dv} is below 1, a row stride is below its row
+     *         length, or an array is null or too short for its offset; nothing is written then
      */
     public static void forward(float[] q, int qOff, int d, float[] k, int kOff, int ldk, float[] v, int vOff, int ldv,
             int dv, int t, float scale, float[] mask, int maskOff, float[] p, int pOff, float[] out, int outOff,
@@ -76,6 +77,9 @@ public final class Attention {
         if (t < 1 || d < 1 || dv < 1) {
             throw new IllegalArgumentException("need t, d, dv >= 1");
         }
+        range(q, qOff, d, "q");
+        matrix(k, kOff, ldk, t, d, "k");
+        matrix(v, vOff, ldv, t, dv, "v");
         range(p, pOff, t, "p");
         range(out, outOff, dv, "out");
         range(scratch, scratchOff, t, "scratch");
@@ -97,18 +101,18 @@ public final class Attention {
      * {@code dV_j += p_j·dOut}, {@code dp_j = dOut·V_j}, {@code ds = softmax'(p)·dp},
      * {@code dq = scale·Σ ds_j·K_j}, {@code dK_j += scale·ds_j·q}.
      * <p>
-     * The gradient arrays must not overlap each other, the inputs or {@code scratch}. Only {@code scratch} and
-     * {@code dq} are checked before {@code dV} starts to accumulate; a bad offset in another array throws part way.
+     * The gradient arrays must not overlap each other, the inputs or {@code scratch}. Every array is checked before
+     * anything is written or accumulated.
      *
      * @param q the query, {@code d} floats
      * @param qOff the offset of the query in {@code q}
      * @param d the key dimension, at least 1
      * @param k the keys, {@code t} rows of {@code d} floats with stride {@code ldk}
      * @param kOff the offset of key row 0 in {@code k}
-     * @param ldk the row stride of the keys, also used for {@code dk}
+     * @param ldk the row stride of the keys, also used for {@code dk}; at least {@code d}
      * @param v the values, {@code t} rows of {@code dv} floats with stride {@code ldv}
      * @param vOff the offset of value row 0 in {@code v}
-     * @param ldv the row stride of the values, also used for {@code dV}
+     * @param ldv the row stride of the values, also used for {@code dV}; at least {@code dv}
      * @param dv the value dimension, at least 1
      * @param t the number of keys, at least 1
      * @param scale the scale used in the forward pass
@@ -124,8 +128,8 @@ public final class Attention {
      * @param dvOff the offset of row 0 in {@code dV}
      * @param scratch {@code 2t} floats of working memory
      * @param scratchOff the offset in {@code scratch}
-     * @throws IllegalArgumentException if {@code t}, {@code d} or {@code dv} is below 1, or an array is too short for
-     *         its offset
+     * @throws IllegalArgumentException if {@code t}, {@code d} or {@code dv} is below 1, a row stride is below its row
+     *         length, or an array is null or too short for its offset; nothing is written then
      */
     public static void backward(float[] q, int qOff, int d, float[] k, int kOff, int ldk, float[] v, int vOff, int ldv,
             int dv, int t, float scale, float[] p, int pOff, float[] dOut, int dOutOff, float[] dq, int dqOff,
@@ -133,8 +137,15 @@ public final class Attention {
         if (t < 1 || d < 1 || dv < 1) {
             throw new IllegalArgumentException("need t, d, dv >= 1");
         }
-        range(scratch, scratchOff, 2 * t, "scratch");
+        range(q, qOff, d, "q");
+        matrix(k, kOff, ldk, t, d, "k");
+        matrix(v, vOff, ldv, t, dv, "v");
+        range(p, pOff, t, "p");
+        range(dOut, dOutOff, dv, "dOut");
         range(dq, dqOff, d, "dq");
+        matrix(dk, dkOff, ldk, t, d, "dk");
+        matrix(dV, dvOff, ldv, t, dv, "dV");
+        range(scratch, scratchOff, 2L * t, "scratch");
         int ds = scratchOff;
         for (int j = 0; j < t; j++) {
             float pj = p[pOff + j];
@@ -180,12 +191,18 @@ public final class Attention {
      * @param scratch {@code t} floats of working memory
      * @param scratchOff the offset in {@code scratch}
      * @throws IllegalArgumentException if {@code heads} is not a positive multiple of {@code kvHeads}, a dimension is
-     *         below 1, or an array is too short for its offset
+     *         below 1, or an array is null or too short for its offset; every head's arrays are checked before the
+     *         first head is written
      */
     public static void groupedQuery(float[] q, int qOff, int heads, int d, float[] kCache, int kOff, float[] vCache,
             int vOff, int kvHeads, int dv, int t, float scale, float[] mask, int maskOff, float[] p, int pOff, float[] out,
             int outOff, float[] scratch, int scratchOff) {
         int group = groupSize(heads, kvHeads);
+        checkGrouped(q, qOff, heads, d, kCache, kOff, vCache, vOff, kvHeads, dv, t, p, pOff, out, outOff, scratch,
+                scratchOff, t);
+        if (mask != null) {
+            range(mask, maskOff, t, "mask");
+        }
         for (int h = 0; h < heads; h++) {
             int g = h / group;
             forward(q, qOff + h * d, d, kCache, kOff + g * d, kvHeads * d, vCache, vOff + g * dv, kvHeads * dv, dv, t,
@@ -223,13 +240,19 @@ public final class Attention {
      * @param scratch {@code 2t} floats of working memory
      * @param scratchOff the offset in {@code scratch}
      * @throws IllegalArgumentException if {@code heads} is not a positive multiple of {@code kvHeads}, a dimension is
-     *         below 1, or an array is too short for its offset
+     *         below 1, or an array is null or too short for its offset; every head's arrays are checked before the
+     *         first gradient is written
      */
     public static void groupedQueryBackward(float[] q, int qOff, int heads, int d, float[] kCache, int kOff,
             float[] vCache, int vOff, int kvHeads, int dv, int t, float scale, float[] p, int pOff, float[] dOut,
             int dOutOff, float[] dq, int dqOff, float[] dk, int dkOff, float[] dV, int dvOff, float[] scratch,
             int scratchOff) {
         int group = groupSize(heads, kvHeads);
+        checkGrouped(q, qOff, heads, d, kCache, kOff, vCache, vOff, kvHeads, dv, t, p, pOff, dOut, dOutOff, scratch,
+                scratchOff, 2L * t);
+        range(dq, dqOff, (long) heads * d, "dq");
+        matrix(dk, dkOff, (long) kvHeads * d, t, (long) kvHeads * d, "dk");
+        matrix(dV, dvOff, (long) kvHeads * dv, t, (long) kvHeads * dv, "dV");
         for (int h = 0; h < heads; h++) {
             int g = h / group;
             backward(q, qOff + h * d, d, kCache, kOff + g * d, kvHeads * d, vCache, vOff + g * dv, kvHeads * dv, dv, t,
@@ -246,9 +269,40 @@ public final class Attention {
         return heads / kvHeads;
     }
 
-    private static void range(float[] a, int off, int n, String name) {
-        if (a == null || off < 0 || off > a.length - n) {
+    /**
+     * The checks shared by the grouped forward and backward passes: {@code perHead} is {@code p}/{@code out} in the
+     * forward pass and {@code p}/{@code dOut} in the backward pass, both {@code heads × t} and {@code heads × dv}.
+     */
+    private static void checkGrouped(float[] q, int qOff, int heads, int d, float[] kCache, int kOff, float[] vCache,
+            int vOff, int kvHeads, int dv, int t, float[] p, int pOff, float[] perHead, int perHeadOff,
+            float[] scratch, int scratchOff, long scratchSize) {
+        if (t < 1 || d < 1 || dv < 1) {
+            throw new IllegalArgumentException("need t, d, dv >= 1");
+        }
+        long kRow = (long) kvHeads * d;
+        long vRow = (long) kvHeads * dv;
+        if (kRow > Integer.MAX_VALUE || vRow > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("a cache row does not fit in an array");
+        }
+        range(q, qOff, (long) heads * d, "q");
+        matrix(kCache, kOff, kRow, t, kRow, "kCache");
+        matrix(vCache, vOff, vRow, t, vRow, "vCache");
+        range(p, pOff, (long) heads * t, "p");
+        range(perHead, perHeadOff, (long) heads * dv, "out or dOut");
+        range(scratch, scratchOff, scratchSize, "scratch");
+    }
+
+    private static void range(float[] a, int off, long n, String name) {
+        if (a == null || off < 0 || n < 0 || off > a.length - n) {
             throw new IllegalArgumentException(name + " must hold " + n + " values from offset " + off);
+        }
+    }
+
+    /** {@code rows} rows of {@code cols} values with stride {@code ld} from {@code off}; {@code ld >= cols}. */
+    private static void matrix(float[] a, int off, long ld, long rows, long cols, String name) {
+        if (a == null || off < 0 || ld < cols || off > a.length - ((rows - 1) * ld + cols)) {
+            throw new IllegalArgumentException(name + ": " + rows + " rows of " + cols + " with stride " + ld
+                    + " do not fit from offset " + off);
         }
     }
 }

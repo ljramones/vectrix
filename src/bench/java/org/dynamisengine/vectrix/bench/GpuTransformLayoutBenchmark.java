@@ -88,15 +88,15 @@ public class GpuTransformLayoutBenchmark extends ThroughputBenchmark {
     @Benchmark
     public int writeTransformLayoutPath() {
         if ("instanceCompact".equals(layout)) {
-            GpuTransformWriteKernels.writeCompactTrs(compactLayout, transforms, order, compactOut, count);
+            GpuTransformWriteKernels.writeTrs(compactLayout, transforms, order, compactOut, count);
             return compactOut.getInt(0);
         }
         if ("packedAffine".equals(layout) && "packedAffine".equals(sourceRep)) {
-            GpuTransformWriteKernels.writePackedAffine(packed, order, packedOut, count);
+            PackedAffineKernels.uploadPackedAffine(packed, order, packedOut, count);
             return Float.floatToRawIntBits(packedOut[0]);
         }
         if ("matrix4f".equals(layout) && "packedAffine".equals(sourceRep)) {
-            GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(packed, order, matrixOut, count);
+            GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(packed, order, matrixOut, 0, count);
             return Float.floatToRawIntBits(matrixOut[0]);
         }
 

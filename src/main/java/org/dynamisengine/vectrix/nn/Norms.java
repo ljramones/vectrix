@@ -63,8 +63,8 @@ public final class Norms {
      * @param stats receives {@code mean} at {@code stats[statsOff]} and {@code 1/σ} at {@code stats[statsOff + 1]},
      *        or {@code null}
      * @param statsOff the offset in {@code stats}
-     * @throws IllegalArgumentException if {@code n < 0} or an array other than {@code stats} is too short for its
-     *         offset; {@code stats} is not checked up front
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset; nothing is written
+     *         then
      */
     public static void layerNorm(float[] x, int xOff, float[] gamma, int gOff, float[] beta, int bOff, float eps,
             float[] y, int yOff, int n, float[] stats, int statsOff) {
@@ -72,6 +72,7 @@ public final class Norms {
         check(y, yOff, n, "y");
         checkOpt(gamma, gOff, n, "gamma");
         checkOpt(beta, bOff, n, "beta");
+        checkOpt(stats, statsOff, 2, "stats");
         if (n == 0) {
             return;
         }
@@ -114,7 +115,8 @@ public final class Norms {
      * @param xOff the offset in {@code x}
      * @param gamma the scale used in the forward pass, or {@code null} for 1
      * @param gOff the offset in {@code gamma}
-     * @param stats the {@code mean, 1/σ} the forward kernel returned
+     * @param stats the {@code mean, 1/σ} the forward kernel returned; two floats from {@code statsOff}, checked even
+     *        when {@code n = 0}
      * @param statsOff the offset in {@code stats}
      * @param dy the gradient of the output
      * @param dyOff the offset in {@code dy}
@@ -127,8 +129,8 @@ public final class Norms {
      * @param n the row length
      * @param scratch {@code 2n} floats of working memory
      * @param scratchOff the offset in {@code scratch}
-     * @throws IllegalArgumentException if {@code n < 0} or an array other than {@code stats} is too short for its
-     *         offset; {@code stats} is not checked up front
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset; nothing is written
+     *         then
      */
     public static void layerNormBackward(float[] x, int xOff, float[] gamma, int gOff, float[] stats, int statsOff,
             float[] dy, int dyOff, float[] dx, int dxOff, float[] dGamma, int dgOff, float[] dBeta, int dbOff, int n,
@@ -139,7 +141,8 @@ public final class Norms {
         checkOpt(gamma, gOff, n, "gamma");
         checkOpt(dGamma, dgOff, n, "dGamma");
         checkOpt(dBeta, dbOff, n, "dBeta");
-        check(scratch, scratchOff, 2 * n, "scratch");
+        check(stats, statsOff, 2, "stats");
+        check(scratch, scratchOff, 2L * n, "scratch");
         if (n == 0) {
             return;
         }
@@ -181,14 +184,15 @@ public final class Norms {
      * @param n the row length
      * @param stats receives {@code 1/rms} at {@code stats[statsOff]}, or {@code null}
      * @param statsOff the offset in {@code stats}
-     * @throws IllegalArgumentException if {@code n < 0} or an array other than {@code stats} is too short for its
-     *         offset; {@code stats} is not checked up front
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset; nothing is written
+     *         then
      */
     public static void rmsNorm(float[] x, int xOff, float[] gamma, int gOff, float eps, float[] y, int yOff, int n,
             float[] stats, int statsOff) {
         check(x, xOff, n, "x");
         check(y, yOff, n, "y");
         checkOpt(gamma, gOff, n, "gamma");
+        checkOpt(stats, statsOff, 1, "stats");
         if (n == 0) {
             return;
         }
@@ -217,7 +221,7 @@ public final class Norms {
      * @param xOff the offset in {@code x}
      * @param gamma the scale used in the forward pass, or {@code null} for 1
      * @param gOff the offset in {@code gamma}
-     * @param stats the {@code 1/rms} the forward kernel returned
+     * @param stats the {@code 1/rms} the forward kernel returned; checked even when {@code n = 0}
      * @param statsOff the offset in {@code stats}
      * @param dy the gradient of the output
      * @param dyOff the offset in {@code dy}
@@ -228,8 +232,8 @@ public final class Norms {
      * @param n the row length
      * @param scratch {@code 2n} floats of working memory
      * @param scratchOff the offset in {@code scratch}
-     * @throws IllegalArgumentException if {@code n < 0} or an array other than {@code stats} is too short for its
-     *         offset; {@code stats} is not checked up front
+     * @throws IllegalArgumentException if {@code n < 0} or an array is too short for its offset; nothing is written
+     *         then
      */
     public static void rmsNormBackward(float[] x, int xOff, float[] gamma, int gOff, float[] stats, int statsOff,
             float[] dy, int dyOff, float[] dx, int dxOff, float[] dGamma, int dgOff, int n, float[] scratch,
@@ -239,7 +243,8 @@ public final class Norms {
         check(dx, dxOff, n, "dx");
         checkOpt(gamma, gOff, n, "gamma");
         checkOpt(dGamma, dgOff, n, "dGamma");
-        check(scratch, scratchOff, 2 * n, "scratch");
+        check(stats, statsOff, 1, "stats");
+        check(scratch, scratchOff, 2L * n, "scratch");
         if (n == 0) {
             return;
         }
@@ -262,7 +267,7 @@ public final class Norms {
         }
     }
 
-    private static void check(float[] a, int off, int n, String name) {
+    private static void check(float[] a, int off, long n, String name) {
         if (a == null || n < 0 || off < 0 || off > a.length - n) {
             throw new IllegalArgumentException(name + " must hold " + n + " values from offset " + off);
         }

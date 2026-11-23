@@ -72,8 +72,16 @@ public final class Conv2d {
         this.dilH = dilH;
         this.dilW = dilW;
         this.groups = groups;
-        this.hout = (h + 2 * padH - dilH * (kh - 1) - 1) / strideH + 1;
-        this.wout = (w + 2 * padW - dilW * (kw - 1) - 1) / strideW + 1;
+        this.hout = (int) outSize(h, padH, dilH, kh, strideH);
+        this.wout = (int) outSize(w, padW, dilW, kw, strideW);
+    }
+
+    /**
+     * {@code floor((size + 2·pad - dil·(k - 1) - 1) / stride) + 1}, in long: below 1 when the dilated kernel does not
+     * fit the padded input (a truncating division made a kernel one cell too large look like one output).
+     */
+    private static long outSize(int size, int pad, int dil, int k, int stride) {
+        return Math.floorDiv((long) size + 2L * pad - (long) dil * (k - 1) - 1, stride) + 1;
     }
 
     /**
@@ -116,7 +124,8 @@ public final class Conv2d {
      * @param groups the number of groups, at least 1
      * @return the shape
      * @throws IllegalArgumentException if a size is out of range, a channel count is not divisible by {@code groups},
-     *         or the dilated kernel does not fit the padded input
+     *         the dilated kernel does not fit the padded input, or an array size (input, output, weights or scratch)
+     *         does not fit in an {@code int}
      */
     public static Conv2d of(int cin, int cout, int h, int w, int kh, int kw, int strideH, int strideW, int padH,
             int padW, int dilH, int dilW, int groups) {
@@ -124,9 +133,20 @@ public final class Conv2d {
                 || padW < 0 || dilH < 1 || dilW < 1 || groups < 1 || cin % groups != 0 || cout % groups != 0) {
             throw new IllegalArgumentException("invalid convolution shape");
         }
-        Conv2d c = new Conv2d(cin, cout, h, w, kh, kw, strideH, strideW, padH, padW, dilH, dilW, groups);
-        if (c.hout < 1 || c.wout < 1) {
+        long houtL = outSize(h, padH, dilH, kh, strideH);
+        long woutL = outSize(w, padW, dilW, kw, strideW);
+        if (houtL < 1 || woutL < 1) {
             throw new IllegalArgumentException("the kernel does not fit the padded input");
+        }
+        long k = (long) (cin / groups) * kh * kw;
+        long hw = houtL * woutL;
+        if ((long) cin * h * w > Integer.MAX_VALUE || (long) cout * hw > Integer.MAX_VALUE
+                || (long) cout * k > Integer.MAX_VALUE || k * hw > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("the convolution's arrays do not fit in an int-indexed array");
+        }
+        Conv2d c = new Conv2d(cin, cout, h, w, kh, kw, strideH, strideW, padH, padW, dilH, dilW, groups);
+        if (c.scratchSizeLong() > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("the convolution's scratch does not fit in an int-indexed array");
         }
         return c;
     }
@@ -165,13 +185,17 @@ public final class Conv2d {
      * @return the scratch size in floats
      */
     public int scratchSize() {
+        return (int) scratchSizeLong(); // of() checked that it fits
+    }
+
+    private long scratchSizeLong() {
         int k = (cin / groups) * kh * kw;
         int hw = hout * wout;
         int cg = cout / groups;
         int g1 = Gemmf.scratchSize(false, false, cg, hw, k);
         int g2 = Gemmf.scratchSize(false, true, cg, k, hw);
         int g3 = Gemmf.scratchSize(true, false, k, hw, cg);
-        return k * hw + Math.max(g1, Math.max(g2, g3));
+        return (long) k * hw + Math.max(g1, Math.max(g2, g3));
     }
 
     /**
@@ -188,12 +212,15 @@ public final class Conv2d {
      * @param outOff the offset in {@code out}
      * @param scratch {@link #scratchSize()} floats of working memory
      * @param scratchOff the offset in {@code scratch}
-     * @throws IllegalArgumentException if {@code in}, {@code out}, {@code weights} or {@code scratch} is too short for
-     *         its offset; {@code bias} is not checked up front
+     * @throws IllegalArgumentException if an array other than {@code bias} is null, or an array is too short for its
+     *         offset; nothing is written then
      */
     public void forward(float[] in, int inOff, float[] weights, int wOff, float[] bias, int bOff, float[] out,
             int outOff, float[] scratch, int scratchOff) {
         checkCall(in, inOff, out, outOff, weights, wOff, scratch, scratchOff);
+        if (bias != null) {
+            range(bias, bOff, cout, "bias");
+        }
         int k = (cin / groups) * kh * kw;
         int hw = hout * wout;
         int cg = cout / groups;
@@ -233,12 +260,21 @@ public final class Conv2d {
      * @param dbOff the offset in {@code dBias}
      * @param scratch {@link #scratchSize()} floats of working memory
      * @param scratchOff the offset in {@code scratch}
-     * @throws IllegalArgumentException if {@code in}, {@code dOut}, {@code weights} or {@code scratch} is too short for
-     *         its offset; the gradient arrays are not checked up front
+     * @throws IllegalArgumentException if {@code in}, {@code dOut}, {@code weights} or {@code scratch} is null, or an
+     *         array is too short for its offset; nothing is written then
      */
     public void backward(float[] in, int inOff, float[] weights, int wOff, float[] dOut, int dOutOff, float[] dIn,
             int dInOff, float[] dWeights, int dwOff, float[] dBias, int dbOff, float[] scratch, int scratchOff) {
         checkCall(in, inOff, dOut, dOutOff, weights, wOff, scratch, scratchOff);
+        if (dIn != null) {
+            range(dIn, dInOff, cin * h * w, "dIn");
+        }
+        if (dWeights != null) {
+            range(dWeights, dwOff, weightCount(), "dWeights");
+        }
+        if (dBias != null) {
+            range(dBias, dbOff, cout, "dBias");
+        }
         int k = (cin / groups) * kh * kw;
         int hw = hout * wout;
         int cg = cout / groups;

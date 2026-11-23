@@ -35,19 +35,20 @@ package org.dynamisengine.vectrix.soa;
  * Which kernel to use:
  * <ul>
  * <li>{@link #skinLbs4MatrixPalette}: linear blend skinning from a packed 3×4 matrix palette; the fastest and the
- * default. Build the palette once per frame with {@link #buildRigidMatrixPalette12}, or, when joints carry scale,
- * with {@code PackedAffineKernels.trsToPackedAffineBatch} and {@code PackedAffineArray.raw()}.</li>
+ * default. Build the palette once per frame with {@link #buildMatrixPalette12} (joint scale included) or
+ * {@link #buildRigidMatrixPalette12} (rotation and translation only).</li>
  * <li>{@link #skinLbs4} and {@link #skinLbs4SoA}: linear blend skinning straight from a {@link TransformSoA},
- * without a palette. They treat joints as rigid: rotation and translation only, the scale arrays are ignored.</li>
+ * without a palette. Each joint applies its full {@code T·R·S}: scale, then rotation, then translation.</li>
  * <li>{@link #skinDualQuat4} and {@link #skinDualQuat4SoA}: dual quaternion blending, which keeps volume at
- * twisting joints; slower.</li>
+ * twisting joints; slower, and rigid only, since a unit dual quaternion holds no scale.</li>
  * </ul>
  * <p>
  * All kernels are scalar in both jars (a per-lane gather of joint data measured slower than the scalar loop), do not
  * allocate and keep no state, so they are safe to call from any thread on separate outputs. They process vertices
- * {@code [0, count)} from index 0 and do not check array sizes up front: a short array or an out-of-range joint index
- * throws {@code ArrayIndexOutOfBoundsException}, possibly after earlier vertices were written. Each output array may
- * be the corresponding input array. STRICT mode adds no validation: the results are the same in both modes.
+ * {@code [0, count)} from index 0. Every array length and every joint index is checked before anything is written: a
+ * short array, a joint index outside the joint data or a negative count throws {@link IllegalArgumentException} and
+ * leaves the outputs unchanged. Each output array may be the corresponding input array. STRICT mode adds no
+ * validation: the results are the same in both modes.
  */
 public final class SkinningKernels {
 
@@ -55,12 +56,14 @@ public final class SkinningKernels {
     }
 
     /**
-     * Linear blend skinning with four influences per vertex, interleaved: {@code out = Σ w_k·(q_k·p·q_k⁻¹ + t_k)}.
-     * Joints are rigid: only each joint's rotation and translation are used, its scale is ignored. The rotations must
-     * be unit quaternions. No SIMD path.
+     * Linear blend skinning with four influences per vertex, interleaved:
+     * {@code out = Σ w_k·(q_k·(s_k ∘ p)·q_k⁻¹ + t_k)}, where {@code s_k ∘ p} is the component-wise product with the
+     * joint's scale. With unit scale this is rigid skinning, bit for bit. The rotations must be unit quaternions. No
+     * SIMD path.
      *
      * @param joints the skinning transforms (posed world times inverse bind-pose world) of the joints
-     * @param jointIndices four joint indices per vertex, interleaved: {@code jointIndices[4·i + k]}
+     * @param jointIndices four joint indices per vertex, interleaved: {@code jointIndices[4·i + k]}, each in
+     *        {@code [0, joints.size())}
      * @param jointWeights four weights per vertex, interleaved like {@code jointIndices}
      * @param inX the bind-pose x coordinates, one per vertex
      * @param inY the bind-pose y coordinates
@@ -68,21 +71,31 @@ public final class SkinningKernels {
      * @param outX receives the skinned x coordinates; may be {@code inX}
      * @param outY receives the skinned y coordinates; may be {@code inY}
      * @param outZ receives the skinned z coordinates; may be {@code inZ}
-     * @param count the number of vertices
+     * @param count the number of vertices, at least 0
+     * @throws IllegalArgumentException if an argument is null, {@code count} is negative, an array is too short or a
+     *         joint index is out of range; nothing is written then
      */
     public static void skinLbs4(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
             float[] outX, float[] outY, float[] outZ, int count) {
-        skinLbs4Scalar(joints, jointIndices, jointWeights, inX, inY, inZ, outX, outY, outZ, count);
+        if (joints == null) {
+            throw new IllegalArgumentException("joints must not be null");
+        }
+        checkInterleaved(jointIndices, jointWeights, joints.size(), count);
+        checkPositions(inX, inY, inZ, outX, outY, outZ, count);
+        for (int i = 0; i < count; i++) {
+            int base = i << 2;
+            skinLbs4Single(joints, jointIndices[base], jointIndices[base + 1], jointIndices[base + 2], jointIndices[base + 3], jointWeights[base], jointWeights[base + 1],
+                    jointWeights[base + 2], jointWeights[base + 3], inX[i], inY[i], inZ[i], outX, outY, outZ, i);
+        }
     }
 
     /**
-     * Linear blend skinning with four influences per vertex, one array per influence slot: {@code out = Σ
-     * w_k·(q_k·p·q_k⁻¹ + t_k)}. Joints are rigid: only each joint's rotation and translation are used, its scale is
-     * ignored. The rotations must be unit quaternions. Gives the same bits as {@link #skinLbs4} for the same
-     * influences. No SIMD path.
+     * Linear blend skinning with four influences per vertex, one array per influence slot:
+     * {@code out = Σ w_k·(q_k·(s_k ∘ p)·q_k⁻¹ + t_k)}, as in {@link #skinLbs4}, with the same bits for the same
+     * influences. The rotations must be unit quaternions. No SIMD path.
      *
      * @param joints the skinning transforms (posed world times inverse bind-pose world) of the joints
-     * @param j0 the first joint index of each vertex
+     * @param j0 the first joint index of each vertex, in {@code [0, joints.size())}
      * @param j1 the second joint index of each vertex
      * @param j2 the third joint index of each vertex
      * @param j3 the fourth joint index of each vertex
@@ -96,14 +109,20 @@ public final class SkinningKernels {
      * @param outX receives the skinned x coordinates; may be {@code inX}
      * @param outY receives the skinned y coordinates; may be {@code inY}
      * @param outZ receives the skinned z coordinates; may be {@code inZ}
-     * @param count the number of vertices
+     * @param count the number of vertices, at least 0
+     * @throws IllegalArgumentException if an argument is null, {@code count} is negative, an array is too short or a
+     *         joint index is out of range; nothing is written then
      */
     public static void skinLbs4SoA(TransformSoA joints, int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2, float[] w3,
             float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
-        if (count <= 0) {
-            return;
+        if (joints == null) {
+            throw new IllegalArgumentException("joints must not be null");
         }
-        skinLbs4SoAScalar(joints, j0, j1, j2, j3, w0, w1, w2, w3, inX, inY, inZ, outX, outY, outZ, count);
+        checkPerSlot(j0, j1, j2, j3, w0, w1, w2, w3, joints.size(), count);
+        checkPositions(inX, inY, inZ, outX, outY, outZ, count);
+        for (int i = 0; i < count; i++) {
+            skinLbs4Single(joints, j0[i], j1[i], j2[i], j3[i], w0[i], w1[i], w2[i], w3[i], inX[i], inY[i], inZ[i], outX, outY, outZ, i);
+        }
     }
 
     /**
@@ -113,10 +132,12 @@ public final class SkinningKernels {
      * when its rotation lies in the opposite hemisphere from the first influence's ({@code j0}), the sum is divided by
      * the length of its real part, and the resulting rigid transform is applied to the position. If the blended real
      * part is exactly zero, the position is copied unchanged. The joint dual quaternions must be unit (unit real part,
-     * as from {@link org.dynamisengine.vectrix.affine.DualQuatTransformf}); scale is not supported. No SIMD path.
+     * as from {@link org.dynamisengine.vectrix.affine.DualQuatTransformf}); they hold no scale, so this skinning is
+     * rigid. No SIMD path.
      *
      * @param joints the skinning transforms of the joints as dual quaternions
-     * @param jointIndices four joint indices per vertex, interleaved: {@code jointIndices[4·i + k]}
+     * @param jointIndices four joint indices per vertex, interleaved: {@code jointIndices[4·i + k]}, each in
+     *        {@code [0, joints.rx.length)}
      * @param jointWeights four weights per vertex, interleaved like {@code jointIndices}
      * @param inX the bind-pose x coordinates, one per vertex
      * @param inY the bind-pose y coordinates
@@ -124,10 +145,17 @@ public final class SkinningKernels {
      * @param outX receives the skinned x coordinates; may be {@code inX}
      * @param outY receives the skinned y coordinates; may be {@code inY}
      * @param outZ receives the skinned z coordinates; may be {@code inZ}
-     * @param count the number of vertices
+     * @param count the number of vertices, at least 0
+     * @throws IllegalArgumentException if an argument is null, {@code count} is negative, an array is too short or a
+     *         joint index is out of range; nothing is written then
      */
     public static void skinDualQuat4(DualQuatSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
             float[] outX, float[] outY, float[] outZ, int count) {
+        if (joints == null) {
+            throw new IllegalArgumentException("joints must not be null");
+        }
+        checkInterleaved(jointIndices, jointWeights, joints.rx.length, count);
+        checkPositions(inX, inY, inZ, outX, outY, outZ, count);
         for (int i = 0; i < count; i++) {
             int base = i << 2;
             skinDualQuat4Single(joints, jointIndices[base], jointIndices[base + 1], jointIndices[base + 2], jointIndices[base + 3], jointWeights[base], jointWeights[base + 1],
@@ -143,10 +171,11 @@ public final class SkinningKernels {
      * when its rotation lies in the opposite hemisphere from the first influence's ({@code j0}), the sum is divided by
      * the length of its real part, and the resulting rigid transform is applied to the position. If the blended real
      * part is exactly zero, the position is copied unchanged. The joint dual quaternions must be unit (unit real part,
-     * as from {@link org.dynamisengine.vectrix.affine.DualQuatTransformf}); scale is not supported. No SIMD path.
+     * as from {@link org.dynamisengine.vectrix.affine.DualQuatTransformf}); they hold no scale, so this skinning is
+     * rigid. No SIMD path.
      *
      * @param joints the skinning transforms of the joints as dual quaternions
-     * @param j0 the first joint index of each vertex
+     * @param j0 the first joint index of each vertex, in {@code [0, joints.rx.length)}
      * @param j1 the second joint index of each vertex
      * @param j2 the third joint index of each vertex
      * @param j3 the fourth joint index of each vertex
@@ -160,13 +189,42 @@ public final class SkinningKernels {
      * @param outX receives the skinned x coordinates; may be {@code inX}
      * @param outY receives the skinned y coordinates; may be {@code inY}
      * @param outZ receives the skinned z coordinates; may be {@code inZ}
-     * @param count the number of vertices
+     * @param count the number of vertices, at least 0
+     * @throws IllegalArgumentException if an argument is null, {@code count} is negative, an array is too short or a
+     *         joint index is out of range; nothing is written then
      */
     public static void skinDualQuat4SoA(DualQuatSoA joints, int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2, float[] w3,
             float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
+        if (joints == null) {
+            throw new IllegalArgumentException("joints must not be null");
+        }
+        checkPerSlot(j0, j1, j2, j3, w0, w1, w2, w3, joints.rx.length, count);
+        checkPositions(inX, inY, inZ, outX, outY, outZ, count);
         for (int i = 0; i < count; i++) {
             skinDualQuat4Single(joints, j0[i], j1[i], j2[i], j3[i], w0[i], w1[i], w2[i], w3[i], inX[i], inY[i], inZ[i], outX, outY, outZ, i);
         }
+    }
+
+    /**
+     * Builds a matrix palette for {@link #skinLbs4MatrixPalette} with each joint's full {@code T·R·S}: 12 floats per
+     * joint, joint {@code j} at {@code matrixPalette12[12·j ..]}, in the row-major packed 3×4 layout of
+     * {@link org.dynamisengine.vectrix.affine.PackedAffineArray}:
+     * {@code [r00 r01 r02 tx  r10 r11 r12 ty  r20 r21 r22 tz]}, where {@code rRC} is row R, column C. Column C of the
+     * 3×3 part is column C of the rotation matrix times the joint's scale on axis C, so with unit scale the palette
+     * equals {@link #buildRigidMatrixPalette12}'s bit for bit.
+     * <p>
+     * The quaternion is not normalized, so it must be unit. Joints {@code [0, jointCount)} are converted.
+     *
+     * @param joints the skinning transforms of the joints
+     * @param matrixPalette12 receives {@code 12·jointCount} floats from index 0
+     * @param jointCount the number of joints, in {@code [0, joints.size()]}
+     * @throws IllegalArgumentException if an argument is null, {@code jointCount} is out of range or the palette is
+     *         too short; nothing is written then
+     * @since 3.0.0
+     */
+    public static void buildMatrixPalette12(TransformSoA joints, float[] matrixPalette12, int jointCount) {
+        checkPalette(joints, matrixPalette12, jointCount);
+        writePalette(joints, matrixPalette12, jointCount, true);
     }
 
     /**
@@ -176,15 +234,21 @@ public final class SkinningKernels {
      * {@code [r00 r01 r02 tx  r10 r11 r12 ty  r20 r21 r22 tz]}, where {@code rRC} is row R, column C.
      * <p>
      * Joints are rigid: the 3×3 part is the rotation matrix of each joint's quaternion and the scale arrays are
-     * ignored. The quaternion is not normalized, so it must be unit. For joints with scale, build the palette with
-     * {@code PackedAffineKernels.trsToPackedAffineBatch} instead. Joints {@code [0, jointCount)} are converted; the
-     * arrays are not checked up front.
+     * ignored. For joints with scale, use {@link #buildMatrixPalette12}. The quaternion is not normalized, so it must
+     * be unit. Joints {@code [0, jointCount)} are converted.
      *
      * @param joints the skinning transforms of the joints
      * @param matrixPalette12 receives {@code 12·jointCount} floats from index 0
-     * @param jointCount the number of joints
+     * @param jointCount the number of joints, in {@code [0, joints.size()]}
+     * @throws IllegalArgumentException if an argument is null, {@code jointCount} is out of range or the palette is
+     *         too short; nothing is written then
      */
     public static void buildRigidMatrixPalette12(TransformSoA joints, float[] matrixPalette12, int jointCount) {
+        checkPalette(joints, matrixPalette12, jointCount);
+        writePalette(joints, matrixPalette12, jointCount, false);
+    }
+
+    private static void writePalette(TransformSoA joints, float[] matrixPalette12, int jointCount, boolean scaled) {
         for (int j = 0; j < jointCount; j++) {
             float x = joints.qx[j];
             float y = joints.qy[j];
@@ -193,6 +257,9 @@ public final class SkinningKernels {
             float tx = joints.tx[j];
             float ty = joints.ty[j];
             float tz = joints.tz[j];
+            float sx = scaled ? joints.sx[j] : 1.0f;
+            float sy = scaled ? joints.sy[j] : 1.0f;
+            float sz = scaled ? joints.sz[j] : 1.0f;
 
             float xx = x * x;
             float yy = y * y;
@@ -205,19 +272,19 @@ public final class SkinningKernels {
             float wz = w * z;
 
             int o = j * 12;
-            matrixPalette12[o] = 1.0f - 2.0f * (yy + zz);
-            matrixPalette12[o + 1] = 2.0f * (xy - wz);
-            matrixPalette12[o + 2] = 2.0f * (xz + wy);
+            matrixPalette12[o] = (1.0f - 2.0f * (yy + zz)) * sx;
+            matrixPalette12[o + 1] = 2.0f * (xy - wz) * sy;
+            matrixPalette12[o + 2] = 2.0f * (xz + wy) * sz;
             matrixPalette12[o + 3] = tx;
 
-            matrixPalette12[o + 4] = 2.0f * (xy + wz);
-            matrixPalette12[o + 5] = 1.0f - 2.0f * (xx + zz);
-            matrixPalette12[o + 6] = 2.0f * (yz - wx);
+            matrixPalette12[o + 4] = 2.0f * (xy + wz) * sx;
+            matrixPalette12[o + 5] = (1.0f - 2.0f * (xx + zz)) * sy;
+            matrixPalette12[o + 6] = 2.0f * (yz - wx) * sz;
             matrixPalette12[o + 7] = ty;
 
-            matrixPalette12[o + 8] = 2.0f * (xz - wy);
-            matrixPalette12[o + 9] = 2.0f * (yz + wx);
-            matrixPalette12[o + 10] = 1.0f - 2.0f * (xx + yy);
+            matrixPalette12[o + 8] = 2.0f * (xz - wy) * sx;
+            matrixPalette12[o + 9] = 2.0f * (yz + wx) * sy;
+            matrixPalette12[o + 10] = (1.0f - 2.0f * (xx + yy)) * sz;
             matrixPalette12[o + 11] = tz;
         }
     }
@@ -229,12 +296,13 @@ public final class SkinningKernels {
      * ty  r20 r21 r22 tz]}. A {@code PackedAffineArray} can be passed directly through {@code raw()}.
      * <p>
      * This is the default CPU skinning kernel and the fastest. The 3×3 part is used as given, so joints may carry scale
-     * or shear when the palette has them; one built by {@link #buildRigidMatrixPalette12} is rigid. The results are
-     * close to, but not bitwise equal to, {@link #skinLbs4}'s for the same rigid joints, since the arithmetic differs.
-     * No SIMD path.
+     * or shear when the palette has them ({@link #buildMatrixPalette12} includes the joint scale,
+     * {@link #buildRigidMatrixPalette12} does not). The results are close to, but not bitwise equal to,
+     * {@link #skinLbs4}'s for the same joints, since the arithmetic differs. No SIMD path.
      *
-     * @param matrixPalette12 the palette, 12 floats per joint
-     * @param jointIndices four joint indices per vertex, interleaved: {@code jointIndices[4·i + k]}
+     * @param matrixPalette12 the palette, 12 floats per joint; its joint count is {@code matrixPalette12.length / 12}
+     * @param jointIndices four joint indices per vertex, interleaved: {@code jointIndices[4·i + k]}, each in
+     *        {@code [0, matrixPalette12.length / 12)}
      * @param jointWeights four weights per vertex, interleaved like {@code jointIndices}
      * @param inX the bind-pose x coordinates, one per vertex
      * @param inY the bind-pose y coordinates
@@ -242,10 +310,17 @@ public final class SkinningKernels {
      * @param outX receives the skinned x coordinates; may be {@code inX}
      * @param outY receives the skinned y coordinates; may be {@code inY}
      * @param outZ receives the skinned z coordinates; may be {@code inZ}
-     * @param count the number of vertices
+     * @param count the number of vertices, at least 0
+     * @throws IllegalArgumentException if an argument is null, {@code count} is negative, an array is too short or a
+     *         joint index is out of range; nothing is written then
      */
     public static void skinLbs4MatrixPalette(float[] matrixPalette12, int[] jointIndices, float[] jointWeights,
             float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
+        if (matrixPalette12 == null) {
+            throw new IllegalArgumentException("matrixPalette12 must not be null");
+        }
+        checkInterleaved(jointIndices, jointWeights, matrixPalette12.length / 12, count);
+        checkPositions(inX, inY, inZ, outX, outY, outZ, count);
         for (int i = 0; i < count; i++) {
             int base = i << 2;
             float x = inX[i];
@@ -294,46 +369,57 @@ public final class SkinningKernels {
         float oy = 0.0f;
         float oz = 0.0f;
 
+        // each joint: scale, then rotate (q·p·q⁻¹ = p + w·t + v × t, t = 2·v × p), then translate
+        float px = x * joints.sx[j0], py = y * joints.sy[j0], pz = z * joints.sz[j0];
         float rx = joints.qx[j0], ry = joints.qy[j0], rz = joints.qz[j0], rw = joints.qw[j0];
-        float tx2 = 2.0f * (ry * z - rz * y);
-        float ty2 = 2.0f * (rz * x - rx * z);
-        float tz2 = 2.0f * (rx * y - ry * x);
-        ox += (x + rw * tx2 + (ry * tz2 - rz * ty2) + joints.tx[j0]) * w0;
-        oy += (y + rw * ty2 + (rz * tx2 - rx * tz2) + joints.ty[j0]) * w0;
-        oz += (z + rw * tz2 + (rx * ty2 - ry * tx2) + joints.tz[j0]) * w0;
+        float tx2 = 2.0f * (ry * pz - rz * py);
+        float ty2 = 2.0f * (rz * px - rx * pz);
+        float tz2 = 2.0f * (rx * py - ry * px);
+        ox += (px + rw * tx2 + (ry * tz2 - rz * ty2) + joints.tx[j0]) * w0;
+        oy += (py + rw * ty2 + (rz * tx2 - rx * tz2) + joints.ty[j0]) * w0;
+        oz += (pz + rw * tz2 + (rx * ty2 - ry * tx2) + joints.tz[j0]) * w0;
 
+        px = x * joints.sx[j1];
+        py = y * joints.sy[j1];
+        pz = z * joints.sz[j1];
         rx = joints.qx[j1];
         ry = joints.qy[j1];
         rz = joints.qz[j1];
         rw = joints.qw[j1];
-        tx2 = 2.0f * (ry * z - rz * y);
-        ty2 = 2.0f * (rz * x - rx * z);
-        tz2 = 2.0f * (rx * y - ry * x);
-        ox += (x + rw * tx2 + (ry * tz2 - rz * ty2) + joints.tx[j1]) * w1;
-        oy += (y + rw * ty2 + (rz * tx2 - rx * tz2) + joints.ty[j1]) * w1;
-        oz += (z + rw * tz2 + (rx * ty2 - ry * tx2) + joints.tz[j1]) * w1;
+        tx2 = 2.0f * (ry * pz - rz * py);
+        ty2 = 2.0f * (rz * px - rx * pz);
+        tz2 = 2.0f * (rx * py - ry * px);
+        ox += (px + rw * tx2 + (ry * tz2 - rz * ty2) + joints.tx[j1]) * w1;
+        oy += (py + rw * ty2 + (rz * tx2 - rx * tz2) + joints.ty[j1]) * w1;
+        oz += (pz + rw * tz2 + (rx * ty2 - ry * tx2) + joints.tz[j1]) * w1;
 
+        px = x * joints.sx[j2];
+        py = y * joints.sy[j2];
+        pz = z * joints.sz[j2];
         rx = joints.qx[j2];
         ry = joints.qy[j2];
         rz = joints.qz[j2];
         rw = joints.qw[j2];
-        tx2 = 2.0f * (ry * z - rz * y);
-        ty2 = 2.0f * (rz * x - rx * z);
-        tz2 = 2.0f * (rx * y - ry * x);
-        ox += (x + rw * tx2 + (ry * tz2 - rz * ty2) + joints.tx[j2]) * w2;
-        oy += (y + rw * ty2 + (rz * tx2 - rx * tz2) + joints.ty[j2]) * w2;
-        oz += (z + rw * tz2 + (rx * ty2 - ry * tx2) + joints.tz[j2]) * w2;
+        tx2 = 2.0f * (ry * pz - rz * py);
+        ty2 = 2.0f * (rz * px - rx * pz);
+        tz2 = 2.0f * (rx * py - ry * px);
+        ox += (px + rw * tx2 + (ry * tz2 - rz * ty2) + joints.tx[j2]) * w2;
+        oy += (py + rw * ty2 + (rz * tx2 - rx * tz2) + joints.ty[j2]) * w2;
+        oz += (pz + rw * tz2 + (rx * ty2 - ry * tx2) + joints.tz[j2]) * w2;
 
+        px = x * joints.sx[j3];
+        py = y * joints.sy[j3];
+        pz = z * joints.sz[j3];
         rx = joints.qx[j3];
         ry = joints.qy[j3];
         rz = joints.qz[j3];
         rw = joints.qw[j3];
-        tx2 = 2.0f * (ry * z - rz * y);
-        ty2 = 2.0f * (rz * x - rx * z);
-        tz2 = 2.0f * (rx * y - ry * x);
-        ox += (x + rw * tx2 + (ry * tz2 - rz * ty2) + joints.tx[j3]) * w3;
-        oy += (y + rw * ty2 + (rz * tx2 - rx * tz2) + joints.ty[j3]) * w3;
-        oz += (z + rw * tz2 + (rx * ty2 - ry * tx2) + joints.tz[j3]) * w3;
+        tx2 = 2.0f * (ry * pz - rz * py);
+        ty2 = 2.0f * (rz * px - rx * pz);
+        tz2 = 2.0f * (rx * py - ry * px);
+        ox += (px + rw * tx2 + (ry * tz2 - rz * ty2) + joints.tx[j3]) * w3;
+        oy += (py + rw * ty2 + (rz * tx2 - rx * tz2) + joints.ty[j3]) * w3;
+        oz += (pz + rw * tz2 + (rx * ty2 - ry * tx2) + joints.tz[j3]) * w3;
 
         outX[i] = ox;
         outY[i] = oy;
@@ -406,19 +492,68 @@ public final class SkinningKernels {
         return dot < 0.0f ? -1.0f : 1.0f;
     }
 
-    private static void skinLbs4Scalar(TransformSoA joints, int[] jointIndices, float[] jointWeights, float[] inX, float[] inY, float[] inZ,
-            float[] outX, float[] outY, float[] outZ, int count) {
-        for (int i = 0; i < count; i++) {
-            int base = i << 2;
-            skinLbs4Single(joints, jointIndices[base], jointIndices[base + 1], jointIndices[base + 2], jointIndices[base + 3], jointWeights[base], jointWeights[base + 1],
-                    jointWeights[base + 2], jointWeights[base + 3], inX[i], inY[i], inZ[i], outX, outY, outZ, i);
+    // ---- up-front checks ----
+
+    private static void checkCount(int count) {
+        if (count < 0) {
+            throw new IllegalArgumentException("count must not be negative: " + count);
         }
     }
 
-    private static void skinLbs4SoAScalar(TransformSoA joints, int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2, float[] w3,
-            float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ, int count) {
-        for (int i = 0; i < count; i++) {
-            skinLbs4Single(joints, j0[i], j1[i], j2[i], j3[i], w0[i], w1[i], w2[i], w3[i], inX[i], inY[i], inZ[i], outX, outY, outZ, i);
+    private static void checkLength(float[] a, long n, String name) {
+        if (a == null || a.length < n) {
+            throw new IllegalArgumentException(name + " must hold " + n + " values");
         }
+    }
+
+    private static void checkIndices(int[] a, long n, int jointCount, String name) {
+        if (a == null || a.length < n) {
+            throw new IllegalArgumentException(name + " must hold " + n + " values");
+        }
+        for (int i = 0; i < n; i++) {
+            int j = a[i];
+            if (j < 0 || j >= jointCount) {
+                throw new IllegalArgumentException(name + "[" + i + "] = " + j + " is outside [0, " + jointCount + ")");
+            }
+        }
+    }
+
+    private static void checkInterleaved(int[] jointIndices, float[] jointWeights, int jointCount, int count) {
+        checkCount(count);
+        checkIndices(jointIndices, 4L * count, jointCount, "jointIndices");
+        checkLength(jointWeights, 4L * count, "jointWeights");
+    }
+
+    private static void checkPerSlot(int[] j0, int[] j1, int[] j2, int[] j3, float[] w0, float[] w1, float[] w2,
+            float[] w3, int jointCount, int count) {
+        checkCount(count);
+        checkIndices(j0, count, jointCount, "j0");
+        checkIndices(j1, count, jointCount, "j1");
+        checkIndices(j2, count, jointCount, "j2");
+        checkIndices(j3, count, jointCount, "j3");
+        checkLength(w0, count, "w0");
+        checkLength(w1, count, "w1");
+        checkLength(w2, count, "w2");
+        checkLength(w3, count, "w3");
+    }
+
+    private static void checkPositions(float[] inX, float[] inY, float[] inZ, float[] outX, float[] outY, float[] outZ,
+            int count) {
+        checkLength(inX, count, "inX");
+        checkLength(inY, count, "inY");
+        checkLength(inZ, count, "inZ");
+        checkLength(outX, count, "outX");
+        checkLength(outY, count, "outY");
+        checkLength(outZ, count, "outZ");
+    }
+
+    private static void checkPalette(TransformSoA joints, float[] matrixPalette12, int jointCount) {
+        if (joints == null) {
+            throw new IllegalArgumentException("joints must not be null");
+        }
+        if (jointCount < 0 || jointCount > joints.size()) {
+            throw new IllegalArgumentException("jointCount " + jointCount + " is outside [0, " + joints.size() + "]");
+        }
+        checkLength(matrixPalette12, 12L * jointCount, "matrixPalette12");
     }
 }
