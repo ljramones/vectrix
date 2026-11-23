@@ -6,6 +6,33 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+Major release: the deprecations of 2.6.0 are removed, and every known issue that needed an API change is fixed in
+place. See the migration notes under "Changed (breaking)".
+
+### Removed
+- Deprecated in 2.6.0:
+  - `simd.Vector4fa`;
+  - `nn.NnMath` (use `core.ReproducibleMath`) and `nn.Philox` (use `hash.Philox`, and `nn.Activations.dropout`);
+  - `fft.FFT1f`/`FFT1d` and `fft.Convolutionf`/`Convolutiond` (use `ComplexFft*`, `RealFft*` and
+    `BlockConvolver*`);
+  - `fft.Complexf`/`Complexd` (use `core.Complexf`/`Complexd`);
+  - `core.QuaternionfInterpolator`/`QuaterniondInterpolator` (use `QuaternionCurves*.weightedMean`);
+  - `camera.DepthRange` and every overload taking it (use `core.DepthRange`);
+  - `affine.TransformKernels` (use `soa.TransformKernels`);
+  - `renderingmath.AtmosphereParams` and `TransmittanceLutBuilder` (use the `atmosphere` package);
+  - the backend-specific `CullingKernels` and `SkinningKernels` entry points, and
+    `CullingKernels.frustumCullAabbBatch(Matrix4fc, ...)` (use `FrustumPlanes`);
+  - `ShCoeffs*.BANDS` (use `COEFFS`);
+  - `SpringDamper*.overdamped`, `SpringDamper*.suspensionForce`, and the six-argument
+    `Matrix3x2*.scaleAroundLocal`.
+- The `vectrix.skinning.simd` property (there is no SIMD skinning kernel).
+- The public constructors of the static utility classes (`core.Math`, `Interpolationf/d`, `SimplexNoise`,
+  `Intersectionf/d`, `GeometryUtils`, `sampling.Convolution` and the sampling holders), which are now `final`.
+
+### Changed (breaking)
+- `CoreConfig.determinismFingerprint` names its entries `vectrix.*` and leaves out the SIMD settings, which never
+  change result bits.
+
 ## [2.6.0] - 2026-11-23
 New in this release:
 - **Documentation:**
