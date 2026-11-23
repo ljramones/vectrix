@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
 ## [Unreleased]
+
+## [2.5.0] - 2026-11-23
+New in this release:
+- **Signal processing:**
+  - The FFT was rebuilt (`fft`): planned transforms of any size, real and 2D, and streaming FIR convolution.
+    - Its twiddles are exact: error below 6e-16 at every size, against 7.8e-12 before at 2^20.
+    - Its Vector API kernels give the same bits as the scalar ones. At 2^20 it is 14 times faster than `FFT1f`
+      (26 times with the SIMD jar).
+  - New package `dsp`:
+    - windows;
+    - FIR design (window method and Parks–McClellan) and biquad filters;
+    - STFT, power spectra, correlation and Goertzel;
+    - DCT and MDCT, and resampling;
+    - wavelets;
+    - Wiener filtering: FIR, non-causal, deconvolution of signals and images, adaptive image filtering;
+    - state estimation: Kalman, extended and unscented Kalman, and particle filters;
+    - adaptive filters (LMS, NLMS, RLS) and smoothers.
+- **Machine-learning kernels:** new packages `blas` and `nn`, reproducible bit for bit across platforms, jars and
+  batch sizes.
+  - BLAS-1, and GEMM/GEMV in which every element is a dot product in a documented order (batch-invariant).
+  - Reproducible float math: exp, log, tanh, erf, normal CDF.
+  - Activations, softmax, norms, attention (multi-head, grouped and multi-query), rotary embeddings, and
+    convolution and pooling, each with a backward pass.
+  - Cross-entropy, sampling, Philox, AdamW/SGD, and bf16/FP8/int8 formats.
+- **A second audit of the code inherited from JOML:** 49 fixes. They cover matrix property flags, projection
+  builders, closest points, frustum and ray tests, extreme scales and fast-math bounds.
+- **Projection queries for every depth convention:** NDC [-1, 1], [0, 1] and reverse-Z.
+
+No public API was removed. Results change where the audit fixed them. `FFT1d`/`FFT1f` change in the last bits from
+their exact twiddles. `Matrix3x2f/d.scaleAroundLocal`'s 3D overload is deprecated.
+
 ### Added
 - **FFT rebuild** (`fft`), the first phase of the signal-processing roadmap (`docs/signal-and-ml-roadmap.md`).
   Every class has a float twin (`...f`):
