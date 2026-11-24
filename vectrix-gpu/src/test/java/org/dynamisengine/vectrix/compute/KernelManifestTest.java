@@ -55,8 +55,25 @@ class KernelManifestTest {
         assertParams("philox", GpuPhilox.PARAMS);
         assertParams("softmax", GpuSoftmax.PARAMS);
         assertParams("softmax_inplace", GpuSoftmax.PARAMS_IN_PLACE);
+        assertParams("activation", GpuActivations.PARAMS);
+        assertParams("activation_inplace", GpuActivations.PARAMS_IN_PLACE);
+        assertParams("activation_self", GpuActivations.PARAMS_SELF);
+        assertParams("dropout", GpuActivations.PARAMS_DROPOUT);
+        assertParams("dropout_inplace", GpuActivations.PARAMS_DROPOUT_IN_PLACE);
+        assertParams("adamw", GpuOptim.PARAMS_ADAMW);
+        assertParams("sgd", GpuOptim.PARAMS_SGD);
         assertEquals("float32", Manifest.paramTypes("gemm").get("alpha"));
         assertEquals("float32", Manifest.paramTypes("gemm").get("beta"));
+        for (String k : new String[] {"dropout", "dropout_inplace"}) {
+            assertEquals("float32", Manifest.paramTypes(k).get("prob"), k + ".prob");
+            assertEquals("float32", Manifest.paramTypes(k).get("scale"), k + ".scale");
+        }
+        for (String f : new String[] {"negLr", "beta1", "beta2", "eps", "bc1", "bc2", "a1", "a2", "decay"}) {
+            assertEquals("float32", Manifest.paramTypes("adamw").get(f), "adamw." + f);
+        }
+        for (String f : new String[] {"negLr", "momentum", "weightDecay"}) {
+            assertEquals("float32", Manifest.paramTypes("sgd").get(f), "sgd." + f);
+        }
     }
 
     private static void assertParams(String kernel, String[] fields) {
@@ -78,6 +95,18 @@ class KernelManifestTest {
         assertEquals("256,1,1", Manifest.get("softmax.local"));
         assertEquals("x:0", Manifest.get("softmax_inplace.buffers"));
         assertEquals("256,1,1", Manifest.get("softmax_inplace.local"));
+        assertEquals("a:0,b:1,dest:2", Manifest.get("activation.buffers"));
+        assertEquals("dest:0,other:1", Manifest.get("activation_inplace.buffers"));
+        assertEquals("x:0", Manifest.get("activation_self.buffers"));
+        for (String k : new String[] {"activation", "activation_inplace", "activation_self", "adamw", "sgd"}) {
+            assertEquals("256,1,1", Manifest.get(k + ".local"), k);
+        }
+        assertEquals("x:0,y:1", Manifest.get("dropout.buffers"));
+        assertEquals("64,1,1", Manifest.get("dropout.local"));
+        assertEquals("x:0", Manifest.get("dropout_inplace.buffers"));
+        assertEquals("64,1,1", Manifest.get("dropout_inplace.local"));
+        assertEquals("param:0,grad:1,m:2,v:3", Manifest.get("adamw.buffers"));
+        assertEquals("param:0,grad:1,buf:2", Manifest.get("sgd.buffers"));
     }
 
     @Test
@@ -109,7 +138,8 @@ class KernelManifestTest {
 
     @Test
     void resourcesAreTheCompiledOutputs() {
-        for (String kernel : List.of("gemm", "philox", "softmax", "softmax_inplace")) {
+        for (String kernel : List.of("gemm", "philox", "softmax", "softmax_inplace", "activation",
+                "activation_inplace", "activation_self", "dropout", "dropout_inplace", "adamw", "sgd")) {
             var bundle = Kernels.bundle(kernel);
             byte[] spirv = bundle.executable(Backend.VULKAN).bytes();
             byte[] metal = bundle.executable(Backend.METAL).bytes();

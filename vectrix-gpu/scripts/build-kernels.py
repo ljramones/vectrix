@@ -42,6 +42,13 @@ KERNELS = [
     ("philox", "philox.slang", "philox"),
     ("softmax", "softmax.slang", "softmax"),
     ("softmax_inplace", "softmax_inplace.slang", "softmaxInPlace"),
+    ("activation", "activation.slang", "activation"),
+    ("activation_inplace", "activation_inplace.slang", "activationInPlace"),
+    ("activation_self", "activation_self.slang", "activationSelf"),
+    ("dropout", "dropout.slang", "dropout"),
+    ("dropout_inplace", "dropout_inplace.slang", "dropoutInPlace"),
+    ("adamw", "adamw.slang", "adamw"),
+    ("sgd", "sgd.slang", "sgd"),
 ]
 
 TEST_KERNELS = [
