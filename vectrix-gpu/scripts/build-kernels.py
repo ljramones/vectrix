@@ -54,6 +54,13 @@ KERNELS = [
     ("attention_softmax_backward", "attention_softmax_backward.slang", "attentionSoftmaxBackward"),
     ("attention_mix", "attention_mix.slang", "attentionMix"),
     ("attention_accumulate", "attention_accumulate.slang", "attentionAccumulate"),
+    ("blas_partial", "blas_partial.slang", "blasPartial"),
+    ("blas_combine", "blas_combine.slang", "blasCombine"),
+    ("blas_amax", "blas_amax.slang", "blasAmax"),
+    ("blas_axpy", "blas_axpy.slang", "axpy"),
+    ("blas_axpy_inplace", "blas_axpy_inplace.slang", "axpyInPlace"),
+    ("blas_scal", "blas_scal.slang", "scal"),
+    ("gemv", "gemv.slang", "gemv"),
 ]
 
 TEST_KERNELS = [
