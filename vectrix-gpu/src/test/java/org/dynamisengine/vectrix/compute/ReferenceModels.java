@@ -119,6 +119,7 @@ final class ReferenceModels {
     static {
         // one line per kernel group, e.g. NormsModels.register(MODELS);
         ElementwiseModels.register(MODELS);
+        AttentionModels.register(MODELS);
     }
 
     private ReferenceModels() {

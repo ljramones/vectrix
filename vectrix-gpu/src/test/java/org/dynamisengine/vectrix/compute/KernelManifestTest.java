@@ -36,6 +36,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Properties;
 import java.util.stream.Stream;
 
 import org.dynamisengine.gpu.api.compute.Backend;
@@ -62,6 +63,11 @@ class KernelManifestTest {
         assertParams("dropout_inplace", GpuActivations.PARAMS_DROPOUT_IN_PLACE);
         assertParams("adamw", GpuOptim.PARAMS_ADAMW);
         assertParams("sgd", GpuOptim.PARAMS_SGD);
+        assertParams("attention_scores", GpuAttention.PARAMS_SCORES);
+        assertParams("attention_softmax", GpuAttention.PARAMS_SOFTMAX);
+        assertParams("attention_softmax_backward", GpuAttention.PARAMS_SOFTMAX_BACKWARD);
+        assertParams("attention_mix", GpuAttention.PARAMS_MIX);
+        assertParams("attention_accumulate", GpuAttention.PARAMS_ACCUMULATE);
         assertEquals("float32", Manifest.paramTypes("gemm").get("alpha"));
         assertEquals("float32", Manifest.paramTypes("gemm").get("beta"));
         for (String k : new String[] {"dropout", "dropout_inplace"}) {
@@ -107,6 +113,16 @@ class KernelManifestTest {
         assertEquals("64,1,1", Manifest.get("dropout_inplace.local"));
         assertEquals("param:0,grad:1,m:2,v:3", Manifest.get("adamw.buffers"));
         assertEquals("param:0,grad:1,buf:2", Manifest.get("sgd.buffers"));
+        assertEquals("x:0,m:1,mask:2,out:3", Manifest.get("attention_scores.buffers"));
+        assertEquals("64,1,1", Manifest.get("attention_scores.local"));
+        assertEquals("probs:0", Manifest.get("attention_softmax.buffers"));
+        assertEquals("256,1,1", Manifest.get("attention_softmax.local"));
+        assertEquals("probs:0,ds:1", Manifest.get("attention_softmax_backward.buffers"));
+        assertEquals("256,1,1", Manifest.get("attention_softmax_backward.local"));
+        assertEquals("m:0,w:1,out:2", Manifest.get("attention_mix.buffers"));
+        assertEquals("64,1,1", Manifest.get("attention_mix.local"));
+        assertEquals("w:0,x:1,dest:2", Manifest.get("attention_accumulate.buffers"));
+        assertEquals("64,1,1", Manifest.get("attention_accumulate.local"));
     }
 
     @Test
@@ -138,8 +154,7 @@ class KernelManifestTest {
 
     @Test
     void resourcesAreTheCompiledOutputs() {
-        for (String kernel : List.of("gemm", "philox", "softmax", "softmax_inplace", "activation",
-                "activation_inplace", "activation_self", "dropout", "dropout_inplace", "adamw", "sgd")) {
+        for (String kernel : kernelNames()) {
             var bundle = Kernels.bundle(kernel);
             byte[] spirv = bundle.executable(Backend.VULKAN).bytes();
             byte[] metal = bundle.executable(Backend.METAL).bytes();
@@ -149,6 +164,18 @@ class KernelManifestTest {
             assertTrue(source.startsWith("#pragma METAL fp math_mode(safe)\n#pragma METAL fp contract(off)\n"),
                     kernel + ".metal must disable fused multiply-adds");
         }
+    }
+
+    /** Every kernel in kernels.properties (one {@code <name>.entry} key each). */
+    private static List<String> kernelNames() {
+        Properties main = new Properties();
+        try (var in = Manifest.class.getResourceAsStream("kernels/kernels.properties")) {
+            main.load(in);
+        } catch (IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+        return main.stringPropertyNames().stream().filter(k -> k.endsWith(".entry"))
+                .map(k -> k.substring(0, k.length() - ".entry".length())).sorted().toList();
     }
 
     private static String hex(byte[] b) {
