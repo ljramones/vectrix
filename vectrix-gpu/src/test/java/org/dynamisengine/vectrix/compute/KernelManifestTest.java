@@ -55,6 +55,18 @@ class KernelManifestTest {
         assertParams("philox", GpuPhilox.PARAMS);
         assertParams("softmax", GpuSoftmax.PARAMS);
         assertParams("softmax_inplace", GpuSoftmax.PARAMS_IN_PLACE);
+        assertParams("blas_partial", GpuBlasf.PARAMS_PARTIAL);
+        assertParams("blas_combine", GpuBlasf.PARAMS_COMBINE);
+        assertParams("blas_amax", GpuBlasf.PARAMS_AMAX);
+        assertParams("blas_axpy", GpuBlasf.PARAMS_AXPY);
+        assertParams("blas_axpy_inplace", GpuBlasf.PARAMS_AXPY_IN_PLACE);
+        assertParams("blas_scal", GpuBlasf.PARAMS_SCAL);
+        assertParams("gemv", GpuGemmf.PARAMS_GEMV);
+        for (String k : new String[] {"blas_axpy", "blas_axpy_inplace", "blas_scal"}) {
+            assertEquals("float32", Manifest.paramTypes(k).get("a"));
+        }
+        assertEquals("float32", Manifest.paramTypes("gemv").get("alpha"));
+        assertEquals("float32", Manifest.paramTypes("gemv").get("beta"));
         assertEquals("float32", Manifest.paramTypes("gemm").get("alpha"));
         assertEquals("float32", Manifest.paramTypes("gemm").get("beta"));
     }
@@ -78,6 +90,20 @@ class KernelManifestTest {
         assertEquals("256,1,1", Manifest.get("softmax.local"));
         assertEquals("x:0", Manifest.get("softmax_inplace.buffers"));
         assertEquals("256,1,1", Manifest.get("softmax_inplace.local"));
+        assertEquals("x:0,y:1,scratch:2", Manifest.get("blas_partial.buffers"));
+        assertEquals("256,1,1", Manifest.get("blas_partial.local"));
+        assertEquals("scratch:0,result:1", Manifest.get("blas_combine.buffers"));
+        assertEquals("32,1,1", Manifest.get("blas_combine.local"));
+        assertEquals("x:0,scratch:1,result:2", Manifest.get("blas_amax.buffers"));
+        assertEquals("256,1,1", Manifest.get("blas_amax.local"));
+        assertEquals("x:0,y:1", Manifest.get("blas_axpy.buffers"));
+        assertEquals("256,1,1", Manifest.get("blas_axpy.local"));
+        assertEquals("x:0", Manifest.get("blas_axpy_inplace.buffers"));
+        assertEquals("256,1,1", Manifest.get("blas_axpy_inplace.local"));
+        assertEquals("x:0", Manifest.get("blas_scal.buffers"));
+        assertEquals("256,1,1", Manifest.get("blas_scal.local"));
+        assertEquals("a:0,x:1,y:2", Manifest.get("gemv.buffers"));
+        assertEquals("64,1,1", Manifest.get("gemv.local"));
     }
 
     @Test
@@ -109,7 +135,8 @@ class KernelManifestTest {
 
     @Test
     void resourcesAreTheCompiledOutputs() {
-        for (String kernel : List.of("gemm", "philox", "softmax", "softmax_inplace")) {
+        for (String kernel : List.of("gemm", "philox", "softmax", "softmax_inplace", "blas_partial", "blas_combine",
+                "blas_amax", "blas_axpy", "blas_axpy_inplace", "blas_scal", "gemv")) {
             var bundle = Kernels.bundle(kernel);
             byte[] spirv = bundle.executable(Backend.VULKAN).bytes();
             byte[] metal = bundle.executable(Backend.METAL).bytes();

@@ -42,6 +42,13 @@ KERNELS = [
     ("philox", "philox.slang", "philox"),
     ("softmax", "softmax.slang", "softmax"),
     ("softmax_inplace", "softmax_inplace.slang", "softmaxInPlace"),
+    ("blas_partial", "blas_partial.slang", "blasPartial"),
+    ("blas_combine", "blas_combine.slang", "blasCombine"),
+    ("blas_amax", "blas_amax.slang", "blasAmax"),
+    ("blas_axpy", "blas_axpy.slang", "axpy"),
+    ("blas_axpy_inplace", "blas_axpy_inplace.slang", "axpyInPlace"),
+    ("blas_scal", "blas_scal.slang", "scal"),
+    ("gemv", "gemv.slang", "gemv"),
 ]
 
 TEST_KERNELS = [
