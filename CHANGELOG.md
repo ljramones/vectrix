@@ -6,6 +6,26 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Added
+- **vectrix-gpu: GPU twins for most of the float kernels.** Each one ports the Vectrix algorithm exactly and is tested
+  bit for bit against it on Metal and MoltenVK. vectrix-gpu now has 16 classes and 58 kernels:
+  - **Linear algebra:** `GpuBlasf` (`dot`, `sum`, `asum`, `nrm2`, `iamax`, `axpy`, `scal` over whole vectors in
+    Blasf's pairwise order) and `GpuGemmf.gemv`.
+  - **Neural networks:**
+    - `GpuActivations`: every float-only activation and its backward pass, plus dropout.
+    - `GpuSoftmax` gains `logSoftmax`, `logSumExp` and both backward passes.
+    - `GpuLoss` (cross-entropy), `GpuNorms` (layer and RMS norm with backward passes) and `GpuAttention`
+      (forward, backward and grouped-query).
+    - `GpuOptim` (AdamW and SGD).
+    - `GpuFormats` (bf16, E4M3 and E5M2 conversions; int8 quantize, dequantize, dot and gemv) and
+      `GpuSampler.argmax`.
+  - **Scenes and animation:** `GpuCullingKernels`, `GpuTransformKernels`, `GpuSkinningKernels` (linear-blend,
+    dual-quaternion and palette skinning) and `GpuPackedAffineKernels`.
+  - **Shared math, verified on all 2³² inputs:** Slang ports of `ReproducibleMath` exp, expm1, tanh, sigmoid, log and
+    log1p, and of `Math.invsqrt`. The GPU's own `sqrt` also checked as correctly rounded.
+  - **Not ported:** `gelu`, `geluBackward` and `Rope`, which compute in double (Metal has no FP64), and
+    `Sampler.sample`.
+
 ## [3.1.0] - 2026-11-23
 New in this release:
 - **vectrix-gpu**: Vectrix kernels on the GPU, with the CPU's results. GEMM, Philox and softmax run through

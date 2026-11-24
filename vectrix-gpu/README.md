@@ -15,11 +15,49 @@ vectrix (CPU reference)        dynamis-gpu-api
    NeuralNetworks, LightEngine, ...
 ```
 
+"IEEE devices" in the last column means GPUs that round single-precision add, multiply, divide and `sqrt` correctly
+and fuse `fma`; see [Where the GPU can differ](#where-the-gpu-can-differ-from-the-cpu).
+
+**Linear algebra**
+
 | Class | Twin of | Kernel | Matches the CPU |
 |---|---|---|---|
-| `GpuGemmf` | `blas.Gemmf.gemm` | `C = α·op(A)·op(B) + β·C`, row-major, any transposes, offsets and strides | bit for bit on IEEE devices |
+| `GpuBlasf` | `blas.Blasf` `dot`, `sum`, `asum`, `nrm2`, `iamax`, `axpy`, `scal` | reductions over whole vectors in Blasf's pairwise order, with the result left on the GPU; element-wise `axpy` (in place or not) and `scal` | bit for bit on IEEE devices |
+| `GpuGemmf` | `blas.Gemmf.gemm`, `Gemmf.gemv` | `C = α·op(A)·op(B) + β·C` and `y = α·op(A)·x + β·y`, row-major, any transposes, offsets and strides | bit for bit on IEEE devices |
+
+**Neural networks**
+
+| Class | Twin of | Kernel | Matches the CPU |
+|---|---|---|---|
+| `GpuActivations` | `nn.Activations`, all but `gelu` and `geluBackward` (they compute in double) | activations forward and backward, in place or not; inverted dropout with the Philox mask | bit for bit on IEEE devices; the dropout mask on every device |
+| `GpuSoftmax` | `nn.Softmax` `softmax`, `logSoftmax`, `logSumExp`, `softmaxBackward`, `logSoftmaxBackward` | over the rows of a matrix, in place or not | bit for bit on IEEE devices |
+| `GpuLoss` | `nn.Loss` `crossEntropy`, `crossEntropyBackward` | over rows, one int target per row | bit for bit on IEEE devices |
+| `GpuNorms` | `nn.Norms` `layerNorm`, `rmsNorm` and their backward passes | over rows; parameter gradients summed in row order, as on the CPU | bit for bit on IEEE devices |
+| `GpuAttention` | `nn.Attention` `forward`, `backward`, `groupedQuery`, `groupedQueryBackward` | scaled dot-product attention batched over queries and heads, with an optional causal mode; gradients accumulated in the CPU's order | bit for bit on IEEE devices |
+| `GpuOptim` | `nn.Optim` `adamW`, `sgd` | one optimizer step per element, with AdamW's bias corrections computed on the host as Vectrix does | bit for bit on IEEE devices |
+| `GpuFormats` | `nn.Formats` | bf16, E4M3 and E5M2 conversions over buffers; int8 quantize, dequantize, dot and gemv (blocks of 32) | conversions, quantize and dequantize: bit for bit on every device, subnormals included. Dot and gemv: bit for bit on IEEE devices |
+| `GpuSampler` | `nn.Sampler.argmax` | the argmax of each row (the first NaN wins; ties go to the lowest index) | bit for bit on every device |
+
+**Random numbers**
+
+| Class | Twin of | Kernel | Matches the CPU |
+|---|---|---|---|
 | `GpuPhilox` | `hash.Philox.word`, `Philox.uniform` | fills a buffer with a counter-based random stream | bit for bit on every device (integer only) |
-| `GpuSoftmax` | `nn.Softmax.softmax` | softmax over the rows of a matrix, in place or not | bit for bit on IEEE devices |
+
+**Scenes and animation**
+
+| Class | Twin of | Kernel | Matches the CPU |
+|---|---|---|---|
+| `GpuCullingKernels` | `geometry.CullingKernels.frustumCullAabbBatch` | INSIDE, INTERSECT or OUTSIDE per box against six planes | bit for bit on IEEE devices |
+| `GpuTransformKernels` | `soa.TransformKernels.composeBatch` | parent·local TRS composition (the FAST mode) | bit for bit on IEEE devices |
+| `GpuSkinningKernels` | `soa.SkinningKernels`: linear-blend, dual-quaternion and matrix-palette skinning, and building palettes | four-influence skinning, interleaved or per-slot | bit for bit on IEEE devices |
+| `GpuPackedAffineKernels` | `affine.PackedAffineKernels`: quaternion plus translation, AABB transform, upload | batches of 3×4 affine transforms in `AFFINE_3X4_ROW_MAJOR` | bit for bit on IEEE devices |
+
+**Not ported:**
+- `Activations.gelu` and `geluBackward`, `Rope`, and `Optim.clipFactor`: they compute in double, and Metal has no
+  FP64.
+- `Sampler.sample`: sequential host-side work.
+- Methods that take arrays of objects, such as `PackedAffineKernels.trsToPackedAffineBatch`.
 
 ## Using it
 
@@ -54,7 +92,12 @@ offset:
 - **Validation:** arguments are checked before anything is recorded, and bad ones throw
   `IllegalArgumentException`, as on the CPU.
 - **Recording:** dispatches only record into your encoder, so you can batch several and wait once.
-- **Data:** buffers hold little-endian 32-bit values.
+- **Data:** buffers hold little-endian 32-bit values. 8- and 16-bit data is packed with element 0 in the low bits:
+  two bf16 or four 8-bit codes per word. That's the byte layout of a Java `short[]` or `byte[]`, so arrays upload as
+  they are. Offsets and counts need not be word-aligned.
+- **Layouts:** scene types such as `TransformSoA` and `AABBSoA` become one buffer per type, each field a plane of
+  `count` values in the Java field order. Packed transforms keep the `AFFINE_3X4_ROW_MAJOR` bytes of
+  `PackedAffineArray`.
 
 ### Where the GPU can differ from the CPU
 
@@ -65,14 +108,24 @@ offset:
   arithmetic. Use 1.0.3 or later, or set `MVK_CONFIG_FAST_MATH_ENABLED=0` in the environment.
 - **Other devices:** anything that doesn't round single-precision add, multiply and divide correctly, or doesn't fuse
   `fma`, will differ in the last bits. The tests show which.
+- **Values only the kernel reads:** some arguments live in buffers, so they can't be checked before the dispatch.
+  Where the CPU method throws on a bad value, the GPU twin writes a defined result instead:
+  - an out-of-range cross-entropy target gives a NaN loss or gradient row;
+  - out-of-range joint indices or transform `order` entries leave that element unchanged;
+  - `GpuFormats.quantizeInt8` gives a block holding a NaN or an infinity the scale NaN and zero codes.
 
 ### Limits
 
 - **Indices:** element indices must stay below 2³².
-- **Softmax row length:** at most `GpuSoftmax.MAX_ROW` (262,144) elements.
+- **Row length:** at most `GpuSoftmax.MAX_ROW` (262,144) elements for every row kernel (softmax, loss, norms,
+  argmax). The same limit applies to attention keys per query (`GpuAttention.MAX_KEYS`).
 - **Philox fill length:** at most `GpuPhilox.MAX_FILL` values.
-- **Buffers:** a destination must be a different buffer from the inputs. The one exception is in-place softmax,
-  where `y` is `x` at the same offset and stride.
+- **Scratch:** BLAS reductions take caller scratch of `GpuBlasf.scratchSize(n)` elements (at most 278,530), and the
+  attention backward passes take `GpuAttention.backwardScratchSize(...)`. Scratch must be a separate buffer from the
+  inputs and outputs.
+- **Buffers:** a destination must be a different buffer from the inputs. The exceptions are the in-place forms the
+  CPU allows, where the output is an input at the same offset and stride. These include activations, dropout, softmax
+  and its relatives, norms and `axpy`. Optimizer buffers must all be distinct.
 
 ## Building
 
@@ -113,6 +166,10 @@ A requested backend without a device fails the run instead of skipping it.
 The CI runners have no GPU, so run both hardware profiles before a release. On an Apple M4 Max with DynamisGPU
 1.0.3, every test passes on both native Metal and MoltenVK, with no environment settings.
 
+Two sweeps cover every 32-bit float input but are opt-in, because they take minutes:
+`-Dvectrix.gpu.exhaustive=true` checks all 2³² inputs to the math functions (`ReproducibleMathGpuTest`) and to the
+format encoders (`GpuFormatsTest`). Normal runs check about a million inputs spread over the whole range.
+
 ## Adding or changing a kernel
 
 Kernels are written in [Slang](https://shader-slang.org), in `src/main/slang`. `scripts/build-kernels.py` compiles
@@ -128,8 +185,14 @@ the Java side writes match the fields and offsets Slang compiled.
 
 **Rules for kernel sources:**
 - **Port the Vectrix method exactly:** the same operation order, explicit `fma` where the Java uses `Math.fma`, and
-  the helpers in `common.slang` (`jmax`/`jmin` for `Math.max`/`min`, `reproducibleExp`, `pairwiseBlocks` for the
-  `Blasf` reduction order).
+  the helpers in `common.slang`:
+  - `jmax`, `jmin`, `jabs` and `jcopySign` for `Math.max`, `min`, `abs` and `copySign`;
+  - `reproducibleExp`, `Expm1`, `Tanh`, `Sigmoid`, `Log` and `Log1p` for `ReproducibleMath`, each verified on all
+    2³² inputs;
+  - `pairwiseBlocks` and `combineLanes` for the `Blasf` reduction order.
+
+  The GPU's own `sqrt` is correctly rounded, also verified on all inputs. `Math.invsqrt` computes in double; its
+  port is `vectrixInvsqrt` in `engine.slang`.
 - **Declare bindings in order:** buffers in slot order, then the `[[vk::push_constant]]` parameter block, all fields
   32-bit. Metal then numbers buffers by slot and puts the parameters at the next index, as DynamisGPU expects; the
   script checks this.
@@ -137,6 +200,11 @@ the Java side writes match the fields and offsets Slang compiled.
   the value in its own group variable that nothing writes again for the row (see `softmax_row.slang`).
 - **Keep barriers in uniform control flow:** every thread of a group must reach the same barriers. Loop bounds may
   depend only on parameters and the group index.
+- **Don't start a sum from a constant `0.0f`:** Slang folds `0.0f + v` to `v` even at `-O0`, which keeps a `-0`
+  that Java turns into `+0`. Route the first term through `plusZero()` (`engine.slang`), or start the accumulator in
+  a loop variable.
+- **Import what you use:** Slang imports aren't transitive, so a kernel that imports a module built on `common`
+  must also `import common;` itself.
 
 **What the script works around:**
 - **Slang's optimizer:** it folds `(x + c) - c` to `x`, which IEEE arithmetic forbids, so kernels compile at
@@ -148,6 +216,6 @@ the Java side writes match the fields and offsets Slang compiled.
   `#pragma METAL fp contract(off)`. Without them, Metal fuses multiply-adds even with fast math disabled.
 
 **Then wire it up:**
-1. Add a Java class beside `GpuGemmf`.
-2. Add a model of the kernel to `ReferenceProvider`.
-3. Add a parity test that runs on `Devices.names()`.
+1. Add a Java class beside `GpuGemmf`, and add the kernel to `KERNELS` in `scripts/build-kernels.py`.
+2. Add a CPU model of the kernel in a class of its own, registered with one line in `ReferenceModels`.
+3. Add a parity test that runs on `Devices.names()`, and assert its `PARAMS` in `KernelManifestTest`.

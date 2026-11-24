@@ -75,9 +75,10 @@ The [examples](examples/README.md) are complete, tested programs for each topic.
 
 [package-map.md](docs/package-map.md) describes all 29 top-level packages and their dependencies.
 
-The GPU versions of the GEMM, Philox and softmax kernels are in a separate artifact,
-[vectrix-gpu](vectrix-gpu/README.md). It runs them through DynamisGPU on Metal or Vulkan and matches the CPU
-results bit for bit. The Vectrix jar itself never touches the GPU.
+GPU versions of the kernels are in a separate artifact, [vectrix-gpu](vectrix-gpu/README.md). It runs them
+through DynamisGPU on Metal or Vulkan and matches the CPU results bit for bit. That covers BLAS and GEMM, the neural
+network kernels (activations, softmax, losses, norms, attention, optimizers, formats), Philox, culling, skinning
+and transforms. The Vectrix jar itself never touches the GPU.
 
 ## Documentation
 
