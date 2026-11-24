@@ -57,6 +57,20 @@ class KernelManifestTest {
         assertParams("softmax_inplace", GpuSoftmax.PARAMS_IN_PLACE);
         assertEquals("float32", Manifest.paramTypes("gemm").get("alpha"));
         assertEquals("float32", Manifest.paramTypes("gemm").get("beta"));
+        assertParams("cull_aabb", GpuCullingKernels.PARAMS);
+        assertParams("transform_compose", GpuTransformKernels.PARAMS);
+        assertParams("skin_lbs", GpuSkinningKernels.PARAMS);
+        assertParams("skin_dq", GpuSkinningKernels.PARAMS);
+        assertParams("skin_palette", GpuSkinningKernels.PARAMS_PALETTE_SKIN);
+        assertParams("palette_build", GpuSkinningKernels.PARAMS_PALETTE_BUILD);
+        assertParams("affine_quat_translation", GpuPackedAffineKernels.PARAMS_QUAT_TRANSLATION);
+        assertParams("affine_aabb", GpuPackedAffineKernels.PARAMS_AABB);
+        assertParams("affine_upload", GpuPackedAffineKernels.PARAMS_UPLOAD);
+        for (int i = 0; i < GpuCullingKernels.PLANE_FLOATS; i++) {
+            assertEquals("float32", Manifest.paramTypes("cull_aabb").get(GpuCullingKernels.PARAMS[i]));
+        }
+        assertTrue(4 * GpuCullingKernels.PARAMS.length <= 128, "the culling parameters fit Vulkan's guaranteed 128"
+                + " bytes of push constants");
     }
 
     private static void assertParams(String kernel, String[] fields) {
@@ -78,7 +92,23 @@ class KernelManifestTest {
         assertEquals("256,1,1", Manifest.get("softmax.local"));
         assertEquals("x:0", Manifest.get("softmax_inplace.buffers"));
         assertEquals("256,1,1", Manifest.get("softmax_inplace.local"));
+        assertEquals("bounds:0,result:1", Manifest.get("cull_aabb.buffers"));
+        assertEquals("parents:0,locals:1,outT:2", Manifest.get("transform_compose.buffers"));
+        assertEquals("joints:0,indices:1,weights:2,inPos:3,outPos:4", Manifest.get("skin_lbs.buffers"));
+        assertEquals("joints:0,indices:1,weights:2,inPos:3,outPos:4", Manifest.get("skin_dq.buffers"));
+        assertEquals("palette:0,indices:1,weights:2,inPos:3,outPos:4", Manifest.get("skin_palette.buffers"));
+        assertEquals("joints:0,palette:1", Manifest.get("palette_build.buffers"));
+        assertEquals("rotation:0,translation:1,outAffine:2", Manifest.get("affine_quat_translation.buffers"));
+        assertEquals("transforms:0,order:1,inBox:2,outBox:3", Manifest.get("affine_aabb.buffers"));
+        assertEquals("transforms:0,order:1,outUpload:2", Manifest.get("affine_upload.buffers"));
+        for (String k : ENGINE) {
+            assertEquals(EngineBuffers.GROUP + ",1,1", Manifest.get(k + ".local"), k);
+        }
     }
+
+    /** The engine kernels (culling, transforms, skinning, packed affine). */
+    private static final List<String> ENGINE = List.of("cull_aabb", "transform_compose", "skin_lbs", "skin_dq",
+            "skin_palette", "palette_build", "affine_quat_translation", "affine_aabb", "affine_upload");
 
     @Test
     void compiledKernelsAreUpToDate() throws IOException {
@@ -109,7 +139,9 @@ class KernelManifestTest {
 
     @Test
     void resourcesAreTheCompiledOutputs() {
-        for (String kernel : List.of("gemm", "philox", "softmax", "softmax_inplace")) {
+        List<String> kernels = new ArrayList<>(List.of("gemm", "philox", "softmax", "softmax_inplace"));
+        kernels.addAll(ENGINE);
+        for (String kernel : kernels) {
             var bundle = Kernels.bundle(kernel);
             byte[] spirv = bundle.executable(Backend.VULKAN).bytes();
             byte[] metal = bundle.executable(Backend.METAL).bytes();

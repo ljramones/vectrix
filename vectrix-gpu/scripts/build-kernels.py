@@ -42,6 +42,15 @@ KERNELS = [
     ("philox", "philox.slang", "philox"),
     ("softmax", "softmax.slang", "softmax"),
     ("softmax_inplace", "softmax_inplace.slang", "softmaxInPlace"),
+    ("cull_aabb", "cull_aabb.slang", "cullAabb"),
+    ("transform_compose", "transform_compose.slang", "compose"),
+    ("skin_lbs", "skin_lbs.slang", "skinLbs"),
+    ("skin_dq", "skin_dq.slang", "skinDualQuat"),
+    ("skin_palette", "skin_palette.slang", "skinPalette"),
+    ("palette_build", "palette_build.slang", "buildPalette"),
+    ("affine_quat_translation", "affine_quat_translation.slang", "quatTranslationToAffine"),
+    ("affine_aabb", "affine_aabb.slang", "transformAabb"),
+    ("affine_upload", "affine_upload.slang", "uploadAffine"),
 ]
 
 TEST_KERNELS = [
