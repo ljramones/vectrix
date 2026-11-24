@@ -61,9 +61,8 @@ offset:
 - **Subnormals:** GPUs that flush subnormal floats (magnitude below 2⁻¹²⁶) to zero, including every Apple GPU, give
   0 where Vectrix gives a subnormal. Values computed from it follow from the zero. For example, a softmax
   probability below 2⁻¹²⁶ comes out as 0.
-- **MoltenVK fast math:** on Vulkan through MoltenVK, fast math must be off (`MVK_CONFIG_FAST_MATH_ENABLED=0` in the
-  environment). With it on, the Metal compiler reassociates arithmetic and the results differ. Native Metal needs
-  nothing: the kernels switch off fusing themselves.
+- **DynamisGPU before 1.0.3:** on MoltenVK, 1.0.2 and earlier leave Metal fast math on, which reassociates
+  arithmetic. Use 1.0.3 or later, or set `MVK_CONFIG_FAST_MATH_ENABLED=0` in the environment.
 - **Other devices:** anything that doesn't round single-precision add, multiply and divide correctly, or doesn't fuse
   `fma`, will differ in the last bits. The tests show which.
 
@@ -87,8 +86,8 @@ mvn -f vectrix-gpu/pom.xml verify
 DynamisGPU comes from its GitHub Release when it isn't already in your local repository:
 
 ```bash
-curl -fsSLO https://github.com/ljramones/DynamicGPU/releases/download/v1.0.2/dynamisgpu-1.0.2-maven.zip
-unzip -q dynamisgpu-1.0.2-maven.zip && cp -R dynamisgpu-1.0.2/repository/. ~/.m2/repository/
+curl -fsSLO https://github.com/ljramones/DynamicGPU/releases/download/v1.0.3/dynamisgpu-1.0.3-maven.zip
+unzip -q dynamisgpu-1.0.3-maven.zip && cp -R dynamisgpu-1.0.3/repository/. ~/.m2/repository/
 ```
 
 ## Testing
@@ -112,7 +111,7 @@ VK_DRIVER_FILES=$HOME/VulkanSDK/1.4.341.0/macOS/share/vulkan/icd.d/MoltenVK_icd.
 A requested backend without a device fails the run instead of skipping it.
 
 The CI runners have no GPU, so run both hardware profiles before a release. On an Apple M4 Max with DynamisGPU
-1.0.2, every test passes on both native Metal and MoltenVK.
+1.0.3, every test passes on both native Metal and MoltenVK, with no environment settings.
 
 ## Adding or changing a kernel
 

@@ -39,8 +39,8 @@
  * multiply-add) the results are the bits Vectrix computes on the CPU. Integer kernels such as Philox match on every
  * device. The exception is subnormal values (magnitude below {@code 2^-126}): GPUs that flush them to zero,
  * including every Apple GPU, produce zero where Vectrix produces a subnormal, and anything computed from that value
- * follows from the zero. On MoltenVK, fast math must be off ({@code MVK_CONFIG_FAST_MATH_ENABLED=0}); with it on,
- * the Metal compiler reassociates arithmetic and results differ.
+ * follows from the zero. DynamisGPU 1.0.3 or later is needed on MoltenVK: earlier versions leave Metal fast math
+ * on, which reassociates arithmetic.
  * <p>
  * Buffers hold little-endian 32-bit values. Like DynamisGPU devices, instances are confined to the thread that
  * created their device.

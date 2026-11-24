@@ -35,7 +35,8 @@
     <properties>
         <!-- Kept equal to the library version by ExamplesVersionTest in the library build. -->
         <vectrix.version>3.0.0</vectrix.version>
-        <dynamisgpu.version>1.0.2</dynamisgpu.version>
+        <!-- 1.0.3 and later compile with IEEE floating point by default (no fusing on Metal, no MoltenVK fast math). -->
+        <dynamisgpu.version>1.0.3</dynamisgpu.version>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.10.3</junit.version>
@@ -105,10 +106,6 @@
                         <vectrix.gpu.vulkan>${vectrix.gpu.vulkan}</vectrix.gpu.vulkan>
                         <dynamisgpu.vk.loader>${dynamisgpu.vk.loader}</dynamisgpu.vk.loader>
                     </systemPropertyVariables>
-                    <environmentVariables>
-                        <!-- MoltenVK compiles with fast math unless told not to; fast math reassociates. -->
-                        <MVK_CONFIG_FAST_MATH_ENABLED>0</MVK_CONFIG_FAST_MATH_ENABLED>
-                    </environmentVariables>
                 </configuration>
             </plugin>
             <plugin>

@@ -15,6 +15,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
     one exception being subnormals, which Apple GPUs flush to zero.
   - **Sources:** written in Slang, compiled by `vectrix-gpu/scripts/build-kernels.py`.
   - **Releases:** released at the library's version, not deployed to Central.
+  - **Requires DynamisGPU 1.0.3 or later**, which compiles shaders with IEEE floating point by default.
 
 ## [3.0.0] - 2026-11-23
 New in this release:
