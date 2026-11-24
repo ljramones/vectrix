@@ -121,6 +121,7 @@ final class ReferenceModels {
         ElementwiseModels.register(MODELS);
         AttentionModels.register(MODELS);
         BlasModels.register(MODELS);
+        FormatsModels.register(MODELS);
     }
 
     private ReferenceModels() {

@@ -80,6 +80,14 @@ class KernelManifestTest {
         }
         assertEquals("float32", Manifest.paramTypes("gemv").get("alpha"));
         assertEquals("float32", Manifest.paramTypes("gemv").get("beta"));
+        assertParams("to_bf16", GpuFormats.PARAMS_TO_BF16);
+        assertParams("from_bf16", GpuFormats.PARAMS_FROM_BF16);
+        assertParams("to_fp8", GpuFormats.PARAMS_TO_FP8);
+        assertParams("from_fp8", GpuFormats.PARAMS_FROM_FP8);
+        assertParams("quantize_int8", GpuFormats.PARAMS_QUANTIZE);
+        assertParams("dequantize_int8", GpuFormats.PARAMS_DEQUANTIZE);
+        assertParams("gemv_int8", GpuFormats.PARAMS_GEMV);
+        assertParams("argmax", GpuSampler.PARAMS);
         assertEquals("float32", Manifest.paramTypes("gemm").get("alpha"));
         assertEquals("float32", Manifest.paramTypes("gemm").get("beta"));
         for (String k : new String[] {"dropout", "dropout_inplace"}) {
@@ -149,6 +157,19 @@ class KernelManifestTest {
         assertEquals("256,1,1", Manifest.get("blas_scal.local"));
         assertEquals("a:0,x:1,y:2", Manifest.get("gemv.buffers"));
         assertEquals("64,1,1", Manifest.get("gemv.local"));
+        assertEquals("x:0,h:1", Manifest.get("to_bf16.buffers"));
+        assertEquals("h:0,x:1", Manifest.get("from_bf16.buffers"));
+        assertEquals("x:0,codes:1", Manifest.get("to_fp8.buffers"));
+        assertEquals("codes:0,x:1", Manifest.get("from_fp8.buffers"));
+        assertEquals("x:0,q:1,scales:2", Manifest.get("quantize_int8.buffers"));
+        assertEquals("q:0,scales:1,x:2", Manifest.get("dequantize_int8.buffers"));
+        assertEquals("q:0,scales:1,x:2,y:3", Manifest.get("gemv_int8.buffers"));
+        assertEquals("logits:0,dest:1", Manifest.get("argmax.buffers"));
+        for (String k : List.of("to_bf16", "from_bf16", "to_fp8", "from_fp8", "dequantize_int8", "gemv_int8")) {
+            assertEquals("64,1,1", Manifest.get(k + ".local"), k);
+        }
+        assertEquals("256,1,1", Manifest.get("quantize_int8.local"));
+        assertEquals("256,1,1", Manifest.get("argmax.local"));
     }
 
     @Test
