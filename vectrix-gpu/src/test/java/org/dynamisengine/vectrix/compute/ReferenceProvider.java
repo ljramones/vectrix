@@ -197,7 +197,14 @@ final class ReferenceProvider implements GpuProvider {
                 case "philox" -> philox(u, slots, g);
                 case "softmax" -> softmax(u, slots.get(0), slots.get(1), u.get("yOff"), u.get("ldy"), g);
                 case "softmax_inplace" -> softmax(u, slots.get(0), slots.get(0), u.get("xOff"), u.get("ldx"), g);
-                default -> throw new ComputeException(ComputeException.Code.UNSUPPORTED, "no reference for " + name);
+                case "math_probe" -> mathProbe(u, slots.get(0), g);
+                default -> {
+                    var model = ReferenceModels.get(name);
+                    if (model == null) {
+                        throw new ComputeException(ComputeException.Code.UNSUPPORTED, "no reference for " + name);
+                    }
+                    model.run(new ReferenceModels.Call(u, f, slots, g));
+                }
             }
         }
 
@@ -251,6 +258,17 @@ final class ReferenceProvider implements GpuProvider {
                 int v = u.get("uniform") != 0 ? Float.floatToRawIntBits(Philox.uniform(seed, start + e))
                         : Philox.word(seed, start + e);
                 dest.putInt((off + e) * 4, v);
+            }
+        }
+
+        private static void mathProbe(Map<String, Long> u, ByteBuffer out, Dimensions g) {
+            int count = i(u, "count");
+            require(u.get("gridX") == g.x() && (long) g.x() * g.y() * 64 >= count, "probe groups " + g
+                    + " do not cover " + count);
+            var fn = ReproducibleMathGpuTest.Fn.values()[i(u, "fn")];
+            for (int k = 0; k < count; k++) {
+                float x = Float.intBitsToFloat((int) (u.get("base") + k * u.get("stride")));
+                out.putInt(k * 4, Float.floatToRawIntBits(fn.op.apply(x)));
             }
         }
 

@@ -38,9 +38,23 @@ final class Manifest {
     private Manifest() {
     }
 
+    /** The test kernels' manifest alone (testkernels/testkernels.properties). */
+    static final Properties TEST = read("testkernels/testkernels.properties");
+
     private static Properties load() {
+        Properties p = read("kernels/kernels.properties");
+        Properties t = read("testkernels/testkernels.properties");
+        t.forEach((k, v) -> {
+            if (!k.toString().startsWith("slangc.") && !k.toString().startsWith("source.")) {
+                p.put(k, v);
+            }
+        });
+        return p;
+    }
+
+    private static Properties read(String resource) {
         Properties p = new Properties();
-        try (InputStream in = Manifest.class.getResourceAsStream("kernels/kernels.properties")) {
+        try (InputStream in = Manifest.class.getResourceAsStream(resource)) {
             p.load(in);
         } catch (IOException e) {
             throw new UncheckedIOException(e);

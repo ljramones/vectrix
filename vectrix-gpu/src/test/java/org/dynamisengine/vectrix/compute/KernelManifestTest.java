@@ -82,19 +82,29 @@ class KernelManifestTest {
 
     @Test
     void compiledKernelsAreUpToDate() throws IOException {
+        assertEquals(Manifest.get("source.sha256"), sourceHash(SLANG),
+                "src/main/slang changed since the kernels were compiled: run python3 scripts/build-kernels.py");
+        assertEquals(Manifest.TEST.getProperty("source.sha256"), sourceHash(SLANG, Path.of("src/test/slang")),
+                "src/main/slang or src/test/slang changed since the test kernels were compiled: run python3 "
+                        + "scripts/build-kernels.py");
+    }
+
+    private static String sourceHash(Path... dirs) throws IOException {
         MessageDigest h = sha256();
-        List<Path> files;
-        try (Stream<Path> s = Files.list(SLANG)) {
-            files = new ArrayList<>(s.filter(p -> p.toString().endsWith(".slang")).sorted().toList());
+        List<Path> files = new ArrayList<>();
+        for (Path dir : dirs) {
+            try (Stream<Path> s = Files.list(dir)) {
+                files.addAll(s.filter(p -> p.toString().endsWith(".slang")).toList());
+            }
         }
+        files.sort(null);
         for (Path f : files) {
             h.update(f.getFileName().toString().getBytes(StandardCharsets.UTF_8));
             h.update((byte) 0);
             h.update(Files.readAllBytes(f));
             h.update((byte) 0);
         }
-        assertEquals(Manifest.get("source.sha256"), HexFormat.of().formatHex(h.digest()),
-                "src/main/slang changed since the kernels were compiled: run python3 scripts/build-kernels.py");
+        return HexFormat.of().formatHex(h.digest());
     }
 
     @Test

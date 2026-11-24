@@ -37,6 +37,91 @@ float reproducibleExp(float x)
     return t * asfloat(uint((k1 + 127) << 23)) * asfloat(uint((k - k1 + 127) << 23));
 }
 
+// Java Math.abs(float): clears the sign bit (NaN included).
+float jabs(float x)
+{
+    return asfloat(asuint(x) & 0x7FFFFFFFu);
+}
+
+// Java Math.copySign(magnitude, sign): the magnitude with the sign bit of `sign` (raw, NaN included).
+float jcopySign(float magnitude, float sign)
+{
+    return asfloat((asuint(magnitude) & 0x7FFFFFFFu) | (asuint(sign) & 0x80000000u));
+}
+
+// ReproducibleMath.expm1(float).
+float reproducibleExpm1(float x)
+{
+    if (jabs(x) < 0.5f)
+    {
+        float p = fma(fma(fma(fma(fma(fma(fma(fma(2.7557319e-7f, x, 2.7557319e-6f), x, 2.4801588e-5f), x,
+                1.984127e-4f), x, 0.0013888889f), x, 0.008333334f), x, 0.041666668f), x, 0.16666667f), x, 0.5f);
+        return fma(p, x * x, x);
+    }
+    return reproducibleExp(x) - 1.0f;
+}
+
+// ReproducibleMath.tanh(float).
+float reproducibleTanh(float x)
+{
+    float a = jmin(jabs(x), 9.1f);
+    float e = reproducibleExpm1(2.0f * a);
+    return jcopySign(e / (e + 2.0f), x);
+}
+
+// ReproducibleMath.sigmoid(float).
+float reproducibleSigmoid(float x)
+{
+    return 1.0f / (1.0f + reproducibleExp(-x));
+}
+
+// ReproducibleMath.logReduced: e·ln 2 + log(1 + f) for 1 + f in [√½, √2].
+float logReduced(float f, int e)
+{
+    const float LN2_HI = 0.693359375f;
+    const float LN2_LO = -2.12194440e-4f;
+    float s = f / (2.0f + f);
+    float z = s * s;
+    float r = z * fma(fma(fma(0.11111111f, z, 0.14285715f), z, 0.2f), z, 0.33333334f);
+    float t = fma(s, r, s);
+    float ef = float(e);
+    return fma(ef, LN2_HI, fma(ef, LN2_LO, 2.0f * t));
+}
+
+// ReproducibleMath.log(float).
+float reproducibleLog(float x)
+{
+    if (!(x > 0.0f) || x == asfloat(0x7F800000u))
+    {
+        return x == 0.0f ? asfloat(0xFF800000u) : x == asfloat(0x7F800000u) ? x : asfloat(0x7FC00000u);
+    }
+    int sub = 0;
+    if (x < asfloat(0x00800000u))
+    {
+        x *= 8388608.0f; // 2^23
+        sub = 23;
+    }
+    int bits = asint(x);
+    int e = (bits >> 23) - 127 - sub;
+    float m = asfloat(uint((bits & 0x007FFFFF) | 0x3F800000));
+    if (m > 1.4142135f)
+    {
+        m *= 0.5f;
+        e += 1;
+    }
+    return logReduced(m - 1.0f, e);
+}
+
+// ReproducibleMath.log1p(float).
+float reproducibleLog1p(float y)
+{
+    if (y > -0.29289323f && y < 0.41421357f)
+    {
+        return logReduced(y, 0);
+    }
+    return reproducibleLog(1.0f + y);
+}
+
 // The fixed combine of the 8 interleaved lanes of a reduction block (Blasf's class comment).
 float combineLanes(float a0, float a1, float a2, float a3, float a4, float a5, float a6, float a7)
 {
