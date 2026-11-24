@@ -58,12 +58,34 @@ uint4 philoxBlock_0(uint4 ctr_0, uint2 key_0)
     return uint4(c0_0, c1_0, c2_0, c3_0);
 }
 
+uint4 streamBlock_0(uint seedLo_0, uint seedHi_0, uint startLo_0, uint startHi_0, uint t_0)
+{
+    uint base_0 = (startLo_0 >> 2U) | (startHi_0 << 30U);
+    uint lo_0 = base_0 + t_0;
+    uint _S9 = startHi_0 >> 2U;
+    uint _S10;
+    if(lo_0 < base_0)
+    {
+        _S10 = 1U;
+    }
+    else
+    {
+        _S10 = 0U;
+    }
+    return philoxBlock_0(uint4(lo_0, (_S9 + _S10) & 1073741823U, 0U, 0U), uint2(seedLo_0, seedHi_0));
+}
+
+float uniformOf_0(uint word_0)
+{
+    return float(word_0 >> 8U) * (as_type<float>((864026624U)));
+}
+
 struct PhiloxParams_0
 {
-    uint seedLo_0;
-    uint seedHi_0;
-    uint startLo_0;
-    uint startHi_0;
+    uint seedLo_1;
+    uint seedHi_1;
+    uint startLo_1;
+    uint startHi_1;
     uint off_0;
     uint n_0;
     uint uniform_0;
@@ -81,26 +103,14 @@ struct KernelContext_0
     thread KernelContext_0 kernelContext_0;
     (&kernelContext_0)->p_0 = p_1;
     (&kernelContext_0)->dest_0 = dest_1;
-    uint t_0 = (group_0.y * p_1->gridX_0 + group_0.x) * 64U + local_0.x;
-    uint skip_0 = (p_1->startLo_0) & 3U;
-    if(t_0 >= ((skip_0 + p_1->n_0 + 3U) / 4U))
+    uint t_1 = (group_0.y * p_1->gridX_0 + group_0.x) * 64U + local_0.x;
+    uint skip_0 = (p_1->startLo_1) & 3U;
+    if(t_1 >= ((skip_0 + p_1->n_0 + 3U) / 4U))
     {
         return;
     }
-    uint base_0 = ((p_1->startLo_0) >> 2U) | (((&kernelContext_0)->p_0->startHi_0) << 30U);
-    uint lo_0 = base_0 + t_0;
-    uint _S9 = ((&kernelContext_0)->p_0->startHi_0) >> 2U;
-    uint _S10;
-    if(lo_0 < base_0)
-    {
-        _S10 = 1U;
-    }
-    else
-    {
-        _S10 = 0U;
-    }
-    uint4 _S11 = philoxBlock_0(uint4(lo_0, (_S9 + _S10) & 1073741823U, 0U, 0U), uint2((&kernelContext_0)->p_0->seedLo_0, (&kernelContext_0)->p_0->seedHi_0));
-    uint _S12 = t_0 * 4U;
+    uint4 _S11 = streamBlock_0((&kernelContext_0)->p_0->seedLo_1, (&kernelContext_0)->p_0->seedHi_1, p_1->startLo_1, (&kernelContext_0)->p_0->startHi_1, t_1);
+    uint _S12 = t_1 * 4U;
     int _S13 = int(skip_0);
     int e_0 = int(_S12) - _S13;
     bool _S14;
@@ -112,18 +122,19 @@ struct KernelContext_0
     {
         _S14 = false;
     }
+    uint _S15;
     if(_S14)
     {
-        uint device* _S15 = (&kernelContext_0)->dest_0+((&kernelContext_0)->p_0->off_0 + uint(e_0));
+        uint device* _S16 = (&kernelContext_0)->dest_0+((&kernelContext_0)->p_0->off_0 + uint(e_0));
         if(((&kernelContext_0)->p_0->uniform_0) != 0U)
         {
-            _S10 = (as_type<uint>((float((_S11[0U]) >> 8U) * (as_type<float>((864026624U))))));
+            _S15 = (as_type<uint>((uniformOf_0(_S11[0U]))));
         }
         else
         {
-            _S10 = _S11[0U];
+            _S15 = _S11[0U];
         }
-        *_S15 = _S10;
+        *_S16 = _S15;
     }
     int e_1 = int(_S12 + 1U) - _S13;
     if(e_1 >= int(0))
@@ -136,16 +147,16 @@ struct KernelContext_0
     }
     if(_S14)
     {
-        uint device* _S16 = (&kernelContext_0)->dest_0+((&kernelContext_0)->p_0->off_0 + uint(e_1));
+        uint device* _S17 = (&kernelContext_0)->dest_0+((&kernelContext_0)->p_0->off_0 + uint(e_1));
         if(((&kernelContext_0)->p_0->uniform_0) != 0U)
         {
-            _S10 = (as_type<uint>((float((_S11[1U]) >> 8U) * (as_type<float>((864026624U))))));
+            _S15 = (as_type<uint>((uniformOf_0(_S11[1U]))));
         }
         else
         {
-            _S10 = _S11[1U];
+            _S15 = _S11[1U];
         }
-        *_S16 = _S10;
+        *_S17 = _S15;
     }
     int e_2 = int(_S12 + 2U) - _S13;
     if(e_2 >= int(0))
@@ -158,16 +169,16 @@ struct KernelContext_0
     }
     if(_S14)
     {
-        uint device* _S17 = (&kernelContext_0)->dest_0+((&kernelContext_0)->p_0->off_0 + uint(e_2));
+        uint device* _S18 = (&kernelContext_0)->dest_0+((&kernelContext_0)->p_0->off_0 + uint(e_2));
         if(((&kernelContext_0)->p_0->uniform_0) != 0U)
         {
-            _S10 = (as_type<uint>((float((_S11[2U]) >> 8U) * (as_type<float>((864026624U))))));
+            _S15 = (as_type<uint>((uniformOf_0(_S11[2U]))));
         }
         else
         {
-            _S10 = _S11[2U];
+            _S15 = _S11[2U];
         }
-        *_S17 = _S10;
+        *_S18 = _S15;
     }
     int e_3 = int(_S12 + 3U) - _S13;
     if(e_3 >= int(0))
@@ -180,16 +191,16 @@ struct KernelContext_0
     }
     if(_S14)
     {
-        uint device* _S18 = (&kernelContext_0)->dest_0+((&kernelContext_0)->p_0->off_0 + uint(e_3));
+        uint device* _S19 = (&kernelContext_0)->dest_0+((&kernelContext_0)->p_0->off_0 + uint(e_3));
         if(((&kernelContext_0)->p_0->uniform_0) != 0U)
         {
-            _S10 = (as_type<uint>((float((_S11[3U]) >> 8U) * (as_type<float>((864026624U))))));
+            _S15 = (as_type<uint>((uniformOf_0(_S11[3U]))));
         }
         else
         {
-            _S10 = _S11[3U];
+            _S15 = _S11[3U];
         }
-        *_S18 = _S10;
+        *_S19 = _S15;
     }
     return;
 }
