@@ -146,4 +146,129 @@ class ValidationTest {
             assertArrayEquals(ones(4), Devices.floats(read, 4));
         }
     }
+
+    @Test
+    void formatConversionsCheckPackedRangesAndAliasing() {
+        try (GpuDevice d = Devices.open("reference"); GpuFormats f = new GpuFormats(d)) {
+            // 8 words: 16 bfloat16 or 32 FP8 codes
+            var enc = d.encoder();
+            var x = Devices.upload(d, enc, ones(40));
+            var p = Devices.upload(d, enc, ones(8));
+            Executable[] bad = {
+                () -> f.toBf16(enc, x, 0, p, 0, 17), // 17 bfloat16 do not fit 8 words
+                () -> f.toBf16(enc, x, 0, p, 1, 16), // nor 16 from offset 1
+                () -> f.toBf16(enc, x, 30, p, 0, 16), // x too short from 30
+                () -> f.toBf16(enc, x, 0, p, -1, 2),
+                () -> f.toBf16(enc, x, 0, p, 0, -1),
+                () -> f.toBf16(enc, x, 0, x, 20, 4), // the same buffer
+                () -> f.toBf16(enc, null, 0, p, 0, 1),
+                () -> f.toBf16(null, x, 0, p, 0, 1),
+                () -> f.fromBf16(enc, p, 15, x, 0, 2),
+                () -> f.toE4M3(enc, x, 0, p, 0, 33, false), // 33 codes do not fit 8 words
+                () -> f.toE5M2(enc, x, 0, p, 29, 4, true),
+                () -> f.fromE4M3(enc, p, 0, x, 0, 41),
+                () -> f.fromE5M2(enc, p, -2, x, 0, 1),
+                () -> f.fromE5M2(enc, x, 0, x, 20, 4),
+            };
+            for (Executable body : bad) {
+                assertThrows(IllegalArgumentException.class, body);
+            }
+            var read = enc.download(p);
+            Devices.run(d, enc);
+            assertArrayEquals(ones(8), Devices.floats(read, 8));
+        }
+    }
+
+    @Test
+    void int8KernelsCheckBlocksRangesAndAliasing() {
+        try (GpuDevice d = Devices.open("reference"); GpuFormats f = new GpuFormats(d)) {
+            var enc = d.encoder();
+            var x = Devices.upload(d, enc, ones(64));
+            var q = Devices.upload(d, enc, ones(16)); // 64 codes
+            var s = Devices.upload(d, enc, ones(2));
+            var y = Devices.upload(d, enc, ones(4));
+            Executable[] bad = {
+                () -> f.quantizeInt8(enc, x, 0, 33, q, 0, s, 0), // not a multiple of 32
+                () -> f.quantizeInt8(enc, x, 0, -32, q, 0, s, 0),
+                () -> f.quantizeInt8(enc, x, 0, 64, q, 1, s, 0), // 64 codes from 1
+                () -> f.quantizeInt8(enc, x, 0, 64, q, 0, s, 1), // 2 scales from 1
+                () -> f.quantizeInt8(enc, x, 1, 64, q, 0, s, 0),
+                () -> f.quantizeInt8(enc, x, 0, 32, x, 0, s, 0),
+                () -> f.quantizeInt8(enc, x, 0, 32, q, 0, q, 0),
+                () -> f.quantizeInt8(enc, x, 0, 32, q, 0, x, 0),
+                () -> f.dequantizeInt8(enc, q, 0, s, 0, x, 0, 48),
+                () -> f.dequantizeInt8(enc, q, 0, s, 0, q, 0, 32),
+                () -> f.dequantizeInt8(enc, q, 0, s, 0, s, 0, 32),
+                () -> f.dotInt8(enc, q, 0, s, 0, x, 0, 31, y, 0),
+                () -> f.dotInt8(enc, q, 0, s, 0, x, 0, 32, y, 4), // dest past the end
+                () -> f.dotInt8(enc, q, 0, s, 0, x, 0, 32, x, 40), // dest is an input
+                () -> f.gemvInt8(enc, -1, 32, q, 0, s, 0, x, 0, y, 0),
+                () -> f.gemvInt8(enc, 3, 32, q, 0, s, 0, x, 0, y, 0), // 3 rows: 96 codes, 3 scales
+                () -> f.gemvInt8(enc, 2, 32, q, 0, s, 0, x, 40, y, 0), // x too short from 40
+                () -> f.gemvInt8(enc, 2, 32, q, 0, s, 0, x, 0, y, 3), // 2 results from 3
+                () -> f.gemvInt8(enc, 2, 32, q, 0, s, 0, x, 0, s, 0),
+                () -> f.gemvInt8(enc, 1, 32, q, 0, s, 0, x, 0, null, 0),
+            };
+            for (Executable body : bad) {
+                assertThrows(IllegalArgumentException.class, body);
+            }
+            var rq = enc.download(q);
+            var rs = enc.download(s);
+            var ry = enc.download(y);
+            var rx = enc.download(x);
+            Devices.run(d, enc);
+            assertArrayEquals(ones(16), Devices.floats(rq, 16));
+            assertArrayEquals(ones(2), Devices.floats(rs, 2));
+            assertArrayEquals(ones(4), Devices.floats(ry, 4));
+            assertArrayEquals(ones(64), Devices.floats(rx, 64));
+        }
+    }
+
+    @Test
+    void argmaxChecksRowsAndAliasing() {
+        try (GpuDevice d = Devices.open("reference"); GpuSampler s = new GpuSampler(d)) {
+            var enc = d.encoder();
+            var x = Devices.upload(d, enc, ones(40));
+            var dest = Devices.upload(d, enc, ones(4));
+            Executable[] bad = {
+                () -> s.argmax(enc, 5, x, 0, 8, 9, dest, 0), // stride below the row length
+                () -> s.argmax(enc, 4, x, 9, 8, 8, dest, 0), // 4 rows do not fit from 9
+                () -> s.argmax(enc, 5, x, 0, 8, 8, dest, 0), // 5 indices do not fit
+                () -> s.argmax(enc, 2, x, 0, 8, 8, dest, 3),
+                () -> s.argmax(enc, -1, x, 0, 8, 8, dest, 0),
+                () -> s.argmax(enc, 1, x, 0, 8, -1, dest, 0),
+                () -> s.argmax(enc, 1, x, -1, 0, 0, dest, 0),
+                () -> s.argmax(enc, 1, x, 0, 8, 8, x, 32), // the same buffer
+                () -> s.argmax(enc, 1, null, 0, 8, 8, dest, 0),
+                () -> s.argmax(null, 1, x, 0, 8, 8, dest, 0),
+            };
+            for (Executable body : bad) {
+                assertThrows(IllegalArgumentException.class, body);
+            }
+            rejected(d, enc, dest, 4, () -> s.argmax(enc, 1, x, 0, 8, 8, dest, -1));
+        }
+    }
+
+    @Test
+    void emptyFormatWorkRecordsNothing() {
+        try (GpuDevice d = Devices.open("reference"); GpuFormats f = new GpuFormats(d);
+                GpuSampler s = new GpuSampler(d)) {
+            var enc = d.encoder();
+            var x = Devices.upload(d, enc, ones(4));
+            var p = Devices.upload(d, enc, ones(4));
+            f.toBf16(enc, x, 4, p, 8, 0);
+            f.fromBf16(enc, p, 8, x, 4, 0);
+            f.toE4M3(enc, x, 0, p, 16, 0, false);
+            f.fromE5M2(enc, p, 16, x, 0, 0);
+            f.quantizeInt8(enc, x, 0, 0, p, 0, Devices.buffer(d, 1), 0);
+            f.dequantizeInt8(enc, p, 0, Devices.buffer(d, 1), 0, x, 0, 0);
+            f.gemvInt8(enc, 0, 32, p, 0, Devices.buffer(d, 1), 0, Devices.buffer(d, 32), 0, x, 0);
+            s.argmax(enc, 0, p, 0, 4, 4, x, 0);
+            var rx = enc.download(x);
+            var rp = enc.download(p);
+            Devices.run(d, enc);
+            assertArrayEquals(ones(4), Devices.floats(rx, 4));
+            assertArrayEquals(ones(4), Devices.floats(rp, 4));
+        }
+    }
 }

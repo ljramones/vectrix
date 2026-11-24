@@ -42,6 +42,14 @@ KERNELS = [
     ("philox", "philox.slang", "philox"),
     ("softmax", "softmax.slang", "softmax"),
     ("softmax_inplace", "softmax_inplace.slang", "softmaxInPlace"),
+    ("to_bf16", "to_bf16.slang", "toBf16"),
+    ("from_bf16", "from_bf16.slang", "fromBf16"),
+    ("to_fp8", "to_fp8.slang", "toFp8"),
+    ("from_fp8", "from_fp8.slang", "fromFp8"),
+    ("quantize_int8", "quantize_int8.slang", "quantizeInt8"),
+    ("dequantize_int8", "dequantize_int8.slang", "dequantizeInt8"),
+    ("gemv_int8", "gemv_int8.slang", "gemvInt8"),
+    ("argmax", "argmax.slang", "argmax"),
 ]
 
 TEST_KERNELS = [
