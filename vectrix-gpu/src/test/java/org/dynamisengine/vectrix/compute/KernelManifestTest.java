@@ -55,6 +55,11 @@ class KernelManifestTest {
         assertParams("philox", GpuPhilox.PARAMS);
         assertParams("softmax", GpuSoftmax.PARAMS);
         assertParams("softmax_inplace", GpuSoftmax.PARAMS_IN_PLACE);
+        assertParams("attention_scores", GpuAttention.PARAMS_SCORES);
+        assertParams("attention_softmax", GpuAttention.PARAMS_SOFTMAX);
+        assertParams("attention_softmax_backward", GpuAttention.PARAMS_SOFTMAX_BACKWARD);
+        assertParams("attention_mix", GpuAttention.PARAMS_MIX);
+        assertParams("attention_accumulate", GpuAttention.PARAMS_ACCUMULATE);
         assertEquals("float32", Manifest.paramTypes("gemm").get("alpha"));
         assertEquals("float32", Manifest.paramTypes("gemm").get("beta"));
     }
@@ -78,6 +83,16 @@ class KernelManifestTest {
         assertEquals("256,1,1", Manifest.get("softmax.local"));
         assertEquals("x:0", Manifest.get("softmax_inplace.buffers"));
         assertEquals("256,1,1", Manifest.get("softmax_inplace.local"));
+        assertEquals("x:0,m:1,mask:2,out:3", Manifest.get("attention_scores.buffers"));
+        assertEquals("64,1,1", Manifest.get("attention_scores.local"));
+        assertEquals("probs:0", Manifest.get("attention_softmax.buffers"));
+        assertEquals("256,1,1", Manifest.get("attention_softmax.local"));
+        assertEquals("probs:0,ds:1", Manifest.get("attention_softmax_backward.buffers"));
+        assertEquals("256,1,1", Manifest.get("attention_softmax_backward.local"));
+        assertEquals("m:0,w:1,out:2", Manifest.get("attention_mix.buffers"));
+        assertEquals("64,1,1", Manifest.get("attention_mix.local"));
+        assertEquals("w:0,x:1,dest:2", Manifest.get("attention_accumulate.buffers"));
+        assertEquals("64,1,1", Manifest.get("attention_accumulate.local"));
     }
 
     @Test
@@ -109,7 +124,8 @@ class KernelManifestTest {
 
     @Test
     void resourcesAreTheCompiledOutputs() {
-        for (String kernel : List.of("gemm", "philox", "softmax", "softmax_inplace")) {
+        for (String kernel : List.of("gemm", "philox", "softmax", "softmax_inplace", "attention_scores",
+                "attention_softmax", "attention_softmax_backward", "attention_mix", "attention_accumulate")) {
             var bundle = Kernels.bundle(kernel);
             byte[] spirv = bundle.executable(Backend.VULKAN).bytes();
             byte[] metal = bundle.executable(Backend.METAL).bytes();

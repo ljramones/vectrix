@@ -42,6 +42,11 @@ KERNELS = [
     ("philox", "philox.slang", "philox"),
     ("softmax", "softmax.slang", "softmax"),
     ("softmax_inplace", "softmax_inplace.slang", "softmaxInPlace"),
+    ("attention_scores", "attention_scores.slang", "attentionScores"),
+    ("attention_softmax", "attention_softmax.slang", "attentionSoftmax"),
+    ("attention_softmax_backward", "attention_softmax_backward.slang", "attentionSoftmaxBackward"),
+    ("attention_mix", "attention_mix.slang", "attentionMix"),
+    ("attention_accumulate", "attention_accumulate.slang", "attentionAccumulate"),
 ]
 
 TEST_KERNELS = [
