@@ -23,7 +23,7 @@ vectrix (CPU reference)        dynamis-gpu-api
 
 ## Using it
 
-Coordinates: `org.dynamisengine:vectrix-gpu:3.0.0` (module `org.dynamisengine.vectrix.compute`), with
+Coordinates: `org.dynamisengine:vectrix-gpu:3.1.0` (module `org.dynamisengine.vectrix.compute`), with
 `dynamis-gpu-metal` or `dynamis-gpu-vulkan` at runtime. Neither is on Maven Central: install vectrix-gpu from this
 repository (`mvn -f vectrix-gpu/pom.xml install`) and DynamisGPU from its GitHub Release (see
 [Building](#building)).

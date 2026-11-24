@@ -6,6 +6,12 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-11-23
+New in this release:
+- **vectrix-gpu**: Vectrix kernels on the GPU, with the CPU's results. GEMM, Philox and softmax run through
+  DynamisGPU on Metal or Vulkan, and match the CPU methods bit for bit (measured on an Apple M4 Max). The library
+  jar is unchanged and still never touches the GPU.
+
 ### Added
 - **vectrix-gpu**, a separate artifact in this repository (`vectrix-gpu/`). It holds GPU twins of Vectrix kernels,
   run through DynamisGPU's compute API on Metal or Vulkan. The first kernels are `GpuGemmf` (twin of

@@ -45,7 +45,7 @@ import org.dynamisengine.gpu.api.compute.KernelBundle;
  * <p>
  * One pipeline, compiled when the instance is created. Each thread computes one Philox block (four values).
  *
- * @since 3.0.0
+ * @since 3.1.0
  */
 public final class GpuPhilox implements AutoCloseable {
 

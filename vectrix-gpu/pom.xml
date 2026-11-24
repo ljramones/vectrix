@@ -21,7 +21,7 @@
 
     <groupId>org.dynamisengine</groupId>
     <artifactId>vectrix-gpu</artifactId>
-    <version>3.0.0</version>
+    <version>3.1.0</version>
     <name>Vectrix GPU kernels</name>
     <description>GPU twins of Vectrix kernels (Slang, compiled to SPIR-V and Metal) for DynamisGPU</description>
 
@@ -34,7 +34,7 @@
 
     <properties>
         <!-- Kept equal to the library version by ExamplesVersionTest in the library build. -->
-        <vectrix.version>3.0.0</vectrix.version>
+        <vectrix.version>3.1.0</vectrix.version>
         <!-- 1.0.3 and later compile with IEEE floating point by default (no fusing on Metal, no MoltenVK fast math). -->
         <dynamisgpu.version>1.0.3</dynamisgpu.version>
         <maven.compiler.release>25</maven.compiler.release>

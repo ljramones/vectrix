@@ -46,7 +46,7 @@ import org.dynamisengine.gpu.api.compute.KernelBundle;
  * <p>
  * Two pipelines, compiled when the instance is created: one with separate input and output buffers, one in place.
  *
- * @since 3.0.0
+ * @since 3.1.0
  */
 public final class GpuSoftmax implements AutoCloseable {
 

@@ -45,7 +45,7 @@ import org.dynamisengine.gpu.api.compute.KernelBundle;
  * One pipeline, compiled when the instance is created. The kernel computes 16×16 tiles of {@code C}, one element
  * per thread.
  *
- * @since 3.0.0
+ * @since 3.1.0
  */
 public final class GpuGemmf implements AutoCloseable {
 
