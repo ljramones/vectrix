@@ -220,4 +220,4 @@ written `vectrix.*`, and the `vectrix.` name wins when both are set.
 | `vectrix.format`, `vectrix.format.decimals` | `true`, `3` | Number formatting in `toString` |
 | `vectrix.debug` | `false` | Extra runtime checks, such as rejecting heap buffers on the `Unsafe` backend |
 | `vectrix.epsilon.*` | | The `Epsilonf`/`Epsilond` defaults |
-| `vectrix.runtime.instanceSubmission.forceMatrix` | `false` | `InstanceSubmissionPipeline` uploads `Matrix4f` instead of packed 3×4 transforms |
+| `vectrix.runtime.instanceSubmission.forceMatrix` | `false` | The deprecated instance pipeline uploads `Matrix4f` instead of packed 3×4 transforms (DynamisGPU's copy reads `dynamisgpu.instanceSubmission.forceMatrix` and this one) |

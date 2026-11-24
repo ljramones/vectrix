@@ -38,7 +38,11 @@ import java.nio.ByteBuffer;
  * <p>
  * To copy packed affines in draw order without expanding them, use
  * {@link org.dynamisengine.vectrix.affine.PackedAffineKernels#uploadPackedAffine}.
+ *
+ * @deprecated Moved to DynamisGPU: {@code org.dynamisengine.gpu.vectrix.GpuTransformWriteKernels} in {@code
+ *         dynamis-gpu-vectrix} 1.2.0. Vectrix removes this class in 4.0.
  */
+@Deprecated(since = "3.3.0", forRemoval = true)
 public final class GpuTransformWriteKernels {
     private GpuTransformWriteKernels() {
     }

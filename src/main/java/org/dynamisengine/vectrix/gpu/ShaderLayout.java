@@ -47,7 +47,11 @@ import java.util.Set;
  * This is a build-time calculator: it allocates, and is meant for setting up writers, not for per-frame use.
  *
  * @since 2.4.0
+ *
+ * @deprecated Moved to DynamisGPU: {@code org.dynamisengine.gpu.api.layout.ShaderLayout} in {@code dynamis-gpu-api}
+ *         1.2.0. Vectrix removes this class in 4.0.
  */
+@Deprecated(since = "3.3.0", forRemoval = true)
 public final class ShaderLayout {
     private ShaderLayout() {
     }

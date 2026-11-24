@@ -26,7 +26,11 @@ package org.dynamisengine.vectrix.gpu;
 /**
  * One vertex input attribute inside an interleaved stream: a name, a component count, a per-component format and
  * a byte offset within the vertex. Immutable.
+ *
+ * @deprecated Moved to DynamisGPU: {@code org.dynamisengine.gpu.api.layout.VertexAttribute} in {@code dynamis-gpu-api}
+ *         1.2.0. Vectrix removes this class in 4.0.
  */
+@Deprecated(since = "3.3.0", forRemoval = true)
 public final class VertexAttribute {
     /** The attribute name, unique within a {@link VertexLayout}. */
     public final String name;

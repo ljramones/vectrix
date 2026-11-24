@@ -44,7 +44,11 @@ import org.dynamisengine.vectrix.soa.TransformSoA;
  * matrix path, created the first time that path runs) and is not thread-safe: use one per thread.
  * {@code processFrame} does not allocate unless the instance count or the joint count exceeds the capacity reached so
  * far on the path taken, in which case it grows that path's scratch.
+ *
+ * @deprecated Moved to DynamisGPU: {@code org.dynamisengine.gpu.vectrix.InstanceSubmissionPipeline} in {@code
+ *         dynamis-gpu-vectrix} 1.2.0. Vectrix removes this class in 4.0.
  */
+@Deprecated(since = "3.3.0", forRemoval = true)
 public final class InstanceSubmissionPipeline {
     /**
      * System property that, when {@code "true"} at construction time, makes {@link Path#AUTO} take the matrix path.

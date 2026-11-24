@@ -26,7 +26,12 @@ package org.dynamisengine.vectrix.gpu;
 /**
  * The format of one component of a vertex attribute: its size and whether the shader reads it as a normalized
  * float.
+ *
+ * @deprecated Moved to DynamisGPU: {@code org.dynamisengine.gpu.api.layout.VertexFormat} in {@code dynamis-gpu-api}
+ *         1.2.0. Its formats name the component count too ({@code FLOAT3}, {@code SNORM8X4}, ...). Vectrix removes
+ *         this class in 4.0.
  */
+@Deprecated(since = "3.3.0", forRemoval = true)
 public enum VertexAttributeFormat {
     /** 32-bit IEEE float. */
     FLOAT32(4, false),

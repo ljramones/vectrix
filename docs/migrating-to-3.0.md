@@ -35,9 +35,9 @@ signatures and change their results, so search your code for them.
 | `core.QuaternionfInterpolator`, `core.QuaterniondInterpolator` | `QuaternionCurvesf.weightedMean` (and d) |
 | `renderingmath.AtmosphereParams`, `renderingmath.TransmittanceLutBuilder` | The `atmosphere` package |
 | `simd.Vector4fa` | `Vector4f` |
-| `gpu.StdLayout` | `ShaderLayout.layout(Rules.STD140 or Rules.STD430, ShaderLayout.struct(...))`, then `offset(name)` and `paddedSize()` |
+| `gpu.StdLayout` | `ShaderLayout.layout(Rules.STD140 or Rules.STD430, ShaderLayout.struct(...))`, then `offset(name)` and `paddedSize()` (deprecated in 3.3: these moved to DynamisGPU) |
 | `GpuTransformWriteKernels.writePackedAffine` | `PackedAffineKernels.uploadPackedAffine` |
-| `GpuTransformLayout.writeFloatTrs`, `writeCompactTrs`, and the same in `GpuTransformWriteKernels` | `GpuTransformLayout.write` or `GpuTransformWriteKernels.writeTrs`, with a `floatTRS()` or `compactTRS()` layout |
+| `GpuTransformLayout.writeFloatTrs`, `writeCompactTrs`, and the same in `GpuTransformWriteKernels` | `GpuTransformLayout.write` or `GpuTransformWriteKernels.writeTrs`, with a `floatTRS()` or `compactTRS()` layout (deprecated in 3.3: these moved to DynamisGPU) |
 | The `*Scalar`/`*Simd`/`*Vector` variants in `CullingKernels` and `SkinningKernels`, and `CullingKernels.frustumCullAabbBatch(Matrix4fc, ...)` | The plain entry points, with planes from `FrustumPlanes.set(m, normalize, depthRange)`. `SimdSupport.setEnabled` forces scalar |
 | `ShCoeffs9f.BANDS` and the other `ShCoeffs*.BANDS` | `COEFFS` |
 | `SpringDamperf.overdamped`, `suspensionForce` (and d) | `SpringDamperf.criticallyDamped` or your own formula |

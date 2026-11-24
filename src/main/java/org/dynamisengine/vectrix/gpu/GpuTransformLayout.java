@@ -37,7 +37,11 @@ import org.dynamisengine.vectrix.affine.Transformf;
  * {@link #write} honours every field of the layout and always produces little-endian bytes. The constructor
  * validates the layout, so every instance describes fields that fit in the stride, do not overlap and are aligned to
  * their component size. Instances are immutable; the writer does not allocate.
+ *
+ * @deprecated Moved to DynamisGPU: {@code org.dynamisengine.gpu.vectrix.GpuTransformLayout} in {@code
+ *         dynamis-gpu-vectrix} 1.2.0. Vectrix removes this class in 4.0.
  */
+@Deprecated(since = "3.3.0", forRemoval = true)
 public final class GpuTransformLayout {
     /** How the rotation quaternion is stored. */
     public enum RotationEncoding {

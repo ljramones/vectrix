@@ -6,6 +6,22 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Deprecated
+- **GPU data-layout classes moved to DynamisGPU 1.2.0.** They are deprecated for removal and go in 4.0. They are
+  unchanged until then.
+  - **To `dynamis-gpu-api`** (`org.dynamisengine.gpu.api.layout`):
+    - `gpu.ShaderLayout`;
+    - `gpu.VertexLayout`, `gpu.VertexAttribute` and `gpu.VertexAttributeFormat`. They become DynamisGPU's
+      `VertexLayout`, `VertexAttribute` and `VertexFormat`, bound by shader location.
+  - **To the new `dynamis-gpu-vectrix` module** (`org.dynamisengine.gpu.vectrix`): `gpu.GpuTransformLayout`,
+    `gpu.GpuTransformWriteKernels` and `gpu.InstanceSubmissionPipeline`.
+  - **Staying in Vectrix:** the numeric encodings, which are `Half`, `PackedNorm`, `PackedFormats`, `OctaNormal`,
+    `QuatCompression`, `MeshletCones`, `PackedAffineArray` and `PackedAffineKernels` (including
+    `uploadPackedAffine`, which vectrix-gpu twins).
+  - **Docs:** [Getting data to the GPU](docs/guides/gpu-data.md) lists the new homes.
+  - **Determinism golden:** the deprecated classes leave `CrossPlatformDeterminismTest`'s golden, because the digest
+    skips deprecated API.
+
 ## [3.2.1] - 2026-11-24
 New in this release:
 - **vectrix-gpu is tested on a second Vulkan driver.** CI runs it on Mesa's lavapipe on every push.

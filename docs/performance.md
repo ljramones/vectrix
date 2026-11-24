@@ -35,7 +35,7 @@ Follow these in code that runs every frame:
    frame phase. See [transform representations](#transform-representations).
 5. **Use `Matrix4f` at boundaries**: projection, view, interop with other libraries and shaders that need a full
    `mat4`. Do not make it the bulk per-instance format.
-6. **Run setup-time APIs at setup.** Layout calculators (`ShaderLayout`), mesh builders (`MeshletCones.normalCone`)
+6. **Run setup-time APIs at setup.** Mesh builders (`MeshletCones.normalCone`)
    and asset encoders (`PackedFormats.packQTangent`) allocate.
 7. **Chunking is for scheduling, not speed.** The `...Chunked` kernels and `BatchChunks` split a batch into ranges
    so you can hand them to workers. They do not make a single thread faster.
@@ -63,8 +63,8 @@ PackedAffineArray     --uploadPackedAffine-->  float[] upload, 12 floats per ins
 ```
 
 `PackedAffineKernels.trsToPackedAffineBatch` takes a `Transformf[]`; there is no kernel from `TransformSoA` to
-packed affine yet. `InstanceSubmissionPipeline` chains skinning, conversion, bounds and upload in one call and is a
-working reference for this pipeline. [Getting data to the GPU](guides/gpu-data.md) describes the packed layout, the
+packed affine yet. DynamisGPU's instance submission pipeline chains skinning, conversion, bounds and upload in one
+call and is a working reference for this pipeline. [Getting data to the GPU](guides/gpu-data.md) describes the packed layout, the
 kernels and their `order` arrays.
 
 ## Skinning

@@ -8720,8 +8720,6 @@ geometry.SpatialCodes.morton2d64(int,int) d0157821df88f63a
 geometry.SpatialCodes.morton3d64(int,int,int) 5b4777e1d6dd3099
 geometry.SpatialCodes.hilbert2dToXy(long,int,int[]) f60f17a443268900
 geometry.SpatialCodes.hilbert3dToXyz(long,int,int[]) a3bec6acd8ec2135
-gpu.GpuTransformLayout.compactTRS() 493ff66defb64cea
-gpu.GpuTransformLayout.floatTRS() 8f2023082e016784
 gpu.Half.pack(float) 1afa5c72eecd3c8d
 gpu.MeshletCones.isBackfacing(float,float,float,float,float,float,float,float,float,float,float) 9d908ecfb6b256de
 gpu.MeshletCones.normalCone(float[],int[],int,int,Vector4f) 58b66cd2926116b3
@@ -8755,13 +8753,6 @@ gpu.PackedNorm.packUnorm8x4(float,float,float,float) 78b3c2596c620606
 gpu.QuatCompression.angularErrorDegrees(Quaternionfc,Quaternionfc) 98238a108080d935
 gpu.QuatCompression.packSmallest3(Quaternionfc) 86480de46d6fade0
 gpu.QuatCompression.unpackSmallest3(long,Quaternionf) 783dc068875958d6
-gpu.ShaderLayout.bvec(int) 3920e9ac59577129
-gpu.ShaderLayout.dmat(int,int) df635aab9a6d0bba
-gpu.ShaderLayout.dvec(int) d1e14c6862fdd7d2
-gpu.ShaderLayout.ivec(int) 1765e6c3c2c6b748
-gpu.ShaderLayout.mat(int,int) b61a70633e11a647
-gpu.ShaderLayout.uvec(int) e135dc8ac08f75b7
-gpu.ShaderLayout.vec(int) b61a70633e11a647
 hash.PcgHash.hash32(int) e89717a1cb8576cd
 hash.PcgHash.hash32(int,int,int) 0e90dc803c3d5d73
 hash.Philox.uniformDouble(long,long) 879c82c5e6529086

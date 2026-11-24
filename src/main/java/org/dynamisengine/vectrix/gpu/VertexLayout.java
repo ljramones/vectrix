@@ -33,7 +33,12 @@ import java.util.List;
  * Validation requires every attribute offset to be a multiple of its component size, every attribute to end within
  * the stride, no two attributes to overlap and no two to share a name. The stride must be a multiple of the largest
  * component size, so that the attributes of every vertex, not only the first, are aligned.
+ *
+ * @deprecated Moved to DynamisGPU: {@code org.dynamisengine.gpu.api.layout.VertexLayout} in {@code dynamis-gpu-api}
+ *         1.2.0. Its attributes are bound by shader location; mesh-level layouts belong to MeshForge. Vectrix removes
+ *         this class in 4.0.
  */
+@Deprecated(since = "3.3.0", forRemoval = true)
 public final class VertexLayout {
     /** The size of one vertex in bytes. */
     public final int strideBytes;

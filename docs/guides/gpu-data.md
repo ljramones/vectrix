@@ -1,13 +1,16 @@
 # Getting data to the GPU
 
 This guide covers the CPU side of a GPU upload: writing vectors and matrices into NIO buffers and off-heap memory,
-laying out uniform and storage blocks, compressing vertex attributes, and packing per-instance transforms. Vectrix
+compressing vertex attributes, and packing per-instance transforms. Vectrix
 never calls a graphics API. It produces the bytes, and you hand them to OpenGL, Vulkan or your engine's GPU layer.
 
-The classes are in `gpu` (layouts, codecs, transform writers, meshlet cones), `affine` (the packed 3x4 affine
+The classes are in `gpu` (codecs and meshlet cones), `affine` (the packed 3x4 affine
 transform arrays), `world` (camera-relative transforms for large worlds) and the buffer methods of the `core`
 types. The packed 3x4 layout, matrix storage order and other shared rules are defined once in
 [conventions](../conventions.md).
+
+Interface-block layouts, vertex input descriptions, the TRS transform writers and the instance submission
+pipeline moved to DynamisGPU in Vectrix 3.3; see [Moved to DynamisGPU](#moved-to-dynamisgpu).
 
 ## Which class for which job
 
@@ -16,15 +19,12 @@ types. The packed 3x4 layout, matrix storage order and other shared rules are de
 | Write a vector or matrix into a `ByteBuffer` or `FloatBuffer` | `Matrix4f.get`, `Vector3f.get`, and the `get` methods of the other `core` types | Column-major, like GLSL. Never moves the buffer position. |
 | Write a matrix as a 12-float row-major affine | `Matrix4f.get4x3Transposed`, `Matrix4x3f.getTransposed` | The packed 3x4 layout from [conventions](../conventions.md). |
 | Write to off-heap memory by address | `Matrix4f.getToAddress`, `Vector4f.getToAddress` | No bounds checks. Needs `--enable-native-access`. |
-| Lay out a uniform or storage block | `ShaderLayout` | std140, std430 and scalar rules; arrays, structs, matrices; emits GLSL. |
-| Describe and validate an interleaved vertex format | `VertexLayout`, `VertexAttribute`, `VertexAttributeFormat` | Checks alignment, overlap and stride. |
 | Half floats | `Half` | IEEE binary16, round to nearest even. |
 | unorm/snorm 8 and 16 bit | `PackedNorm` | Vulkan's normalized-integer rules. |
 | 10_10_10_2, RGB9E5, R11G11B10F, sRGB8, QTangent | `PackedFormats` | Bit-exact to the Vulkan formats. |
 | Unit normals in 32 bits | `OctaNormal` | Octahedral mapping, two snorm16. |
 | Rotations in 64 bits | `QuatCompression` | Smallest-three, 16 bits per component. |
-| Instance transforms as packed 3x4 affine | `PackedAffineArray`, `PackedAffineKernels`, `GpuTransformWriteKernels` | The default instancing format. |
-| Instance transforms as TRS structs | `GpuTransformLayout` | Float or compact encodings per field, always little-endian. |
+| Instance transforms as packed 3x4 affine | `PackedAffineArray`, `PackedAffineKernels` | The default instancing format. |
 | Model matrices far from the origin | `CameraRelative` | Subtracts the camera before rounding to float. |
 | Meshlet back-face cone culling | `MeshletCones` | Build, test and quantize normal cones. |
 
@@ -38,7 +38,6 @@ How each writer treats the order:
 
 - The `get` methods of the `core` types write in the buffer's own order. A `FloatBuffer` made with
   `asFloatBuffer()` inherits the order of its `ByteBuffer`. Direct buffers in native order take the fastest path.
-- `GpuTransformLayout` always writes little-endian bytes, whatever the buffer's order.
 - The codecs (`Half`, `PackedNorm`, `PackedFormats`, `OctaNormal`, `QuatCompression`) return a `short`, `int` or
   `long`. Their bit layouts below describe that value. You store it with `ByteBuffer.putInt` and friends, which
   use the buffer's order, so a little-endian buffer gives the byte layout the GPU format expects.
@@ -113,50 +112,22 @@ restricted method. If native access is denied (`--illegal-native-access=deny`) t
 `sun.misc.Unsafe`, and when that is disabled too they throw `UnsupportedOperationException`. A program that never
 calls them never requests native access.
 
-## Uniform and storage block layouts
+## Moved to DynamisGPU
 
-A shader reads a uniform or storage block at byte offsets fixed by its layout rules, and the CPU writer must use
-the same offsets. The rules differ mainly in padding:
+These classes moved to DynamisGPU 1.2.0, where they sit next to the code that binds the buffers. The Vectrix
+copies in `gpu` are deprecated in 3.3 and removed in 4.0; DynamisGPU's
+[GPU data layouts](https://github.com/ljramones/DynamicGPU/blob/main/docs/gpu-data-layouts.md) guide documents the new ones.
 
-- **std140** (uniform blocks): arrays and structs are aligned to 16 bytes, so a `float[4]` takes 64 bytes.
-- **std430** (storage blocks): no rounding to 16 bytes, so a `float[4]` takes 16 bytes.
-- **scalar** (`VK_EXT_scalar_block_layout`): every member is aligned to its component size, with no padding.
+| Job | DynamisGPU class | Module |
+|---|---|---|
+| Uniform and storage block layouts (std140, std430, scalar), with GLSL declarations | `org.dynamisengine.gpu.api.layout.ShaderLayout` | `dynamis-gpu-api` |
+| A pipeline's vertex input | `org.dynamisengine.gpu.api.layout.VertexLayout` | `dynamis-gpu-api` |
+| Instance transforms as TRS structs | `org.dynamisengine.gpu.vectrix.GpuTransformLayout` | `dynamis-gpu-vectrix` |
+| Packed affine to `mat4`, and TRS arrays in draw order | `org.dynamisengine.gpu.vectrix.GpuTransformWriteKernels` | `dynamis-gpu-vectrix` |
+| The whole per-frame instance path | `org.dynamisengine.gpu.vectrix.InstanceSubmissionPipeline` | `dynamis-gpu-vectrix` |
 
-Under std140 and std430 a `vec3` is aligned to 16 bytes but is only 12 bytes long, so a following `float` fills its
-fourth slot.
-
-Use `ShaderLayout` for real blocks. You describe the block with `ShaderLayout.struct`, `ShaderLayout.member` and the
-type helpers (`ShaderLayout.vec`, `ShaderLayout.mat`, `ShaderLayout.array`, `ShaderLayout.rowMajor`,
-`ShaderLayout.FLOAT`, `ShaderLayout.INT`, ...), then call `ShaderLayout.layout` with one of the
-`ShaderLayout.Rules`. The returned `ShaderLayout.Block` gives:
-
-- `offset("lights[3].color")`: the byte offset of any member path, including array elements and nested structs;
-- `arrayStride(path)` and `matrixStride(path)`;
-- `size()` (as SPIR-V reflection reports it), `paddedSize()` (the stride of an array of these blocks) and
-  `alignment()`;
-- `entries()`: every member with its offset, size and strides;
-- `toGlsl(storage, blockName, instanceName, binding)`: the GLSL declaration, so the shader and the Java writer
-  share one definition. It adds `#extension GL_EXT_scalar_block_layout : require` where the rules need it.
-
-The test suite checks `ShaderLayout` against glslang's own layout on randomly generated blocks. It allocates, so
-build layouts at startup and keep the offsets. `toGlsl` takes `"uniform"` or `"buffer"` as the storage and rejects
-two different structs with the same name, since GLSL has one declaration per struct name.
-
-(The 2.x `StdLayout` helper, which only handled flat blocks of `float`, `vec2` to `vec4` and `mat4`, was removed in
-3.0: `ShaderLayout` gives the same offsets and sizes for those types.)
-
-## Vertex layouts
-
-`VertexLayout` describes one interleaved vertex stream: a stride in bytes and a list of `VertexAttribute`s. Each
-attribute has a name, a component count (1 to 4), a `VertexAttributeFormat` (`FLOAT32`, `FLOAT16`, `UNORM8`,
-`SNORM16`, `UINT32`, ...) and a byte offset. Build one with `VertexLayout.ofInterleaved` or the constructor. It
-throws `IllegalArgumentException` when an attribute is not aligned to its component size, runs past the stride,
-overlaps another attribute, or repeats a name, for a null attribute, and when the stride is not a multiple of
-every attribute's component size (otherwise the attributes of the second vertex would be misaligned).
-
-The layout is a descriptor: it validates offsets and gives you `VertexLayout.attribute` (by name, or `null`),
-`VertexAttribute.byteSize` and `VertexAttributeFormat.normalized`, which your GPU layer maps to the API's vertex
-input description. You write the vertex bytes yourself, using the codecs below for compressed attributes.
+The numeric encodings those classes write stay here: `Half`, `PackedNorm`, `PackedFormats`, `OctaNormal`,
+`QuatCompression`, `PackedAffineArray` and `PackedAffineKernels`.
 
 ## Compact encodings
 
@@ -250,7 +221,6 @@ two forms.
 | `PackedAffineKernels.matrix4fToPackedAffineBatch` | `Matrix4f[]` to packed affines. |
 | `PackedAffineKernels.transformAabbPackedAffineBatch` | Transforms local AABBs (SoA min/max arrays) to world AABBs. |
 | `PackedAffineKernels.uploadPackedAffine` | Copy the transforms, in a draw order, into a contiguous upload array. |
-| `GpuTransformWriteKernels.writeMatrix4fFromPackedAffine` | Expand to 16-float column-major `mat4` for shaders that need full matrices. |
 | `Matrix4f.get4x3Transposed`, `Matrix4x3f.getTransposed` | Write a single matrix in the packed layout straight into a buffer. |
 
 The batch kernels take an `order` array of instance indices. The upload writers gather: output slot `i` receives
@@ -263,36 +233,8 @@ counts, array sizes, `order` indices and offsets before writing, and throws `Ill
 The `...Chunked` variants run the same kernel over consecutive sub-ranges, as `BatchChunks` splits them. They help
 you schedule work; they are not faster on their own.
 
-`InstanceSubmissionPipeline` chains the whole per-frame path in one call: skinning, TRS to packed affine, bounds
-and upload. Bounds and upload are both written per draw slot: slot `i` gets the transform and the world bounds of
-instance `order[i]`. Its `InstanceSubmissionPipeline.Path` selects the packed-affine path or a `Matrix4f` fallback
-(also forced by the `vectrix.runtime.instanceSubmission.forceMatrix` system property) for comparing the two. It
-checks every argument before writing and reuses internal scratch arrays, growing them when a frame has more
-instances than before (the `Matrix4f` scratch only when the fallback runs), so use one instance per thread.
-
-### TRS structs
-
-`GpuTransformLayout` writes a transform as separate translation, rotation and scale instead of a matrix. A layout
-names a stride, the three field offsets, a `GpuTransformLayout.RotationEncoding` (`FLOAT4` or the smallest-three
-`QUAT_SMALLEST3_16`) and a `GpuTransformLayout.ScaleEncoding` (`FLOAT3` or `HALF3`). The constructor rejects a
-layout whose fields overlap, run past the stride, or are not aligned to their component size. Two layouts are
-predefined:
-
-| Layout | Stride | GLSL (`layout(scalar)`) |
-|---|---|---|
-| `GpuTransformLayout.floatTRS` | 40 bytes | `struct { vec3 t; vec4 q; vec3 s; }` |
-| `GpuTransformLayout.compactTRS` | 28 bytes | `struct { vec3 t; uvec2 q; uint16_t s[3]; }`: smallest-three rotation, half-float scale |
-
-Neither fits std430, where the `vec4` would need 16-byte alignment, so the shader needs the scalar block layout.
-`GpuTransformLayout.write` writes instance `index` at byte offset `index * strideBytes`, each field in the
-encoding the layout names, so a mixed layout such as `FLOAT4` rotation with `HALF3` scale is written as it says. The
-bytes are always little-endian, and a record that does not fit in the buffer throws `IllegalArgumentException`
-before anything is written. `GpuTransformLayout.requiredBytes` gives the buffer size and throws
-`ArithmeticException` if it overflows an `int`. `GpuTransformWriteKernels.writeTrs` writes a whole array in draw
-order.
-
-The shader has to rebuild a matrix from TRS, and the compact form also has to decode the rotation, so prefer the
-packed affine unless memory size is the constraint.
+DynamisGPU expands packed affines to `mat4`s for shaders that need full matrices, writes TRS structs, and chains
+skinning, transforms, bounds and upload into one per-frame call (see [Moved to DynamisGPU](#moved-to-dynamisgpu)).
 
 ### Large worlds
 
@@ -329,14 +271,13 @@ inside the cone.
 ## Accuracy, allocation and threading
 
 - `PackedFormats` and `PackedNorm` are bit-exact to their Vulkan definitions, and `Half.pack` matches
-  `Float.floatToFloat16`. `ShaderLayout` is checked against glslang. Normal cones, quantized or not, are
+  `Float.floatToFloat16`. Normal cones, quantized or not, are
   conservative.
-- The codecs, the QTangent encoders included, allocate nothing. `MeshletCones.normalCone` and `ShaderLayout`
-  allocate; they are meant for setup and asset processing, not per-frame work.
+- The codecs, the QTangent encoders included, allocate nothing. `MeshletCones.normalCone` allocates; it is meant
+  for setup and asset processing, not per-frame work.
 - The batch kernels write only into the arrays and buffers you pass. They are static and keep no state, so threads
   can run them on disjoint output ranges. NIO buffers themselves are not thread-safe: give each thread its own
-  buffer or slice. `InstanceSubmissionPipeline` keeps scratch state; use one per thread.
-- `GpuTransformLayout`, `ShaderLayout.Block` and `VertexLayout` are immutable once built.
+  buffer or slice.
 
 ## See also
 
