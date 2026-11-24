@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [3.2.1] - 2026-11-24
+New in this release:
+- **vectrix-gpu is tested on a second Vulkan driver.** CI runs it on Mesa's lavapipe on every push.
+- **A portability fix:** `fma` calls are now marked `NoContraction`, which stops Mesa rewriting `exp` and `log`.
+- **Fused-fma tests are chosen by capability:** the tests that need a fused `fma` run where DynamisGPU 1.1.0 reports
+  one. The library jar is unchanged.
+
+### Changed
+- **vectrix-gpu requires DynamisGPU 1.1.0** (was 1.0.3) for its measured `GpuCapabilities.FUSED_FMA`.
+
 ### Fixed
 - **vectrix-gpu on Mesa drivers:** the kernels' `fma` calls are now marked `NoContraction` in SPIR-V. Without the
   mark, Mesa merged `fma(k, a, fma(k, b, c))` into `fma(k, a + b, c)`, which undid the two-part ln 2 in `exp` and
@@ -18,7 +28,6 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - **How tests are selected:** `Devices.fusesFma` reads DynamisGPU 1.1.0's measured `FUSED_FMA` capability, and only
     devices that fuse `fma` run the tests of `fma`-based kernels. `DeviceCapabilitiesTest` requires a fused `fma` on
     Apple GPUs and checks the capability against vectrix-gpu's own probe.
-- **vectrix-gpu requires DynamisGPU 1.1.0.**
 
 ## [3.2.0] - 2026-11-23
 New in this release:

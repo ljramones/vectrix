@@ -12,14 +12,14 @@ Maven:
 <dependency>
     <groupId>org.dynamisengine</groupId>
     <artifactId>vectrix</artifactId>
-    <version>3.2.0</version>
+    <version>3.2.1</version>
 </dependency>
 ```
 
 Gradle:
 
 ```kotlin
-implementation("org.dynamisengine:vectrix:3.2.0")
+implementation("org.dynamisengine:vectrix:3.2.1")
 ```
 
 **The SIMD jar.** The `simd` classifier is the same library with Vector API paths compiled into the batch
@@ -30,7 +30,7 @@ it:
 <dependency>
     <groupId>org.dynamisengine</groupId>
     <artifactId>vectrix</artifactId>
-    <version>3.2.0</version>
+    <version>3.2.1</version>
     <classifier>simd</classifier>
 </dependency>
 ```
