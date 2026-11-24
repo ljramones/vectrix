@@ -152,7 +152,7 @@ bit:
 |---|---|---|
 | reference | always (CI) | A Java model of the GPU that runs the Vectrix method. It decodes parameters at the offsets the compiled kernel uses, and checks that the dispatch's groups cover the work. It tests the Java side of the ABI and the validation, not the shaders |
 | Metal | `-Pmetal` (macOS) | the shaders on the native Metal backend |
-| Vulkan | `-Pvulkan` | the shaders on Vulkan |
+| Vulkan | `-Pvulkan` (CI: Mesa's lavapipe) | the shaders on Vulkan |
 
 ```bash
 mvn -f vectrix-gpu/pom.xml verify -Pmetal
@@ -163,7 +163,19 @@ VK_DRIVER_FILES=$HOME/VulkanSDK/1.4.341.0/macOS/share/vulkan/icd.d/MoltenVK_icd.
 
 A requested backend without a device fails the run instead of skipping it.
 
-The CI runners have no GPU, so run both hardware profiles before a release. On an Apple M4 Max with DynamisGPU
+**Devices without a fused `fma`.** The float kernels port `Math.fma`, so they can match Vectrix only where `fma` is
+one rounding. Vulkan doesn't require that: its precision rules treat `fma` as a multiply followed by an add, and
+Mesa's lavapipe computes it that way.
+- **The probe:** `Devices.fusesFma` checks each device once, with `fma(x, x, -x·x)`.
+- **Tests that need it:** the tests of `fma`-based kernels (`Devices.namesWithFusedFma()`) run only on devices that
+  fuse it.
+- **Tests that don't:** everything else runs everywhere, including the integer, conversion and engine kernels and
+  `sqrt`.
+- **No silent skips on Apple:** `DeviceCapabilitiesTest` requires a fused `fma` on Metal and MoltenVK.
+
+**CI:** the CI runners have no GPU, so the GPU kernels job runs the Vulkan profile on lavapipe, a CPU implementation of
+Vulkan. That checks the kernels that need no `fma` bit for bit, and creates their pipelines on a second, non-Apple
+driver. Run both hardware profiles on a Mac before a release. On an Apple M4 Max with DynamisGPU
 1.0.3, every test passes on both native Metal and MoltenVK, with no environment settings.
 
 Two sweeps cover every 32-bit float input but are opt-in, because they take minutes:
@@ -209,13 +221,15 @@ the Java side writes match the fields and offsets Slang compiled.
 **What the script works around:**
 - **Slang's optimizer:** it folds `(x + c) - c` to `x`, which IEEE arithmetic forbids, so kernels compile at
   `-O0`.
-- **Fusing in SPIR-V:** every float add and subtract is marked `NoContraction`, so no driver fuses a product into
-  it. Multiplies are left unmarked, because SPIRV-Cross turns a marked multiply into `fma(a, b, 0)`, which loses
-  `-0`.
+- **Fusing and rewriting in SPIR-V:** every float add, subtract and `fma` is marked `NoContraction`, so no driver
+  fuses a product into an add or rewrites an `fma`. Without the `fma` marks, Mesa merges
+  `fma(k, a, fma(k, b, c))` into `fma(k, a + b, c)`, which undoes `exp`'s two-part ln 2. Multiplies are left
+  unmarked, because SPIRV-Cross turns a marked multiply into `fma(a, b, 0)`, which loses `-0`.
 - **Fusing in Metal:** the Metal source starts with `#pragma METAL fp math_mode(safe)` and
   `#pragma METAL fp contract(off)`. Without them, Metal fuses multiply-adds even with fast math disabled.
 
 **Then wire it up:**
 1. Add a Java class beside `GpuGemmf`, and add the kernel to `KERNELS` in `scripts/build-kernels.py`.
 2. Add a CPU model of the kernel in a class of its own, registered with one line in `ReferenceModels`.
-3. Add a parity test that runs on `Devices.names()`, and assert its `PARAMS` in `KernelManifestTest`.
+3. Add a parity test, and assert its `PARAMS` in `KernelManifestTest`. Run it on `Devices.namesWithFusedFma()` if the
+   kernel uses `fma`, otherwise on `Devices.names()`.

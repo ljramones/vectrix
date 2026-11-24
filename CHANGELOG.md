@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Fixed
+- **vectrix-gpu on Mesa drivers:** the kernels' `fma` calls are now marked `NoContraction` in SPIR-V. Without the
+  mark, Mesa merged `fma(k, a, fma(k, b, c))` into `fma(k, a + b, c)`, which undid the two-part ln 2 in `exp` and
+  `log`. Results on Metal and MoltenVK are unchanged.
+
+### Added
+- **vectrix-gpu runs on a real Vulkan driver in CI:** Mesa's lavapipe.
+  - **What it checks:** lavapipe doesn't fuse `fma`, which Vulkan permits, so there CI checks the kernels that need
+    none bit for bit: Philox, argmax, the format conversions and quantization, culling, skinning and transforms.
+  - **How tests are selected:** `Devices.fusesFma` probes each device, and only devices that fuse `fma` run the tests
+    of `fma`-based kernels. `DeviceCapabilitiesTest` requires a fused `fma` on Apple GPUs.
+
 ## [3.2.0] - 2026-11-23
 New in this release:
 - **vectrix-gpu covers most of the float kernels.** It has 16 classes: BLAS and GEMV, the neural-network kernels

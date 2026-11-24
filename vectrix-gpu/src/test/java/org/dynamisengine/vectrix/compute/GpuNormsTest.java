@@ -81,7 +81,7 @@ class GpuNormsTest {
 
     static Stream<Arguments> forwardCases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int[] s : RowsFixture.SHAPES) {
                 for (boolean rms : new boolean[] {false, true}) {
                     for (Opts o : Opts.values()) {
@@ -152,7 +152,7 @@ class GpuNormsTest {
 
     static Stream<Arguments> backwardCases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int[] s : RowsFixture.SHAPES) {
                 for (boolean rms : new boolean[] {false, true}) {
                     for (Out o : Out.values()) {
@@ -256,7 +256,7 @@ class GpuNormsTest {
 
     static Stream<Arguments> special() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (boolean rms : new boolean[] {false, true}) {
                 out.add(Arguments.of(backend, rms));
             }

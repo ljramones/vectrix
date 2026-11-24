@@ -110,6 +110,11 @@ class GpuFormatsTest {
         return Devices.names().stream().map(Arguments::of);
     }
 
+    /** dotInt8 and gemvInt8 accumulate with fma, so they match Vectrix only where fma is fused. */
+    static Stream<Arguments> fusedBackends() {
+        return Devices.namesWithFusedFma().stream().map(Arguments::of);
+    }
+
     static ByteBuffer le(byte[] b) {
         return ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN);
     }
@@ -485,7 +490,7 @@ class GpuFormatsTest {
 
     static Stream<Arguments> gemvCases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int[] s : GEMV_SHAPES) {
                 out.add(Arguments.of(backend, s[0], s[1]));
             }
@@ -519,7 +524,7 @@ class GpuFormatsTest {
 
     /** Infinities, NaN, signed zeros and zero scales in the inputs. */
     @ParameterizedTest(name = "{0}")
-    @MethodSource("backends")
+    @MethodSource("fusedBackends")
     void gemvSpecialValuesMatchFormats(String backend) {
         int m = 6;
         int n = 64;

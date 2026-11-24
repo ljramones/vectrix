@@ -83,7 +83,7 @@ class UsageExampleTest {
     }
 
     static List<String> backends() {
-        return Devices.names();
+        return Devices.namesWithFusedFma();
     }
 
     @ParameterizedTest(name = "{0}")

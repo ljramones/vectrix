@@ -46,7 +46,7 @@ class GpuGemmfTest {
 
     static Stream<Arguments> cases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int[] s : SHAPES) {
                 for (int layout = 0; layout < 4; layout++) {
                     out.add(Arguments.of(backend, s[0], s[1], s[2], (layout & 1) != 0, (layout & 2) != 0));
@@ -109,7 +109,7 @@ class GpuGemmfTest {
     }
 
     static Stream<String> backends() {
-        return Devices.names().stream();
+        return Devices.namesWithFusedFma().stream();
     }
 
     @ParameterizedTest(name = "{0}")

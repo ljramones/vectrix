@@ -45,7 +45,7 @@ class GpuSoftmaxTest {
 
     static Stream<Arguments> cases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int[] s : SHAPES) {
                 for (boolean inPlace : new boolean[] {false, true}) {
                     out.add(Arguments.of(backend, s[0], s[1], inPlace));
@@ -98,7 +98,7 @@ class GpuSoftmaxTest {
 
     static Stream<Arguments> special() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             out.add(Arguments.of(backend, false));
             out.add(Arguments.of(backend, true));
         }

@@ -61,6 +61,47 @@ final class Devices {
         return names;
     }
 
+    /**
+     * The backends whose {@code fma} is fused (one rounding). Float kernels port Vectrix's {@code Math.fma}, so only
+     * these can match Vectrix bit for bit. Vulkan does not require a fused fma (its precision rules inherit fma from
+     * a multiply followed by an add), and Mesa's lavapipe computes it with two roundings. Integer, conversion and
+     * engine kernels need no fma and run on every backend.
+     */
+    static List<String> namesWithFusedFma() {
+        return names().stream().filter(Devices::fusesFma).toList();
+    }
+
+    private static final java.util.Map<String, Boolean> FUSED = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Whether backend {@code name} computes {@code fma} with one rounding (probed once with math_probe). */
+    static boolean fusesFma(String name) {
+        return FUSED.computeIfAbsent(name, n -> {
+            float x = 1 + 0x1p-12f; // x·x = 1 + 2^-11 + 2^-24 rounds to 1 + 2^-11: the fused residual is 2^-24
+            return probe(n, 8, Float.floatToRawIntBits(x)) == Float.floatToRawIntBits(0x1p-24f);
+        });
+    }
+
+    /** Runs math_probe function {@code fn} on one float (given as bits) on backend {@code name}. */
+    static int probe(String name, int fn, int bits) {
+        try (GpuDevice device = open(name)) {
+            var layout = new org.dynamisengine.gpu.api.compute.BindingLayout(List.of(
+                    new org.dynamisengine.gpu.api.compute.BindingLayout.BufferBinding(0,
+                            org.dynamisengine.gpu.api.compute.Access.WRITE, 4)), 20);
+            try (var pipeline = device.pipeline(new org.dynamisengine.gpu.api.compute.PipelineDescriptor(
+                    ReproducibleMathGpuTest.probeKernel(), "probe", layout,
+                    new org.dynamisengine.gpu.api.compute.Dimensions(64, 1, 1), java.util.Map.of(),
+                    java.util.Set.of("FP32", "INT32"), java.util.Set.of()));
+                    var out = buffer(device, 1); var enc = device.encoder()) {
+                byte[] params = new Kernels.Params(5).u32(fn).u32(bits).u32(0).u32(1).u32(1).bytes();
+                enc.dispatch(pipeline, java.util.Map.of(0, out), params,
+                        new org.dynamisengine.gpu.api.compute.Dimensions(1, 1, 1));
+                var read = enc.download(out);
+                run(device, enc);
+                return ints(read, 1)[0];
+            }
+        }
+    }
+
     /** Whether the backend runs on hardware that may flush subnormals to zero. */
     static boolean hardware(String name) {
         return !name.equals("reference");

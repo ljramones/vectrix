@@ -46,7 +46,7 @@ class GpuSoftmaxRowsTest {
 
     static Stream<Arguments> forwardCases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int[] s : RowsFixture.SHAPES) {
                 for (boolean inPlace : new boolean[] {false, true}) {
                     out.add(Arguments.of(backend, s[0], s[1], inPlace));
@@ -83,7 +83,7 @@ class GpuSoftmaxRowsTest {
 
     static Stream<Arguments> lseCases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int[] s : RowsFixture.SHAPES) {
                 out.add(Arguments.of(backend, s[0], s[1]));
             }
@@ -117,7 +117,7 @@ class GpuSoftmaxRowsTest {
 
     static Stream<Arguments> backwardCases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int[] s : RowsFixture.SHAPES) {
                 for (Out o : Out.values()) {
                     for (boolean log : new boolean[] {false, true}) {
@@ -184,7 +184,7 @@ class GpuSoftmaxRowsTest {
 
     static Stream<Arguments> special() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             out.add(Arguments.of(backend, false));
             out.add(Arguments.of(backend, true));
         }
@@ -221,7 +221,7 @@ class GpuSoftmaxRowsTest {
     }
 
     static Stream<String> backends() {
-        return Devices.names().stream();
+        return Devices.namesWithFusedFma().stream();
     }
 
     @ParameterizedTest(name = "{0}")
@@ -232,7 +232,7 @@ class GpuSoftmaxRowsTest {
 
     static Stream<Arguments> specialBackward() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (Out o : Out.values()) {
                 out.add(Arguments.of(backend, o, false));
                 out.add(Arguments.of(backend, o, true));

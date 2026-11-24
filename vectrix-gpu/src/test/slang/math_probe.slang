@@ -27,6 +27,7 @@ float evaluate(uint fn, float x)
     case 5: return reproducibleLog1p(x);
     case 6: return sqrt(x);
     case 7: return jabs(x);
+    case 8: return fma(x, x, -(x * x)); // the exact error of x·x when fma is fused, 0 when it is two roundings
     default: return asfloat(0x7FC00000u);
     }
 }

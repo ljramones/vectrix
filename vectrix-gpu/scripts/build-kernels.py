@@ -11,8 +11,10 @@ no longer matches the hash recorded here. Finds slangc through $SLANGC, then $VU
 
 Both targets are compiled so that every float operation rounds as the vectrix Java code does:
 - slangc runs at -O0, because its optimizer folds (x + c) - c to x in SPIR-V, which IEEE arithmetic forbids.
-- SPIR-V: every OpFAdd and OpFSub is decorated NoContraction, so no driver fuses a product into it. Products are
-  left alone: SPIRV-Cross (MoltenVK) turns a NoContraction multiply into fma(a, b, 0), which loses the sign of -0.
+- SPIR-V: every OpFAdd, OpFSub and GLSL.std.450 Fma is decorated NoContraction, so no driver fuses a product
+  into an add or rewrites an fma. Mesa (lavapipe) otherwise merges fma(k, a, fma(k, b, c)) into fma(k, a + b, c),
+  which undoes exp's two-part ln 2. Products are left alone: SPIRV-Cross (MoltenVK) turns a NoContraction multiply
+  into fma(a, b, 0), which loses the sign of -0.
 - Metal: the source starts with `#pragma METAL fp math_mode(safe)` and `#pragma METAL fp contract(off)`; without
   them the Metal compiler fuses multiply-adds even with fast math disabled.
 Buffers are declared in slot order with the parameter block last, so Metal buffer indices equal the slots and the
@@ -106,6 +108,7 @@ METAL_PRELUDE = "#pragma METAL fp math_mode(safe)\n#pragma METAL fp contract(off
 OP_DECORATE = 71
 NO_CONTRACTION = 42
 FADD_FSUB = {129, 131}
+GLSL_FMA = 50
 # capabilities, extensions, imports, memory model, entry points, execution modes, debug, annotations
 LEADING = {17, 10, 11, 14, 15, 16, 330, 331, 2, 3, 4, 5, 6, 7, 8, 12, 71, 72, 73, 74, 75, 332, 5632, 5633}
 
@@ -144,7 +147,13 @@ def no_contraction(spv):
         insts.append(words[i:i + count])
         i += count
     marked = {w[1] for w in insts if w[0] & 0xFFFF == OP_DECORATE and w[2] == NO_CONTRACTION}
-    targets = [w[2] for w in insts if w[0] & 0xFFFF in FADD_FSUB and w[2] not in marked]
+    # OpExtInstImport (11): words are opcode, result id, then the set name as a nul-padded string
+    glsl = {w[1] for w in insts if w[0] & 0xFFFF == 11
+            and struct.pack("<%dI" % (len(w) - 2), *w[2:]).rstrip(b"\0") == b"GLSL.std.450"}
+    # OpExtInst (12): opcode, result type, result id, set, instruction; GLSL.std.450 Fma is instruction 50
+    fmas = [w[2] for w in insts if w[0] & 0xFFFF == 12 and w[3] in glsl and w[4] == GLSL_FMA]
+    targets = [w[2] for w in insts if w[0] & 0xFFFF in FADD_FSUB] + fmas
+    targets = [t for t in targets if t not in marked]
     at = next((k for k, w in enumerate(insts) if w[0] & 0xFFFF not in LEADING), len(insts))
     decorations = [[(3 << 16) | OP_DECORATE, t, NO_CONTRACTION] for t in targets]
     out = words[:5] + [w for inst in insts[:at] + decorations + insts[at:] for w in inst]

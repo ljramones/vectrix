@@ -62,7 +62,7 @@ class GpuBlasfTest {
 
     static Stream<Arguments> cases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int n : SIZES) {
                 out.add(Arguments.of(backend, n));
             }
@@ -71,7 +71,7 @@ class GpuBlasfTest {
     }
 
     static Stream<String> backends() {
-        return Devices.names().stream();
+        return Devices.namesWithFusedFma().stream();
     }
 
     static float[] random(SplittableRandom r, int n) {
@@ -154,6 +154,10 @@ class GpuBlasfTest {
     void sumOfAVectorWithAFourLevelTree(String backend) {
         // 131,073 blocks: 8192 first-pass groups and an upper pass of 512 nodes, more than one row of groups
         int n = 33_554_433;
+        try (GpuDevice probe = Devices.open(backend)) {
+            org.junit.jupiter.api.Assumptions.assumeTrue(probe.capabilities().maxStorageRange() >= (n + 1) * 4L,
+                    backend + " cannot bind a " + (n + 1) * 4L + "-byte buffer");
+        }
         SplittableRandom r = new SplittableRandom(77);
         float[] x = random(r, n + 1);
         float expected = Blasf.sum(x, 1, n);
@@ -308,7 +312,7 @@ class GpuBlasfTest {
 
     static Stream<Arguments> elementwiseCases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int n : new int[] {1, 7, 255, 256, 257, 1000, 2049, 100_003}) {
                 out.add(Arguments.of(backend, n));
             }

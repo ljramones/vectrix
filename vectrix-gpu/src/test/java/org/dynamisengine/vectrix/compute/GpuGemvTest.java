@@ -49,7 +49,7 @@ class GpuGemvTest {
 
     static Stream<Arguments> cases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int[] s : SHAPES) {
                 for (boolean ta : new boolean[] {false, true}) {
                     out.add(Arguments.of(backend, s[0], s[1], ta));
@@ -60,7 +60,7 @@ class GpuGemvTest {
     }
 
     static Stream<String> backends() {
-        return Devices.names().stream();
+        return Devices.namesWithFusedFma().stream();
     }
 
     /** Runs one product on {@code backend} and on the CPU and compares every element of {@code y}. */

@@ -64,7 +64,14 @@ class ReproducibleMathGpuTest {
         EXP(ReproducibleMath::exp), EXPM1(ReproducibleMath::expm1), TANH(ReproducibleMath::tanh),
         SIGMOID(ReproducibleMath::sigmoid), LOG(ReproducibleMath::log), LOG1P(ReproducibleMath::log1p),
         /** The GPU's own sqrt against Java's correctly rounded one. */
-        SQRT(x -> (float) Math.sqrt(x)), ABS(Math::abs);
+        SQRT(x -> (float) Math.sqrt(x)), ABS(Math::abs),
+        /** fma(x, x, -x·x): the rounding error of x·x when fma is fused (math_probe case 8). */
+        FMA_RESIDUAL(x -> Math.fma(x, x, -(x * x)));
+
+        /** Whether the Slang port uses fma, so only a fused fma can match Java. */
+        boolean needsFusedFma() {
+            return this != SQRT && this != ABS;
+        }
 
         final FloatOp op;
 
@@ -83,7 +90,9 @@ class ReproducibleMathGpuTest {
         List<Arguments> out = new ArrayList<>();
         for (String backend : Devices.names()) {
             for (Fn fn : Fn.values()) {
-                out.add(Arguments.of(backend, fn));
+                if (!fn.needsFusedFma() || Devices.fusesFma(backend)) {
+                    out.add(Arguments.of(backend, fn));
+                }
             }
         }
         return out.stream();

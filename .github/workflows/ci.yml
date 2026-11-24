@@ -94,7 +94,10 @@ jobs:
   gpu-kernels:
     # vectrix-gpu (vectrix-gpu/pom.xml) is a separate project built against this commit's library. DynamisGPU is
     # not on Maven Central, so its release's Maven repository is unpacked into the runner's local repository. The
-    # runners have no GPU: the kernels run on the reference backend here, and on Metal and Vulkan before a release.
+    # runners have no GPU, so the kernels run on the reference backend and on Mesa's lavapipe, a CPU implementation
+    # of Vulkan. Lavapipe doesn't fuse fma (Vulkan doesn't require it), so there the tests check the kernels that need
+    # no fma bit for bit: Philox, argmax, the format conversions and the engine kernels. Every kernel runs on Metal
+    # and MoltenVK before a release.
     name: GPU kernels
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -122,8 +125,22 @@ jobs:
           mkdir -p ~/.m2/repository
           cp -R dynamisgpu/dynamisgpu-${DYNAMISGPU_VERSION}/repository/. ~/.m2/repository/
 
-      - name: Build and test vectrix-gpu
-        run: mvn -B -f vectrix-gpu/pom.xml verify
+      - name: Install lavapipe and the Vulkan loader
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends mesa-vulkan-drivers libvulkan1
+          echo "VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -1)" >> "$GITHUB_ENV"
+          echo "VK_LOADER=$(ls /usr/lib/*-linux-gnu/libvulkan.so.1 | head -1)" >> "$GITHUB_ENV"
+
+      - name: Build and test vectrix-gpu (reference backend and lavapipe)
+        run: mvn -B -f vectrix-gpu/pom.xml verify -Pvulkan -Ddynamisgpu.vk.loader="$VK_LOADER"
+
+      - name: Upload vectrix-gpu test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-vectrix-gpu
+          path: vectrix-gpu/target/surefire-reports
 
   bench-smoke:
     name: JMH Smoke (JDK 25)

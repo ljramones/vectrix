@@ -89,7 +89,7 @@ class GpuOptimTest {
 
     static Stream<Arguments> adamCases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int h = 0; h < ADAM.length; h++) {
                 for (long step : STEPS) {
                     out.add(Arguments.of(backend, h, step));
@@ -193,7 +193,7 @@ class GpuOptimTest {
 
     static Stream<Arguments> sgdCases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int h = 0; h < SGD.length; h++) {
                 for (boolean nesterov : new boolean[] {false, true}) {
                     out.add(Arguments.of(backend, h, nesterov));

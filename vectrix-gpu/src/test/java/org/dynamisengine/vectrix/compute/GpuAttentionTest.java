@@ -345,7 +345,7 @@ class GpuAttentionTest {
 
     static Stream<Arguments> cases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int[] s : SHAPES) {
                 for (MaskMode mode : MaskMode.values()) {
                     out.add(Arguments.of(backend, new Problem(false, false, s[0], 1, 1, s[1], s[2], s[3], s[4] != 0, mode)));
@@ -369,7 +369,7 @@ class GpuAttentionTest {
 
     static Stream<Arguments> grouped() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int[] s : GROUPED) {
                 for (MaskMode mode : MaskMode.values()) {
                     out.add(Arguments.of(backend, new Problem(true, false, s[0], s[1], s[2], s[3], s[4], s[5], s[6] != 0,
@@ -387,7 +387,7 @@ class GpuAttentionTest {
     }
 
     static Stream<String> backends() {
-        return Devices.names().stream();
+        return Devices.namesWithFusedFma().stream();
     }
 
     /** The most keys a query can attend to, for one query: the softmax's whole group-memory budget. */

@@ -245,6 +245,10 @@ float evaluate_0(uint fn_0, float x_6)
         {
             return jabs_0(x_6);
         }
+    case 8U:
+        {
+            return fma(x_6, x_6, - (x_6 * x_6));
+        }
     default:
         {
             return (as_type<float>((2143289344U)));

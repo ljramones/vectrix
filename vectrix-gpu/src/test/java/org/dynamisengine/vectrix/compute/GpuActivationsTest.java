@@ -81,7 +81,7 @@ class GpuActivationsTest {
 
     static Stream<Arguments> cases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (Op op : Op.values()) {
                 for (Layout layout : Layout.values()) {
                     if (op.backward() || layout == Layout.SEPARATE || layout == Layout.OUT_IS_A) {
@@ -138,7 +138,7 @@ class GpuActivationsTest {
 
     static Stream<Arguments> specialCases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (Op op : Op.values()) {
                 out.add(Arguments.of(backend, op));
             }
@@ -352,7 +352,7 @@ class GpuActivationsTest {
 
     static Stream<Arguments> dropoutCases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (long seed : SEEDS) {
                 for (long start : STARTS) {
                     for (boolean inPlace : new boolean[] {false, true}) {

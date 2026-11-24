@@ -94,7 +94,7 @@ class GpuLossTest {
 
     static Stream<Arguments> lossCases() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int[] s : RowsFixture.SHAPES) {
                 out.add(Arguments.of(backend, s[0], s[1]));
             }
@@ -115,7 +115,7 @@ class GpuLossTest {
         List<Arguments> out = new ArrayList<>();
         float[] dLoss = {1f, -0.25f, 3f};
         int k = 0;
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             for (int[] s : RowsFixture.SHAPES) {
                 for (boolean inPlace : new boolean[] {false, true}) {
                     out.add(Arguments.of(backend, s[0], s[1], dLoss[k++ % dLoss.length], inPlace));
@@ -136,7 +136,7 @@ class GpuLossTest {
 
     static Stream<Arguments> special() {
         List<Arguments> out = new ArrayList<>();
-        for (String backend : Devices.names()) {
+        for (String backend : Devices.namesWithFusedFma()) {
             out.add(Arguments.of(backend, false));
             out.add(Arguments.of(backend, true));
         }
