@@ -6,6 +6,13 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-11-23
+New in this release:
+- **vectrix-gpu covers most of the float kernels.** It has 16 classes: BLAS and GEMV, the neural-network kernels
+  (activations, softmax family, cross-entropy, norms, attention, optimizers, formats, argmax), Philox, frustum
+  culling, skinning, transform composition and packed-affine batches. Each one matches the CPU method bit for bit on
+  Metal and MoltenVK. The library jar is unchanged.
+
 ### Added
 - **vectrix-gpu: GPU twins for most of the float kernels.** Each one ports the Vectrix algorithm exactly and is tested
   bit for bit against it on Metal and MoltenVK. vectrix-gpu now has 16 classes and 58 kernels:
