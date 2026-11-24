@@ -32,9 +32,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 /**
- * The float kernel tests run only where fma is fused ({@link Devices#namesWithFusedFma}). So that a regression
- * cannot turn them into silent skips, Apple GPUs (native Metal, and Vulkan through MoltenVK, vendor 0x106B) must
- * report a fused fma, as they do.
+ * The float kernel tests run only where fma is fused ({@link Devices#namesWithFusedFma}, from DynamisGPU's measured
+ * {@code FUSED_FMA}). So that a regression cannot turn them into silent skips, Apple GPUs (native Metal, and Vulkan
+ * through MoltenVK, vendor 0x106B) must report a fused fma, as they do; and on every device the capability must
+ * agree with this project's own math_probe measurement.
  */
 class DeviceCapabilitiesTest {
 
@@ -53,5 +54,7 @@ class DeviceCapabilitiesTest {
         if (apple || backend.equals("reference")) {
             assertTrue(Devices.fusesFma(backend), backend + " must fuse fma");
         }
+        org.junit.jupiter.api.Assertions.assertEquals(Devices.probeFusedFma(backend), Devices.fusesFma(backend),
+                backend + ": DynamisGPU's FUSED_FMA must agree with the math_probe measurement");
     }
 }

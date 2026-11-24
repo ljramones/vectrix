@@ -139,8 +139,8 @@ mvn -f vectrix-gpu/pom.xml verify
 DynamisGPU comes from its GitHub Release when it isn't already in your local repository:
 
 ```bash
-curl -fsSLO https://github.com/ljramones/DynamicGPU/releases/download/v1.0.3/dynamisgpu-1.0.3-maven.zip
-unzip -q dynamisgpu-1.0.3-maven.zip && cp -R dynamisgpu-1.0.3/repository/. ~/.m2/repository/
+curl -fsSLO https://github.com/ljramones/DynamicGPU/releases/download/v1.1.0/dynamisgpu-1.1.0-maven.zip
+unzip -q dynamisgpu-1.1.0-maven.zip && cp -R dynamisgpu-1.1.0/repository/. ~/.m2/repository/
 ```
 
 ## Testing
@@ -166,7 +166,8 @@ A requested backend without a device fails the run instead of skipping it.
 **Devices without a fused `fma`.** The float kernels port `Math.fma`, so they can match Vectrix only where `fma` is
 one rounding. Vulkan doesn't require that: its precision rules treat `fma` as a multiply followed by an add, and
 Mesa's lavapipe computes it that way.
-- **The probe:** `Devices.fusesFma` checks each device once, with `fma(x, x, -x·x)`.
+- **The capability:** `Devices.fusesFma` reads DynamisGPU's measured `GpuCapabilities.FUSED_FMA` (1.1.0).
+  `DeviceCapabilitiesTest` checks that it agrees with an independent `fma(x, x, -x·x)` probe through `math_probe`.
 - **Tests that need it:** the tests of `fma`-based kernels (`Devices.namesWithFusedFma()`) run only on devices that
   fuse it.
 - **Tests that don't:** everything else runs everywhere, including the integer, conversion and engine kernels and
@@ -176,7 +177,7 @@ Mesa's lavapipe computes it that way.
 **CI:** the CI runners have no GPU, so the GPU kernels job runs the Vulkan profile on lavapipe, a CPU implementation of
 Vulkan. That checks the kernels that need no `fma` bit for bit, and creates their pipelines on a second, non-Apple
 driver. Run both hardware profiles on a Mac before a release. On an Apple M4 Max with DynamisGPU
-1.0.3, every test passes on both native Metal and MoltenVK, with no environment settings.
+1.1.0, every test passes on both native Metal and MoltenVK, with no environment settings.
 
 Two sweeps cover every 32-bit float input but are opt-in, because they take minutes:
 `-Dvectrix.gpu.exhaustive=true` checks all 2³² inputs to the math functions (`ReproducibleMathGpuTest`) and to the

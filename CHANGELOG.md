@@ -15,8 +15,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - **vectrix-gpu runs on a real Vulkan driver in CI:** Mesa's lavapipe.
   - **What it checks:** lavapipe doesn't fuse `fma`, which Vulkan permits, so there CI checks the kernels that need
     none bit for bit: Philox, argmax, the format conversions and quantization, culling, skinning and transforms.
-  - **How tests are selected:** `Devices.fusesFma` probes each device, and only devices that fuse `fma` run the tests
-    of `fma`-based kernels. `DeviceCapabilitiesTest` requires a fused `fma` on Apple GPUs.
+  - **How tests are selected:** `Devices.fusesFma` reads DynamisGPU 1.1.0's measured `FUSED_FMA` capability, and only
+    devices that fuse `fma` run the tests of `fma`-based kernels. `DeviceCapabilitiesTest` requires a fused `fma` on
+    Apple GPUs and checks the capability against vectrix-gpu's own probe.
+- **vectrix-gpu requires DynamisGPU 1.1.0.**
 
 ## [3.2.0] - 2026-11-23
 New in this release:

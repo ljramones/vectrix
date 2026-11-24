@@ -73,12 +73,26 @@ final class Devices {
 
     private static final java.util.Map<String, Boolean> FUSED = new java.util.concurrent.ConcurrentHashMap<>();
 
-    /** Whether backend {@code name} computes {@code fma} with one rounding (probed once with math_probe). */
+    /**
+     * Whether backend {@code name} computes {@code fma} with one rounding: DynamisGPU's measured
+     * {@code GpuCapabilities.FUSED_FMA}. The reference backend runs the Java methods, so its fma is Java's.
+     */
     static boolean fusesFma(String name) {
         return FUSED.computeIfAbsent(name, n -> {
-            float x = 1 + 0x1p-12f; // x·x = 1 + 2^-11 + 2^-24 rounds to 1 + 2^-11: the fused residual is 2^-24
-            return probe(n, 8, Float.floatToRawIntBits(x)) == Float.floatToRawIntBits(0x1p-24f);
+            if (n.equals("reference")) {
+                return true;
+            }
+            try (GpuDevice device = open(n)) {
+                return device.capabilities().shaderFeatures()
+                        .contains(org.dynamisengine.gpu.api.compute.GpuCapabilities.FUSED_FMA);
+            }
         });
+    }
+
+    /** The same question answered by this project's own math_probe kernel, to cross-check the capability. */
+    static boolean probeFusedFma(String name) {
+        float x = 1 + 0x1p-12f; // x·x = 1 + 2^-11 + 2^-24 rounds to 1 + 2^-11: the fused residual is 2^-24
+        return probe(name, 8, Float.floatToRawIntBits(x)) == Float.floatToRawIntBits(0x1p-24f);
     }
 
     /** Runs math_probe function {@code fn} on one float (given as bits) on backend {@code name}. */
