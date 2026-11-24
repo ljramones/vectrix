@@ -42,6 +42,23 @@ KERNELS = [
     ("philox", "philox.slang", "philox"),
     ("softmax", "softmax.slang", "softmax"),
     ("softmax_inplace", "softmax_inplace.slang", "softmaxInPlace"),
+    ("log_softmax", "log_softmax.slang", "logSoftmax"),
+    ("log_softmax_inplace", "log_softmax_inplace.slang", "logSoftmaxInPlace"),
+    ("log_sum_exp", "log_sum_exp.slang", "logSumExp"),
+    ("softmax_backward", "softmax_backward.slang", "softmaxBackward"),
+    ("softmax_backward_inplace", "softmax_backward_inplace.slang", "softmaxBackwardInPlace"),
+    ("log_softmax_backward", "log_softmax_backward.slang", "logSoftmaxBackward"),
+    ("log_softmax_backward_inplace", "log_softmax_backward_inplace.slang", "logSoftmaxBackwardInPlace"),
+    ("cross_entropy", "cross_entropy.slang", "crossEntropy"),
+    ("cross_entropy_backward", "cross_entropy_backward.slang", "crossEntropyBackward"),
+    ("cross_entropy_backward_inplace", "cross_entropy_backward_inplace.slang", "crossEntropyBackwardInPlace"),
+    ("layer_norm", "layer_norm.slang", "layerNorm"),
+    ("layer_norm_inplace", "layer_norm_inplace.slang", "layerNormInPlace"),
+    ("rms_norm", "rms_norm.slang", "rmsNorm"),
+    ("rms_norm_inplace", "rms_norm_inplace.slang", "rmsNormInPlace"),
+    ("norm_backward", "norm_backward.slang", "normBackward"),
+    ("norm_backward_inplace", "norm_backward_inplace.slang", "normBackwardInPlace"),
+    ("norm_param_grads", "norm_param_grads.slang", "normParamGrads"),
 ]
 
 TEST_KERNELS = [
