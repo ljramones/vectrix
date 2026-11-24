@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Added
+- **vectrix-gpu**, a separate artifact in this repository (`vectrix-gpu/`). It holds GPU twins of Vectrix kernels,
+  run through DynamisGPU's compute API on Metal or Vulkan. The first kernels are `GpuGemmf` (twin of
+  `Gemmf.gemm`), `GpuPhilox` (`Philox.word` and `Philox.uniform`) and `GpuSoftmax` (`Softmax.softmax` over rows).
+  - **Exactness:** each kernel runs the Vectrix algorithm itself, and the shaders are compiled so that every
+    operation rounds as written. Results match the CPU bit for bit on native Metal and MoltenVK (Apple M4 Max), the
+    one exception being subnormals, which Apple GPUs flush to zero.
+  - **Sources:** written in Slang, compiled by `vectrix-gpu/scripts/build-kernels.py`.
+  - **Releases:** released at the library's version, not deployed to Central.
+
 ## [3.0.0] - 2026-11-23
 New in this release:
 - **Every catalogued issue fixed.** The 2.6.0 documentation pass read every public method. 3.0 fixes everything it

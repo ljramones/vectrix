@@ -75,6 +75,10 @@ The [examples](examples/README.md) are complete, tested programs for each topic.
 
 [package-map.md](docs/package-map.md) describes all 29 top-level packages and their dependencies.
 
+The GPU versions of the GEMM, Philox and softmax kernels are in a separate artifact,
+[vectrix-gpu](vectrix-gpu/README.md). It runs them through DynamisGPU on Metal or Vulkan and matches the CPU
+results bit for bit. The Vectrix jar itself never touches the GPU.
+
 ## Documentation
 
 - [Getting started](docs/getting-started.md): install, modules, flags, a first program.
@@ -92,6 +96,7 @@ The [examples](examples/README.md) are complete, tested programs for each topic.
 mvn verify                              # tests, Checkstyle, SpotBugs, coverage; builds the plain and simd jars
 mvn clean verify -Pexperimental         # also the experimental paths (Vector API, FFM, JVMCI)
 mvn install -DskipTests && mvn -f examples/pom.xml verify   # the examples
+mvn install -DskipTests && mvn -f vectrix-gpu/pom.xml verify  # the GPU kernels (vectrix-gpu/README.md)
 ```
 
 [docs/maintainers/](docs/maintainers/) covers benchmarking and releases.

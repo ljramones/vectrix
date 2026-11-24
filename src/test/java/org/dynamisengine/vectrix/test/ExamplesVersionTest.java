@@ -33,7 +33,10 @@ import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 
-/** The examples project builds against this version of the library, so a release cannot leave it behind. */
+/**
+ * The separate projects in this repository (the examples and vectrix-gpu) build against this version of the library
+ * and carry it themselves, so a release cannot leave them behind.
+ */
 class ExamplesVersionTest {
 
     private static String first(String xml, String regex) {
@@ -49,5 +52,16 @@ class ExamplesVersionTest {
         assertEquals(version, first(ex, "<vectrix\\.version>([^<]+)</vectrix\\.version>"), "examples/pom.xml vectrix.version");
         assertEquals(version, first(ex, "<artifactId>vectrix-examples</artifactId>\\s*<version>([^<]+)</version>"),
             "examples/pom.xml version");
+    }
+
+    @Test
+    void vectrixGpuUsesTheLibraryVersion() throws IOException {
+        String lib = Files.readString(Path.of("pom.xml"));
+        String gpu = Files.readString(Path.of("vectrix-gpu/pom.xml"));
+        String version = first(lib, "<artifactId>vectrix</artifactId>\\s*<version>([^<]+)</version>");
+        assertEquals(version, first(gpu, "<vectrix\\.version>([^<]+)</vectrix\\.version>"),
+            "vectrix-gpu/pom.xml vectrix.version");
+        assertEquals(version, first(gpu, "<artifactId>vectrix-gpu</artifactId>\\s*<version>([^<]+)</version>"),
+            "vectrix-gpu/pom.xml version");
     }
 }

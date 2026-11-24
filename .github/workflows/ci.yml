@@ -91,6 +91,40 @@ jobs:
       - name: Run every example
         run: java -p examples/target/lib:examples/target/vectrix-examples.jar -m org.dynamisengine.vectrix.examples all
 
+  gpu-kernels:
+    # vectrix-gpu (vectrix-gpu/pom.xml) is a separate project built against this commit's library. DynamisGPU is
+    # not on Maven Central, so its release's Maven repository is unpacked into the runner's local repository. The
+    # runners have no GPU: the kernels run on the reference backend here, and on Metal and Vulkan before a release.
+    name: GPU kernels
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DYNAMISGPU_VERSION: "1.0.2"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Install the library
+        run: mvn -B -q install -DskipTests -Dcheckstyle.skip -Dspotbugs.skip -Djacoco.skip -Dmaven.javadoc.skip
+
+      - name: Install DynamisGPU from its GitHub Release
+        run: |
+          curl -fsSL -o dynamisgpu.zip \
+            "https://github.com/ljramones/DynamicGPU/releases/download/v${DYNAMISGPU_VERSION}/dynamisgpu-${DYNAMISGPU_VERSION}-maven.zip"
+          unzip -q dynamisgpu.zip -d dynamisgpu
+          mkdir -p ~/.m2/repository
+          cp -R dynamisgpu/dynamisgpu-${DYNAMISGPU_VERSION}/repository/. ~/.m2/repository/
+
+      - name: Build and test vectrix-gpu
+        run: mvn -B -f vectrix-gpu/pom.xml verify
+
   bench-smoke:
     name: JMH Smoke (JDK 25)
     runs-on: ubuntu-latest

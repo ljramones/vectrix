@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  vectrix-gpu: GPU twins of Vectrix kernels, dispatched through DynamisGPU's compute API. A separate project, not a
+  module of the library build, released at the library's version (ExamplesVersionTest checks it). The Vectrix jar
+  itself never touches the GPU.
+
+  Build the library first, then this project:
+    mvn install -DskipTests                        (in the repository root)
+    mvn -f vectrix-gpu/pom.xml verify              (reference backend only; no GPU needed)
+    mvn -f vectrix-gpu/pom.xml verify -Pmetal      (also on the native Metal backend, macOS)
+    mvn -f vectrix-gpu/pom.xml verify -Pvulkan     (also on Vulkan; on macOS set VK_DRIVER_FILES and
+                                                    -Ddynamisgpu.vk.loader, see README.md)
+  Kernel sources are in src/main/slang; regenerate the compiled kernels with scripts/build-kernels.py.
+
+  DynamisGPU is not on Maven Central: install it from its GitHub Release (README.md). Not deployed to Central.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.dynamisengine</groupId>
+    <artifactId>vectrix-gpu</artifactId>
+    <version>3.0.0</version>
+    <name>Vectrix GPU kernels</name>
+    <description>GPU twins of Vectrix kernels (Slang, compiled to SPIR-V and Metal) for DynamisGPU</description>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+        </license>
+    </licenses>
+
+    <properties>
+        <!-- Kept equal to the library version by ExamplesVersionTest in the library build. -->
+        <vectrix.version>3.0.0</vectrix.version>
+        <dynamisgpu.version>1.0.2</dynamisgpu.version>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <junit.version>5.10.3</junit.version>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <!-- Set by the hardware profiles; read by the tests. -->
+        <vectrix.gpu.metal>false</vectrix.gpu.metal>
+        <vectrix.gpu.vulkan>false</vectrix.gpu.vulkan>
+        <dynamisgpu.vk.loader></dynamisgpu.vk.loader>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>dynamis-gpu-api</artifactId>
+            <version>${dynamisgpu.version}</version>
+        </dependency>
+        <!-- The CPU reference every kernel is tested against. -->
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>vectrix</artifactId>
+            <version>${vectrix.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.1</version>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:all</arg>
+                        <arg>-Werror</arg>
+                    </compilerArgs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <!-- Javadoc is checked on the public API only. -->
+                        <id>default-compile</id>
+                        <configuration>
+                            <compilerArgs>
+                                <arg>-Xlint:all</arg>
+                                <arg>-Werror</arg>
+                                <arg>-Xdoclint:all/protected</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+                <configuration>
+                    <useModulePath>false</useModulePath>
+                    <argLine>--enable-native-access=ALL-UNNAMED</argLine>
+                    <systemPropertyVariables>
+                        <vectrix.gpu.metal>${vectrix.gpu.metal}</vectrix.gpu.metal>
+                        <vectrix.gpu.vulkan>${vectrix.gpu.vulkan}</vectrix.gpu.vulkan>
+                        <dynamisgpu.vk.loader>${dynamisgpu.vk.loader}</dynamisgpu.vk.loader>
+                    </systemPropertyVariables>
+                    <environmentVariables>
+                        <!-- MoltenVK compiles with fast math unless told not to; fast math reassociates. -->
+                        <MVK_CONFIG_FAST_MATH_ENABLED>0</MVK_CONFIG_FAST_MATH_ENABLED>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <!-- Also run every kernel test on the native Metal backend (macOS). -->
+            <id>metal</id>
+            <properties>
+                <vectrix.gpu.metal>true</vectrix.gpu.metal>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.dynamisengine</groupId>
+                    <artifactId>dynamis-gpu-metal</artifactId>
+                    <version>${dynamisgpu.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <!-- Also run every kernel test on the Vulkan backend. -->
+            <id>vulkan</id>
+            <properties>
+                <vectrix.gpu.vulkan>true</vectrix.gpu.vulkan>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.dynamisengine</groupId>
+                    <artifactId>dynamis-gpu-vulkan</artifactId>
+                    <version>${dynamisgpu.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+</project>

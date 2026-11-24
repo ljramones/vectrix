@@ -1,6 +1,7 @@
 # Build output
 /target/
 /examples/target/
+/vectrix-gpu/target/
 /out/
 
 # Maven helper artifacts

@@ -38,6 +38,7 @@ Types come in float (`f`), double (`d`), int (`i`), and long (`L`) variants. All
 - `src/bench/java/org/dynamisengine/vectrix/bench/` — JMH benchmarks (`-Pbench`); `src/jmh/java/org/dynamisengine/vectrix/jmh/` — legacy JOML JMH benchmarks (experimental profile)
 - `buildhelper/` — ASM-based post-compile tool `ModuleInfoGenerator` (generates `module-info.class`)
 - `examples/` — a separate Maven project (`vectrix-examples`, not deployed) of tested example programs; build with `mvn install -DskipTests && mvn -f examples/pom.xml verify`. Its version must equal the library's (`ExamplesVersionTest`)
+- `vectrix-gpu/` — a separate Maven project (`vectrix-gpu`, module `org.dynamisengine.vectrix.compute`, not deployed to Central) of GPU twins of Vectrix kernels, written in Slang (`vectrix-gpu/src/main/slang`) and dispatched through DynamisGPU's compute API. Each kernel ports the Vectrix algorithm exactly and is tested bit for bit against it (reference backend in CI; `-Pmetal`/`-Pvulkan` on hardware). Regenerate compiled kernels with `python3 vectrix-gpu/scripts/build-kernels.py`; see `vectrix-gpu/README.md` for the rounding rules. A change to a kernel's CPU semantics must change its twin in the same commit. Its version must equal the library's (`ExamplesVersionTest`)
 - `docs/` — user docs (`getting-started.md`, `conventions.md`, `guides/`); `docs/maintainers/` for releases and benchmarks
 
 ### Key Internal Classes

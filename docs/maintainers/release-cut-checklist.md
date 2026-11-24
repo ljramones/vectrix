@@ -3,7 +3,9 @@
 ## 1. Before the release commit
 
 - `main` is green in CI: the six Verify jobs (x86-64, arm64 and macOS, each in the default and experimental
-  profiles) and the Examples job.
+  profiles), the Examples job and the GPU kernels job.
+- On a Mac, `mvn -f vectrix-gpu/pom.xml verify -Pmetal,vulkan` passes: CI has no GPU, so this is the only run of
+  the kernels on hardware ([vectrix-gpu/README.md](../../vectrix-gpu/README.md#testing)).
 - `mvn clean verify` and `mvn clean verify -Pexperimental` pass locally.
 - `CrossPlatformDeterminismTest` reports no differences from the golden. If results changed on purpose,
   re-record the golden (see [determinism.md](../determinism.md)) and say why in the CHANGELOG.
@@ -14,7 +16,8 @@
 
 Set the version everywhere it appears:
 - `pom.xml`;
-- `examples/pom.xml`, in both `<version>` and `<vectrix.version>`, which `ExamplesVersionTest` checks;
+- `examples/pom.xml` and `vectrix-gpu/pom.xml`, each in both `<version>` and `<vectrix.version>`, which
+  `ExamplesVersionTest` checks;
 - the dependency snippets in `README.md` and `docs/getting-started.md`.
 
 Update the docs:
@@ -38,11 +41,16 @@ to Central later:
 
 ```bash
 mvn clean install                 # into the local repository, for the components that depend on Vectrix
+mvn -f vectrix-gpu/pom.xml clean install
 git push origin main vX.Y.Z
 gh release create vX.Y.Z --title "Vectrix vX.Y.Z" --notes-file <the CHANGELOG section> \
     target/vectrix-X.Y.Z.jar target/vectrix-X.Y.Z-simd.jar target/vectrix-X.Y.Z-sources.jar \
-    target/vectrix-X.Y.Z-javadoc.jar
+    target/vectrix-X.Y.Z-javadoc.jar \
+    vectrix-gpu/target/vectrix-gpu-X.Y.Z.jar vectrix-gpu/target/vectrix-gpu-X.Y.Z-sources.jar
 ```
+
+vectrix-gpu is never deployed to Central: it depends on DynamisGPU, which is distributed only through its GitHub
+Releases.
 
 Central accepts versions in any order, so a version released this way can be published later from its tag:
 `git checkout vX.Y.Z && ./deploy.sh`.
