@@ -114,6 +114,33 @@ class KernelManifestTest {
         }
         assertTrue(4 * GpuCullingKernels.PARAMS.length <= 128, "the culling parameters fit Vulkan's guaranteed 128"
                 + " bytes of push constants");
+        assertRowKernelParams();
+    }
+
+    /** The row kernels of GpuSoftmax (beyond softmax), GpuLoss and GpuNorms. */
+    private static void assertRowKernelParams() {
+        assertParams("log_softmax", GpuSoftmax.PARAMS_LOG);
+        assertParams("log_softmax_inplace", GpuSoftmax.PARAMS_LOG_IN_PLACE);
+        assertParams("log_sum_exp", GpuSoftmax.PARAMS_LSE);
+        assertParams("softmax_backward", GpuSoftmax.PARAMS_BACKWARD);
+        assertParams("softmax_backward_inplace", GpuSoftmax.PARAMS_BACKWARD_IN_PLACE);
+        assertParams("log_softmax_backward", GpuSoftmax.PARAMS_BACKWARD);
+        assertParams("log_softmax_backward_inplace", GpuSoftmax.PARAMS_BACKWARD_IN_PLACE);
+        assertParams("cross_entropy", GpuLoss.PARAMS);
+        assertParams("cross_entropy_backward", GpuLoss.PARAMS_BACKWARD);
+        assertParams("cross_entropy_backward_inplace", GpuLoss.PARAMS_BACKWARD_IN_PLACE);
+        assertEquals("float32", Manifest.paramTypes("cross_entropy_backward").get("dLoss"));
+        assertEquals("float32", Manifest.paramTypes("cross_entropy_backward_inplace").get("dLoss"));
+        assertParams("layer_norm", GpuNorms.PARAMS_LAYER);
+        assertParams("layer_norm_inplace", GpuNorms.PARAMS_LAYER_IN_PLACE);
+        assertParams("rms_norm", GpuNorms.PARAMS_RMS);
+        assertParams("rms_norm_inplace", GpuNorms.PARAMS_RMS_IN_PLACE);
+        for (String k : List.of("layer_norm", "layer_norm_inplace", "rms_norm", "rms_norm_inplace")) {
+            assertEquals("float32", Manifest.paramTypes(k).get("eps"), k + ".eps");
+        }
+        assertParams("norm_backward", GpuNorms.PARAMS_BACKWARD);
+        assertParams("norm_backward_inplace", GpuNorms.PARAMS_BACKWARD_IN_PLACE);
+        assertParams("norm_param_grads", GpuNorms.PARAMS_PARAM_GRADS);
     }
 
     private static void assertParams(String kernel, String[] fields) {
@@ -196,11 +223,34 @@ class KernelManifestTest {
         for (String k : ENGINE) {
             assertEquals(EngineBuffers.GROUP + ",1,1", Manifest.get(k + ".local"), k);
         }
+        assertEquals("x:0,out:1", Manifest.get("log_sum_exp.buffers"));
+        assertEquals("y:0,dy:1,dx:2", Manifest.get("softmax_backward.buffers"));
+        assertEquals("a:0,b:1", Manifest.get("log_softmax_backward_inplace.buffers"));
+        assertEquals("logits:0,targets:1,loss:2", Manifest.get("cross_entropy.buffers"));
+        assertEquals("logits:0,targets:1", Manifest.get("cross_entropy_backward_inplace.buffers"));
+        assertEquals("x:0,gamma:1,beta:2,y:3,stats:4", Manifest.get("layer_norm.buffers"));
+        assertEquals("x:0,gamma:1,y:2,stats:3", Manifest.get("rms_norm.buffers"));
+        assertEquals("x:0,gamma:1,stats:2,dy:3,dx:4", Manifest.get("norm_backward.buffers"));
+        assertEquals("a:0,gamma:1,stats:2,b:3", Manifest.get("norm_backward_inplace.buffers"));
+        assertEquals("x:0,stats:1,dy:2,dGamma:3,dBeta:4", Manifest.get("norm_param_grads.buffers"));
+        assertEquals("64,1,1", Manifest.get("norm_param_grads.local"));
+        for (String k : ROW_KERNELS) {
+            if (!k.equals("norm_param_grads")) {
+                assertEquals("256,1,1", Manifest.get(k + ".local"), k + ".local");
+            }
+        }
     }
 
     /** The engine kernels (culling, transforms, skinning, packed affine). */
     private static final List<String> ENGINE = List.of("cull_aabb", "transform_compose", "skin_lbs", "skin_dq",
             "skin_palette", "palette_build", "affine_quat_translation", "affine_aabb", "affine_upload");
+
+    /** The kernels added for the row reductions (GpuSoftmax beyond softmax, GpuLoss, GpuNorms). */
+    private static final List<String> ROW_KERNELS = List.of("log_softmax", "log_softmax_inplace", "log_sum_exp",
+            "softmax_backward", "softmax_backward_inplace", "log_softmax_backward", "log_softmax_backward_inplace",
+            "cross_entropy", "cross_entropy_backward", "cross_entropy_backward_inplace", "layer_norm",
+            "layer_norm_inplace", "rms_norm", "rms_norm_inplace", "norm_backward", "norm_backward_inplace",
+            "norm_param_grads");
 
     @Test
     void compiledKernelsAreUpToDate() throws IOException {

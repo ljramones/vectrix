@@ -123,6 +123,7 @@ final class ReferenceModels {
         BlasModels.register(MODELS);
         FormatsModels.register(MODELS);
         EngineModels.register(MODELS);
+        RowsModels.register(MODELS);
     }
 
     private ReferenceModels() {
