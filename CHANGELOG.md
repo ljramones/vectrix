@@ -6,6 +6,20 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-11-24
+New in this release:
+- **GPU data layouts move to DynamisGPU.** Vectrix's GPU-facing layout code now lives in DynamisGPU 1.2.0, next to the
+  code that binds the buffers. The Vectrix copies are deprecated and are removed in 4.0. The numeric encodings stay
+  here.
+- **vectrix-gpu requires DynamisGPU 1.2.0** (was 1.1.0). Its kernels and results are unchanged.
+
+### Changed
+- **vectrix-gpu requires DynamisGPU 1.2.0.**
+  - **What 1.2.0 adds:** capability tiers, and pipeline creation refuses SPIR-V that needs a feature the device
+    lacks.
+  - **Effect on vectrix-gpu:** none in practice. Its kernels declare only the `Shader` capability, so they are
+    accepted everywhere.
+
 ### Deprecated
 - **GPU data-layout classes moved to DynamisGPU 1.2.0.** They are deprecated for removal and go in 4.0. They are
   unchanged until then.
