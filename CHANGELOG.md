@@ -6,6 +6,13 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Changed
+- **vectrix-gpu builds its kernels with DynamisGPU's shader build.** `scripts/build-kernels.sh` runs `ShaderBuild`
+  from `dynamis-gpu-shaders`, and the kernels are listed in `src/main/slang/kernels.list` and `src/test/slang/kernels.list`.
+  It replaces `scripts/build-kernels.py`, of which `ShaderBuild` is a port. Every compiled kernel is byte-identical;
+  only the manifests' header line changed.
+- **vectrix-gpu loads its kernels through DynamisGPU's `KernelLibrary`,** in place of its own manifest reader.
+
 ## [3.3.0] - 2026-11-24
 New in this release:
 - **GPU data layouts move to DynamisGPU.** Vectrix's GPU-facing layout code now lives in DynamisGPU 1.2.0, next to the

@@ -1,0 +1,2 @@
+# name source entry: test probes, built into src/test/resources/org/dynamisengine/vectrix/compute/testkernels by scripts/build-kernels.sh
+math_probe math_probe.slang probe

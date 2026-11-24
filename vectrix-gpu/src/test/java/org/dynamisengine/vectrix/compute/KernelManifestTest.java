@@ -44,7 +44,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The compiled kernels match their sources and the Java wrappers: the parameter blocks the wrappers write have the
- * fields, order and offsets Slang compiled, and no .slang file changed without rerunning scripts/build-kernels.py.
+ * fields, order and offsets Slang compiled, and no .slang file changed without rerunning scripts/build-kernels.sh.
  */
 class KernelManifestTest {
 
@@ -255,10 +255,10 @@ class KernelManifestTest {
     @Test
     void compiledKernelsAreUpToDate() throws IOException {
         assertEquals(Manifest.get("source.sha256"), sourceHash(SLANG),
-                "src/main/slang changed since the kernels were compiled: run python3 scripts/build-kernels.py");
+                "src/main/slang changed since the kernels were compiled: run sh scripts/build-kernels.sh");
         assertEquals(Manifest.TEST.getProperty("source.sha256"), sourceHash(SLANG, Path.of("src/test/slang")),
-                "src/main/slang or src/test/slang changed since the test kernels were compiled: run python3 "
-                        + "scripts/build-kernels.py");
+                "src/main/slang or src/test/slang changed since the test kernels were compiled: run sh "
+                        + "scripts/build-kernels.sh");
     }
 
     private static String sourceHash(Path... dirs) throws IOException {

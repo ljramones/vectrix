@@ -185,12 +185,14 @@ format encoders (`GpuFormatsTest`). Normal runs check about a million inputs spr
 
 ## Adding or changing a kernel
 
-Kernels are written in [Slang](https://shader-slang.org), in `src/main/slang`. `scripts/build-kernels.py` compiles
-them to SPIR-V and Metal source in `src/main/resources`, and the build uses those committed files, so neither the
-build nor CI needs `slangc`. After editing a `.slang` file:
+Kernels are written in [Slang](https://shader-slang.org), in `src/main/slang`, and listed in
+`src/main/slang/kernels.list`. `scripts/build-kernels.sh` compiles them to SPIR-V and Metal source in
+`src/main/resources` with DynamisGPU's shader build (`ShaderBuild` from `dynamis-gpu-shaders`, the version this
+project depends on, from your local Maven repository). It applies the same rounding rules to every DynamisGPU kernel.
+The build uses those committed files, so neither the build nor CI needs `slangc`. After editing a `.slang` file:
 
 ```bash
-python3 vectrix-gpu/scripts/build-kernels.py   # finds slangc via $SLANGC, $VULKAN_SDK or ~/VulkanSDK
+sh vectrix-gpu/scripts/build-kernels.sh   # finds slangc via $SLANGC, $VULKAN_SDK or ~/VulkanSDK
 ```
 
 `KernelManifestTest` fails while a source differs from what was compiled. It also checks that the parameter blocks
@@ -230,7 +232,7 @@ the Java side writes match the fields and offsets Slang compiled.
   `#pragma METAL fp contract(off)`. Without them, Metal fuses multiply-adds even with fast math disabled.
 
 **Then wire it up:**
-1. Add a Java class beside `GpuGemmf`, and add the kernel to `KERNELS` in `scripts/build-kernels.py`.
+1. Add a Java class beside `GpuGemmf`, and add the kernel to `src/main/slang/kernels.list`.
 2. Add a CPU model of the kernel in a class of its own, registered with one line in `ReferenceModels`.
 3. Add a parity test, and assert its `PARAMS` in `KernelManifestTest`. Run it on `Devices.namesWithFusedFma()` if the
    kernel uses `fma`, otherwise on `Devices.names()`.

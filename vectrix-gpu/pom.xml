@@ -10,7 +10,7 @@
     mvn -f vectrix-gpu/pom.xml verify -Pmetal      (also on the native Metal backend, macOS)
     mvn -f vectrix-gpu/pom.xml verify -Pvulkan     (also on Vulkan; on macOS set VK_DRIVER_FILES and
                                                     -Ddynamisgpu.vk.loader, see README.md)
-  Kernel sources are in src/main/slang; regenerate the compiled kernels with scripts/build-kernels.py.
+  Kernel sources are in src/main/slang; regenerate the compiled kernels with scripts/build-kernels.sh.
 
   DynamisGPU is not on Maven Central: install it from its GitHub Release (README.md). Not deployed to Central.
 -->

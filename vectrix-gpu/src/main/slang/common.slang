@@ -1,5 +1,5 @@
 // Shared helpers for the vectrix-gpu kernels: ports of vectrix CPU code that must round exactly as the Java does.
-// Every function mirrors a named Java method; change both together. The build (scripts/build-kernels.py) keeps
+// Every function mirrors a named Java method; change both together. The build (scripts/build-kernels.sh) keeps
 // each add and subtract from being fused with a product, so `a * b + c` rounds twice, as in Java.
 
 // Java Math.max: NaN if either argument is NaN; +0 is greater than -0.

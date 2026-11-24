@@ -23,16 +23,10 @@
  */
 package org.dynamisengine.vectrix.compute;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 import org.dynamisengine.gpu.api.compute.Access;
@@ -45,62 +39,30 @@ import org.dynamisengine.gpu.api.compute.GpuCapabilities;
 import org.dynamisengine.gpu.api.compute.GpuComputePipeline;
 import org.dynamisengine.gpu.api.compute.GpuDevice;
 import org.dynamisengine.gpu.api.compute.KernelBundle;
+import org.dynamisengine.gpu.api.compute.KernelLibrary;
 import org.dynamisengine.gpu.api.compute.PipelineDescriptor;
 
-/** The compiled kernels (src/main/slang, built by scripts/build-kernels.py), pipelines, parameters and checks. */
+/**
+ * The compiled kernels (src/main/slang, built by scripts/build-kernels.sh with DynamisGPU's ShaderBuild and loaded
+ * through its KernelLibrary), pipelines, parameters and checks.
+ */
 final class Kernels {
 
     /** The largest element index a kernel can address (32-bit indices). */
     static final long MAX_INDEX = 0xFFFF_FFFFL;
 
-    private static final String DIR = "kernels/";
-
-    private static final Properties MANIFEST = load();
+    /** kernels/kernels.properties and the outputs it lists; bundles are named {@code vectrix.<kernel>}. */
+    static final KernelLibrary LIBRARY = KernelLibrary.load(Kernels.class, "kernels", "kernels.properties", "vectrix.");
 
     private Kernels() {
     }
 
-    private static Properties load() {
-        Properties p = new Properties();
-        try (InputStream in = resource("kernels.properties")) {
-            p.load(in);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-        return p;
-    }
-
-    private static InputStream resource(String name) {
-        InputStream in = Kernels.class.getResourceAsStream(DIR + name);
-        if (in == null) {
-            throw new IllegalStateException("vectrix-gpu resource missing: " + DIR + name);
-        }
-        return in;
-    }
-
-    private static byte[] bytes(String name) {
-        try (InputStream in = resource(name)) {
-            return in.readAllBytes();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
     /**
      * The kernel {@code name}: SPIR-V for Vulkan, Metal source for Metal, and for {@link Backend#MOCK} the entry
-     * point's name (for test drivers that model the kernel). Its version is the hash of the kernel sources.
+     * point's name (for test drivers that model the kernel). Its version is the start of the kernel sources' hash.
      */
     static KernelBundle bundle(String name) {
-        String entry = MANIFEST.getProperty(name + ".entry");
-        if (entry == null) {
-            throw new IllegalStateException("no kernel " + name + " in kernels.properties");
-        }
-        Map<Backend, KernelBundle.Executable> ex = new EnumMap<>(Backend.class);
-        ex.put(Backend.VULKAN, new KernelBundle.Executable(KernelBundle.Format.SPIRV, bytes(name + ".spv")));
-        ex.put(Backend.METAL, new KernelBundle.Executable(KernelBundle.Format.MSL_SOURCE, bytes(name + ".metal")));
-        ex.put(Backend.MOCK, new KernelBundle.Executable(KernelBundle.Format.MOCK,
-                entry.getBytes(StandardCharsets.UTF_8)));
-        return new KernelBundle("vectrix." + name, MANIFEST.getProperty("source.sha256").substring(0, 16), ex);
+        return LIBRARY.bundle(name);
     }
 
     /** A pipeline for kernel {@code name}: the given buffer accesses in slot order, and its parameter block. */
@@ -114,7 +76,7 @@ final class Kernels {
             b[i] = new BindingLayout.BufferBinding(i, slots[i], 4);
         }
         BindingLayout layout = new BindingLayout(List.of(b), paramCount * 4);
-        return device.pipeline(new PipelineDescriptor(bundle(name), MANIFEST.getProperty(name + ".entry"), layout,
+        return device.pipeline(new PipelineDescriptor(bundle(name), LIBRARY.entryPoint(name), layout,
                 local, Map.of(), types, Set.of()));
     }
 

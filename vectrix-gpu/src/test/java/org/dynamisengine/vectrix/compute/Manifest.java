@@ -30,7 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
-/** The compiled kernels' ABI, as recorded by scripts/build-kernels.py from Slang's reflection. */
+/** The compiled kernels' ABI, as recorded by DynamisGPU's ShaderBuild (scripts/build-kernels.sh) from Slang's reflection. */
 final class Manifest {
 
     static final Properties P = load();
