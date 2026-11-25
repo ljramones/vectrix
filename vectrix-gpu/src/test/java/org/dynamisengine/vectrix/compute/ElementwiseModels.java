@@ -78,6 +78,9 @@ final class ElementwiseModels {
         m.put("activation", ElementwiseModels::activation);
         m.put("activation_inplace", ElementwiseModels::activationInPlace);
         m.put("activation_self", ElementwiseModels::activationSelf);
+        m.put("gelu", ElementwiseModels::gelu);
+        m.put("gelu_inplace", ElementwiseModels::geluInPlace);
+        m.put("gelu_self", ElementwiseModels::geluSelf);
         m.put("dropout", c -> dropout(c, false));
         m.put("dropout_inplace", c -> dropout(c, true));
         m.put("adamw", ElementwiseModels::adamW);
@@ -134,6 +137,50 @@ final class ElementwiseModels {
             backward(op).apply(x, off, x, off, x, off, n);
         } else {
             forward(op).apply(x, off, x, off, n);
+        }
+        c.put(0, x);
+    }
+
+    /** The exact GELU kernels: op 0 is Activations.gelu, 1 is geluBackward (gelu_ops.slang). */
+    private static void gelu(ReferenceModels.Call c) {
+        int n = c.i("n");
+        requireElements(c, n);
+        float[] a = c.floats(0);
+        float[] b = c.floats(1);
+        float[] dest = c.floats(2);
+        if (c.i("op") != 0) {
+            Activations.geluBackward(a, c.i("aOff"), b, c.i("bOff"), dest, c.i("destOff"), n);
+        } else {
+            Activations.gelu(a, c.i("aOff"), dest, c.i("destOff"), n);
+        }
+        c.put(2, dest);
+    }
+
+    private static void geluInPlace(ReferenceModels.Call c) {
+        int n = c.i("n");
+        requireElements(c, n);
+        c.require(c.i("op") == 1, "the in-place GELU kernel runs the backward op only");
+        float[] dest = c.floats(0);
+        float[] other = c.floats(1);
+        int destOff = c.i("destOff");
+        int otherOff = c.i("otherOff");
+        if (c.u("destIsDy") != 0) {
+            Activations.geluBackward(other, otherOff, dest, destOff, dest, destOff, n);
+        } else {
+            Activations.geluBackward(dest, destOff, other, otherOff, dest, destOff, n);
+        }
+        c.put(0, dest);
+    }
+
+    private static void geluSelf(ReferenceModels.Call c) {
+        int n = c.i("n");
+        requireElements(c, n);
+        float[] x = c.floats(0);
+        int off = c.i("off");
+        if (c.i("op") != 0) {
+            Activations.geluBackward(x, off, x, off, x, off, n);
+        } else {
+            Activations.gelu(x, off, x, off, n);
         }
         c.put(0, x);
     }

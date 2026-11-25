@@ -6,6 +6,9 @@ softmax_inplace softmax_inplace.slang softmaxInPlace
 activation activation.slang activation
 activation_inplace activation_inplace.slang activationInPlace
 activation_self activation_self.slang activationSelf
+gelu gelu.slang gelu
+gelu_inplace gelu_inplace.slang geluInPlace
+gelu_self gelu_self.slang geluSelf
 dropout dropout.slang dropout
 dropout_inplace dropout_inplace.slang dropoutInPlace
 adamw adamw.slang adamw

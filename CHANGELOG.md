@@ -11,6 +11,11 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   integers, rounding exactly as Java does. It lets vectrix-gpu port the Vectrix methods that compute in double.
   Kernels using it need the device's `INT64` capability. `F64GpuTest` checks it bit for bit against Java on every
   backend.
+- **vectrix-gpu: the exact GELU.** `GpuActivations.gelu` and `geluBackward` are twins of `Activations.gelu` and
+  `geluBackward`. Their normal distribution function and density are computed in double, as Vectrix does, through
+  `f64.slang`, so they are bit for bit on every device with `INT64` (subnormal results aside where the GPU flushes
+  them). They are much slower than the other activations. `GpuGeluTest` covers every aliasing layout, the branch
+  points of `normalCdf` and the special values.
 
 ## [4.0.1] - 2026-11-25
 A packaging release: no library code changes, and the results are unchanged.

@@ -50,12 +50,13 @@ import org.dynamisengine.gpu.api.compute.KernelBundle;
  * Forward methods write {@code y[i] = f(x[i])}; backward methods write {@code dx[i] = dy[i]·f'(x[i])} from the forward
  * input, except {@link #sigmoidBackward} and {@link #tanhBackward}, which take the forward output. As in Vectrix, an
  * output may be one of the inputs at the same offset (in place). An output in the same buffer as an input at a
- * different offset is rejected; inputs may share a buffer freely. The exact GELU ({@code Activations.gelu} and
- * {@code geluBackward}) has no twin: its normal distribution function and density are computed in double, which
- * GPUs such as Apple's do not have.
+ * different offset is rejected; inputs may share a buffer freely. The exact GELU ({@link #gelu},
+ * {@link #geluBackward}, since 4.1) computes its normal distribution function and density in double, as Vectrix
+ * does, with the binary64 arithmetic on 64-bit integers of {@code f64.slang} (GPUs such as Apple's have no FP64): it
+ * matches Vectrix on every device with the {@code INT64} capability, and is much slower than the other activations.
  * <p>
  * Five pipelines, compiled when the instance is created: one for each aliasing pattern of the activations, and two
- * for dropout. Each activation thread computes one element; each dropout thread one Philox block (four elements).
+ * for dropout; and on a device with {@code INT64}, three more for the exact GELU. Each activation thread computes one element; each dropout thread one Philox block (four elements).
  *
  * @since 3.2.0
  */
@@ -103,6 +104,17 @@ public final class GpuActivations implements AutoCloseable {
     private final GpuComputePipeline dropout;
 
     private final GpuComputePipeline dropoutInPlace;
+    private final Pipelines activations;
+    /** The exact GELU's pipelines; null on a device without INT64. */
+    private final Pipelines gelu;
+
+    /** The three aliasing patterns of one element-wise kernel family. */
+    private record Pipelines(GpuComputePipeline twoBuffers, GpuComputePipeline inPlace, GpuComputePipeline self) {
+    }
+
+    /** The exact GELU kernels' op codes (gelu_ops.slang). */
+    private static final int GELU = 0;
+    private static final int GELU_BACKWARD = 1;
 
     /**
      * Compiles the kernels on {@code device}.
@@ -126,6 +138,15 @@ public final class GpuActivations implements AutoCloseable {
                     intFp32, Access.READ, Access.WRITE));
             made.add(Kernels.pipeline(device, "dropout_inplace", new Dimensions(DROPOUT_GROUP, 1, 1),
                     PARAMS_DROPOUT_IN_PLACE, intFp32, Access.READ_WRITE));
+            if (device.capabilities().dataTypes().contains("INT64")) {
+                Set<String> int64 = Set.of("FP32", "INT64");
+                made.add(Kernels.pipeline(device, "gelu", new Dimensions(GROUP, 1, 1), PARAMS, int64,
+                        Access.READ, Access.READ, Access.WRITE));
+                made.add(Kernels.pipeline(device, "gelu_inplace", new Dimensions(GROUP, 1, 1), PARAMS_IN_PLACE,
+                        int64, Access.READ_WRITE, Access.READ));
+                made.add(Kernels.pipeline(device, "gelu_self", new Dimensions(GROUP, 1, 1), PARAMS_SELF, int64,
+                        Access.READ_WRITE));
+            }
         } catch (RuntimeException e) {
             for (GpuComputePipeline p : made) {
                 p.close();
@@ -137,6 +158,8 @@ public final class GpuActivations implements AutoCloseable {
         self = made.get(2);
         dropout = made.get(3);
         dropoutInPlace = made.get(4);
+        activations = new Pipelines(twoBuffers, inPlace, self);
+        gelu = made.size() > 5 ? new Pipelines(made.get(5), made.get(6), made.get(7)) : null;
         this.device = device;
     }
 
@@ -376,6 +399,74 @@ public final class GpuActivations implements AutoCloseable {
     }
 
     /**
+     * Records the exact GELU, {@code y[i] = x[i]·Φ(x[i])} with {@code Φ} the standard normal distribution function,
+     * as {@code Activations.gelu}. {@code Φ} is computed as {@code ReproducibleMath.normalCdf} does, partly in
+     * double, with the binary64 arithmetic of {@code f64.slang}; the result is the bits Vectrix computes on every
+     * device with {@code INT64}, subnormal results aside on GPUs that flush them. Much slower than {@link #geluTanh}.
+     *
+     * @param encoder the encoder to record into
+     * @param x the input
+     * @param xOff the element index in {@code x} of the first input
+     * @param y receives the output; may be {@code x} at the same offset
+     * @param yOff the element index in {@code y} of the first output
+     * @param n the number of elements, {@code >= 0}; nothing is recorded for 0
+     * @return {@code encoder}
+     * @throws IllegalArgumentException if {@code n} or an offset is negative, a buffer is too small, {@code y} is
+     *         {@code x} at a different offset, or an argument is null
+     * @throws org.dynamisengine.gpu.api.compute.ComputeException if the device has no {@code INT64}
+     *         ({@code UNSUPPORTED}) or the dispatch exceeds the device's limits
+     * @since 4.1.0
+     */
+    public GpuCommandEncoder gelu(GpuCommandEncoder encoder, GpuBuffer x, long xOff, GpuBuffer y, long yOff, int n) {
+        return forward(exactGelu(), GELU, encoder, x, xOff, y, yOff, n);
+    }
+
+    /**
+     * Records the exact GELU's gradient from its input, {@code dx = dy·(Φ(x) + x·φ(x))} with {@code φ} the standard
+     * normal density, as {@code Activations.geluBackward}; see {@link #gelu}.
+     *
+     * @param encoder the encoder to record into
+     * @param x the forward input
+     * @param xOff the element index in {@code x} of the first input
+     * @param dy the gradient of the output
+     * @param dyOff the element index in {@code dy} of the first gradient
+     * @param dx receives the gradient of the input; may be {@code x} or {@code dy} at the same offset
+     * @param dxOff the element index in {@code dx} of the first output
+     * @param n the number of elements, {@code >= 0}; nothing is recorded for 0
+     * @return {@code encoder}
+     * @throws IllegalArgumentException if {@code n} or an offset is negative, a buffer is too small, {@code dx} is
+     *         an input at a different offset, or an argument is null
+     * @throws org.dynamisengine.gpu.api.compute.ComputeException if the device has no {@code INT64}
+     *         ({@code UNSUPPORTED}) or the dispatch exceeds the device's limits
+     * @since 4.1.0
+     */
+    public GpuCommandEncoder geluBackward(GpuCommandEncoder encoder, GpuBuffer x, long xOff, GpuBuffer dy,
+            long dyOff, GpuBuffer dx, long dxOff, int n) {
+        return backward(exactGelu(), GELU_BACKWARD, encoder, x, xOff, "x", dy, dyOff, dx, dxOff, n);
+    }
+
+    /**
+     * The compiled exact GELU kernel with the output in its own buffer, for applications that manage pipelines
+     * themselves. The same bindings and parameter block as {@link #kernel()}; {@code op} is 0 for GELU and 1 for its
+     * gradient. Needs {@code INT64}.
+     *
+     * @return the kernel bundle
+     * @since 4.1.0
+     */
+    public static KernelBundle geluKernel() {
+        return Kernels.bundle("gelu");
+    }
+
+    private Pipelines exactGelu() {
+        if (gelu == null) {
+            throw new org.dynamisengine.gpu.api.compute.ComputeException(
+                    org.dynamisengine.gpu.api.compute.ComputeException.Code.UNSUPPORTED,
+                    "the exact GELU needs the device's INT64 capability");
+        }
+        return gelu;
+    }
+
+    /**
      * Records the softplus gradient from its input, {@code dx = dy·sigmoid(x)}, as
      * {@code Activations.softplusBackward}.
      *
@@ -447,6 +538,11 @@ public final class GpuActivations implements AutoCloseable {
 
     private GpuCommandEncoder forward(Op op, GpuCommandEncoder encoder, GpuBuffer x, long xOff, GpuBuffer y,
             long yOff, int n) {
+        return forward(activations, op.ordinal(), encoder, x, xOff, y, yOff, n);
+    }
+
+    private GpuCommandEncoder forward(Pipelines k, int code, GpuCommandEncoder encoder, GpuBuffer x, long xOff,
+            GpuBuffer y, long yOff, int n) {
         Kernels.notNull(encoder, "encoder");
         Kernels.range(x, xOff, n, "x");
         Kernels.range(y, yOff, n, "y");
@@ -458,16 +554,21 @@ public final class GpuActivations implements AutoCloseable {
         }
         Dimensions groups = groups(n);
         if (x == y) {
-            return dispatchSelf(encoder, op, x, xOff, n, groups);
+            return dispatchSelf(k, code, encoder, x, xOff, n, groups);
         }
         // a forward op reads only slot 0; the input is bound at slot 1 too, read-only
         byte[] params = new Kernels.Params(PARAMS)
-                .u32(op.ordinal()).u32(n).u32(xOff).u32(xOff).u32(yOff).u32(groups.x()).bytes();
-        return Kernels.dispatch(encoder, twoBuffers, Map.of(0, x, 1, x, 2, y), params, groups);
+                .u32(code).u32(n).u32(xOff).u32(xOff).u32(yOff).u32(groups.x()).bytes();
+        return Kernels.dispatch(encoder, k.twoBuffers(), Map.of(0, x, 1, x, 2, y), params, groups);
     }
 
     private GpuCommandEncoder backward(Op op, GpuCommandEncoder encoder, GpuBuffer a, long aOff, String aName,
             GpuBuffer dy, long dyOff, GpuBuffer dx, long dxOff, int n) {
+        return backward(activations, op.ordinal(), encoder, a, aOff, aName, dy, dyOff, dx, dxOff, n);
+    }
+
+    private GpuCommandEncoder backward(Pipelines k, int code, GpuCommandEncoder encoder, GpuBuffer a, long aOff,
+            String aName, GpuBuffer dy, long dyOff, GpuBuffer dx, long dxOff, int n) {
         Kernels.notNull(encoder, "encoder");
         Kernels.range(a, aOff, n, aName);
         Kernels.range(dy, dyOff, n, "dy");
@@ -485,25 +586,25 @@ public final class GpuActivations implements AutoCloseable {
         }
         Dimensions groups = groups(n);
         if (onA && onDy) {
-            return dispatchSelf(encoder, op, dx, dxOff, n, groups);
+            return dispatchSelf(k, code, encoder, dx, dxOff, n, groups);
         }
         if (onA || onDy) {
             GpuBuffer other = onA ? dy : a;
             long otherOff = onA ? dyOff : aOff;
             byte[] params = new Kernels.Params(PARAMS_IN_PLACE)
-                    .u32(op.ordinal()).u32(n).u32(dxOff).u32(otherOff).u32(onDy ? 1 : 0).u32(groups.x()).bytes();
-            return Kernels.dispatch(encoder, inPlace, Map.of(0, dx, 1, other), params, groups);
+                    .u32(code).u32(n).u32(dxOff).u32(otherOff).u32(onDy ? 1 : 0).u32(groups.x()).bytes();
+            return Kernels.dispatch(encoder, k.inPlace(), Map.of(0, dx, 1, other), params, groups);
         }
         byte[] params = new Kernels.Params(PARAMS)
-                .u32(op.ordinal()).u32(n).u32(aOff).u32(dyOff).u32(dxOff).u32(groups.x()).bytes();
-        return Kernels.dispatch(encoder, twoBuffers, Map.of(0, a, 1, dy, 2, dx), params, groups);
+                .u32(code).u32(n).u32(aOff).u32(dyOff).u32(dxOff).u32(groups.x()).bytes();
+        return Kernels.dispatch(encoder, k.twoBuffers(), Map.of(0, a, 1, dy, 2, dx), params, groups);
     }
 
-    private GpuCommandEncoder dispatchSelf(GpuCommandEncoder encoder, Op op, GpuBuffer x, long off, int n,
-            Dimensions groups) {
+    private GpuCommandEncoder dispatchSelf(Pipelines k, int code, GpuCommandEncoder encoder, GpuBuffer x, long off,
+            int n, Dimensions groups) {
         byte[] params = new Kernels.Params(PARAMS_SELF)
-                .u32(op.ordinal()).u32(n).u32(off).u32(groups.x()).bytes();
-        return Kernels.dispatch(encoder, self, Map.of(0, x), params, groups);
+                .u32(code).u32(n).u32(off).u32(groups.x()).bytes();
+        return Kernels.dispatch(encoder, k.self(), Map.of(0, x), params, groups);
     }
 
     private Dimensions groups(int n) {
@@ -525,7 +626,21 @@ public final class GpuActivations implements AutoCloseable {
                     try {
                         dropout.close();
                     } finally {
-                        dropoutInPlace.close();
+                        try {
+                            dropoutInPlace.close();
+                        } finally {
+                            if (gelu != null) {
+                                try {
+                                    gelu.twoBuffers().close();
+                                } finally {
+                                    try {
+                                        gelu.inPlace().close();
+                                    } finally {
+                                        gelu.self().close();
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

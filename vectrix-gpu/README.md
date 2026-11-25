@@ -29,7 +29,7 @@ and fuse `fma`; see [Where the GPU can differ](#where-the-gpu-can-differ-from-th
 
 | Class | Twin of | Kernel | Matches the CPU |
 |---|---|---|---|
-| `GpuActivations` | `nn.Activations`, all but `gelu` and `geluBackward` (they compute in double) | activations forward and backward, in place or not; inverted dropout with the Philox mask | bit for bit on IEEE devices; the dropout mask on every device |
+| `GpuActivations` | `nn.Activations` | activations forward and backward, in place or not; inverted dropout with the Philox mask; since 4.1 the exact `gelu` and `geluBackward`, whose normal distribution function is computed in double through `f64.slang` (needs `INT64`; much slower than the others) | bit for bit on IEEE devices; the dropout mask on every device |
 | `GpuSoftmax` | `nn.Softmax` `softmax`, `logSoftmax`, `logSumExp`, `softmaxBackward`, `logSoftmaxBackward` | over the rows of a matrix, in place or not | bit for bit on IEEE devices |
 | `GpuLoss` | `nn.Loss` `crossEntropy`, `crossEntropyBackward` | over rows, one int target per row | bit for bit on IEEE devices |
 | `GpuNorms` | `nn.Norms` `layerNorm`, `rmsNorm` and their backward passes | over rows; parameter gradients summed in row order, as on the CPU | bit for bit on IEEE devices |
@@ -54,8 +54,8 @@ and fuse `fma`; see [Where the GPU can differ](#where-the-gpu-can-differ-from-th
 | `GpuPackedAffineKernels` | `affine.PackedAffineKernels`: quaternion plus translation, AABB transform, upload | batches of 3×4 affine transforms in `AFFINE_3X4_ROW_MAJOR` | bit for bit on IEEE devices |
 
 **Not ported:**
-- `Activations.gelu` and `geluBackward`, `Rope`, and `Optim.clipFactor`: they compute in double, and Metal has no
-  FP64.
+- `Optim.clipFactor`: a scalar in double that stays on the host. NNJava-style clipping reads each tensor's norm
+  (`GpuBlasf.nrm2`) back and combines them on the host.
 - `Sampler.sample`: sequential host-side work.
 - Methods that take arrays of objects, such as `PackedAffineKernels.trsToPackedAffineBatch`.
 
