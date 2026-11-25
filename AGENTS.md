@@ -8,6 +8,7 @@
 - `src/main/java/org/dynamisengine/vectrix/geometry`, `.../simd`: culling/intersections, the SIMD switch; `vectrix-render/.../gpu`: packing and compression.
 - `vectrix-*/src/test/java/org/dynamisengine/vectrix/test`: each jar's unit and parity tests; `vectrix-tests/`: the tests that span the jars.
 - `vectrix-tests/src/bench/java/org/dynamisengine/vectrix/bench` and `vectrix-tests/src/jmh/java`: JMH benchmarks.
+- `vectrix-gpu/`: GPU twins of Vectrix kernels (Slang, bit for bit with the CPU; separate Maven project, in the release ZIP since 4.0.1). Methods that compute in double port through `vectrix-gpu/src/main/slang/f64.slang` (binary64 on 64-bit integers; needs `INT64`). See `vectrix-gpu/README.md`.
 
 ## Build, Test, and Development Commands
 - `mvn -q test`: run all JUnit tests.

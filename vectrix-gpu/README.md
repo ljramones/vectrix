@@ -114,6 +114,26 @@ offset:
   - out-of-range joint indices or transform `order` entries leave that element unchanged;
   - `GpuFormats.quantizeInt8` gives a block holding a NaN or an infinity the scale NaN and zero codes.
 
+### Methods that compute in double
+
+GPUs such as Apple's have no FP64. Since 4.1, Vectrix methods that compute in double are ported with
+`src/main/slang/f64.slang`: IEEE binary64 arithmetic on 64-bit integers that rounds exactly as Java does (to
+nearest, ties to even, with subnormals, signed zeros and infinities). It has:
+- `dFma`, the core: Math.fma, rounded once;
+- `dMul` and `dAdd`: fused multiply-adds whose extra operation is exact;
+- `dDiv`: a restoring division;
+- conversions to and from float and long, comparison, `min` and `scalb`.
+
+Integer arithmetic is exact on every device, so these ports match the CPU on every backend, lavapipe included.
+They need the device's `INT64` capability (Metal, MoltenVK and lavapipe all have it), and they are much slower than
+float code: every double operation is dozens of integer operations. `F64GpuTest` checks each operation against Java
+on 262,144 inputs, special and subnormal values included.
+
+Two traps when editing it:
+- **No `firstbithigh`:** its top-bit behaviour differs on Metal, so `bitLength64` counts by halving instead.
+- **No variable named `half`:** it is an MSL type, and SPIRV-Cross keeps the name, so the shader fails to compile
+  on MoltenVK.
+
 ### Limits
 
 - **Indices:** element indices must stay below 2³².

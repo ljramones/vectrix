@@ -6,6 +6,12 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Added
+- **vectrix-gpu: binary64 arithmetic for GPUs without FP64.** `f64.slang` computes IEEE double arithmetic on 64-bit
+  integers, rounding exactly as Java does. It lets vectrix-gpu port the Vectrix methods that compute in double.
+  Kernels using it need the device's `INT64` capability. `F64GpuTest` checks it bit for bit against Java on every
+  backend.
+
 ## [4.0.1] - 2026-11-25
 A packaging release: no library code changes, and the results are unchanged.
 
