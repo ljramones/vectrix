@@ -82,10 +82,10 @@ public final class GpuLoss implements AutoCloseable {
      */
     public GpuLoss(GpuDevice device) {
         pipelines = Rows.compile(device, Rows.GROUP, Set.of("FP32", "INT32"),
-                new Rows.Spec("cross_entropy", PARAMS.length, Access.READ, Access.READ, Access.WRITE),
-                new Rows.Spec("cross_entropy_backward", PARAMS_BACKWARD.length, Access.READ, Access.READ,
+                new Rows.Spec("cross_entropy", PARAMS, Access.READ, Access.READ, Access.WRITE),
+                new Rows.Spec("cross_entropy_backward", PARAMS_BACKWARD, Access.READ, Access.READ,
                         Access.WRITE),
-                new Rows.Spec("cross_entropy_backward_inplace", PARAMS_BACKWARD_IN_PLACE.length, Access.READ_WRITE,
+                new Rows.Spec("cross_entropy_backward_inplace", PARAMS_BACKWARD_IN_PLACE, Access.READ_WRITE,
                         Access.READ));
         this.device = device;
     }
@@ -136,9 +136,9 @@ public final class GpuLoss implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = Kernels.grid(device.capabilities(), rows);
-        byte[] params = new Kernels.Params(PARAMS.length)
+        byte[] params = new Kernels.Params(PARAMS)
                 .u32(rows).u32(n).u32(off).u32(ld).u32(targetOff).u32(lossOff).u32(groups.x()).bytes();
-        return encoder.dispatch(pipelines[LOSS], Map.of(0, logits, 1, targets, 2, loss), params, groups);
+        return Kernels.dispatch(encoder, pipelines[LOSS], Map.of(0, logits, 1, targets, 2, loss), params, groups);
     }
 
     /**
@@ -181,14 +181,14 @@ public final class GpuLoss implements AutoCloseable {
         }
         Dimensions groups = Kernels.grid(device.capabilities(), rows);
         if (same) {
-            byte[] params = new Kernels.Params(PARAMS_BACKWARD_IN_PLACE.length)
+            byte[] params = new Kernels.Params(PARAMS_BACKWARD_IN_PLACE)
                     .u32(rows).u32(n).u32(off).u32(ld).u32(targetOff).f32(dLoss).u32(groups.x()).bytes();
-            return encoder.dispatch(pipelines[BACKWARD_IN_PLACE], Map.of(0, logits, 1, targets), params, groups);
+            return Kernels.dispatch(encoder, pipelines[BACKWARD_IN_PLACE], Map.of(0, logits, 1, targets), params, groups);
         }
-        byte[] params = new Kernels.Params(PARAMS_BACKWARD.length)
+        byte[] params = new Kernels.Params(PARAMS_BACKWARD)
                 .u32(rows).u32(n).u32(off).u32(ld).u32(targetOff).u32(dxOff).u32(lddx).f32(dLoss).u32(groups.x())
                 .bytes();
-        return encoder.dispatch(pipelines[BACKWARD], Map.of(0, logits, 1, targets, 2, dx), params, groups);
+        return Kernels.dispatch(encoder, pipelines[BACKWARD], Map.of(0, logits, 1, targets, 2, dx), params, groups);
     }
 
     /** Releases the pipelines; work already recorded keeps them alive until it completes. Idempotent. */

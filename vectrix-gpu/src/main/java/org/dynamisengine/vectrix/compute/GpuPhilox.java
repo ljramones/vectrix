@@ -69,7 +69,7 @@ public final class GpuPhilox implements AutoCloseable {
      * @throws org.dynamisengine.gpu.api.compute.ComputeException if the device cannot create the pipeline
      */
     public GpuPhilox(GpuDevice device) {
-        pipeline = Kernels.pipeline(device, "philox", new Dimensions(GROUP, 1, 1), PARAMS.length,
+        pipeline = Kernels.pipeline(device, "philox", new Dimensions(GROUP, 1, 1), PARAMS,
                 Set.of("INT32", "FP32"), Access.WRITE);
         this.device = device;
     }
@@ -136,10 +136,10 @@ public final class GpuPhilox implements AutoCloseable {
         }
         long counters = ((start & 3) + n + 3) / 4;
         Dimensions groups = Kernels.grid(device.capabilities(), (counters + GROUP - 1) / GROUP);
-        byte[] params = new Kernels.Params(PARAMS.length)
+        byte[] params = new Kernels.Params(PARAMS)
                 .u32(seed).u32(seed >>> 32).u32(start).u32(start >>> 32).u32(off).u32(n).u32(uniform ? 1 : 0)
                 .u32(groups.x()).bytes();
-        return encoder.dispatch(pipeline, Map.of(0, dest), params, groups);
+        return Kernels.dispatch(encoder, pipeline, Map.of(0, dest), params, groups);
     }
 
     /** Releases the pipeline; work already recorded keeps it alive until it completes. Idempotent. */

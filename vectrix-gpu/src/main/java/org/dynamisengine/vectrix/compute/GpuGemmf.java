@@ -75,11 +75,11 @@ public final class GpuGemmf implements AutoCloseable {
      * @throws org.dynamisengine.gpu.api.compute.ComputeException if the device cannot create the pipelines
      */
     public GpuGemmf(GpuDevice device) {
-        pipeline = Kernels.pipeline(device, "gemm", new Dimensions(TILE, TILE, 1), PARAMS.length, Set.of("FP32"),
+        pipeline = Kernels.pipeline(device, "gemm", new Dimensions(TILE, TILE, 1), PARAMS, Set.of("FP32"),
                 Access.READ, Access.READ, Access.READ_WRITE);
         GpuComputePipeline second;
         try {
-            second = Kernels.pipeline(device, "gemv", new Dimensions(GEMV_ROWS, 1, 1), PARAMS_GEMV.length,
+            second = Kernels.pipeline(device, "gemv", new Dimensions(GEMV_ROWS, 1, 1), PARAMS_GEMV,
                     Set.of("FP32"), Access.READ, Access.READ, Access.READ_WRITE);
         } catch (RuntimeException e) {
             pipeline.close();
@@ -158,11 +158,11 @@ public final class GpuGemmf implements AutoCloseable {
         if (m == 0 || n == 0) {
             return encoder;
         }
-        byte[] params = new Kernels.Params(PARAMS.length)
+        byte[] params = new Kernels.Params(PARAMS)
                 .u32(transA ? 1 : 0).u32(transB ? 1 : 0).u32(m).u32(n).u32(k).f32(alpha).f32(beta)
                 .u32(aOff).u32(lda).u32(bOff).u32(ldb).u32(cOff).u32(ldc).bytes();
         Dimensions groups = new Dimensions((n + TILE - 1) / TILE, (m + TILE - 1) / TILE, 1);
-        return encoder.dispatch(pipeline, Map.of(0, a, 1, b, 2, c), params, groups);
+        return Kernels.dispatch(encoder, pipeline, Map.of(0, a, 1, b, 2, c), params, groups);
     }
 
     /**
@@ -210,10 +210,10 @@ public final class GpuGemmf implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = Kernels.grid(device.capabilities(), (m + (long) GEMV_ROWS - 1) / GEMV_ROWS);
-        byte[] params = new Kernels.Params(PARAMS_GEMV.length)
+        byte[] params = new Kernels.Params(PARAMS_GEMV)
                 .u32(transA ? 1 : 0).u32(m).u32(n).f32(alpha).f32(beta).u32(aOff).u32(lda).u32(xOff).u32(yOff)
                 .u32(groups.x()).bytes();
-        return encoder.dispatch(gemvPipeline, Map.of(0, a, 1, x, 2, y), params, groups);
+        return Kernels.dispatch(encoder, gemvPipeline, Map.of(0, a, 1, x, 2, y), params, groups);
     }
 
     /** Releases the pipelines; work already recorded keeps them alive until it completes. Idempotent. */

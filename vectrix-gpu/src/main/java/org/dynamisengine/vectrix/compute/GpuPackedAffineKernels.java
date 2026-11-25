@@ -106,11 +106,11 @@ public final class GpuPackedAffineKernels implements AutoCloseable {
         Dimensions local = new Dimensions(EngineBuffers.GROUP, 1, 1);
         List<GpuComputePipeline> made = new ArrayList<>();
         try {
-            made.add(Kernels.pipeline(device, "affine_quat_translation", local, PARAMS_QUAT_TRANSLATION.length,
+            made.add(Kernels.pipeline(device, "affine_quat_translation", local, PARAMS_QUAT_TRANSLATION,
                     Set.of("FP32"), Access.READ, Access.READ, Access.WRITE));
-            made.add(Kernels.pipeline(device, "affine_aabb", local, PARAMS_AABB.length, Set.of("FP32", "INT32"),
+            made.add(Kernels.pipeline(device, "affine_aabb", local, PARAMS_AABB, Set.of("FP32", "INT32"),
                     Access.READ, Access.READ, Access.READ, Access.WRITE));
-            made.add(Kernels.pipeline(device, "affine_upload", local, PARAMS_UPLOAD.length, Set.of("INT32"),
+            made.add(Kernels.pipeline(device, "affine_upload", local, PARAMS_UPLOAD, Set.of("INT32"),
                     Access.READ, Access.READ, Access.WRITE));
         } catch (RuntimeException e) {
             made.forEach(GpuComputePipeline::close);
@@ -189,9 +189,9 @@ public final class GpuPackedAffineKernels implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = EngineBuffers.groups(device, count);
-        byte[] params = new Kernels.Params(PARAMS_QUAT_TRANSLATION.length).u32(count).u32(rotationOff)
+        byte[] params = new Kernels.Params(PARAMS_QUAT_TRANSLATION).u32(count).u32(rotationOff)
                 .u32(translationOff).u32(translationStride).u32(outOff).u32(groups.x()).bytes();
-        return encoder.dispatch(quatTranslation, Map.of(0, rotation, 1, translation, 2, out), params, groups);
+        return Kernels.dispatch(encoder, quatTranslation, Map.of(0, rotation, 1, translation, 2, out), params, groups);
     }
 
     /**
@@ -240,10 +240,10 @@ public final class GpuPackedAffineKernels implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = EngineBuffers.groups(device, count);
-        byte[] params = new Kernels.Params(PARAMS_AABB.length).u32(count).u32(entries).u32(transformsOff)
+        byte[] params = new Kernels.Params(PARAMS_AABB).u32(count).u32(entries).u32(transformsOff)
                 .u32(orderOff).u32(boxesOff).u32(boxesStride).u32(outBoxesOff).u32(outBoxesStride).u32(groups.x())
                 .bytes();
-        return encoder.dispatch(aabb, Map.of(0, transforms, 1, order, 2, boxes, 3, outBoxes), params, groups);
+        return Kernels.dispatch(encoder, aabb, Map.of(0, transforms, 1, order, 2, boxes, 3, outBoxes), params, groups);
     }
 
     /**
@@ -283,9 +283,9 @@ public final class GpuPackedAffineKernels implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = EngineBuffers.groups(device, count);
-        byte[] params = new Kernels.Params(PARAMS_UPLOAD.length).u32(count).u32(transformCount).u32(transformsOff)
+        byte[] params = new Kernels.Params(PARAMS_UPLOAD).u32(count).u32(transformCount).u32(transformsOff)
                 .u32(orderOff).u32(outOff).u32(groups.x()).bytes();
-        return encoder.dispatch(upload, Map.of(0, transforms, 1, order, 2, outUpload), params, groups);
+        return Kernels.dispatch(encoder, upload, Map.of(0, transforms, 1, order, 2, outUpload), params, groups);
     }
 
     /** Releases the pipelines; work already recorded keeps them alive until it completes. Idempotent. */

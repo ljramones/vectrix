@@ -84,7 +84,7 @@ public final class GpuCullingKernels implements AutoCloseable {
      * @throws org.dynamisengine.gpu.api.compute.ComputeException if the device cannot create the pipeline
      */
     public GpuCullingKernels(GpuDevice device) {
-        pipeline = Kernels.pipeline(device, "cull_aabb", new Dimensions(EngineBuffers.GROUP, 1, 1), PARAMS.length,
+        pipeline = Kernels.pipeline(device, "cull_aabb", new Dimensions(EngineBuffers.GROUP, 1, 1), PARAMS,
                 Set.of("FP32", "INT32"), Access.READ, Access.WRITE);
         this.device = device;
     }
@@ -140,12 +140,12 @@ public final class GpuCullingKernels implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = EngineBuffers.groups(device, n);
-        Kernels.Params params = new Kernels.Params(PARAMS.length);
+        Kernels.Params params = new Kernels.Params(PARAMS);
         for (int i = 0; i < PLANE_FLOATS; i++) {
             params.f32(planes[planesOff + i]);
         }
         byte[] block = params.u32(n).u32(boundsOff).u32(boundsStride).u32(resultOff).u32(groups.x()).bytes();
-        return encoder.dispatch(pipeline, Map.of(0, bounds, 1, result), block, groups);
+        return Kernels.dispatch(encoder, pipeline, Map.of(0, bounds, 1, result), block, groups);
     }
 
     /** Releases the pipeline; work already recorded keeps it alive until it completes. Idempotent. */

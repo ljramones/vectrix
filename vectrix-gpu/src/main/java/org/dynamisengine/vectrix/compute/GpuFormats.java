@@ -143,7 +143,7 @@ public final class GpuFormats implements AutoCloseable {
     }
 
     private GpuComputePipeline add(GpuDevice d, String name, int group, String[] params, Access... slots) {
-        GpuComputePipeline p = Kernels.pipeline(d, name, new Dimensions(group, 1, 1), params.length, TYPES, slots);
+        GpuComputePipeline p = Kernels.pipeline(d, name, new Dimensions(group, 1, 1), params, TYPES, slots);
         pipelines.add(p);
         return p;
     }
@@ -174,9 +174,9 @@ public final class GpuFormats implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = Kernels.grid(device.capabilities(), groups(words(hOff, n, 2), GROUP));
-        byte[] params = new Kernels.Params(PARAMS_TO_BF16.length).u32(xOff).u32(hOff).u32(n).u32(groups.x())
+        byte[] params = new Kernels.Params(PARAMS_TO_BF16).u32(xOff).u32(hOff).u32(n).u32(groups.x())
                 .bytes();
-        return encoder.dispatch(toBf16, Map.of(0, x, 1, h), params, groups);
+        return Kernels.dispatch(encoder, toBf16, Map.of(0, x, 1, h), params, groups);
     }
 
     /**
@@ -204,9 +204,9 @@ public final class GpuFormats implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = Kernels.grid(device.capabilities(), groups(n, GROUP));
-        byte[] params = new Kernels.Params(PARAMS_FROM_BF16.length).u32(hOff).u32(xOff).u32(n).u32(groups.x())
+        byte[] params = new Kernels.Params(PARAMS_FROM_BF16).u32(hOff).u32(xOff).u32(n).u32(groups.x())
                 .bytes();
-        return encoder.dispatch(fromBf16, Map.of(0, h, 1, x), params, groups);
+        return Kernels.dispatch(encoder, fromBf16, Map.of(0, h, 1, x), params, groups);
     }
 
     /**
@@ -307,9 +307,9 @@ public final class GpuFormats implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = Kernels.grid(device.capabilities(), groups(words(cOff, n, 4), GROUP));
-        byte[] params = new Kernels.Params(PARAMS_TO_FP8.length).u32(xOff).u32(cOff).u32(n).u32(e5m2 ? 1 : 0)
+        byte[] params = new Kernels.Params(PARAMS_TO_FP8).u32(xOff).u32(cOff).u32(n).u32(e5m2 ? 1 : 0)
                 .u32(saturate ? 1 : 0).u32(groups.x()).bytes();
-        return encoder.dispatch(toFp8, Map.of(0, x, 1, codes), params, groups);
+        return Kernels.dispatch(encoder, toFp8, Map.of(0, x, 1, codes), params, groups);
     }
 
     private GpuCommandEncoder fromFp8(GpuCommandEncoder encoder, GpuBuffer codes, long cOff, GpuBuffer x, long xOff,
@@ -322,9 +322,9 @@ public final class GpuFormats implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = Kernels.grid(device.capabilities(), groups(n, GROUP));
-        byte[] params = new Kernels.Params(PARAMS_FROM_FP8.length).u32(cOff).u32(xOff).u32(n).u32(e5m2 ? 1 : 0)
+        byte[] params = new Kernels.Params(PARAMS_FROM_FP8).u32(cOff).u32(xOff).u32(n).u32(e5m2 ? 1 : 0)
                 .u32(groups.x()).bytes();
-        return encoder.dispatch(fromFp8, Map.of(0, codes, 1, x), params, groups);
+        return Kernels.dispatch(encoder, fromFp8, Map.of(0, codes, 1, x), params, groups);
     }
 
     /**
@@ -362,9 +362,9 @@ public final class GpuFormats implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = Kernels.grid(device.capabilities(), groups(words(qOff, n, 4), QUANTIZE_GROUP));
-        byte[] params = new Kernels.Params(PARAMS_QUANTIZE.length).u32(xOff).u32(n).u32(qOff).u32(sOff)
+        byte[] params = new Kernels.Params(PARAMS_QUANTIZE).u32(xOff).u32(n).u32(qOff).u32(sOff)
                 .u32(groups.x()).bytes();
-        return encoder.dispatch(quantize, Map.of(0, x, 1, q, 2, scales), params, groups);
+        return Kernels.dispatch(encoder, quantize, Map.of(0, x, 1, q, 2, scales), params, groups);
     }
 
     /**
@@ -397,9 +397,9 @@ public final class GpuFormats implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = Kernels.grid(device.capabilities(), groups(n, GROUP));
-        byte[] params = new Kernels.Params(PARAMS_DEQUANTIZE.length).u32(qOff).u32(sOff).u32(xOff).u32(n)
+        byte[] params = new Kernels.Params(PARAMS_DEQUANTIZE).u32(qOff).u32(sOff).u32(xOff).u32(n)
                 .u32(groups.x()).bytes();
-        return encoder.dispatch(dequantize, Map.of(0, q, 1, scales, 2, x), params, groups);
+        return Kernels.dispatch(encoder, dequantize, Map.of(0, q, 1, scales, 2, x), params, groups);
     }
 
     /**
@@ -475,9 +475,9 @@ public final class GpuFormats implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = Kernels.grid(device.capabilities(), groups(m, GEMV_ROWS));
-        byte[] params = new Kernels.Params(PARAMS_GEMV.length).u32(m).u32(n).u32(qOff).u32(sOff).u32(xOff).u32(yOff)
+        byte[] params = new Kernels.Params(PARAMS_GEMV).u32(m).u32(n).u32(qOff).u32(sOff).u32(xOff).u32(yOff)
                 .u32(groups.x()).bytes();
-        return encoder.dispatch(gemv, Map.of(0, q, 1, scales, 2, x, 3, y), params, groups);
+        return Kernels.dispatch(encoder, gemv, Map.of(0, q, 1, scales, 2, x, 3, y), params, groups);
     }
 
     /** Releases the pipelines; work already recorded keeps them alive until it completes. Idempotent. */

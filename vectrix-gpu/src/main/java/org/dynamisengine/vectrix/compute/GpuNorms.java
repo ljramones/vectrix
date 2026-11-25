@@ -131,16 +131,16 @@ public final class GpuNorms implements AutoCloseable {
      */
     public GpuNorms(GpuDevice device) {
         GpuComputePipeline[] rowKernels = Rows.compile(device, Rows.GROUP, Set.of("FP32"),
-                new Rows.Spec("layer_norm", PARAMS_LAYER.length, Access.READ, Access.READ, Access.READ, Access.WRITE,
+                new Rows.Spec("layer_norm", PARAMS_LAYER, Access.READ, Access.READ, Access.READ, Access.WRITE,
                         Access.WRITE),
-                new Rows.Spec("layer_norm_inplace", PARAMS_LAYER_IN_PLACE.length, Access.READ_WRITE, Access.READ,
+                new Rows.Spec("layer_norm_inplace", PARAMS_LAYER_IN_PLACE, Access.READ_WRITE, Access.READ,
                         Access.READ, Access.WRITE),
-                new Rows.Spec("rms_norm", PARAMS_RMS.length, Access.READ, Access.READ, Access.WRITE, Access.WRITE),
-                new Rows.Spec("rms_norm_inplace", PARAMS_RMS_IN_PLACE.length, Access.READ_WRITE, Access.READ,
+                new Rows.Spec("rms_norm", PARAMS_RMS, Access.READ, Access.READ, Access.WRITE, Access.WRITE),
+                new Rows.Spec("rms_norm_inplace", PARAMS_RMS_IN_PLACE, Access.READ_WRITE, Access.READ,
                         Access.WRITE),
-                new Rows.Spec("norm_backward", PARAMS_BACKWARD.length, Access.READ, Access.READ, Access.READ,
+                new Rows.Spec("norm_backward", PARAMS_BACKWARD, Access.READ, Access.READ, Access.READ,
                         Access.READ, Access.WRITE),
-                new Rows.Spec("norm_backward_inplace", PARAMS_BACKWARD_IN_PLACE.length, Access.READ_WRITE,
+                new Rows.Spec("norm_backward_inplace", PARAMS_BACKWARD_IN_PLACE, Access.READ_WRITE,
                         Access.READ, Access.READ, Access.READ));
         GpuComputePipeline[] grads;
         GpuBuffer in = null;
@@ -148,7 +148,7 @@ public final class GpuNorms implements AutoCloseable {
         GpuBuffer out2 = null;
         try {
             grads = Rows.compile(device, PARAM_GROUP, Set.of("FP32"),
-                    new Rows.Spec("norm_param_grads", PARAMS_PARAM_GRADS.length, Access.READ, Access.READ,
+                    new Rows.Spec("norm_param_grads", PARAMS_PARAM_GRADS, Access.READ, Access.READ,
                             Access.READ, Access.READ_WRITE, Access.READ_WRITE));
             in = Rows.placeholder(device);
             out1 = Rows.placeholder(device);
@@ -237,15 +237,15 @@ public final class GpuNorms implements AutoCloseable {
         GpuBuffer s = stats != null ? stats : absentOut1;
         Dimensions groups = Kernels.grid(device.capabilities(), rows);
         if (same) {
-            byte[] params = new Kernels.Params(PARAMS_LAYER_IN_PLACE.length)
+            byte[] params = new Kernels.Params(PARAMS_LAYER_IN_PLACE)
                     .u32(rows).u32(n).u32(xOff).u32(ldx).u32(gOff(gamma, gOff)).u32(gOff(beta, bOff))
                     .u32(gOff(stats, statsOff)).u32(flags).f32(eps).u32(groups.x()).bytes();
-            return encoder.dispatch(pipelines[LAYER_IN_PLACE], Map.of(0, x, 1, g, 2, b, 3, s), params, groups);
+            return Kernels.dispatch(encoder, pipelines[LAYER_IN_PLACE], Map.of(0, x, 1, g, 2, b, 3, s), params, groups);
         }
-        byte[] params = new Kernels.Params(PARAMS_LAYER.length)
+        byte[] params = new Kernels.Params(PARAMS_LAYER)
                 .u32(rows).u32(n).u32(xOff).u32(ldx).u32(gOff(gamma, gOff)).u32(gOff(beta, bOff)).u32(yOff).u32(ldy)
                 .u32(gOff(stats, statsOff)).u32(flags).f32(eps).u32(groups.x()).bytes();
-        return encoder.dispatch(pipelines[LAYER], Map.of(0, x, 1, g, 2, b, 3, y, 4, s), params, groups);
+        return Kernels.dispatch(encoder, pipelines[LAYER], Map.of(0, x, 1, g, 2, b, 3, y, 4, s), params, groups);
     }
 
     /**
@@ -338,15 +338,15 @@ public final class GpuNorms implements AutoCloseable {
         GpuBuffer s = stats != null ? stats : absentOut1;
         Dimensions groups = Kernels.grid(device.capabilities(), rows);
         if (same) {
-            byte[] params = new Kernels.Params(PARAMS_RMS_IN_PLACE.length)
+            byte[] params = new Kernels.Params(PARAMS_RMS_IN_PLACE)
                     .u32(rows).u32(n).u32(xOff).u32(ldx).u32(gOff(gamma, gOff)).u32(gOff(stats, statsOff))
                     .u32(flags).f32(eps).u32(groups.x()).bytes();
-            return encoder.dispatch(pipelines[RMS_IN_PLACE], Map.of(0, x, 1, g, 2, s), params, groups);
+            return Kernels.dispatch(encoder, pipelines[RMS_IN_PLACE], Map.of(0, x, 1, g, 2, s), params, groups);
         }
-        byte[] params = new Kernels.Params(PARAMS_RMS.length)
+        byte[] params = new Kernels.Params(PARAMS_RMS)
                 .u32(rows).u32(n).u32(xOff).u32(ldx).u32(gOff(gamma, gOff)).u32(yOff).u32(ldy)
                 .u32(gOff(stats, statsOff)).u32(flags).f32(eps).u32(groups.x()).bytes();
-        return encoder.dispatch(pipelines[RMS], Map.of(0, x, 1, g, 2, y, 3, s), params, groups);
+        return Kernels.dispatch(encoder, pipelines[RMS], Map.of(0, x, 1, g, 2, y, 3, s), params, groups);
     }
 
     /**
@@ -418,27 +418,27 @@ public final class GpuNorms implements AutoCloseable {
         if (dGamma != null || dBeta != null) {
             Dimensions columns = Kernels.grid(device.capabilities(), (n + PARAM_GROUP - 1) / PARAM_GROUP);
             int flags = (dGamma != null ? GAMMA : 0) | (dBeta != null ? BETA : 0) | rmsFlag;
-            byte[] params = new Kernels.Params(PARAMS_PARAM_GRADS.length)
+            byte[] params = new Kernels.Params(PARAMS_PARAM_GRADS)
                     .u32(rows).u32(n).u32(xOff).u32(ldx).u32(statsOff).u32(dyOff).u32(lddy).u32(gOff(dGamma, dgOff))
                     .u32(gOff(dBeta, dbOff)).u32(flags).u32(columns.x()).bytes();
-            encoder.dispatch(pipelines[PARAM_GRADS], Map.of(0, x, 1, stats, 2, dy, 3,
+            Kernels.dispatch(encoder, pipelines[PARAM_GRADS], Map.of(0, x, 1, stats, 2, dy, 3,
                     dGamma != null ? dGamma : absentOut1, 4, dBeta != null ? dBeta : absentOut2), params, columns);
         }
         GpuBuffer g = gamma != null ? gamma : absentIn;
         int flags = (gamma != null ? GAMMA : 0) | rmsFlag;
         Dimensions groups = Kernels.grid(device.capabilities(), rows);
         if (onX || onDy) {
-            byte[] params = new Kernels.Params(PARAMS_BACKWARD_IN_PLACE.length)
+            byte[] params = new Kernels.Params(PARAMS_BACKWARD_IN_PLACE)
                     .u32(rows).u32(n).u32(dxOff).u32(lddx).u32(gOff(gamma, gOff)).u32(statsOff)
                     .u32(onX ? dyOff : xOff).u32(onX ? lddy : ldx).u32(flags | (onDy ? DX_IS_DY : 0))
                     .u32(groups.x()).bytes();
-            return encoder.dispatch(pipelines[BACKWARD_IN_PLACE], Map.of(0, dx, 1, g, 2, stats, 3, onX ? dy : x),
+            return Kernels.dispatch(encoder, pipelines[BACKWARD_IN_PLACE], Map.of(0, dx, 1, g, 2, stats, 3, onX ? dy : x),
                     params, groups);
         }
-        byte[] params = new Kernels.Params(PARAMS_BACKWARD.length)
+        byte[] params = new Kernels.Params(PARAMS_BACKWARD)
                 .u32(rows).u32(n).u32(xOff).u32(ldx).u32(gOff(gamma, gOff)).u32(statsOff).u32(dyOff).u32(lddy)
                 .u32(dxOff).u32(lddx).u32(flags).u32(groups.x()).bytes();
-        return encoder.dispatch(pipelines[BACKWARD], Map.of(0, x, 1, g, 2, stats, 3, dy, 4, dx), params, groups);
+        return Kernels.dispatch(encoder, pipelines[BACKWARD], Map.of(0, x, 1, g, 2, stats, 3, dy, 4, dx), params, groups);
     }
 
     /** Checks an optional vector of {@code count} values. */

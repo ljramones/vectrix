@@ -119,13 +119,13 @@ public final class GpuSkinningKernels implements AutoCloseable {
         Set<String> types = Set.of("FP32", "INT32");
         List<GpuComputePipeline> made = new ArrayList<>();
         try {
-            made.add(Kernels.pipeline(device, "skin_lbs", local, PARAMS.length, types, Access.READ, Access.READ,
+            made.add(Kernels.pipeline(device, "skin_lbs", local, PARAMS, types, Access.READ, Access.READ,
                     Access.READ, Access.READ, Access.WRITE));
-            made.add(Kernels.pipeline(device, "skin_dq", local, PARAMS.length, types, Access.READ, Access.READ,
+            made.add(Kernels.pipeline(device, "skin_dq", local, PARAMS, types, Access.READ, Access.READ,
                     Access.READ, Access.READ, Access.WRITE));
-            made.add(Kernels.pipeline(device, "skin_palette", local, PARAMS_PALETTE_SKIN.length, types, Access.READ,
+            made.add(Kernels.pipeline(device, "skin_palette", local, PARAMS_PALETTE_SKIN, types, Access.READ,
                     Access.READ, Access.READ, Access.READ, Access.WRITE));
-            made.add(Kernels.pipeline(device, "palette_build", local, PARAMS_PALETTE_BUILD.length, Set.of("FP32"),
+            made.add(Kernels.pipeline(device, "palette_build", local, PARAMS_PALETTE_BUILD, Set.of("FP32"),
                     Access.READ, Access.WRITE));
         } catch (RuntimeException e) {
             made.forEach(GpuComputePipeline::close);
@@ -366,10 +366,10 @@ public final class GpuSkinningKernels implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = EngineBuffers.groups(device, count);
-        byte[] params = new Kernels.Params(PARAMS_PALETTE_SKIN.length).u32(count).u32(jointCount).u32(paletteOff)
+        byte[] params = new Kernels.Params(PARAMS_PALETTE_SKIN).u32(count).u32(jointCount).u32(paletteOff)
                 .u32(indicesOff).u32(1).u32(INFLUENCES).u32(weightsOff).u32(1).u32(INFLUENCES).u32(inOff)
                 .u32(inStride).u32(outOff).u32(outStride).u32(groups.x()).bytes();
-        return encoder.dispatch(paletteSkin, Map.of(0, palette, 1, jointIndices, 2, jointWeights, 3, in, 4, out),
+        return Kernels.dispatch(encoder, paletteSkin, Map.of(0, palette, 1, jointIndices, 2, jointWeights, 3, in, 4, out),
                 params, groups);
     }
 
@@ -427,9 +427,9 @@ public final class GpuSkinningKernels implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = EngineBuffers.groups(device, jointCount);
-        byte[] params = new Kernels.Params(PARAMS_PALETTE_BUILD.length).u32(jointCount).u32(jointsOff)
+        byte[] params = new Kernels.Params(PARAMS_PALETTE_BUILD).u32(jointCount).u32(jointsOff)
                 .u32(jointStride).u32(paletteOff).u32(scaled ? 1 : 0).u32(groups.x()).bytes();
-        return encoder.dispatch(paletteBuild, Map.of(0, joints, 1, palette), params, groups);
+        return Kernels.dispatch(encoder, paletteBuild, Map.of(0, joints, 1, palette), params, groups);
     }
 
     /** Skinning from SoA joints, with interleaved influences or one plane per slot (then with the strides). */
@@ -448,11 +448,11 @@ public final class GpuSkinningKernels implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = EngineBuffers.groups(device, count);
-        byte[] params = new Kernels.Params(PARAMS.length).u32(count).u32(jointCount).u32(jointsOff).u32(jointStride)
+        byte[] params = new Kernels.Params(PARAMS).u32(count).u32(jointCount).u32(jointsOff).u32(jointStride)
                 .u32(indicesOff).u32(interleaved ? 1 : indicesStride).u32(interleaved ? INFLUENCES : 1)
                 .u32(weightsOff).u32(interleaved ? 1 : weightsStride).u32(interleaved ? INFLUENCES : 1)
                 .u32(inOff).u32(inStride).u32(outOff).u32(outStride).u32(groups.x()).bytes();
-        return encoder.dispatch(pipeline, Map.of(0, joints, 1, jointIndices, 2, jointWeights, 3, in, 4, out), params,
+        return Kernels.dispatch(encoder, pipeline, Map.of(0, joints, 1, jointIndices, 2, jointWeights, 3, in, 4, out), params,
                 groups);
     }
 

@@ -146,17 +146,17 @@ public final class GpuBlasf implements AutoCloseable {
         Dimensions group = new Dimensions(GROUP, 1, 1);
         List<GpuComputePipeline> made = new ArrayList<>();
         try {
-            made.add(Kernels.pipeline(device, "blas_partial", group, PARAMS_PARTIAL.length, types, Access.READ,
+            made.add(Kernels.pipeline(device, "blas_partial", group, PARAMS_PARTIAL, types, Access.READ,
                     Access.READ, Access.READ_WRITE));
             made.add(Kernels.pipeline(device, "blas_combine", new Dimensions(COMBINE_GROUP, 1, 1),
-                    PARAMS_COMBINE.length, types, Access.READ_WRITE, Access.READ_WRITE));
-            made.add(Kernels.pipeline(device, "blas_amax", group, PARAMS_AMAX.length, types, Access.READ,
+                    PARAMS_COMBINE, types, Access.READ_WRITE, Access.READ_WRITE));
+            made.add(Kernels.pipeline(device, "blas_amax", group, PARAMS_AMAX, types, Access.READ,
                     Access.READ_WRITE, Access.READ_WRITE));
-            made.add(Kernels.pipeline(device, "blas_axpy", group, PARAMS_AXPY.length, types, Access.READ,
+            made.add(Kernels.pipeline(device, "blas_axpy", group, PARAMS_AXPY, types, Access.READ,
                     Access.READ_WRITE));
-            made.add(Kernels.pipeline(device, "blas_axpy_inplace", group, PARAMS_AXPY_IN_PLACE.length, types,
+            made.add(Kernels.pipeline(device, "blas_axpy_inplace", group, PARAMS_AXPY_IN_PLACE, types,
                     Access.READ_WRITE));
-            made.add(Kernels.pipeline(device, "blas_scal", group, PARAMS_SCAL.length, types, Access.READ_WRITE));
+            made.add(Kernels.pipeline(device, "blas_scal", group, PARAMS_SCAL, types, Access.READ_WRITE));
         } catch (RuntimeException e) {
             made.forEach(GpuComputePipeline::close);
             throw e;
@@ -374,13 +374,13 @@ public final class GpuBlasf implements AutoCloseable {
         }
         Dimensions groups = Kernels.grid(device.capabilities(), (n + (long) GROUP - 1) / GROUP);
         if (same) {
-            byte[] params = new Kernels.Params(PARAMS_AXPY_IN_PLACE.length).f32(a).u32(n).u32(xOff).u32(groups.x())
+            byte[] params = new Kernels.Params(PARAMS_AXPY_IN_PLACE).f32(a).u32(n).u32(xOff).u32(groups.x())
                     .bytes();
-            return encoder.dispatch(axpyInPlace, Map.of(0, x), params, groups);
+            return Kernels.dispatch(encoder, axpyInPlace, Map.of(0, x), params, groups);
         }
-        byte[] params = new Kernels.Params(PARAMS_AXPY.length).f32(a).u32(n).u32(xOff).u32(yOff).u32(groups.x())
+        byte[] params = new Kernels.Params(PARAMS_AXPY).f32(a).u32(n).u32(xOff).u32(yOff).u32(groups.x())
                 .bytes();
-        return encoder.dispatch(axpyTwo, Map.of(0, x, 1, y), params, groups);
+        return Kernels.dispatch(encoder, axpyTwo, Map.of(0, x, 1, y), params, groups);
     }
 
     /**
@@ -404,8 +404,8 @@ public final class GpuBlasf implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = Kernels.grid(device.capabilities(), (n + (long) GROUP - 1) / GROUP);
-        byte[] params = new Kernels.Params(PARAMS_SCAL.length).f32(a).u32(n).u32(xOff).u32(groups.x()).bytes();
-        return encoder.dispatch(scalPipe, Map.of(0, x), params, groups);
+        byte[] params = new Kernels.Params(PARAMS_SCAL).f32(a).u32(n).u32(xOff).u32(groups.x()).bytes();
+        return Kernels.dispatch(encoder, scalPipe, Map.of(0, x), params, groups);
     }
 
     private static void checkReduction(GpuCommandEncoder encoder, GpuBuffer x, long xOff, GpuBuffer y, long yOff,
@@ -443,9 +443,9 @@ public final class GpuBlasf implements AutoCloseable {
         long regionB = regionA + regionA(n);
         if (n > 0) {
             Dimensions groups = Kernels.grid(caps, 1L << depth);
-            byte[] params = new Kernels.Params(PARAMS_PARTIAL.length).u32(op).u32(n).u32(xOff).u32(yOff).u32(blocks)
+            byte[] params = new Kernels.Params(PARAMS_PARTIAL).u32(op).u32(n).u32(xOff).u32(yOff).u32(blocks)
                     .u32(depth).u32(regionA).u32(state).u32(need).u32(groups.x()).bytes();
-            encoder.dispatch(partial, Map.of(0, x, 1, y, 2, scratch), params, groups);
+            Kernels.dispatch(encoder, partial, Map.of(0, x, 1, y, 2, scratch), params, groups);
         }
         int in = depth;
         long inOff = regionA;
@@ -454,10 +454,10 @@ public final class GpuBlasf implements AutoCloseable {
             long toOff = inOff == regionA ? regionB : regionA;
             boolean last = to == 0;
             Dimensions groups = Kernels.grid(caps, ((1L << to) + COMBINE_GROUP - 1) / COMBINE_GROUP);
-            byte[] params = new Kernels.Params(PARAMS_COMBINE.length).u32(blocks).u32(in).u32(to).u32(inOff)
+            byte[] params = new Kernels.Params(PARAMS_COMBINE).u32(blocks).u32(in).u32(to).u32(inOff)
                     .u32(last ? outOff : toOff).u32(last ? finalMode : MODE_NODES).u32(state).u32(need)
                     .u32(groups.x()).bytes();
-            encoder.dispatch(combine, Map.of(0, scratch, 1, out), params, groups);
+            Kernels.dispatch(encoder, combine, Map.of(0, scratch, 1, out), params, groups);
             in = to;
             inOff = toOff;
         } while (in > 0);
@@ -472,13 +472,13 @@ public final class GpuBlasf implements AutoCloseable {
         Map<Integer, GpuBuffer> bind = Map.of(0, x, 1, scratch, 2, out);
         if (parts > 0) {
             Dimensions groups = Kernels.grid(device.capabilities(), parts);
-            byte[] params = new Kernels.Params(PARAMS_AMAX.length).u32(mode).u32(n).u32(xOff).u32(0).u32(parts)
+            byte[] params = new Kernels.Params(PARAMS_AMAX).u32(mode).u32(n).u32(xOff).u32(0).u32(parts)
                     .u32(partOff).u32(scratchOff).u32(outOff).u32(need).u32(groups.x()).bytes();
-            encoder.dispatch(amax, bind, params, groups);
+            Kernels.dispatch(encoder, amax, bind, params, groups);
         }
-        byte[] params = new Kernels.Params(PARAMS_AMAX.length).u32(mode).u32(n).u32(xOff).u32(1).u32(parts)
+        byte[] params = new Kernels.Params(PARAMS_AMAX).u32(mode).u32(n).u32(xOff).u32(1).u32(parts)
                 .u32(partOff).u32(scratchOff).u32(outOff).u32(need).u32(1).bytes();
-        return encoder.dispatch(amax, bind, params, new Dimensions(1, 1, 1));
+        return Kernels.dispatch(encoder, amax, bind, params, new Dimensions(1, 1, 1));
     }
 
     /** Releases the pipelines; work already recorded keeps them alive until it completes. Idempotent. */

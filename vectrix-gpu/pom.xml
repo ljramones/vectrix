@@ -38,7 +38,7 @@
         <!-- 1.0.3 and later compile with IEEE floating point by default (no fusing on Metal, no MoltenVK fast math);
              1.1.0 adds the measured GpuCapabilities.FUSED_FMA the tests use to choose devices; 1.2.0 adds capability
              tiers and refuses SPIR-V that needs a feature the device lacks (these kernels declare only Shader). -->
-        <dynamisgpu.version>1.2.0</dynamisgpu.version>
+        <dynamisgpu.version>1.12.1</dynamisgpu.version>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.10.3</junit.version>

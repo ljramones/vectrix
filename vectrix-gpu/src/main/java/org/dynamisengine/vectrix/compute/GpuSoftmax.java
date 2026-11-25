@@ -99,17 +99,17 @@ public final class GpuSoftmax implements AutoCloseable {
      */
     public GpuSoftmax(GpuDevice device) {
         pipelines = Rows.compile(device, Rows.GROUP, Set.of("FP32"),
-                new Rows.Spec("softmax", PARAMS.length, Access.READ, Access.WRITE),
-                new Rows.Spec("softmax_inplace", PARAMS_IN_PLACE.length, Access.READ_WRITE),
-                new Rows.Spec("log_softmax", PARAMS_LOG.length, Access.READ, Access.WRITE),
-                new Rows.Spec("log_softmax_inplace", PARAMS_LOG_IN_PLACE.length, Access.READ_WRITE),
-                new Rows.Spec("log_sum_exp", PARAMS_LSE.length, Access.READ, Access.WRITE),
-                new Rows.Spec("softmax_backward", PARAMS_BACKWARD.length, Access.READ, Access.READ, Access.WRITE),
-                new Rows.Spec("softmax_backward_inplace", PARAMS_BACKWARD_IN_PLACE.length, Access.READ_WRITE,
+                new Rows.Spec("softmax", PARAMS, Access.READ, Access.WRITE),
+                new Rows.Spec("softmax_inplace", PARAMS_IN_PLACE, Access.READ_WRITE),
+                new Rows.Spec("log_softmax", PARAMS_LOG, Access.READ, Access.WRITE),
+                new Rows.Spec("log_softmax_inplace", PARAMS_LOG_IN_PLACE, Access.READ_WRITE),
+                new Rows.Spec("log_sum_exp", PARAMS_LSE, Access.READ, Access.WRITE),
+                new Rows.Spec("softmax_backward", PARAMS_BACKWARD, Access.READ, Access.READ, Access.WRITE),
+                new Rows.Spec("softmax_backward_inplace", PARAMS_BACKWARD_IN_PLACE, Access.READ_WRITE,
                         Access.READ),
-                new Rows.Spec("log_softmax_backward", PARAMS_BACKWARD.length, Access.READ, Access.READ,
+                new Rows.Spec("log_softmax_backward", PARAMS_BACKWARD, Access.READ, Access.READ,
                         Access.WRITE),
-                new Rows.Spec("log_softmax_backward_inplace", PARAMS_BACKWARD_IN_PLACE.length, Access.READ_WRITE,
+                new Rows.Spec("log_softmax_backward_inplace", PARAMS_BACKWARD_IN_PLACE, Access.READ_WRITE,
                         Access.READ));
         this.device = device;
     }
@@ -190,13 +190,13 @@ public final class GpuSoftmax implements AutoCloseable {
         }
         Dimensions groups = Kernels.grid(device.capabilities(), rows);
         if (same) {
-            byte[] params = new Kernels.Params(PARAMS_IN_PLACE.length)
+            byte[] params = new Kernels.Params(PARAMS_IN_PLACE)
                     .u32(rows).u32(n).u32(xOff).u32(ldx).u32(groups.x()).bytes();
-            return encoder.dispatch(pipelines[kernel + 1], Map.of(0, x), params, groups);
+            return Kernels.dispatch(encoder, pipelines[kernel + 1], Map.of(0, x), params, groups);
         }
-        byte[] params = new Kernels.Params(PARAMS.length)
+        byte[] params = new Kernels.Params(PARAMS)
                 .u32(rows).u32(n).u32(xOff).u32(ldx).u32(yOff).u32(ldy).u32(groups.x()).bytes();
-        return encoder.dispatch(pipelines[kernel], Map.of(0, x, 1, y), params, groups);
+        return Kernels.dispatch(encoder, pipelines[kernel], Map.of(0, x, 1, y), params, groups);
     }
 
     /**
@@ -231,9 +231,9 @@ public final class GpuSoftmax implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = Kernels.grid(device.capabilities(), rows);
-        byte[] params = new Kernels.Params(PARAMS_LSE.length)
+        byte[] params = new Kernels.Params(PARAMS_LSE)
                 .u32(rows).u32(n).u32(xOff).u32(n == 0 ? 0 : ldx).u32(outOff).u32(groups.x()).bytes();
-        return encoder.dispatch(pipelines[LSE], Map.of(0, x, 1, out), params, groups);
+        return Kernels.dispatch(encoder, pipelines[LSE], Map.of(0, x, 1, out), params, groups);
     }
 
     /**
@@ -316,15 +316,15 @@ public final class GpuSoftmax implements AutoCloseable {
         Dimensions groups = Kernels.grid(device.capabilities(), rows);
         if (onY || onDy) {
             GpuBuffer other = onY ? dy : y;
-            byte[] params = new Kernels.Params(PARAMS_BACKWARD_IN_PLACE.length)
+            byte[] params = new Kernels.Params(PARAMS_BACKWARD_IN_PLACE)
                     .u32(rows).u32(n).u32(dxOff).u32(lddx).u32(onY ? dyOff : yOff).u32(onY ? lddy : ldy)
                     .u32(onDy ? 1 : 0).u32(groups.x()).bytes();
-            return encoder.dispatch(pipelines[kernel + 1], Map.of(0, dx, 1, other), params, groups);
+            return Kernels.dispatch(encoder, pipelines[kernel + 1], Map.of(0, dx, 1, other), params, groups);
         }
-        byte[] params = new Kernels.Params(PARAMS_BACKWARD.length)
+        byte[] params = new Kernels.Params(PARAMS_BACKWARD)
                 .u32(rows).u32(n).u32(yOff).u32(ldy).u32(dyOff).u32(lddy).u32(dxOff).u32(lddx).u32(groups.x())
                 .bytes();
-        return encoder.dispatch(pipelines[kernel], Map.of(0, y, 1, dy, 2, dx), params, groups);
+        return Kernels.dispatch(encoder, pipelines[kernel], Map.of(0, y, 1, dy, 2, dx), params, groups);
     }
 
     /** Releases the pipelines; work already recorded keeps them alive until it completes. Idempotent. */

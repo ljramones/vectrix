@@ -36,6 +36,7 @@ import org.dynamisengine.gpu.api.compute.GpuBuffer;
 import org.dynamisengine.gpu.api.compute.GpuComputePipeline;
 import org.dynamisengine.gpu.api.compute.GpuDevice;
 import org.dynamisengine.gpu.api.compute.Placement;
+import org.dynamisengine.gpu.api.compute.kit.PipelineSet;
 
 /** Shared plumbing of the row kernels (GpuSoftmax, GpuLoss, GpuNorms): pipelines, row checks and buffer aliasing. */
 final class Rows {
@@ -50,7 +51,7 @@ final class Rows {
     }
 
     /** A kernel to compile: its resource name, parameter count and buffer accesses in slot order. */
-    record Spec(String name, int params, Access... slots) {
+    record Spec(String name, String[] params, Access... slots) {
     }
 
     /** Compiles {@code specs} in order with a local size of {@code local} threads; on failure closes what it made. */
@@ -78,24 +79,7 @@ final class Rows {
 
     /** Closes every resource, rethrowing the first failure after trying them all. */
     static void close(AutoCloseable... resources) {
-        RuntimeException first = null;
-        for (AutoCloseable r : resources) {
-            try {
-                if (r != null) {
-                    r.close();
-                }
-            } catch (Exception e) {
-                RuntimeException re = e instanceof RuntimeException x ? x : new IllegalStateException(e);
-                if (first == null) {
-                    first = re;
-                } else {
-                    first.addSuppressed(re);
-                }
-            }
-        }
-        if (first != null) {
-            throw first;
-        }
+        PipelineSet.closeAll(resources);
     }
 
     /** Checks the batch shape: {@code rows, n >= minN} and {@code n <= MAX_ROW}. */

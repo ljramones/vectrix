@@ -77,11 +77,11 @@ public final class GpuOptim implements AutoCloseable {
      */
     public GpuOptim(GpuDevice device) {
         Dimensions local = new Dimensions(GROUP, 1, 1);
-        adamW = Kernels.pipeline(device, "adamw", local, PARAMS_ADAMW.length, Set.of("FP32"), Access.READ_WRITE,
+        adamW = Kernels.pipeline(device, "adamw", local, PARAMS_ADAMW, Set.of("FP32"), Access.READ_WRITE,
                 Access.READ, Access.READ_WRITE, Access.READ_WRITE);
         GpuComputePipeline second;
         try {
-            second = Kernels.pipeline(device, "sgd", local, PARAMS_SGD.length, Set.of("FP32"), Access.READ_WRITE,
+            second = Kernels.pipeline(device, "sgd", local, PARAMS_SGD, Set.of("FP32"), Access.READ_WRITE,
                     Access.READ, Access.READ_WRITE);
         } catch (RuntimeException e) {
             adamW.close();
@@ -153,10 +153,10 @@ public final class GpuOptim implements AutoCloseable {
         float a2 = 1f - beta2;
         float decay = 1f - lr * weightDecay;
         Dimensions groups = groups(n);
-        byte[] params = new Kernels.Params(PARAMS_ADAMW.length)
+        byte[] params = new Kernels.Params(PARAMS_ADAMW)
                 .u32(n).u32(pOff).u32(gOff).u32(mOff).u32(vOff).f32(-lr).f32(beta1).f32(beta2).f32(eps).f32(bc1)
                 .f32(bc2).f32(a1).f32(a2).f32(decay).u32(groups.x()).bytes();
-        return encoder.dispatch(adamW, Map.of(0, p, 1, g, 2, m, 3, v), params, groups);
+        return Kernels.dispatch(encoder, adamW, Map.of(0, p, 1, g, 2, m, 3, v), params, groups);
     }
 
     /**
@@ -193,10 +193,10 @@ public final class GpuOptim implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = groups(n);
-        byte[] params = new Kernels.Params(PARAMS_SGD.length)
+        byte[] params = new Kernels.Params(PARAMS_SGD)
                 .u32(n).u32(pOff).u32(gOff).u32(bOff).f32(-lr).f32(momentum).f32(weightDecay).u32(nesterov ? 1 : 0)
                 .u32(groups.x()).bytes();
-        return encoder.dispatch(sgd, Map.of(0, p, 1, g, 2, buf), params, groups);
+        return Kernels.dispatch(encoder, sgd, Map.of(0, p, 1, g, 2, buf), params, groups);
     }
 
     private Dimensions groups(int n) {

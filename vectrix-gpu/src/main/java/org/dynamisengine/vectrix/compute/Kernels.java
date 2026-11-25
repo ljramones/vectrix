@@ -36,11 +36,15 @@ import org.dynamisengine.gpu.api.compute.ComputeException;
 import org.dynamisengine.gpu.api.compute.Dimensions;
 import org.dynamisengine.gpu.api.compute.GpuBuffer;
 import org.dynamisengine.gpu.api.compute.GpuCapabilities;
+import org.dynamisengine.gpu.api.compute.GpuCommandEncoder;
 import org.dynamisengine.gpu.api.compute.GpuComputePipeline;
 import org.dynamisengine.gpu.api.compute.GpuDevice;
 import org.dynamisengine.gpu.api.compute.KernelBundle;
 import org.dynamisengine.gpu.api.compute.KernelLibrary;
 import org.dynamisengine.gpu.api.compute.PipelineDescriptor;
+import org.dynamisengine.gpu.api.compute.kit.Checks;
+import org.dynamisengine.gpu.api.compute.kit.Grid;
+import org.dynamisengine.gpu.api.compute.kit.ParameterLayout;
 
 /**
  * The compiled kernels (src/main/slang, built by scripts/build-kernels.sh with DynamisGPU's ShaderBuild and loaded
@@ -65,19 +69,34 @@ final class Kernels {
         return LIBRARY.bundle(name);
     }
 
-    /** A pipeline for kernel {@code name}: the given buffer accesses in slot order, and its parameter block. */
-    static GpuComputePipeline pipeline(GpuDevice device, String name, Dimensions local, int paramCount,
+    /**
+     * A pipeline for kernel {@code name} through DynamisGPU's kit: the given buffer accesses in slot order. The kit
+     * takes the local size, the buffers and the parameter block from the kernel's reflection; {@code local} and
+     * {@code params}, the parameter block's fields in the order {@link Params} writes them, are checked against it, so
+     * a parameter list out of step with its shader fails here rather than writing the wrong fields.
+     */
+    static GpuComputePipeline pipeline(GpuDevice device, String name, Dimensions local, String[] params,
             Set<String> types, Access... slots) {
-        if (device == null) {
-            throw new IllegalArgumentException("device is null");
+        Checks.notNull(device, "device");
+        PipelineDescriptor d = LIBRARY.pipeline(name, List.of(slots), types, Set.of());
+        if (!d.localSize().equals(local)) {
+            throw new IllegalStateException(name + ": local size " + local + ", reflected " + d.localSize());
         }
-        BindingLayout.BufferBinding[] b = new BindingLayout.BufferBinding[slots.length];
-        for (int i = 0; i < slots.length; i++) {
-            b[i] = new BindingLayout.BufferBinding(i, slots[i], 4);
+        ParameterLayout layout = ParameterLayout.of(LIBRARY, name);
+        if (!layout.fields().equals(List.of(params)) || layout.bytes() != 4 * params.length) {
+            throw new IllegalStateException(name + ": parameters " + List.of(params) + ", reflected " + layout.fields()
+                    + " (" + layout.bytes() + " bytes)");
         }
-        BindingLayout layout = new BindingLayout(List.of(b), paramCount * 4);
-        return device.pipeline(new PipelineDescriptor(bundle(name), LIBRARY.entryPoint(name), layout,
-                local, Map.of(), types, Set.of()));
+        return device.pipeline(d);
+    }
+
+    /**
+     * Records a dispatch of {@code pipeline}, labelled {@code vectrix.<kernel>} for DynamisGPU's per-dispatch timings
+     * ({@code GpuSubmission.dispatchTimings}) and profiles.
+     */
+    static GpuCommandEncoder dispatch(GpuCommandEncoder encoder, GpuComputePipeline pipeline,
+            Map<Integer, ? extends GpuBuffer> bindings, byte[] params, Dimensions groups) {
+        return encoder.dispatch(pipeline, bindings, params, groups, "vectrix." + pipeline.descriptor().entryPoint());
     }
 
     /** A little-endian parameter block of 32-bit fields, written in declaration order. */
@@ -86,6 +105,11 @@ final class Kernels {
 
         Params(int fields) {
             b = ByteBuffer.allocate(fields * 4).order(ByteOrder.LITTLE_ENDIAN);
+        }
+
+        /** A block for the parameter fields {@code fields}, written in that order (checked at pipeline creation). */
+        Params(String[] fields) {
+            this(fields.length);
         }
 
         Params u32(long v) {
@@ -112,25 +136,16 @@ final class Kernels {
      * skipping indices past the range.
      */
     static Dimensions grid(GpuCapabilities caps, long groups) {
-        long maxX = caps.maxGroupCount().x();
-        long x = Math.min(groups, maxX);
-        long y = (groups + x - 1) / x;
-        if (y > caps.maxGroupCount().y()) {
-            throw new ComputeException(ComputeException.Code.UNSUPPORTED,
-                    groups + " groups exceed the device's group-count limits");
-        }
-        return new Dimensions((int) x, (int) y, 1);
+        return Grid.linear(caps, groups).groups();
     }
 
     /** The number of 32-bit elements in {@code b}. */
     static long elements(GpuBuffer b) {
-        return b.bytes() / 4;
+        return Checks.elements(b, 4);
     }
 
     static void notNull(Object o, String name) {
-        if (o == null) {
-            throw new IllegalArgumentException(name + " is null");
-        }
+        Checks.notNull(o, name);
     }
 
     /**
@@ -151,10 +166,6 @@ final class Kernels {
 
     /** Checks that {@code n} elements fit {@code buffer} from element {@code off}, with 32-bit indices. */
     static void range(GpuBuffer buffer, long off, long n, String name) {
-        notNull(buffer, name);
-        if (n < 0 || off < 0 || off > elements(buffer) - n || off + n - 1 > MAX_INDEX) {
-            throw new IllegalArgumentException(name + " must hold " + n + " values from offset " + off + " (has "
-                    + elements(buffer) + ")");
-        }
+        Checks.range(buffer, off, n, 4, name);
     }
 }

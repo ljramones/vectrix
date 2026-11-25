@@ -71,7 +71,7 @@ public final class GpuTransformKernels implements AutoCloseable {
      */
     public GpuTransformKernels(GpuDevice device) {
         pipeline = Kernels.pipeline(device, "transform_compose", new Dimensions(EngineBuffers.GROUP, 1, 1),
-                PARAMS.length, Set.of("FP32"), Access.READ, Access.READ, Access.WRITE);
+                PARAMS, Set.of("FP32"), Access.READ, Access.READ, Access.WRITE);
         this.device = device;
     }
 
@@ -127,9 +127,9 @@ public final class GpuTransformKernels implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = EngineBuffers.groups(device, count);
-        byte[] params = new Kernels.Params(PARAMS.length).u32(count).u32(parentsOff).u32(parentsStride)
+        byte[] params = new Kernels.Params(PARAMS).u32(count).u32(parentsOff).u32(parentsStride)
                 .u32(localsOff).u32(localsStride).u32(outOff).u32(outStride).u32(groups.x()).bytes();
-        return encoder.dispatch(pipeline, Map.of(0, parents, 1, locals, 2, out), params, groups);
+        return Kernels.dispatch(encoder, pipeline, Map.of(0, parents, 1, locals, 2, out), params, groups);
     }
 
     /** Releases the pipeline; work already recorded keeps it alive until it completes. Idempotent. */

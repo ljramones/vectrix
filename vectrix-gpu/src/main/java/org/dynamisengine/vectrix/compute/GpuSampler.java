@@ -69,7 +69,7 @@ public final class GpuSampler implements AutoCloseable {
      * @throws org.dynamisengine.gpu.api.compute.ComputeException if the device cannot create the pipeline
      */
     public GpuSampler(GpuDevice device) {
-        pipeline = Kernels.pipeline(device, "argmax", new Dimensions(GROUP, 1, 1), PARAMS.length, Set.of("INT32"),
+        pipeline = Kernels.pipeline(device, "argmax", new Dimensions(GROUP, 1, 1), PARAMS, Set.of("INT32"),
                 Access.READ, Access.WRITE);
         this.device = device;
     }
@@ -120,9 +120,9 @@ public final class GpuSampler implements AutoCloseable {
             return encoder;
         }
         Dimensions groups = Kernels.grid(device.capabilities(), rows);
-        byte[] params = new Kernels.Params(PARAMS.length).u32(rows).u32(n).u32(off).u32(n == 0 ? 0 : ld)
+        byte[] params = new Kernels.Params(PARAMS).u32(rows).u32(n).u32(off).u32(n == 0 ? 0 : ld)
                 .u32(destOff).u32(groups.x()).bytes();
-        return encoder.dispatch(pipeline, Map.of(0, logits, 1, dest), params, groups);
+        return Kernels.dispatch(encoder, pipeline, Map.of(0, logits, 1, dest), params, groups);
     }
 
     /** Releases the pipeline; work already recorded keeps it alive until it completes. Idempotent. */

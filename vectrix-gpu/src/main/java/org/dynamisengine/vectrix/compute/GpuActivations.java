@@ -116,16 +116,16 @@ public final class GpuActivations implements AutoCloseable {
         Set<String> intFp32 = Set.of("INT32", "FP32");
         List<GpuComputePipeline> made = new ArrayList<>();
         try {
-            made.add(Kernels.pipeline(device, "activation", new Dimensions(GROUP, 1, 1), PARAMS.length, fp32,
+            made.add(Kernels.pipeline(device, "activation", new Dimensions(GROUP, 1, 1), PARAMS, fp32,
                     Access.READ, Access.READ, Access.WRITE));
             made.add(Kernels.pipeline(device, "activation_inplace", new Dimensions(GROUP, 1, 1),
-                    PARAMS_IN_PLACE.length, fp32, Access.READ_WRITE, Access.READ));
-            made.add(Kernels.pipeline(device, "activation_self", new Dimensions(GROUP, 1, 1), PARAMS_SELF.length,
+                    PARAMS_IN_PLACE, fp32, Access.READ_WRITE, Access.READ));
+            made.add(Kernels.pipeline(device, "activation_self", new Dimensions(GROUP, 1, 1), PARAMS_SELF,
                     fp32, Access.READ_WRITE));
-            made.add(Kernels.pipeline(device, "dropout", new Dimensions(DROPOUT_GROUP, 1, 1), PARAMS_DROPOUT.length,
+            made.add(Kernels.pipeline(device, "dropout", new Dimensions(DROPOUT_GROUP, 1, 1), PARAMS_DROPOUT,
                     intFp32, Access.READ, Access.WRITE));
             made.add(Kernels.pipeline(device, "dropout_inplace", new Dimensions(DROPOUT_GROUP, 1, 1),
-                    PARAMS_DROPOUT_IN_PLACE.length, intFp32, Access.READ_WRITE));
+                    PARAMS_DROPOUT_IN_PLACE, intFp32, Access.READ_WRITE));
         } catch (RuntimeException e) {
             for (GpuComputePipeline p : made) {
                 p.close();
@@ -434,15 +434,15 @@ public final class GpuActivations implements AutoCloseable {
         long counters = ((start & 3) + n + 3) / 4;
         Dimensions groups = Kernels.grid(device.capabilities(), (counters + DROPOUT_GROUP - 1) / DROPOUT_GROUP);
         if (x == y) {
-            byte[] params = new Kernels.Params(PARAMS_DROPOUT_IN_PLACE.length)
+            byte[] params = new Kernels.Params(PARAMS_DROPOUT_IN_PLACE)
                     .u32(seed).u32(seed >>> 32).u32(start).u32(start >>> 32).f32(p).f32(scale).u32(xOff).u32(n)
                     .u32(groups.x()).bytes();
-            return encoder.dispatch(dropoutInPlace, Map.of(0, x), params, groups);
+            return Kernels.dispatch(encoder, dropoutInPlace, Map.of(0, x), params, groups);
         }
-        byte[] params = new Kernels.Params(PARAMS_DROPOUT.length)
+        byte[] params = new Kernels.Params(PARAMS_DROPOUT)
                 .u32(seed).u32(seed >>> 32).u32(start).u32(start >>> 32).f32(p).f32(scale).u32(xOff).u32(yOff).u32(n)
                 .u32(groups.x()).bytes();
-        return encoder.dispatch(dropout, Map.of(0, x, 1, y), params, groups);
+        return Kernels.dispatch(encoder, dropout, Map.of(0, x, 1, y), params, groups);
     }
 
     private GpuCommandEncoder forward(Op op, GpuCommandEncoder encoder, GpuBuffer x, long xOff, GpuBuffer y,
@@ -461,9 +461,9 @@ public final class GpuActivations implements AutoCloseable {
             return dispatchSelf(encoder, op, x, xOff, n, groups);
         }
         // a forward op reads only slot 0; the input is bound at slot 1 too, read-only
-        byte[] params = new Kernels.Params(PARAMS.length)
+        byte[] params = new Kernels.Params(PARAMS)
                 .u32(op.ordinal()).u32(n).u32(xOff).u32(xOff).u32(yOff).u32(groups.x()).bytes();
-        return encoder.dispatch(twoBuffers, Map.of(0, x, 1, x, 2, y), params, groups);
+        return Kernels.dispatch(encoder, twoBuffers, Map.of(0, x, 1, x, 2, y), params, groups);
     }
 
     private GpuCommandEncoder backward(Op op, GpuCommandEncoder encoder, GpuBuffer a, long aOff, String aName,
@@ -490,20 +490,20 @@ public final class GpuActivations implements AutoCloseable {
         if (onA || onDy) {
             GpuBuffer other = onA ? dy : a;
             long otherOff = onA ? dyOff : aOff;
-            byte[] params = new Kernels.Params(PARAMS_IN_PLACE.length)
+            byte[] params = new Kernels.Params(PARAMS_IN_PLACE)
                     .u32(op.ordinal()).u32(n).u32(dxOff).u32(otherOff).u32(onDy ? 1 : 0).u32(groups.x()).bytes();
-            return encoder.dispatch(inPlace, Map.of(0, dx, 1, other), params, groups);
+            return Kernels.dispatch(encoder, inPlace, Map.of(0, dx, 1, other), params, groups);
         }
-        byte[] params = new Kernels.Params(PARAMS.length)
+        byte[] params = new Kernels.Params(PARAMS)
                 .u32(op.ordinal()).u32(n).u32(aOff).u32(dyOff).u32(dxOff).u32(groups.x()).bytes();
-        return encoder.dispatch(twoBuffers, Map.of(0, a, 1, dy, 2, dx), params, groups);
+        return Kernels.dispatch(encoder, twoBuffers, Map.of(0, a, 1, dy, 2, dx), params, groups);
     }
 
     private GpuCommandEncoder dispatchSelf(GpuCommandEncoder encoder, Op op, GpuBuffer x, long off, int n,
             Dimensions groups) {
-        byte[] params = new Kernels.Params(PARAMS_SELF.length)
+        byte[] params = new Kernels.Params(PARAMS_SELF)
                 .u32(op.ordinal()).u32(n).u32(off).u32(groups.x()).bytes();
-        return encoder.dispatch(self, Map.of(0, x), params, groups);
+        return Kernels.dispatch(encoder, self, Map.of(0, x), params, groups);
     }
 
     private Dimensions groups(int n) {

@@ -139,8 +139,8 @@ mvn -f vectrix-gpu/pom.xml verify
 DynamisGPU comes from its GitHub Release when it isn't already in your local repository:
 
 ```bash
-curl -fsSLO https://github.com/ljramones/DynamicGPU/releases/download/v1.2.0/dynamisgpu-1.2.0-maven.zip
-unzip -q dynamisgpu-1.2.0-maven.zip && cp -R dynamisgpu-1.2.0/repository/. ~/.m2/repository/
+curl -fsSLO https://github.com/ljramones/DynamicGPU/releases/download/v1.12.1/dynamisgpu-1.12.1-maven.zip
+unzip -q dynamisgpu-1.12.1-maven.zip && cp -R dynamisgpu-1.12.1/repository/. ~/.m2/repository/
 ```
 
 ## Testing
@@ -177,7 +177,7 @@ Mesa's lavapipe computes it that way.
 **CI:** the CI runners have no GPU, so the GPU kernels job runs the Vulkan profile on lavapipe, a CPU implementation of
 Vulkan. That checks the kernels that need no `fma` bit for bit, and creates their pipelines on a second, non-Apple
 driver. Run both hardware profiles on a Mac before a release. On an Apple M4 Max with DynamisGPU
-1.2.0, every test passes on both native Metal and MoltenVK, with no environment settings.
+1.12.1, every test passes on both native Metal and MoltenVK, with no environment settings.
 
 Two sweeps cover every 32-bit float input but are opt-in, because they take minutes:
 `-Dvectrix.gpu.exhaustive=true` checks all 2³² inputs to the math functions (`ReproducibleMathGpuTest`) and to the
@@ -197,6 +197,15 @@ sh vectrix-gpu/scripts/build-kernels.sh   # finds slangc via $SLANGC, $VULKAN_SD
 
 `KernelManifestTest` fails while a source differs from what was compiled. It also checks that the parameter blocks
 the Java side writes match the fields and offsets Slang compiled.
+
+## On DynamisGPU's kit and runtime
+
+- **Pipelines:** created through DynamisGPU's `KernelLibrary`, which takes each kernel's local size, buffers and
+  parameter block from its reflection. Each kernel's `PARAMS` list is checked against that reflection when its
+  pipeline is created. Grids and argument checks are the kit's `Grid` and `Checks`.
+- **Dispatches:** labelled `vectrix.<kernel>`, so they are named in DynamisGPU's per-dispatch timings and profiles.
+- **Recordings:** the kernels allocate nothing per call, so a sequence of them recorded once (`GpuCommandEncoder.record`)
+  replays the same bits on every run (`RuntimeIntegrationTest`).
 
 **Rules for kernel sources:**
 - **Port the Vectrix method exactly:** the same operation order, explicit `fma` where the Java uses `Math.fma`, and

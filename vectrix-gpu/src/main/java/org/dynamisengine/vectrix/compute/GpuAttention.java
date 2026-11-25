@@ -117,15 +117,15 @@ public final class GpuAttention implements AutoCloseable {
         Set<String> fp32 = Set.of("FP32");
         List<GpuComputePipeline> made = new ArrayList<>();
         try {
-            made.add(Kernels.pipeline(device, "attention_scores", chunk, PARAMS_SCORES.length, fp32, Access.READ,
+            made.add(Kernels.pipeline(device, "attention_scores", chunk, PARAMS_SCORES, fp32, Access.READ,
                     Access.READ, Access.READ, Access.WRITE));
-            made.add(Kernels.pipeline(device, "attention_softmax", row, PARAMS_SOFTMAX.length, fp32,
+            made.add(Kernels.pipeline(device, "attention_softmax", row, PARAMS_SOFTMAX, fp32,
                     Access.READ_WRITE));
-            made.add(Kernels.pipeline(device, "attention_softmax_backward", row, PARAMS_SOFTMAX_BACKWARD.length, fp32,
+            made.add(Kernels.pipeline(device, "attention_softmax_backward", row, PARAMS_SOFTMAX_BACKWARD, fp32,
                     Access.READ, Access.READ_WRITE));
-            made.add(Kernels.pipeline(device, "attention_mix", chunk, PARAMS_MIX.length, fp32, Access.READ,
+            made.add(Kernels.pipeline(device, "attention_mix", chunk, PARAMS_MIX, fp32, Access.READ,
                     Access.READ, Access.WRITE));
-            made.add(Kernels.pipeline(device, "attention_accumulate", chunk, PARAMS_ACCUMULATE.length, fp32,
+            made.add(Kernels.pipeline(device, "attention_accumulate", chunk, PARAMS_ACCUMULATE, fp32,
                     Access.READ, Access.READ, Access.READ_WRITE));
         } catch (RuntimeException e) {
             for (GpuComputePipeline p : made) {
@@ -520,10 +520,10 @@ public final class GpuAttention implements AutoCloseable {
                 masked ? maskOff : 0, masked ? ldMask : 0, masked, p, pOff, ldp);
         // Softmax.softmax(p), in place
         Dimensions rowGroups = Kernels.grid(device.capabilities(), s.rows());
-        byte[] params = new Kernels.Params(PARAMS_SOFTMAX.length)
+        byte[] params = new Kernels.Params(PARAMS_SOFTMAX)
                 .u32(s.rows()).u32(s.heads()).u32(s.queries()).u32(s.t()).u32(s.causal() ? 1 : 0)
                 .u32(pOff).u32(ldp).u32(rowGroups.x()).bytes();
-        encoder.dispatch(softmax, Map.of(0, p), params, rowGroups);
+        Kernels.dispatch(encoder, softmax, Map.of(0, p), params, rowGroups);
         // out = Vᵀ·p
         recordMix(encoder, s, s.dv(), 1f, v, vOff, ldv, p, pOff, ldp, out, outOff, ldOut);
         return encoder;
@@ -542,10 +542,10 @@ public final class GpuAttention implements AutoCloseable {
                 scratchOff, t);
         // ds = Softmax.softmaxBackward(p, ds), in place
         Dimensions rowGroups = Kernels.grid(device.capabilities(), s.rows());
-        byte[] params = new Kernels.Params(PARAMS_SOFTMAX_BACKWARD.length)
+        byte[] params = new Kernels.Params(PARAMS_SOFTMAX_BACKWARD)
                 .u32(s.rows()).u32(s.heads()).u32(s.queries()).u32(t).u32(s.causal() ? 1 : 0)
                 .u32(pOff).u32(ldp).u32(scratchOff).u32(t).u32(rowGroups.x()).bytes();
-        encoder.dispatch(softmaxBackward, Map.of(0, p, 1, scratch), params, rowGroups);
+        Kernels.dispatch(encoder, softmaxBackward, Map.of(0, p, 1, scratch), params, rowGroups);
         // dq = scale·Kᵀ·ds
         recordMix(encoder, s, s.d(), scale, k, kOff, ldk, scratch, scratchOff, t, dq, dqOff, ldDq);
         // dK_j += (scale·ds_j)·q and dV_j += p_j·dOut, over the attention rows in order
@@ -559,23 +559,23 @@ public final class GpuAttention implements AutoCloseable {
             boolean masked, GpuBuffer out, long outOff, int ldOut) {
         int chunks = chunks(s.t());
         Dimensions groups = Kernels.grid(device.capabilities(), (long) s.rows() * chunks);
-        byte[] params = new Kernels.Params(PARAMS_SCORES.length)
+        byte[] params = new Kernels.Params(PARAMS_SCORES)
                 .u32(s.rows()).u32(s.heads()).u32(s.group()).u32(s.queries()).u32(s.t()).u32(s.causal() ? 1 : 0)
                 .u32(width).u32(scaled ? 1 : 0).f32(scale).u32(xOff).u32(ldx).u32(mOff).u32(ldm)
                 .u32(masked ? 1 : 0).u32(maskOff).u32(ldMask).u32(outOff).u32(ldOut).u32(chunks).u32(groups.x())
                 .bytes();
-        encoder.dispatch(scores, Map.of(0, x, 1, m, 2, mask, 3, out), params, groups);
+        Kernels.dispatch(encoder, scores, Map.of(0, x, 1, m, 2, mask, 3, out), params, groups);
     }
 
     private void recordMix(GpuCommandEncoder encoder, Shape s, int width, float alpha, GpuBuffer m, long mOff, int ldm,
             GpuBuffer w, long wOff, int ldw, GpuBuffer out, long outOff, int ldOut) {
         int chunks = chunks(width);
         Dimensions groups = Kernels.grid(device.capabilities(), (long) s.rows() * chunks);
-        byte[] params = new Kernels.Params(PARAMS_MIX.length)
+        byte[] params = new Kernels.Params(PARAMS_MIX)
                 .u32(s.rows()).u32(s.heads()).u32(s.group()).u32(s.queries()).u32(s.t()).u32(s.causal() ? 1 : 0)
                 .u32(width).f32(alpha).u32(mOff).u32(ldm).u32(wOff).u32(ldw).u32(outOff).u32(ldOut).u32(chunks)
                 .u32(groups.x()).bytes();
-        encoder.dispatch(mix, Map.of(0, m, 1, w, 2, out), params, groups);
+        Kernels.dispatch(encoder, mix, Map.of(0, m, 1, w, 2, out), params, groups);
     }
 
     private void recordAccumulate(GpuCommandEncoder encoder, Shape s, int width, boolean scaled, float scale,
@@ -583,10 +583,10 @@ public final class GpuAttention implements AutoCloseable {
             int ldDest) {
         int chunks = chunks(width);
         Dimensions groups = Kernels.grid(device.capabilities(), (long) s.t() * s.kvHeads() * chunks);
-        byte[] params = new Kernels.Params(PARAMS_ACCUMULATE.length)
+        byte[] params = new Kernels.Params(PARAMS_ACCUMULATE)
                 .u32(s.heads()).u32(s.group()).u32(s.kvHeads()).u32(s.queries()).u32(s.t()).u32(s.causal() ? 1 : 0)
                 .u32(width).u32(scaled ? 1 : 0).f32(scale).u32(wOff).u32(ldw).u32(xOff).u32(ldx).u32(destOff)
                 .u32(ldDest).u32(chunks).u32(groups.x()).bytes();
-        encoder.dispatch(accumulate, Map.of(0, w, 1, x, 2, dest), params, groups);
+        Kernels.dispatch(encoder, accumulate, Map.of(0, w, 1, x, 2, dest), params, groups);
     }
 }
