@@ -95,6 +95,26 @@ public final class Rope {
     }
 
     /**
+     * Returns the inverse frequencies: the angle of pair {@code i} at position {@code p} is {@code p·f[i]}.
+     *
+     * @return a copy of the {@code dim / 2} inverse frequencies
+     * @since 4.1.0
+     */
+    public double[] inverseFrequencies() {
+        return invFreq.clone();
+    }
+
+    /**
+     * Returns which elements form a pair.
+     *
+     * @return the layout
+     * @since 4.1.0
+     */
+    public Layout layout() {
+        return layout;
+    }
+
+    /**
      * Returns the head dimension.
      *
      * @return the head dimension, even and at least 2

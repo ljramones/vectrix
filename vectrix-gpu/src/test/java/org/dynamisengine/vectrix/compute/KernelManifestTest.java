@@ -62,6 +62,7 @@ class KernelManifestTest {
         assertParams("gelu", GpuActivations.PARAMS);
         assertParams("gelu_inplace", GpuActivations.PARAMS_IN_PLACE);
         assertParams("gelu_self", GpuActivations.PARAMS_SELF);
+        assertParams("rope", GpuRope.PARAMS);
         assertParams("dropout", GpuActivations.PARAMS_DROPOUT);
         assertParams("dropout_inplace", GpuActivations.PARAMS_DROPOUT_IN_PLACE);
         assertParams("adamw", GpuOptim.PARAMS_ADAMW);
@@ -171,6 +172,8 @@ class KernelManifestTest {
         assertEquals("a:0,b:1,dest:2", Manifest.get("gelu.buffers"));
         assertEquals("dest:0,other:1", Manifest.get("gelu_inplace.buffers"));
         assertEquals("x:0", Manifest.get("gelu_self.buffers"));
+        assertEquals("x:0,invFreq:1,positions:2", Manifest.get("rope.buffers"));
+        assertEquals("64,1,1", Manifest.get("rope.local"));
         for (String k : new String[] {"gelu", "gelu_inplace", "gelu_self"}) {
             assertEquals("256,1,1", Manifest.get(k + ".local"), k);
         }

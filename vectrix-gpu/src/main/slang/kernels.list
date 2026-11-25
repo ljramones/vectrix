@@ -59,3 +59,4 @@ rms_norm_inplace rms_norm_inplace.slang rmsNormInPlace
 norm_backward norm_backward.slang normBackward
 norm_backward_inplace norm_backward_inplace.slang normBackwardInPlace
 norm_param_grads norm_param_grads.slang normParamGrads
+rope rope.slang rope

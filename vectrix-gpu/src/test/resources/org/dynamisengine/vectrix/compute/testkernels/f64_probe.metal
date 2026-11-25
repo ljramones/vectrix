@@ -990,9 +990,35 @@ long dToLong_0(ulong a_17)
     {
         return 0LL;
     }
+    bool negative_0 = (a_17 & 9223372036854775808ULL) != 0ULL;
+    long _S110;
+    if(dIsInf_0(a_17))
+    {
+        if(negative_0)
+        {
+            _S110 = -9223372036854775808LL;
+        }
+        else
+        {
+            _S110 = 9223372036854775807LL;
+        }
+        return _S110;
+    }
     thread ulong sig_3;
     thread int e_6;
     dUnpack_1(a_17, &sig_3, &e_6);
+    if((e_6 + bitLength64_0(sig_3)) > int(63))
+    {
+        if(negative_0)
+        {
+            _S110 = -9223372036854775808LL;
+        }
+        else
+        {
+            _S110 = 9223372036854775807LL;
+        }
+        return _S110;
+    }
     ulong m_1;
     if(e_6 >= int(0))
     {
@@ -1010,8 +1036,7 @@ long dToLong_0(ulong a_17)
         }
     }
     long v_0 = long(m_1);
-    long _S110;
-    if((a_17 & 9223372036854775808ULL) != 0ULL)
+    if(negative_0)
     {
         _S110 = - v_0;
     }

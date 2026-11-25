@@ -34,6 +34,7 @@ and fuse `fma`; see [Where the GPU can differ](#where-the-gpu-can-differ-from-th
 | `GpuLoss` | `nn.Loss` `crossEntropy`, `crossEntropyBackward` | over rows, one int target per row | bit for bit on IEEE devices |
 | `GpuNorms` | `nn.Norms` `layerNorm`, `rmsNorm` and their backward passes | over rows; parameter gradients summed in row order, as on the CPU | bit for bit on IEEE devices |
 | `GpuAttention` | `nn.Attention` `forward`, `backward`, `groupedQuery`, `groupedQueryBackward` | scaled dot-product attention batched over queries and heads, with an optional causal mode; gradients accumulated in the CPU's order | bit for bit on IEEE devices |
+| `GpuRope` | `nn.Rope` `apply`, `applyBackward` | rotary position embedding of many vectors in place, positions (int64) from a GPU buffer and shared by `group` vectors (the heads of a token); the angle, sine, cosine and rotation in double through `f64.slang` (needs `INT64`) | bit for bit on every device with `INT64` |
 | `GpuOptim` | `nn.Optim` `adamW`, `sgd` | one optimizer step per element, with AdamW's bias corrections computed on the host as Vectrix does | bit for bit on IEEE devices |
 | `GpuFormats` | `nn.Formats` | bf16, E4M3 and E5M2 conversions over buffers; int8 quantize, dequantize, dot and gemv (blocks of 32) | conversions, quantize and dequantize: bit for bit on every device, subnormals included. Dot and gemv: bit for bit on IEEE devices |
 | `GpuSampler` | `nn.Sampler.argmax` | the argmax of each row (the first NaN wins; ties go to the lowest index) | bit for bit on every device |

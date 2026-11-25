@@ -179,7 +179,11 @@ class F64GpuTest {
                         a[i] = bits(Math.scalb(r.nextDouble() + 1, r.nextInt(-152, 130)) * (r.nextBoolean() ? 1 : -1));
                     }
                 }
-                case TO_LONG -> a[i] = bits((double) r.nextLong(-(1L << 62), 1L << 62) * (i % 2 == 0 ? 1 : 0x1p-20));
+                case TO_LONG -> {
+                    if (i % 3 != 2) {
+                        a[i] = bits((double) r.nextLong(-(1L << 62), 1L << 62) * (i % 3 == 0 ? 1 : 0x1p-20));
+                    } // else any double: saturation, infinities and NaN
+                }
                 case FROM_LONG -> a[i] = i % 2 == 0 ? r.nextLong(-(1L << 62), 1L << 62) : r.nextLong(-(1L << 54), 1L << 54);
                 case SCALB -> {
                     b[i] = r.nextInt(-1022, 1024);

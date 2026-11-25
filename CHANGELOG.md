@@ -16,6 +16,12 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   `f64.slang`, so they are bit for bit on every device with `INT64` (subnormal results aside where the GPU flushes
   them). They are much slower than the other activations. `GpuGeluTest` covers every aliasing layout, the branch
   points of `normalCdf` and the special values.
+- **vectrix-gpu: `GpuRope`**, the twin of `Rope.apply` and `applyBackward`. It rotates many vectors in place, with
+  positions (int64) read from a GPU buffer and shared by `group` vectors (the heads of a token). The angle, its sine
+  and cosine and the rotation are computed in double through `f64.slang`, so it matches Vectrix bit for bit on every
+  device with `INT64`, at any position. `GpuRope.Layout` mirrors `Rope.Layout`, because vectrix-gpu's main code
+  depends only on `dynamis-gpu-api`.
+- **`Rope.inverseFrequencies()` and `Rope.layout()`:** read-only accessors of a plan, for GPU twins and serializers.
 
 ## [4.0.1] - 2026-11-25
 A packaging release: no library code changes, and the results are unchanged.

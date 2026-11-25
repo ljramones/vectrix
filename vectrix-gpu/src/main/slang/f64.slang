@@ -473,19 +473,28 @@ float dToFloat(uint64_t a)
     return asfloat(sign | bits);
 }
 
-// Java's (long) of an integer-valued double with |a| < 2^63 (truncation toward zero in general).
+// Java's (long) of a double: truncation toward zero, NaN to 0, and saturation to Long.MIN_VALUE/MAX_VALUE beyond.
 int64_t dToLong(uint64_t a)
 {
     if (dIsNaN(a) || dIsZero(a))
     {
         return 0;
     }
+    bool negative = (a & D_SIGN) != 0;
+    if (dIsInf(a))
+    {
+        return negative ? int64_t(D_SIGN) : int64_t(~D_SIGN);
+    }
     uint64_t sig;
     int e;
     dUnpack(a, sig, e);
+    if (e + bitLength64(sig) > 63)
+    {
+        return negative ? int64_t(D_SIGN) : int64_t(~D_SIGN);  // |a| >= 2^63
+    }
     uint64_t m = e >= 0 ? sig << uint64_t(e) : (e <= -64 ? 0 : sig >> uint64_t(-e));
     int64_t v = int64_t(m);
-    return (a & D_SIGN) != 0 ? -v : v;
+    return negative ? -v : v;
 }
 
 // a < b, as Java's double < (false if either is NaN; -0 == +0).

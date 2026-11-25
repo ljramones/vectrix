@@ -124,6 +124,7 @@ final class ReferenceModels {
         FormatsModels.register(MODELS);
         EngineModels.register(MODELS);
         RowsModels.register(MODELS);
+        NnModels.register(MODELS);
     }
 
     private ReferenceModels() {
