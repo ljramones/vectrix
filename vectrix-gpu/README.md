@@ -64,8 +64,8 @@ and fuse `fma`; see [Where the GPU can differ](#where-the-gpu-can-differ-from-th
 
 ## Using it
 
-Coordinates: `org.dynamisengine:vectrix-gpu:4.0.1` (module `org.dynamisengine.vectrix.compute`), with
-`dynamis-gpu-metal` or `dynamis-gpu-vulkan` at runtime. Neither is on Maven Central. Since 4.0.1 vectrix-gpu is in
+Coordinates: `org.dynamisengine:vectrix-gpu:4.1.0` (module `org.dynamisengine.vectrix.compute`), with
+`dynamis-gpu-metal` or `dynamis-gpu-vulkan` at runtime. Neither is on Maven Central. Since 4.1.0 vectrix-gpu is in
 the Vectrix release's Maven repository ZIP (`vectrix-X-maven.zip`, with the library); install DynamisGPU from its
 GitHub Release (see [Building](#building)).
 

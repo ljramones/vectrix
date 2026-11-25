@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-11-25
+New in this release:
+- **GPU twins of the double-precision kernels.** vectrix-gpu emulates IEEE double arithmetic with 64-bit integers
+  (`f64.slang`), so the exact GELU and `Rope`, which compute in double, now have bit-exact GPU twins on GPUs without
+  FP64 (they need `INT64`).
+- **`Pointwise` and `Embedding`** (`nn`), with GPU twins: element-wise arithmetic, and embedding gather and scatter-add
+  in token order.
+- **Fully masked softmax rows give zeros** (NaN before), on the CPU and the GPU.
+
+These answer the exact-tier requests of NNJava's numerical coverage review (its `docs/numerical-coverage.md`).
+
 ### Added
 - **vectrix-gpu: binary64 arithmetic for GPUs without FP64.** `f64.slang` computes IEEE double arithmetic on 64-bit
   integers, rounding exactly as Java does. It lets vectrix-gpu port the Vectrix methods that compute in double.

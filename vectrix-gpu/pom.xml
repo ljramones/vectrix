@@ -21,7 +21,7 @@
 
     <groupId>org.dynamisengine</groupId>
     <artifactId>vectrix-gpu</artifactId>
-    <version>4.1.0-SNAPSHOT</version>
+    <version>4.1.0</version>
     <name>Vectrix GPU kernels</name>
     <description>GPU twins of Vectrix kernels (Slang, compiled to SPIR-V and Metal) for DynamisGPU</description>
 
@@ -34,7 +34,7 @@
 
     <properties>
         <!-- Kept equal to the library version by ExamplesVersionTest in the library build. -->
-        <vectrix.version>4.1.0-SNAPSHOT</vectrix.version>
+        <vectrix.version>4.1.0</vectrix.version>
         <!-- 1.0.3 and later compile with IEEE floating point by default (no fusing on Metal, no MoltenVK fast math);
              1.1.0 adds the measured GpuCapabilities.FUSED_FMA the tests use to choose devices; 1.2.0 adds capability
              tiers and refuses SPIR-V that needs a feature the device lacks (these kernels declare only Shader). -->
