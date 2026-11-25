@@ -33,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import org.dynamisengine.vectrix.affine.Transformf;
 import org.dynamisengine.vectrix.core.Quaternionf;
 import org.dynamisengine.vectrix.core.Vector3f;
-import org.dynamisengine.vectrix.gpu.GpuTransformLayout;
 import org.dynamisengine.vectrix.gpu.Half;
 import org.dynamisengine.vectrix.gpu.OctaNormal;
 import org.dynamisengine.vectrix.gpu.PackedNorm;
@@ -111,44 +110,5 @@ class GpuPackingTest {
         Quaternionf out = QuatCompression.unpackSmallest3(packed, new Quaternionf());
         float errDeg = QuatCompression.angularErrorDegrees(q, out);
         assertTrue(errDeg < 0.05f);
-    }
-
-    @Test
-    void gpuTransformLayoutFloatAndCompactWrite() {
-        Transformf t = new Transformf();
-        t.translation.set(1.25f, -2.5f, 3.75f);
-        t.rotation.set(new Quaternionf().rotationXYZ(0.2f, -0.4f, 0.8f));
-        t.scale.set(0.5f, 2.0f, 4.0f);
-
-        GpuTransformLayout full = GpuTransformLayout.floatTRS();
-        ByteBuffer a = ByteBuffer.allocate(full.requiredBytes(1)).order(ByteOrder.LITTLE_ENDIAN);
-        full.write(a, 0, t);
-        assertEquals(1.25f, a.getFloat(0), 0.0f);
-        assertEquals(-2.5f, a.getFloat(4), 0.0f);
-        assertEquals(3.75f, a.getFloat(8), 0.0f);
-        assertEquals(0.5f, a.getFloat(28), 0.0f);
-        assertEquals(2.0f, a.getFloat(32), 0.0f);
-        assertEquals(4.0f, a.getFloat(36), 0.0f);
-
-        GpuTransformLayout compact = GpuTransformLayout.compactTRS();
-        ByteBuffer b = ByteBuffer.allocate(compact.requiredBytes(1)).order(ByteOrder.LITTLE_ENDIAN);
-        compact.write(b, 0, t);
-        assertEquals(1.25f, b.getFloat(0), 0.0f);
-        assertEquals(-2.5f, b.getFloat(4), 0.0f);
-        assertEquals(3.75f, b.getFloat(8), 0.0f);
-        long packedQ = b.getLong(12);
-        Quaternionf dq = QuatCompression.unpackSmallest3(packedQ, new Quaternionf());
-        assertTrue(QuatCompression.angularErrorDegrees(t.rotation, dq) < 0.05f);
-        assertEquals(t.scale.x, Half.unpack(b.getShort(20)), 0.001f);
-        assertEquals(t.scale.y, Half.unpack(b.getShort(22)), 0.001f);
-        assertEquals(t.scale.z, Half.unpack(b.getShort(24)), 0.001f);
-        // GPUs read little-endian: a default (big-endian) buffer receives exactly the same bytes
-        for (GpuTransformLayout layout : new GpuTransformLayout[] {full, compact}) {
-            ByteBuffer le = ByteBuffer.allocate(layout.requiredBytes(1)).order(ByteOrder.LITTLE_ENDIAN);
-            ByteBuffer be = ByteBuffer.allocate(layout.requiredBytes(1));
-            layout.write(le, 0, t);
-            layout.write(be, 0, t);
-            assertEquals(le.rewind(), be.rewind());
-        }
     }
 }

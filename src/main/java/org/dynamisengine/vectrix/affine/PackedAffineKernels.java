@@ -269,9 +269,6 @@ public final class PackedAffineKernels {
      * position in {@code order}, unlike {@link #transformAabbPackedAffineBatch}, which writes by entry. If
      * {@code outUpload} is {@code transforms.raw()}, the output range must not overlap a transform that is still to
      * be read, or that transform is overwritten first.
-     * <p>
-     * {@code GpuTransformWriteKernels.writePackedAffine} performs the same copy; this is the reference
-     * implementation.
      *
      * @param transforms the transforms, indexed by entry
      * @param order the entries to copy, in output order; the first {@code count} elements are used

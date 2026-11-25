@@ -22,12 +22,9 @@
  * THE SOFTWARE.
  */
 /**
- * GPU data contracts: the layouts and encodings that CPU writers and shaders must agree on.
+ * GPU data encodings that CPU writers and shaders must agree on. (The interface-block, vertex and transform
+ * layouts and the instance-submission pipeline moved to DynamisGPU in 3.3 and were removed in 4.0.)
  * <ul>
- * <li>Interface-block layouts ({@code ShaderLayout}: std140, std430 and scalar, checked against glslang), which can
- * emit their GLSL declarations.</li>
- * <li>Transform layouts and writers (always little-endian).</li>
- * <li>Vertex layouts.</li>
  * <li>Codecs:
  * <ul>
  * <li>half floats;</li>
@@ -37,25 +34,16 @@
  * <li>octahedral normals, QTangent and smallest-three quaternions.</li>
  * </ul></li>
  * <li>Meshlet normal cones.</li>
- * <li>A reference instance-submission pipeline (TRS to packed affine, bounds and upload staging).</li>
  * </ul>
  * Vectrix never calls a graphics API: DynamisGPU binds these contracts.
  * <p>
- * <b>Contract.</b> Threading: the codecs, layout calculators and write kernels are stateless and safe to call from
- * any thread; {@code GpuTransformLayout}, {@code VertexLayout}, {@code VertexAttribute} and the {@code ShaderLayout}
- * types are immutable and shareable; an {@code InstanceSubmissionPipeline} holds mutable scratch and must be used by
- * one thread at a time. Allocation: the codecs (the QTangent encoder included) and the transform writers do not
- * allocate; {@code ShaderLayout}, the vertex layout constructors and {@code MeshletCones.normalCone} allocate (setup
- * and asset packing); {@code InstanceSubmissionPipeline} allocates only when the instance or joint count grows past
- * its capacity. Determinism: the codecs use exact integer and IEEE double arithmetic, and the
+ * <b>Contract.</b> Threading: the codecs are stateless and safe to call from any thread. Allocation: the codecs (the
+ * QTangent encoder included) do not allocate; {@code MeshletCones.normalCone} allocates (asset packing). Determinism: the codecs use exact integer and IEEE double arithmetic, and the
  * sRGB curve and quaternion error use {@code AccurateMath}, so the bits match across platforms under
  * {@code -Dvectrix.strictMath}. Errors: the layout descriptors throw {@code IllegalArgumentException} for an invalid
  * description; the codecs clamp out-of-range inputs and throw only for an invalid {@code PackedFormats.qTangent} bit
  * count (inputs without a direction or rotation encode
- * as {@code OctaNormal.UP} or {@code QuatCompression.IDENTITY}); the transform writers and
- * {@code InstanceSubmissionPipeline} check their arguments, including every {@code order} entry, and throw
- * {@code IllegalArgumentException} before writing anything ({@code GpuTransformLayout.requiredBytes} throws
- * {@code ArithmeticException} when the size overflows an {@code int}). Precision and naming: the codecs and
- * writers take {@code float} data; several compute internally in double for exact rounding.
+ * as {@code OctaNormal.UP} or {@code QuatCompression.IDENTITY}). Precision and naming: the codecs take {@code float}
+ * data; several compute internally in double for exact rounding.
  */
 package org.dynamisengine.vectrix.gpu;

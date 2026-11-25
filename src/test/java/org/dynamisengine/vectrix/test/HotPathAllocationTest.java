@@ -443,26 +443,6 @@ class HotPathAllocationTest {
                 .packSmallest3(q0));
 
         int count = 64;
-        org.dynamisengine.vectrix.affine.Transformf[] tr = new org.dynamisengine.vectrix.affine.Transformf[count];
-        int[] order = new int[count];
-        for (int i = 0; i < count; i++) {
-            tr[i] = new org.dynamisengine.vectrix.affine.Transformf();
-            tr[i].translation.set(i, 1, 2);
-            order[i] = count - 1 - i;
-        }
-        org.dynamisengine.vectrix.gpu.GpuTransformLayout mixed = new org.dynamisengine.vectrix.gpu.GpuTransformLayout(36,
-                0, 12, 28, org.dynamisengine.vectrix.gpu.GpuTransformLayout.RotationEncoding.FLOAT4,
-                org.dynamisengine.vectrix.gpu.GpuTransformLayout.ScaleEncoding.HALF3);
-        java.nio.ByteBuffer buf = java.nio.ByteBuffer.allocate(mixed.requiredBytes(count));
-        assertNoAllocation("GpuTransformLayout.write", () -> mixed.write(buf, 7, tr[3]));
-        assertNoAllocation("GpuTransformWriteKernels.writeTrs", () -> org.dynamisengine.vectrix.gpu.GpuTransformWriteKernels
-                .writeTrs(mixed, tr, order, buf, count));
-        org.dynamisengine.vectrix.affine.PackedAffineArray packed = new org.dynamisengine.vectrix.affine.PackedAffineArray(
-                count);
-        float[] m16 = new float[16 * count + 5];
-        assertNoAllocation("GpuTransformWriteKernels.writeMatrix4fFromPackedAffine", () -> org.dynamisengine.vectrix.gpu
-                .GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(packed, order, m16, 5, count));
-
         org.dynamisengine.vectrix.soa.TransformSoA joints = new org.dynamisengine.vectrix.soa.TransformSoA(8);
         float[] palette = new float[12 * 8];
         int[] ji = new int[4 * count];
@@ -479,14 +459,21 @@ class HotPathAllocationTest {
         assertNoAllocation("TransformKernels.composeBatch", () -> org.dynamisengine.vectrix.soa.TransformKernels
                 .composeBatch(joints, joints, joints, 8));
 
-        org.dynamisengine.vectrix.gpu.InstanceSubmissionPipeline pipe =
-                new org.dynamisengine.vectrix.gpu.InstanceSubmissionPipeline(count);
-        float[] b0 = new float[count];
-        float[] b1 = new float[count];
-        float[] up = new float[12 * count];
-        assertNoAllocation("InstanceSubmissionPipeline.processFrame", () -> pipe.processFrame(tr, order, b0, b0, b0, b1,
-                b1, b1, px, py, pz, px, py, pz, joints, ji, jw, b0, b0, b0, b1, b1, b1, up, null, count, count,
-                org.dynamisengine.vectrix.gpu.InstanceSubmissionPipeline.Path.PACKED_AFFINE));
+        // 4.0.0: block quantization
+        int[] bqCodes = new int[256];
+        short[] bqParams = new short[2];
+        int[] bqScales = new int[16];
+        int[] bqMins = new int[16];
+        float[] bqx = new float[256];
+        for (int i = 0; i < 256; i++) {
+            bqx[i] = (i % 17) * 0.25f - 2f;
+        }
+        assertNoAllocation("BlockQuant.encodeBlock", () -> org.dynamisengine.vectrix.nn.BlockQuant.encodeBlock(
+                org.dynamisengine.vectrix.nn.BlockQuant.Format.Q4M, bqx, 0, 128, bqCodes, 0, bqParams, 0));
+        assertNoAllocation("BlockQuant.encodeSuperBlock", () -> org.dynamisengine.vectrix.nn.BlockQuant.encodeSuperBlock(
+                org.dynamisengine.vectrix.nn.BlockQuant.Format.Q5K, bqx, 0, bqCodes, 0, bqParams, 0, bqScales, 0, bqMins, 0));
+        assertNoAllocation("BlockQuant.encodeSuperBlock Q6K", () -> org.dynamisengine.vectrix.nn.BlockQuant.encodeSuperBlock(
+                org.dynamisengine.vectrix.nn.BlockQuant.Format.Q6K, bqx, 0, bqCodes, 0, bqParams, 0, bqScales, 0, bqMins, 0));
 
         float[] logits = new float[1024];
         assertNoAllocation("Sampler.argmax", () -> org.dynamisengine.vectrix.nn.Sampler.argmax(logits, 0, 1024));

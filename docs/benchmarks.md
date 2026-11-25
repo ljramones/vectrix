@@ -238,15 +238,15 @@ Current benchmark suites (2026-03-06):
 - Core latency/throughput:
   - `JomlBenchmark`, `JomlFmaBenchmark`, `Affine4fBenchmark`, `BatchMatrixBenchmark`, `ReductionBenchmark`
 - Transform/runtime prep:
-  - `TransformComposeBenchmark`, `TransformAabbBenchmark`, `PackedAffineConversionBenchmark`, `InstanceUploadBenchmark`, `QuatMatrixConversionBenchmark`, `GpuTransformLayoutBenchmark`
+  - `TransformComposeBenchmark`, `TransformAabbBenchmark`, `PackedAffineConversionBenchmark`, `InstanceUploadBenchmark`, `QuatMatrixConversionBenchmark`
 - Skinning:
   - `SkinningBenchmark`, `SkinningKernelBenchmark`, `SkinningEquivalenceBenchmark`
 - Engine-composed flows:
-  - `IntegrationPipelineBenchmark`, `SubsystemIntegrationBenchmark`
+  - `IntegrationPipelineBenchmark`
 - Geometry/mesh/culling:
   - `FrustumCullingBenchmark`, `MeshMathBenchmark`
 - GPU/interoperability/memory:
-  - `GpuPackingBenchmark`, `GpuLayoutBenchmark`, `InteropBenchmark`, `MemoryBackendBenchmark`, `QuatCompressionBenchmark`
+  - `GpuPackingBenchmark`, `InteropBenchmark`, `MemoryBackendBenchmark`, `QuatCompressionBenchmark`
 - Rendering math domains:
   - `CurveBenchmark`, `ShBenchmark`, `ShHotPathBenchmark`, `FftBenchmark`, `LtcBenchmark`, `OpticsBenchmark`, `LowDiscrepancyBenchmark`, `QuaternionRotationBenchmark`
 - New expansion suites:

@@ -38,7 +38,6 @@ import org.dynamisengine.vectrix.core.Vector3d;
 import org.dynamisengine.vectrix.core.Vector3dc;
 import org.dynamisengine.vectrix.core.Vector3f;
 import org.dynamisengine.vectrix.core.Vector3fc;
-import org.dynamisengine.vectrix.gpu.GpuTransformWriteKernels;
 import org.dynamisengine.vectrix.ltc.LtcEvald;
 import org.dynamisengine.vectrix.ltc.LtcEvalf;
 import org.dynamisengine.vectrix.renderingmath.SssLutBuilder;
@@ -54,31 +53,6 @@ import org.junit.jupiter.api.Test;
 class RenderingMathReferenceTest {
 
     // ---------------------------------------------------------------- H-2: packed affine -> mat4
-
-    @Test
-    void packedAffineExpandsToTheSameMatrixAsJoml() {
-        Transformf[] t = new Transformf[3];
-        t[0] = new Transformf(new Vector3f(1, 2, 3), new Quaternionf().rotationAxis(0.7f, 0.3f, 0.9f, -0.2f).normalize(),
-                new Vector3f(1, 1, 1));
-        t[1] = new Transformf(new Vector3f(-4, 0.5f, 9), new Quaternionf().rotationXYZ(1.1f, -0.4f, 2.3f),
-                new Vector3f(2, 0.5f, 3));
-        t[2] = new Transformf();
-        PackedAffineArray packed = new PackedAffineArray(3);
-        PackedAffineKernels.trsToPackedAffineBatch(t, packed, 3);
-        float[] out = new float[48];
-        GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(packed, new int[] {0, 1, 2}, out, 0, 3);
-        for (int i = 0; i < 3; i++) {
-            float[] expected = new Matrix4f().translationRotateScale(t[i].translation, t[i].rotation, t[i].scale)
-                    .get(new float[16]);
-            float[] actual = new float[16];
-            System.arraycopy(out, i * 16, actual, 0, 16);
-            assertArrayEquals(expected, actual, 1e-5f, "transform " + i);
-        }
-        // The origin must map to the translation (it mapped to 0 before the fix).
-        Matrix4f m = new Matrix4f().set(java.util.Arrays.copyOfRange(out, 0, 16));
-        Vector3f origin = m.transformPosition(new Vector3f());
-        assertEquals(new Vector3f(1, 2, 3).distance(origin), 0.0f, 1e-5f);
-    }
 
     // ---------------------------------------------------------------- H-4: CIE 1931 colour matching functions
 

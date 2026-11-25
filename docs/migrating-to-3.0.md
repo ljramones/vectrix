@@ -14,7 +14,7 @@ signatures and change their results, so search your code for them.
 | `SkinningKernels.skinLbs4`, `SkinningKernels.skinLbs4SoA` | Joint scale ignored | Joint scale applied (T·R·S); unit scale gives the same bits | Nothing, unless you relied on scale being ignored |
 | `new PackedAffineArray(n)` | All zeros | n identity transforms | Remove code that set the identity after construction |
 | `Contactsf.nearestFace` (and d) | Outside the box: minus the distance to the face's plane | Minus the distance to the box | Nothing for contact generation |
-| `InstanceSubmissionPipeline.processFrame` | Bounds written at `order[i]` | Bounds written at slot `i`, like the uploads | Read bounds by slot |
+| `InstanceSubmissionPipeline.processFrame` (now in DynamisGPU's `dynamis-gpu-vectrix`) | Bounds written at `order[i]` | Bounds written at slot `i`, like the uploads | Read bounds by slot |
 | `Easingf.spring` (and d) | Ended slightly off 1 | Ends exactly at 1 | Nothing |
 | `Sampler.argmax` | A NaN won only in the first position | The first NaN wins anywhere, like `Pool2d.max` | Nothing |
 | `DirectionMappingsf.hemiOctahedralEncode` (and d) | Meaningless for z < 0 | Folds z < 0 onto the upper hemisphere | Nothing |
@@ -35,9 +35,9 @@ signatures and change their results, so search your code for them.
 | `core.QuaternionfInterpolator`, `core.QuaterniondInterpolator` | `QuaternionCurvesf.weightedMean` (and d) |
 | `renderingmath.AtmosphereParams`, `renderingmath.TransmittanceLutBuilder` | The `atmosphere` package |
 | `simd.Vector4fa` | `Vector4f` |
-| `gpu.StdLayout` | `ShaderLayout.layout(Rules.STD140 or Rules.STD430, ShaderLayout.struct(...))`, then `offset(name)` and `paddedSize()` (deprecated in 3.3: these moved to DynamisGPU) |
+| `gpu.StdLayout` | DynamisGPU's `org.dynamisengine.gpu.api.layout.ShaderLayout` (the 3.0 replacement, gpu.ShaderLayout, moved there in 3.3 and was removed in 4.0) |
 | `GpuTransformWriteKernels.writePackedAffine` | `PackedAffineKernels.uploadPackedAffine` |
-| `GpuTransformLayout.writeFloatTrs`, `writeCompactTrs`, and the same in `GpuTransformWriteKernels` | `GpuTransformLayout.write` or `GpuTransformWriteKernels.writeTrs`, with a `floatTRS()` or `compactTRS()` layout (deprecated in 3.3: these moved to DynamisGPU) |
+| `GpuTransformLayout.writeFloatTrs`, `writeCompactTrs`, and the same in `GpuTransformWriteKernels` | DynamisGPU's `org.dynamisengine.gpu.vectrix.GpuTransformLayout` and `org.dynamisengine.gpu.vectrix.GpuTransformWriteKernels` (moved there in 3.3; removed from Vectrix in 4.0) |
 | The `*Scalar`/`*Simd`/`*Vector` variants in `CullingKernels` and `SkinningKernels`, and `CullingKernels.frustumCullAabbBatch(Matrix4fc, ...)` | The plain entry points, with planes from `FrustumPlanes.set(m, normalize, depthRange)`. `SimdSupport.setEnabled` forces scalar |
 | `ShCoeffs9f.BANDS` and the other `ShCoeffs*.BANDS` | `COEFFS` |
 | `SpringDamperf.overdamped`, `suspensionForce` (and d) | `SpringDamperf.criticallyDamped` or your own formula |
@@ -55,7 +55,7 @@ signatures and change their results, so search your code for them.
 | `MeshMath.vertexTangents(...)` | Takes `double[] scratch, int scratchOffset`; size it with `MeshMath.vertexTangentsScratchSize(vertexCount)` |
 | `CurveReparameterizer3f.buildArcLengthTableForBezier` and the other table builders (and 3d) | Return the segment's arc length instead of `dest`; use the `dest` you passed |
 | `Toeplitz.levinsonDurbin` | Needs `Toeplitz.levinsonDurbinScratchSize(p)` doubles of scratch (was p + 1) |
-| `GpuTransformWriteKernels.writeMatrix4fFromPackedAffine` | Takes an `outOff` before `count`; pass 0 |
+| `GpuTransformWriteKernels.writeMatrix4fFromPackedAffine` | Takes an `outOff` before `count`; pass 0 (now in DynamisGPU's `dynamis-gpu-vectrix`) |
 | `Intersectionf.testObOb`, `testMovingCircleCircle`, `PbdConstraintsf`, `Interpolationf.bilinearVec3` (and d) | Take read-only `Vector3fc`/`Vector2fc` parameters; recompile |
 
 ## Stricter validation

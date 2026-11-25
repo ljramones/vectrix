@@ -28,12 +28,7 @@ import org.dynamisengine.vectrix.curve.scalar.UniformBSpline1d;
 import org.dynamisengine.vectrix.curve.scalar.UniformBSpline1f;
 import org.dynamisengine.vectrix.curve.vec3.Bezier3f;
 import org.dynamisengine.vectrix.curve.vec3.UniformBSpline3f;
-import org.dynamisengine.vectrix.gpu.GpuTransformLayout;
-import org.dynamisengine.vectrix.gpu.GpuTransformLayout.RotationEncoding;
-import org.dynamisengine.vectrix.gpu.GpuTransformLayout.ScaleEncoding;
-import org.dynamisengine.vectrix.gpu.GpuTransformWriteKernels;
 import org.dynamisengine.vectrix.gpu.Half;
-import org.dynamisengine.vectrix.gpu.InstanceSubmissionPipeline;
 import org.dynamisengine.vectrix.gpu.OctaNormal;
 import org.dynamisengine.vectrix.gpu.PackedFormats;
 import org.dynamisengine.vectrix.gpu.QuatCompression;
@@ -137,62 +132,6 @@ class GpuSoaNnCurveFixesTest {
 
     // ---- gpu layouts and writers ----
 
-    @Test
-    void gpuTransformLayoutValidatesItsDescription() {
-        RotationEncoding f4 = RotationEncoding.FLOAT4;
-        ScaleEncoding f3 = ScaleEncoding.FLOAT3;
-        ScaleEncoding h3 = ScaleEncoding.HALF3;
-        assertThrows(IllegalArgumentException.class, () -> new GpuTransformLayout(40, 0, 12, 28, null, f3));
-        assertThrows(IllegalArgumentException.class, () -> new GpuTransformLayout(40, 0, 12, 28, f4, null));
-        assertThrows(IllegalArgumentException.class, () -> new GpuTransformLayout(0, 0, 12, 28, f4, f3));
-        assertThrows(IllegalArgumentException.class, () -> new GpuTransformLayout(-40, 0, 12, 28, f4, f3));
-        assertThrows(IllegalArgumentException.class, () -> new GpuTransformLayout(42, 0, 12, 28, f4, f3)); // stride
-        assertThrows(IllegalArgumentException.class, () -> new GpuTransformLayout(36, 0, 12, 28, f4, f3)); // past end
-        assertThrows(IllegalArgumentException.class, () -> new GpuTransformLayout(40, 0, 8, 28, f4, f3)); // overlap
-        assertThrows(IllegalArgumentException.class, () -> new GpuTransformLayout(40, 0, 12, 24, f4, f3)); // overlap
-        new GpuTransformLayout(40, 28, 12, 0, f4, f3); // any order of fields
-        assertThrows(IllegalArgumentException.class, () -> new GpuTransformLayout(40, -4, 12, 28, f4, f3));
-        assertThrows(IllegalArgumentException.class, () -> new GpuTransformLayout(40, 0, 14, 28, f4, f3)); // align
-        assertThrows(IllegalArgumentException.class, () -> new GpuTransformLayout(36, 0, 12, 29, f4, h3)); // align
-        assertThrows(IllegalArgumentException.class,
-                () -> new GpuTransformLayout(40, 0, 12, Integer.MAX_VALUE - 2, f4, f3)); // overflowing end
-        new GpuTransformLayout(36, 0, 12, 30, f4, h3); // half scale needs 2-byte alignment only
-        assertThrows(IllegalArgumentException.class, () -> GpuTransformLayout.floatTRS().requiredBytes(-1));
-        assertEquals(0, GpuTransformLayout.floatTRS().requiredBytes(0));
-    }
-
-    @Test
-    void gpuTransformLayoutWritesEveryFieldInItsOwnEncoding() {
-        Transformf t = new Transformf();
-        t.translation.set(1.25f, -2.5f, 3.75f);
-        t.rotation.set(new Quaternionf().rotationXYZ(0.2f, -0.4f, 0.8f));
-        t.scale.set(0.5f, 2.0f, 4.0f);
-        // FLOAT4 rotation with HALF3 scale used to be written entirely in the compact form
-        GpuTransformLayout mixed = new GpuTransformLayout(36, 0, 12, 28, RotationEncoding.FLOAT4, ScaleEncoding.HALF3);
-        ByteBuffer b = ByteBuffer.allocate(mixed.requiredBytes(2)).order(ByteOrder.LITTLE_ENDIAN);
-        mixed.write(b, 1, t);
-        assertEquals(1.25f, b.getFloat(36));
-        assertEquals(t.rotation.x, b.getFloat(48));
-        assertEquals(t.rotation.w, b.getFloat(60));
-        assertEquals(2.0f, Half.unpack(b.getShort(66)));
-        assertEquals(0, b.getShort(70), "the padding is left alone");
-        // and the other mix: compact rotation with float scale
-        GpuTransformLayout mixed2 = new GpuTransformLayout(32, 20, 0, 8, RotationEncoding.QUAT_SMALLEST3_16,
-                ScaleEncoding.FLOAT3);
-        ByteBuffer c = ByteBuffer.allocate(32).order(ByteOrder.LITTLE_ENDIAN);
-        mixed2.write(c, 0, t);
-        assertEquals(QuatCompression.packSmallest3(t.rotation), c.getLong(0));
-        assertEquals(4.0f, c.getFloat(16));
-        assertEquals(3.75f, c.getFloat(28));
-        // a record that does not fit is rejected before any byte is written
-        ByteBuffer small = ByteBuffer.allocate(mixed.requiredBytes(2) - 1);
-        assertThrows(IllegalArgumentException.class, () -> mixed.write(small, 1, t));
-        assertThrows(IllegalArgumentException.class, () -> mixed.write(small, -1, t));
-        assertThrows(IllegalArgumentException.class, () -> mixed.write(null, 0, t));
-        assertThrows(IllegalArgumentException.class, () -> mixed.write(small, 0, null));
-        assertEquals(0, firstNonZero(small));
-    }
-
     private static int firstNonZero(ByteBuffer b) {
         for (int i = 0; i < b.limit(); i++) {
             if (b.get(i) != 0) {
@@ -200,100 +139,6 @@ class GpuSoaNnCurveFixesTest {
             }
         }
         return 0;
-    }
-
-    @Test
-    void transformWriteKernelsCheckEverythingFirst() {
-        Transformf[] tr = {new Transformf(), new Transformf(), null};
-        tr[0].translation.set(1, 2, 3);
-        tr[1].translation.set(4, 5, 6);
-        GpuTransformLayout layout = GpuTransformLayout.floatTRS();
-        ByteBuffer out = ByteBuffer.allocate(layout.requiredBytes(2)).order(ByteOrder.LITTLE_ENDIAN);
-        GpuTransformWriteKernels.writeTrs(layout, tr, new int[] {1, 0}, out, 2);
-        assertEquals(4f, out.getFloat(0));
-        assertEquals(1f, out.getFloat(40));
-        ByteBuffer fresh = ByteBuffer.allocate(layout.requiredBytes(2));
-        assertThrows(IllegalArgumentException.class, () -> GpuTransformWriteKernels.writeTrs(layout, tr,
-                new int[] {0, 3}, fresh, 2)); // index out of range: was written up to the bad slot
-        assertThrows(IllegalArgumentException.class, () -> GpuTransformWriteKernels.writeTrs(layout, tr,
-                new int[] {0, 2}, fresh, 2)); // null transform
-        assertThrows(IllegalArgumentException.class, () -> GpuTransformWriteKernels.writeTrs(layout, tr,
-                new int[] {0, 1}, fresh, 3)); // order too short
-        assertThrows(IllegalArgumentException.class, () -> GpuTransformWriteKernels.writeTrs(layout, tr,
-                new int[] {0, 1}, ByteBuffer.allocate(79), 2));
-        assertThrows(IllegalArgumentException.class, () -> GpuTransformWriteKernels.writeTrs(layout, tr,
-                new int[] {0, 1}, fresh, -1));
-        assertEquals(0, firstNonZero(fresh));
-
-        PackedAffineArray packed = new PackedAffineArray(2);
-        packed.set(1, 1, 0, 0, 7, 0, 1, 0, 8, 0, 0, 1, 9);
-        float[] m = new float[3 + 32];
-        GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(packed, new int[] {1, 1}, m, 3, 2);
-        assertEquals(7f, m[3 + 12]);
-        assertEquals(9f, m[3 + 16 + 14]);
-        float[] untouched = new float[32];
-        assertThrows(IllegalArgumentException.class, () -> GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(
-                packed, new int[] {0, 2}, untouched, 0, 2));
-        assertThrows(IllegalArgumentException.class, () -> GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(
-                packed, new int[] {0, 1}, untouched, 1, 2));
-        assertArrayEquals(new float[32], untouched);
-    }
-
-    @Test
-    void instancePipelineWritesBoundsPerSlotAndKeepsMatrixScratchOffThePackedPath() throws Exception {
-        int n = 3;
-        Transformf[] tr = new Transformf[n];
-        for (int i = 0; i < n; i++) {
-            tr[i] = new Transformf();
-            tr[i].translation.set(10 * (i + 1), 0, 0);
-            tr[i].scale.set(i + 1, 1, 1);
-        }
-        int[] order = {2, 2, 0}; // instance 1 is not drawn; instance 2 twice
-        float[] minX = {-1, -1, -1}, minY = {-1, -1, -1}, minZ = {-1, -1, -1};
-        float[] maxX = {1, 1, 1}, maxY = {1, 1, 1}, maxZ = {1, 1, 1};
-        TransformSoA joints = new TransformSoA(1);
-        float[] v = new float[1];
-        for (InstanceSubmissionPipeline.Path path : new InstanceSubmissionPipeline.Path[] {
-            InstanceSubmissionPipeline.Path.PACKED_AFFINE, InstanceSubmissionPipeline.Path.MATRIX_FALLBACK}) {
-            float[][] out = new float[6][n];
-            for (float[] o : out) {
-                Arrays.fill(o, Float.NaN); // stale data
-            }
-            InstanceSubmissionPipeline pipe = new InstanceSubmissionPipeline(1);
-            float[] upload = pipe.processFrame(tr, order, minX, minY, minZ, maxX, maxY, maxZ, out[0], out[1], out[2],
-                    out[3], out[4], out[5], joints, new int[4], new float[] {1, 0, 0, 0}, v, v, v, v, v, v,
-                    new float[12 * n], new float[16 * n], n, 1, path);
-            for (int i = 0; i < n; i++) {
-                int j = order[i];
-                // slot i holds instance j's bounds (they used to be written at index j, leaving slot 1 stale)
-                assertEquals(10 * (j + 1) - (j + 1), out[0][i], 1e-5f, path + " slot " + i);
-                assertEquals(10 * (j + 1) + (j + 1), out[3][i], 1e-5f, path + " slot " + i);
-                float tx = path == InstanceSubmissionPipeline.Path.PACKED_AFFINE ? upload[12 * i + 3] : upload[16 * i + 12];
-                assertEquals(10 * (j + 1), tx, path + " upload " + i);
-            }
-            Field f = InstanceSubmissionPipeline.class.getDeclaredField("matrices");
-            f.setAccessible(true);
-            int matrices = ((Matrix4f[]) f.get(pipe)).length;
-            assertEquals(path == InstanceSubmissionPipeline.Path.PACKED_AFFINE ? 0 : n, matrices, path.toString());
-        }
-        // a bad order entry, joint index or short array throws before anything is written
-        float[] outMin = new float[n];
-        float[] skinned = {42};
-        InstanceSubmissionPipeline pipe = new InstanceSubmissionPipeline(4);
-        assertThrows(IllegalArgumentException.class, () -> pipe.processFrame(tr, new int[] {0, 1, 3}, minX, minY,
-                minZ, maxX, maxY, maxZ, outMin, outMin, outMin, outMin, outMin, outMin, joints, new int[4],
-                new float[4], v, v, v, skinned, skinned, skinned, new float[12 * n], null, n, 1,
-                InstanceSubmissionPipeline.Path.PACKED_AFFINE));
-        assertThrows(IllegalArgumentException.class, () -> pipe.processFrame(tr, order, minX, minY, minZ, maxX,
-                maxY, maxZ, outMin, outMin, outMin, outMin, outMin, outMin, joints, new int[] {0, 0, 1, 0},
-                new float[4], v, v, v, skinned, skinned, skinned, new float[12 * n], null, n, 1,
-                InstanceSubmissionPipeline.Path.PACKED_AFFINE));
-        assertThrows(IllegalArgumentException.class, () -> pipe.processFrame(tr, order, minX, minY, minZ, maxX,
-                maxY, maxZ, outMin, outMin, outMin, outMin, outMin, outMin, joints, new int[4], new float[4], v, v, v,
-                skinned, skinned, skinned, new float[12 * n - 1], null, n, 1,
-                InstanceSubmissionPipeline.Path.PACKED_AFFINE));
-        assertEquals(42f, skinned[0], "skinning did not run");
-        assertArrayEquals(new float[n], outMin);
     }
 
     // ---- soa ----

@@ -51,8 +51,6 @@ import org.dynamisengine.vectrix.curve.vec2.UniformBSpline2f;
 import org.dynamisengine.vectrix.curve.vec4.UniformBSpline4d;
 import org.dynamisengine.vectrix.curve.vec4.UniformBSpline4f;
 import org.dynamisengine.vectrix.geometry.FrustumRayBuilder;
-import org.dynamisengine.vectrix.gpu.GpuTransformWriteKernels;
-import org.dynamisengine.vectrix.gpu.InstanceSubmissionPipeline;
 import org.dynamisengine.vectrix.affine.PackedAffineArray;
 import org.dynamisengine.vectrix.sampling.Convolution;
 import org.dynamisengine.vectrix.sampling.SpiralSampling;
@@ -130,43 +128,6 @@ class CoverageGapsTest {
             Vector3f expected = far.sub(origin).normalize();
             assertTrue(dir.distance(expected) < 1e-4f, "uv " + uv[0] + "," + uv[1] + ": " + dir + " vs " + expected);
         }
-    }
-
-    @Test
-    void instancePipelinePathsAgree() {
-        int n = 5;
-        Transformf[] t = new Transformf[n];
-        int[] order = {4, 0, 3, 1, 2};
-        float[][] bounds = new float[6][n];
-        for (int i = 0; i < n; i++) {
-            t[i] = new Transformf(new Vector3f(i, -i, 2 * i), new Quaternionf().rotationXYZ(0.1f * i, 0.2f, -0.3f * i),
-                    new Vector3f(1 + 0.1f * i, 1, 2));
-            bounds[0][i] = -1; bounds[1][i] = -2; bounds[2][i] = -0.5f;
-            bounds[3][i] = 1; bounds[4][i] = 0.5f; bounds[5][i] = 3;
-        }
-        TransformSoA joints = new TransformSoA(1);
-        joints.qw[0] = 1;
-        float[] vin = {1, 2, 3, 4}, vout = new float[4];
-        float[][] boxPacked = new float[6][n], boxMatrix = new float[6][n];
-        float[] packedUpload = new float[12 * n], matrixUpload = new float[16 * n];
-        InstanceSubmissionPipeline pipe = new InstanceSubmissionPipeline(2); // grows
-        pipe.processFrame(t, order, bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5],
-                boxPacked[0], boxPacked[1], boxPacked[2], boxPacked[3], boxPacked[4], boxPacked[5],
-                joints, new int[16], new float[] {1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0}, vin, vin, vin, vout, vout, vout,
-                packedUpload, matrixUpload, n, 4, InstanceSubmissionPipeline.Path.PACKED_AFFINE);
-        pipe.processFrame(t, order, bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5],
-                boxMatrix[0], boxMatrix[1], boxMatrix[2], boxMatrix[3], boxMatrix[4], boxMatrix[5],
-                joints, new int[16], new float[] {1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0}, vin, vin, vin, vout, vout, vout,
-                packedUpload, matrixUpload, n, 4, InstanceSubmissionPipeline.Path.MATRIX_FALLBACK);
-        for (int k = 0; k < 6; k++) {
-            assertArrayEquals(boxMatrix[k], boxPacked[k], 1e-4f, "bounds " + k);
-        }
-        // the packed upload, expanded by the GPU writer, is exactly the matrix upload
-        float[] expanded = new float[16 * n];
-        int[] identityOrder = {0, 1, 2, 3, 4};
-        GpuTransformWriteKernels.writeMatrix4fFromPackedAffine(new PackedAffineArray(packedUpload), identityOrder, expanded, 0, n);
-        assertArrayEquals(matrixUpload, expanded, 1e-5f);
-        assertArrayEquals(vin, vout, 0f, "identity joint leaves vertices in place");
     }
 
     @Test

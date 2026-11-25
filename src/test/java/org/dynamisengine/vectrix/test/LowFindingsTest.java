@@ -46,7 +46,6 @@ import org.dynamisengine.vectrix.geometry.FrustumPlanes;
 import org.dynamisengine.vectrix.geometry.Intersectiond;
 import org.dynamisengine.vectrix.geometry.Intersectionf;
 import org.dynamisengine.vectrix.geometry.MeshMath;
-import org.dynamisengine.vectrix.gpu.GpuTransformLayout;
 import org.dynamisengine.vectrix.ltc.LtcTablef;
 import org.dynamisengine.vectrix.optics.Fresneld;
 import org.dynamisengine.vectrix.optics.Fresnelf;
@@ -110,13 +109,6 @@ class LowFindingsTest {
         TestBackends.cullScalar(fp, boxes, scalar, n);
         TestBackends.cullSimd(fp, boxes, simd, n);
         assertArrayEquals(scalar, simd);
-    }
-
-    @Test
-    void gpuLayoutSizeOverflowIsDetected() {
-        GpuTransformLayout layout = GpuTransformLayout.compactTRS();
-        assertEquals(28 * 1000, layout.requiredBytes(1000));
-        assertThrows(ArithmeticException.class, () -> layout.requiredBytes(100_000_000)); // was -1494967296
     }
 
     @Test
