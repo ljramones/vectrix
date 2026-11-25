@@ -84,7 +84,7 @@ final class ReferenceProvider implements GpuProvider {
             @Override
             public GpuCapabilities capabilities() {
                 return new GpuCapabilities(1L << 30, 1L << 30, 16, 8, 128, new Dimensions(1024, 1024, 64), 1024,
-                        new Dimensions(MAX_GROUPS_X, 65535, 65535), Set.of("FP32", "INT32", "BOOL"), Set.of(), false);
+                        new Dimensions(MAX_GROUPS_X, 65535, 65535), Set.of("FP32", "INT32", "INT64", "BOOL"), Set.of(), false);
             }
 
             @Override
@@ -198,6 +198,7 @@ final class ReferenceProvider implements GpuProvider {
                 case "softmax" -> softmax(u, slots.get(0), slots.get(1), u.get("yOff"), u.get("ldy"), g);
                 case "softmax_inplace" -> softmax(u, slots.get(0), slots.get(0), u.get("xOff"), u.get("ldx"), g);
                 case "math_probe" -> mathProbe(u, slots.get(0), g);
+                case "f64_probe" -> f64Probe(u, slots, g);
                 default -> {
                     var model = ReferenceModels.get(name);
                     if (model == null) {
@@ -269,6 +270,17 @@ final class ReferenceProvider implements GpuProvider {
             for (int k = 0; k < count; k++) {
                 float x = Float.intBitsToFloat((int) (u.get("base") + k * u.get("stride")));
                 out.putInt(k * 4, Float.floatToRawIntBits(fn.op.apply(x)));
+            }
+        }
+
+        private static void f64Probe(Map<String, Long> u, Map<Integer, ByteBuffer> s, Dimensions g) {
+            int n = i(u, "n");
+            require(u.get("gridX") == g.x() && (long) g.x() * g.y() * 64 >= n, "f64 probe groups " + g
+                    + " do not cover " + n);
+            var op = F64GpuTest.Op.values()[i(u, "op")];
+            for (int k = 0; k < n; k++) {
+                s.get(3).putLong(k * 8, op.apply(s.get(0).getLong(k * 8), s.get(1).getLong(k * 8),
+                        s.get(2).getLong(k * 8)));
             }
         }
 
