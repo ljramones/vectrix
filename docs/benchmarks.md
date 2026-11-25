@@ -6,7 +6,7 @@ This document defines the benchmark methodology and records current baseline res
 - Harness: JMH
 - Java: `--add-modules jdk.incubator.vector`
 - Entry: `./scripts/bench-run.sh`
-- Bench artifact: `target/benchmarks.jar`
+- Bench artifact: `vectrix-tests/target/benchmarks.jar`
 - Normalization: `./scripts/bench-normalize.py`
 - Regression compare: `tools/bench-compare` (JSON) or `./scripts/bench-compare.sh`
 

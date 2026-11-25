@@ -115,4 +115,4 @@ ISO is in `color.Exposuref`.
 - [Scenes: transforms, bounds and culling](scene-and-culling.md): frustum extraction with the same `DepthRange`.
 - [Large worlds](large-worlds.md): camera-relative rendering far from the origin.
 - [Conventions](../conventions.md): right-handed coordinates, radians, column-major matrices.
-- Sources: [`camera`](../../src/main/java/org/dynamisengine/vectrix/camera/).
+- Sources: [`camera`](../../vectrix-render/src/main/java/org/dynamisengine/vectrix/camera/).

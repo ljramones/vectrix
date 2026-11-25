@@ -98,7 +98,7 @@ matrix-palette loop on every CPU but one, so the scalar loop is used everywhere.
 
 | Setting | Default | Recommendation |
 |---|---|---|
-| Jar | plain (scalar) | Use the `simd` classifier jar and start the JVM with `--add-modules jdk.incubator.vector`. |
+| Jar | plain (scalar) | Use the `simd` classifier of each Vectrix jar and start the JVM with `--add-modules jdk.incubator.vector`. |
 | SIMD switch | on (`vectrix.simd.enabled`) | Leave on. `SimdSupport.setEnabled` toggles it at run time for A/B measurement or to rule out a JVM problem. |
 | Math mode | `FAST` (`vectrix.math.mode`) | `FAST` for frame work. `STRICT` for tests and validation runs. |
 | Memory backend | FFM | Keep it. On x86_64, consider `-Dvectrix.forceUnsafe=true` if buffer writes dominate a profile. |
@@ -106,8 +106,8 @@ matrix-palette loop on every CPU but one, so the scalar loop is used everywhere.
 
 ### SIMD
 
-The Vector API is an incubator module, so it ships in a separate jar: depend on Vectrix with
-`<classifier>simd</classifier>` and add `--add-modules jdk.incubator.vector` (the JDK then prints a one-line
+The Vector API is an incubator module, so it ships in separate jars: depend on each Vectrix jar
+with `<classifier>simd</classifier>` and add `--add-modules jdk.incubator.vector` (the JDK then prints a one-line
 warning that an incubator module is in use). Without the flag, or with the plain jar, every kernel runs its scalar
 path. `SimdSupport.backend` reports which path is in use, `SimdSupport.isVectorApiAvailable` whether the module is
 present, and `SimdSupport.preferredFloatLanes` the vector width.
@@ -166,6 +166,6 @@ These hold for the shapes measured. Re-run the benchmarks on your own hardware b
 - Examples: [`SceneCulling`](../examples/src/main/java/org/dynamisengine/vectrix/examples/SceneCulling.java)
   (batch compose and culling) and [`Animation`](../examples/src/main/java/org/dynamisengine/vectrix/examples/Animation.java)
   (skinning).
-- Source: [`soa`](../src/main/java/org/dynamisengine/vectrix/soa/),
-  [`affine`](../src/main/java/org/dynamisengine/vectrix/affine/),
-  [`simd`](../src/main/java/org/dynamisengine/vectrix/simd/).
+- Source: [`soa`](../vectrix-core/src/main/java/org/dynamisengine/vectrix/soa/),
+  [`affine`](../vectrix-core/src/main/java/org/dynamisengine/vectrix/affine/),
+  [`simd`](../vectrix-core/src/main/java/org/dynamisengine/vectrix/simd/).

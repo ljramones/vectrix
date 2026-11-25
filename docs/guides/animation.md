@@ -170,6 +170,6 @@ The other entry points:
 - [Curves, easing, sampling and noise](curves-sampling-noise.md): position and path curves, easing.
 - [Scenes: transforms, bounds and culling](scene-and-culling.md): composing transform hierarchies in batch.
 - [GPU data](gpu-data.md): packing palettes and transforms for upload.
-- Sources: [`animation`](../../src/main/java/org/dynamisengine/vectrix/animation/),
-  [`ik`](../../src/main/java/org/dynamisengine/vectrix/ik/),
-  [`soa`](../../src/main/java/org/dynamisengine/vectrix/soa/).
+- Sources: [`animation`](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/animation/),
+  [`ik`](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/ik/),
+  [`soa`](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/soa/).

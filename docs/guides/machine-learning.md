@@ -371,7 +371,7 @@ same bits everywhere, so the rest of your code needs no special care. See [conve
 - [State estimation](state-estimation.md): Kalman and particle filters, which use `hash.Philox` and
   `ReproducibleMath` the same way.
 - Example: [TinyNetwork](../../examples/src/main/java/org/dynamisengine/vectrix/examples/TinyNetwork.java).
-- Source: [blas](../../src/main/java/org/dynamisengine/vectrix/blas/),
-  [nn](../../src/main/java/org/dynamisengine/vectrix/nn/),
-  [core.ReproducibleMath](../../src/main/java/org/dynamisengine/vectrix/core/ReproducibleMath.java),
-  [hash.Philox](../../src/main/java/org/dynamisengine/vectrix/hash/Philox.java).
+- Source: [blas](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/blas/),
+  [nn](../../vectrix-ml/src/main/java/org/dynamisengine/vectrix/nn/),
+  [core.ReproducibleMath](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/core/ReproducibleMath.java),
+  [hash.Philox](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/hash/Philox.java).

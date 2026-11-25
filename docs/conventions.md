@@ -174,12 +174,12 @@ argument to the `float` overload, so write `ReproducibleMath.log((double) n)` wh
 
 ## SIMD
 
-The library ships as two jars with the same API:
+Each of the library's jars ships in two forms with the same API:
 - **The plain jar** is all scalar.
 - **The `simd` classifier jar** adds Vector API paths to the batch kernels: FFT, `blas`, `nn`, culling and
   transform composition.
 
-Run the `simd` jar with `--add-modules jdk.incubator.vector`. Without that flag it runs the scalar paths.
+Run the `simd` jars with `--add-modules jdk.incubator.vector`. Without that flag it runs the scalar paths.
 `simd.SimdSupport.backend()` reports the active path. `SimdSupport.setEnabled(false)`, or
 `-Dvectrix.simd.enabled=false`, forces scalar. Results are the same bits either way; only the speed changes.
 

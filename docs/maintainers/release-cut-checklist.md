@@ -15,7 +15,8 @@
 ## 2. The release commit
 
 Set the version everywhere it appears:
-- `pom.xml`;
+- `pom.xml` and the `<parent>` version of every module's POM (`vectrix-core`, `vectrix-render`, `vectrix-signal`,
+  `vectrix-ml`, `vectrix` and `vectrix-tests`); a module with another version fails the build;
 - `examples/pom.xml` and `vectrix-gpu/pom.xml`, each in both `<version>` and `<vectrix.version>`, which
   `ExamplesVersionTest` checks;
 - the dependency snippets in `README.md` and `docs/getting-started.md`.
@@ -40,14 +41,19 @@ Maven Central limits releases to 7 a month per account. When the quota is used u
 to Central later:
 
 ```bash
+scripts/package-release.sh        # verify, then stage the Maven repository in target/release and zip it
 mvn clean install                 # into the local repository, for the components that depend on Vectrix
 mvn -f vectrix-gpu/pom.xml clean install
 git push origin main vX.Y.Z
 gh release create vX.Y.Z --title "Vectrix vX.Y.Z" --notes-file <the CHANGELOG section> \
-    target/vectrix-X.Y.Z.jar target/vectrix-X.Y.Z-simd.jar target/vectrix-X.Y.Z-sources.jar \
-    target/vectrix-X.Y.Z-javadoc.jar \
+    target/release/vectrix-X.Y.Z-maven.zip target/release/SHA256SUMS target/release/*.jar \
     vectrix-gpu/target/vectrix-gpu-X.Y.Z.jar vectrix-gpu/target/vectrix-gpu-X.Y.Z-sources.jar
 ```
+
+The ZIP is a Maven repository with every module's POM (the parent's included) and jars, and an `install.sh` that
+copies it into the local repository: since 4.0 a jar alone is not enough, because each jar's POM names its parent and
+dependencies. `package-release.py` checks that every artifact is there, has the release version and, for the four
+jars, a module descriptor, and that `vectrix-tests` and the examples are not published.
 
 vectrix-gpu is never deployed to Central: it depends on DynamisGPU, which is distributed only through its GitHub
 Releases.
@@ -62,5 +68,6 @@ Central accepts versions in any order, so a version released this way can be pub
 git push origin main vX.Y.Z
 ```
 
-Then confirm the deployment in the Sonatype Central Portal, and check that the plain, `simd`, sources and
-Javadoc jars appear on Maven Central.
+Then confirm the deployment in the Sonatype Central Portal, and check that `vectrix-parent`, `vectrix` and, for
+each of `vectrix-core`, `vectrix-render`, `vectrix-signal` and `vectrix-ml`, the plain, `simd`, sources and Javadoc
+jars appear on Maven Central.

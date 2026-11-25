@@ -394,8 +394,8 @@ when you also need the singular values (for example, to detect inverted elements
 - [scene-and-culling.md](scene-and-culling.md): frustum tests and batch culling from the same `geometry` package.
 - [curves-sampling-noise.md](curves-sampling-noise.md): spatial hashing, random numbers and sampling patterns.
 - [determinism.md](../determinism.md): reproducible results across machines.
-- Source: [geometry](../../src/main/java/org/dynamisengine/vectrix/geometry/),
-  [sdf](../../src/main/java/org/dynamisengine/vectrix/sdf/),
-  [physics](../../src/main/java/org/dynamisengine/vectrix/physics/),
-  [linalg](../../src/main/java/org/dynamisengine/vectrix/linalg/),
-  [core](../../src/main/java/org/dynamisengine/vectrix/core/) (`IntegratorRK4f`).
+- Source: [geometry](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/geometry/),
+  [sdf](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/sdf/),
+  [physics](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/physics/),
+  [linalg](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/linalg/),
+  [core](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/core/) (`IntegratorRK4f`).

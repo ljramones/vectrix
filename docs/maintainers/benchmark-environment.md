@@ -7,7 +7,7 @@ This document records the benchmark environment used for published Vectrix bench
 - OS: macOS 26.3 (Darwin 25.3.0 arm64)
 - CPU: Apple M4 Max
 - JDK: Temurin OpenJDK 25.0.1+8 LTS
-- JVM command baseline: `java --add-modules jdk.incubator.vector -jar target/benchmarks.jar`
+- JVM command baseline: `java --add-modules jdk.incubator.vector -jar vectrix-tests/target/benchmarks.jar`
 
 ## Runtime Discipline
 - Use benchmark profiles from `scripts/bench-*.sh` (`quick`, `full`, `prof`, `regression`).

@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.dynamisengine</groupId>
+        <artifactId>vectrix-parent</artifactId>
+        <version>4.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <!-- 4.0: the tests that span the jars (the determinism golden, doc references, twin parity, aliasing, allocation,
+         package rules, and the few tests that use several jars), and the benchmarks (-Pbench, -Pexperimental). Not
+         deployed. -->
+    <artifactId>vectrix-tests</artifactId>
+    <packaging>jar</packaging>
+    <name>Vectrix tests</name>
+    <description>Vectrix's cross-jar tests and benchmarks</description>
+
+    <properties>
+        <vectrix.root>${project.basedir}/..</vectrix.root>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>vectrix-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>vectrix-render</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>vectrix-signal</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>vectrix-ml</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>vectrix-core</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <executions>
+                    <!-- The simd pass (default profile) on the simd classes of every jar this one uses, not their
+                         scalar jars -->
+                    <execution>
+                        <id>test-simd</id>
+                        <configuration>
+                            <!-- no main classes here: the tests only -->
+                            <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExclude>org.dynamisengine:vectrix-core</classpathDependencyExclude>
+                                <classpathDependencyExclude>org.dynamisengine:vectrix-render</classpathDependencyExclude>
+                                <classpathDependencyExclude>org.dynamisengine:vectrix-signal</classpathDependencyExclude>
+                                <classpathDependencyExclude>org.dynamisengine:vectrix-ml</classpathDependencyExclude>
+                            </classpathDependencyExcludes>
+                            <additionalClasspathElements>
+                                <additionalClasspathElement>${vectrix.root}/vectrix-core/target/classes-simd</additionalClasspathElement>
+                                <additionalClasspathElement>${vectrix.root}/vectrix-render/target/classes-simd</additionalClasspathElement>
+                                <additionalClasspathElement>${vectrix.root}/vectrix-signal/target/classes-simd</additionalClasspathElement>
+                                <additionalClasspathElement>${vectrix.root}/vectrix-ml/target/classes-simd</additionalClasspathElement>
+                                <additionalClasspathElement>${vectrix.root}/vectrix-core/target/test-classes</additionalClasspathElement>
+                            </additionalClasspathElements>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+            </plugin>
+            <!-- The coverage gate over the whole library: every module's JaCoCo data against the classes of the four
+                 jars (vectrix.coverage.line.min and branch.min, a ratchet). -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>jacoco-aggregate</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report-aggregate</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${vectrix.coverage.skip}</skip>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <!-- no module descriptor here: these tests are not a library -->
+                    <execution>
+                        <id>compile-buildhelper</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>run-module-info-generator</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>run-module-info-generator-simd</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>coverage-gate</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${vectrix.coverage.skip}</skip>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>${vectrix.root}/buildhelper/CoverageGate.java</argument>
+                                <argument>${project.reporting.outputDirectory}/jacoco-aggregate/jacoco.xml</argument>
+                                <argument>${vectrix.coverage.line.min}</argument>
+                                <argument>${vectrix.coverage.branch.min}</argument>
+                                <argument>${skipTests}</argument>
+                                <argument>${maven.test.skip}</argument>
+                                <argument>${jacoco.skip}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

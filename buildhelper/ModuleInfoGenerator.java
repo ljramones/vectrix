@@ -34,52 +34,49 @@ import org.objectweb.asm.Opcodes;
  * @author Kai Burjack
  */
 public class ModuleInfoGenerator implements Opcodes {
+    /**
+     * Arguments: the classes directory, the version, the module's name, and optionally a comma-separated list of the
+     * Vectrix modules it requires (transitively, so reading a module also reads the modules it builds on). Every
+     * package under the classes directory that holds a class is exported (4.0: one module per jar).
+     */
     public static void main(String[] args) throws Exception {
         File dest = new File(args[0]);
+        String name = args.length > 2 ? args[2] : "org.dynamisengine.vectrix";
+        String[] requires = args.length > 3 && !args[3].isBlank() ? args[3].split(",") : new String[0];
         ClassWriter cw = new ClassWriter(0);
         cw.visit(V9, Opcodes.ACC_MODULE, "module-info", null, null, null);
-        ModuleVisitor mv = cw.visitModule("org.dynamisengine.vectrix", 0, args[1]);
+        ModuleVisitor mv = cw.visitModule(name, 0, args[1]);
         mv.visitRequire("java.base", ACC_MANDATED, "9");
         mv.visitRequire("jdk.unsupported", ACC_STATIC_PHASE, null);
         mv.visitRequire("jdk.incubator.vector", ACC_STATIC_PHASE, null);
         mv.visitRequire("jdk.internal.vm.ci", ACC_STATIC_PHASE, null);
-        mv.visitExport("org/dynamisengine/vectrix/affine", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/animation", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/atmosphere", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/brdf", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/camera", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/spherical", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/color", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/core", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/curve", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/curve/scalar", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/curve/vec2", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/curve/vec3", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/curve/vec4", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/easing", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/fft", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/dsp", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/blas", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/nn", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/geometry", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/gpu", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/hash", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/ik", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/linalg", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/ltc", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/optics", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/physics", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/renderingmath", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/sampling", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/sdf", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/sh", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/simd", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/soa", 0, (String[]) null);
-        mv.visitExport("org/dynamisengine/vectrix/world", 0, (String[]) null);
+        for (String r : requires) {
+            mv.visitRequire(r.trim(), ACC_TRANSITIVE, null);
+        }
+        java.util.TreeSet<String> packages = new java.util.TreeSet<>();
+        collect(dest, dest, packages);
+        for (String p : packages) {
+            mv.visitExport(p, 0, (String[]) null);
+        }
         mv.visitEnd();
         cw.visitEnd();
-        FileOutputStream fos = new FileOutputStream(new File(dest, "module-info.class"));
-        fos.write(cw.toByteArray());
-        fos.close();
+        try (FileOutputStream fos = new FileOutputStream(new File(dest, "module-info.class"))) {
+            fos.write(cw.toByteArray());
+        }
+    }
+
+    /** The internal names of the directories under root that hold a class file (other than module-info). */
+    private static void collect(File root, File dir, java.util.Set<String> out) {
+        File[] children = dir.listFiles();
+        if (children == null) {
+            return;
+        }
+        for (File f : children) {
+            if (f.isDirectory()) {
+                collect(root, f, out);
+            } else if (f.getName().endsWith(".class") && !f.getName().equals("module-info.class") && dir != root) {
+                out.add(root.toPath().relativize(dir.toPath()).toString().replace(File.separatorChar, '/'));
+            }
+        }
     }
 }

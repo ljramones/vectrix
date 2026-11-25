@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    # Every platform must reproduce src/test/resources/determinism/golden.txt bit for bit
+    # Every platform must reproduce vectrix-tests/src/test/resources/determinism/golden.txt bit for bit
     # (CrossPlatformDeterminismTest). The experimental profile compiles the Vector API paths, whose
     # results must not depend on the vector width (NEON 128-bit on arm64, AVX2/AVX-512 on x86_64).
     name: Verify (${{ matrix.os }}, ${{ matrix.profile }})
@@ -63,11 +63,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: surefire-${{ matrix.os }}-${{ matrix.profile }}
-          path: target/surefire-reports
+          path: '*/target/surefire-reports*'
 
   examples:
-    # The examples are a separate project (examples/pom.xml) built against this commit's library: install it to
-    # the runner's local repository, then compile the examples and run their tests.
+    # The examples are a module of the reactor (examples/pom.xml), so the test job already compiles and tests them
+    # against the jars it packages. This job runs each one from the module path, as an application would.
     name: Examples
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -82,11 +82,8 @@ jobs:
           java-version: "25"
           cache: maven
 
-      - name: Install the library
-        run: mvn -B -q install -DskipTests -Dcheckstyle.skip -Dspotbugs.skip -Djacoco.skip -Dmaven.javadoc.skip
-
-      - name: Build and test the examples
-        run: mvn -B -f examples/pom.xml verify
+      - name: Package the library and the examples
+        run: mvn -B -q package -DskipTests -Dcheckstyle.skip -Dspotbugs.skip -Djacoco.skip -Dmaven.javadoc.skip
 
       - name: Run every example
         run: java -p examples/target/lib:examples/target/vectrix-examples.jar -m org.dynamisengine.vectrix.examples all
@@ -163,7 +160,7 @@ jobs:
 
       - name: Run benchmark smoke suite
         run: |
-          java --add-modules jdk.incubator.vector -jar target/benchmarks.jar ".*(TransformComposeBenchmark|Affine4fBenchmark|FrustumCullingBenchmark|GpuPackingBenchmark|QuatCompressionBenchmark|GpuLayoutBenchmark|SkinningKernelBenchmark|MeshMathBenchmark|ReductionBenchmark).*" \
+          java --add-modules jdk.incubator.vector -jar vectrix-tests/target/benchmarks.jar ".*(TransformComposeBenchmark|Affine4fBenchmark|FrustumCullingBenchmark|GpuPackingBenchmark|QuatCompressionBenchmark|SkinningKernelBenchmark|MeshMathBenchmark|ReductionBenchmark).*" \
             -f 1 -wi 1 -i 1 -w 150ms -r 150ms -t 1 \
             -rf csv -rff target/jmh-smoke.csv
 

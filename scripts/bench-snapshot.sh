@@ -7,7 +7,7 @@ mkdir -p "$OUT"
 Q=(-f 1 -wi 3 -w 1s -i 5 -r 1s -tu ns -bm avgt)
 run() {
   name=$1; shift
-  java -jar target/benchmarks.jar "$@" "${Q[@]}" -rf csv -rff "$OUT/$name.csv" > "$OUT/$name.txt" 2>&1
+  java -jar vectrix-tests/target/benchmarks.jar "$@" "${Q[@]}" -rf csv -rff "$OUT/$name.csv" > "$OUT/$name.txt" 2>&1
   echo "$name done $(date +%H:%M:%S)"
 }
 run memory-backends 'MemoryBackendBenchmark' -p matrices=1,16,256

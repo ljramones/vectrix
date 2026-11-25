@@ -278,8 +278,8 @@ noise, sum several calls at doubling frequency and halving amplitude. Use the 4D
 - [conventions.md](../conventions.md): type suffixes, `dest` parameters, array offsets, threading, errors.
 - [geometry-and-physics.md](geometry-and-physics.md): spatial codes, springs and the physics kernels.
 - [camera-and-projection.md](camera-and-projection.md): TAA jitter with `Projectionsf.haltonJitter`.
-- Source: [curve](../../src/main/java/org/dynamisengine/vectrix/curve/),
-  [easing](../../src/main/java/org/dynamisengine/vectrix/easing/),
-  [sampling](../../src/main/java/org/dynamisengine/vectrix/sampling/),
-  [hash](../../src/main/java/org/dynamisengine/vectrix/hash/),
-  [core](../../src/main/java/org/dynamisengine/vectrix/core/) (`Random`, `SimplexNoise`, `Interpolationf`).
+- Source: [curve](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/curve/),
+  [easing](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/easing/),
+  [sampling](../../vectrix-render/src/main/java/org/dynamisengine/vectrix/sampling/),
+  [hash](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/hash/),
+  [core](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/core/) (`Random`, `SimplexNoise`, `Interpolationf`).

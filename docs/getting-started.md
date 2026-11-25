@@ -12,25 +12,36 @@ Maven:
 <dependency>
     <groupId>org.dynamisengine</groupId>
     <artifactId>vectrix</artifactId>
-    <version>3.3.0</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
 Gradle:
 
 ```kotlin
-implementation("org.dynamisengine:vectrix:3.3.0")
+implementation("org.dynamisengine:vectrix:4.0.0")
 ```
 
-**The SIMD jar.** The `simd` classifier is the same library with Vector API paths compiled into the batch
-kernels: FFT, `blas`, `nn`, culling and transform composition. Use it instead of the plain jar, not alongside
-it:
+**The jars.** `vectrix` holds no classes: it brings the library's four jars, which you can also depend on one by one.
+
+| Jar | What it holds |
+|---|---|
+| `vectrix-core` | Vectors, matrices, quaternions, transforms, curves, geometry and culling, linear algebra, BLAS, IK, physics helpers |
+| `vectrix-render` | Color, BRDFs, optics, atmosphere, spherical harmonics, sampling, cameras, GPU encodings |
+| `vectrix-signal` | FFTs and DSP |
+| `vectrix-ml` | Neural-network kernels and block quantization |
+
+The other three depend on `vectrix-core`. The [package map](package-map.md) lists each jar's packages.
+
+**The SIMD jars.** Each jar's `simd` classifier is the same jar with Vector API paths compiled into its batch
+kernels: FFT, `blas`, `nn`, culling and transform composition. Use it instead of the plain jar, not alongside it,
+and for every Vectrix jar you use (`vectrix` itself has no `simd` classifier):
 
 ```xml
 <dependency>
     <groupId>org.dynamisengine</groupId>
-    <artifactId>vectrix</artifactId>
-    <version>3.3.0</version>
+    <artifactId>vectrix-core</artifactId>
+    <version>4.0.0</version>
     <classifier>simd</classifier>
 </dependency>
 ```
@@ -41,20 +52,23 @@ it is enabled. Scalar and SIMD paths give the same bits.
 
 ## Modules and JVM flags
 
-The module is `org.dynamisengine.vectrix`:
+Each jar is a module: `org.dynamisengine.vectrix` (core), `org.dynamisengine.vectrix.render`,
+`org.dynamisengine.vectrix.signal` and `org.dynamisengine.vectrix.ml`. The last three require core transitively.
+Require the ones whose packages you use:
 
 ```text
 module my.game {
     requires org.dynamisengine.vectrix;
+    requires org.dynamisengine.vectrix.render;
 }
 ```
 
-The jar is also an OSGi bundle with the same symbolic name, and works on the class path.
+Each jar is also an OSGi bundle with its module's name as the symbolic name, and works on the class path.
 
 | Flag | When you need it |
 |---|---|
 | `--add-modules jdk.incubator.vector` | With the `simd` jar, to enable its SIMD paths |
-| `--enable-native-access=org.dynamisengine.vectrix` (or `=ALL-UNNAMED` on the class path) | Only if you use the raw-address methods (`getToAddress`, `setFromAddress`); otherwise the JDK prints a warning on first use |
+| `--enable-native-access=org.dynamisengine.vectrix` (core's module; or `=ALL-UNNAMED` on the class path) | Only if you use the raw-address methods (`getToAddress`, `setFromAddress`); otherwise the JDK prints a warning on first use |
 | `-Dvectrix.strictMath=true` | For results that are bitwise identical across platforms ([determinism](determinism.md)) |
 
 Writing vectors and matrices into NIO buffers and `MemorySegment`s needs no flag.

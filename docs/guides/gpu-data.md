@@ -287,6 +287,6 @@ inside the cone.
 - [Determinism](../determinism.md): the memory backend never changes output bits.
 - Examples: [`LargeWorld`](../../examples/src/main/java/org/dynamisengine/vectrix/examples/LargeWorld.java) and the
   [examples README](../../examples/README.md).
-- Source: [`gpu`](../../src/main/java/org/dynamisengine/vectrix/gpu/),
-  [`affine`](../../src/main/java/org/dynamisengine/vectrix/affine/),
-  [`world`](../../src/main/java/org/dynamisengine/vectrix/world/).
+- Source: [`gpu`](../../vectrix-render/src/main/java/org/dynamisengine/vectrix/gpu/),
+  [`affine`](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/affine/),
+  [`world`](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/world/).

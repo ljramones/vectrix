@@ -35,7 +35,7 @@ jobs:
         run: |
           mkdir -p bench-out
           { uname -a; echo; lscpu 2>/dev/null || sysctl -a 2>/dev/null | grep -i machdep.cpu; echo; java -version 2>&1; } > bench-out/environment.txt
-          java --add-modules jdk.incubator.vector -cp target/benchmarks.jar -XshowSettings:properties -version 2>&1 | grep -E "os.arch|java.vm.version" >> bench-out/environment.txt || true
+          java --add-modules jdk.incubator.vector -cp vectrix-tests/target/benchmarks.jar -XshowSettings:properties -version 2>&1 | grep -E "os.arch|java.vm.version" >> bench-out/environment.txt || true
           cat bench-out/environment.txt
 
       - name: Run snapshot
@@ -50,7 +50,7 @@ jobs:
           JMH_ARGS: ${{ inputs.jmh_args }}
         run: |
           set -o noglob
-          java -jar target/benchmarks.jar $JMH_ARGS -rf csv -rff bench-out/targeted.csv | tee bench-out/targeted.txt
+          java -jar vectrix-tests/target/benchmarks.jar $JMH_ARGS -rf csv -rff bench-out/targeted.csv | tee bench-out/targeted.txt
 
       - name: Upload results
         uses: actions/upload-artifact@v4

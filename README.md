@@ -26,13 +26,15 @@ explains what changed.
 <dependency>
     <groupId>org.dynamisengine</groupId>
     <artifactId>vectrix</artifactId>
-    <version>3.3.0</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
-For the Vector API kernels, depend on `<classifier>simd</classifier>` instead and run with
-`--add-modules jdk.incubator.vector`. The module name is `org.dynamisengine.vectrix`.
-[Getting started](docs/getting-started.md) covers Gradle, modules and JVM flags.
+`vectrix` brings the whole library, which is four jars since 4.0: `vectrix-core`, `vectrix-render`, `vectrix-signal`
+and `vectrix-ml`. You can depend on only the ones you use ([package map](docs/package-map.md)). For the Vector API
+kernels, depend on the jars with `<classifier>simd</classifier>` and run with `--add-modules jdk.incubator.vector`.
+[Getting started](docs/getting-started.md) covers Gradle, modules and JVM flags, and
+[migrating to 4.0](docs/migrating-to-4.0.md) the changes from 3.x.
 
 ## A taste
 

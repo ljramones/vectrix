@@ -76,7 +76,7 @@ active anywhere, `mathMode()` costs one extra volatile read.
 `CrossPlatformDeterminismTest` calls every public method of the library (about 8 200, three seeded input sets each)
 and the batch kernels (in FAST and STRICT mode, at sizes that exercise the SIMD loops and their tails) in a child
 JVM under `-Dvectrix.strictMath=true`, and compares a hash of each result with
-`src/test/resources/determinism/golden.txt`. CI runs it on x86_64 Linux, arm64 Linux and arm64 macOS, in the default
+`vectrix-tests/src/test/resources/determinism/golden.txt`. CI runs it on x86_64 Linux, arm64 Linux and arm64 macOS, in the default
 and the experimental (Vector API) profile, so a result that depends on the CPU, the vector width or the profile
 fails the build.
 
@@ -88,7 +88,8 @@ Methods added after the golden was recorded are reported, not failed. After an i
 re-record the file:
 
 ```
-mvn test -Dtest=CrossPlatformDeterminismTest -Dvectrix.determinism.write=$PWD/src/test/resources/determinism/golden.txt
+mvn test -pl vectrix-tests -am -Dtest=CrossPlatformDeterminismTest -Dsurefire.failIfNoSpecifiedTests=false \
+    -Dvectrix.determinism.write=$PWD/vectrix-tests/src/test/resources/determinism/golden.txt
 ```
 
 ## Reproducible math and kernels

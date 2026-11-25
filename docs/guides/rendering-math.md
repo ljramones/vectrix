@@ -475,11 +475,11 @@ The `renderingmath` package holds small kernels for lookup tables and visibility
 - [Determinism](../determinism.md): reproducible results across platforms.
 - Example: [`ShLighting`](../../examples/src/main/java/org/dynamisengine/vectrix/examples/ShLighting.java), with
   the [examples README](../../examples/README.md) for how to run it.
-- Source packages: [`brdf`](../../src/main/java/org/dynamisengine/vectrix/brdf/),
-  [`optics`](../../src/main/java/org/dynamisengine/vectrix/optics/),
-  [`sh`](../../src/main/java/org/dynamisengine/vectrix/sh/),
-  [`spherical`](../../src/main/java/org/dynamisengine/vectrix/spherical/),
-  [`ltc`](../../src/main/java/org/dynamisengine/vectrix/ltc/),
-  [`atmosphere`](../../src/main/java/org/dynamisengine/vectrix/atmosphere/),
-  [`color`](../../src/main/java/org/dynamisengine/vectrix/color/),
-  [`renderingmath`](../../src/main/java/org/dynamisengine/vectrix/renderingmath/).
+- Source packages: [`brdf`](../../vectrix-render/src/main/java/org/dynamisengine/vectrix/brdf/),
+  [`optics`](../../vectrix-render/src/main/java/org/dynamisengine/vectrix/optics/),
+  [`sh`](../../vectrix-render/src/main/java/org/dynamisengine/vectrix/sh/),
+  [`spherical`](../../vectrix-render/src/main/java/org/dynamisengine/vectrix/spherical/),
+  [`ltc`](../../vectrix-render/src/main/java/org/dynamisengine/vectrix/ltc/),
+  [`atmosphere`](../../vectrix-render/src/main/java/org/dynamisengine/vectrix/atmosphere/),
+  [`color`](../../vectrix-render/src/main/java/org/dynamisengine/vectrix/color/),
+  [`renderingmath`](../../vectrix-render/src/main/java/org/dynamisengine/vectrix/renderingmath/).

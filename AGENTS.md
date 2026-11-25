@@ -2,16 +2,17 @@
 
 ## Project Structure & Module Organization
 `vectrix` is a rendering-first math library forked from JOML and now organized by capability:
+- Four jar modules (4.0): `vectrix-core`, `vectrix-render`, `vectrix-signal`, `vectrix-ml`; `docs/package-map.md` lists each one's packages. Paths below are under `vectrix-core/` unless noted.
 - `src/main/java/org/dynamisengine/vectrix/core`: scalar-safe vector/matrix/quaternion primitives.
 - `src/main/java/org/dynamisengine/vectrix/affine`, `.../soa`, `.../simd`: transform kernels, SoA containers, Vector API paths.
-- `src/main/java/org/dynamisengine/vectrix/geometry`, `.../gpu`, `.../simd`: culling/intersections, packing/compression/layouts, the SIMD switch.
-- `src/test/java/org/dynamisengine/vectrix/test`: unit and parity tests.
-- `src/bench/java/org/dynamisengine/vectrix/bench` and `src/jmh/java`: JMH benchmarks.
+- `src/main/java/org/dynamisengine/vectrix/geometry`, `.../simd`: culling/intersections, the SIMD switch; `vectrix-render/.../gpu`: packing and compression.
+- `vectrix-*/src/test/java/org/dynamisengine/vectrix/test`: each jar's unit and parity tests; `vectrix-tests/`: the tests that span the jars.
+- `vectrix-tests/src/bench/java/org/dynamisengine/vectrix/bench` and `vectrix-tests/src/jmh/java`: JMH benchmarks.
 
 ## Build, Test, and Development Commands
 - `mvn -q test`: run all JUnit tests.
 - `mvn -q verify`: full validation (style + tests + packaging).
-- `mvn -q clean package -Pbench -DskipTests`: build `target/benchmarks.jar`.
+- `mvn -q clean package -Pbench -DskipTests`: build `vectrix-tests/target/benchmarks.jar`.
 - `./scripts/bench-run.sh`: run benchmark suite (CSV output in `target/benchmarks/`).
 - Example smoke run:
   `java --add-modules jdk.incubator.vector -jar target/benchmarks.jar ".*FrustumCullingBenchmark.*" -f 0 -wi 1 -i 1`
@@ -26,7 +27,7 @@
 - Framework: JUnit 5 (Surefire).
 - Name tests `*Test` and colocate coverage with changed APIs.
 - For SIMD or fast-mode changes, add scalar parity tests and edge-case coverage (NaN, zero-length, opposite vectors, large batches).
-- Performance-sensitive changes should include/extend JMH benchmarks in `src/bench/java/org/dynamisengine/vectrix/bench`.
+- Performance-sensitive changes should include/extend JMH benchmarks in `vectrix-tests/src/bench/java/org/dynamisengine/vectrix/bench`.
 
 ## Commit & Pull Request Guidelines
 - Commit messages: imperative and scoped (example: `Add Affine4f SIMD multiply benchmark`).

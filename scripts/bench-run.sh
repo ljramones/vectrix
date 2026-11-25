@@ -48,7 +48,7 @@ mkdir -p "$OUT_DIR" "$LEGACY_OUT_DIR"
 TXT_FILE="$OUT_DIR/${RESULT_BASENAME}.txt"
 RESULT_FILE="$OUT_DIR/${RESULT_BASENAME}.${JMH_FORMAT}"
 
-java --add-modules jdk.incubator.vector -jar target/benchmarks.jar "$BENCH_REGEX" \
+java --add-modules jdk.incubator.vector -jar vectrix-tests/target/benchmarks.jar "$BENCH_REGEX" \
   -f "$FORKS" \
   -wi "$WARMUP_ITERS" \
   -i "$MEASURE_ITERS" \

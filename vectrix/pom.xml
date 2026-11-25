@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.dynamisengine</groupId>
+        <artifactId>vectrix-parent</artifactId>
+        <version>4.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <!-- 4.0: the whole library as one dependency. It holds no classes: depending on it brings vectrix-core,
+         -render, -signal and -ml, so a 3.x build keeps working with a version bump. Depend on the jars you use
+         instead when convenient. -->
+    <artifactId>vectrix</artifactId>
+    <packaging>jar</packaging>
+    <name>Vectrix</name>
+    <description>Java rendering math library: all of Vectrix (vectrix-core, -render, -signal and -ml)</description>
+
+    <properties>
+        <vectrix.root>${project.basedir}/..</vectrix.root>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>vectrix-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>vectrix-render</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>vectrix-signal</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>vectrix-ml</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <skipIfEmpty>false</skipIfEmpty>
+                    <archive combine.self="override">
+                        <manifestEntries>
+                            <Implementation-Title>Vectrix</Implementation-Title>
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                            <Implementation-Vendor>Dynamis Engine</Implementation-Vendor>
+                            <Automatic-Module-Name>org.dynamisengine.vectrix.all</Automatic-Module-Name>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+                <executions>
+                    <!-- Maven Central requires sources and Javadoc jars for every jar; this one has no classes -->
+                    <execution>
+                        <id>empty-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>sources</classifier>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>empty-javadoc</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>javadoc</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -35,3 +35,7 @@ Thumbs.db
 
 # Python bytecode from the generator scripts
 __pycache__/
+
+# 4.0 reactor: every module's build output
+target/
+dependency-reduced-pom.xml

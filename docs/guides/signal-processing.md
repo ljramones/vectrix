@@ -505,5 +505,5 @@ The `-simd` jar's Vector API kernels give the same bits as the scalar ones. See 
 - Example: [SignalProcessing.java](../../examples/src/main/java/org/dynamisengine/vectrix/examples/SignalProcessing.java)
   (Welch spectrum, Kaiser FIR, Butterworth IIR) and
   [KalmanTracking.java](../../examples/src/main/java/org/dynamisengine/vectrix/examples/KalmanTracking.java).
-- Sources: [fft](../../src/main/java/org/dynamisengine/vectrix/fft/),
-  [dsp](../../src/main/java/org/dynamisengine/vectrix/dsp/)
+- Sources: [fft](../../vectrix-signal/src/main/java/org/dynamisengine/vectrix/fft/),
+  [dsp](../../vectrix-signal/src/main/java/org/dynamisengine/vectrix/dsp/)

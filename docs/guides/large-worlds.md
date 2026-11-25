@@ -68,4 +68,4 @@ the layout of `PackedAffineArray`.
 
 - [Cameras and projections](camera-and-projection.md): reverse-Z, the other half of precision at distance.
 - [GPU data](gpu-data.md): the packed 3×4 layout and uploading transforms.
-- Sources: [`world`](../../src/main/java/org/dynamisengine/vectrix/world/).
+- Sources: [`world`](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/world/).

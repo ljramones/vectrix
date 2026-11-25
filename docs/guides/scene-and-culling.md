@@ -148,6 +148,6 @@ may be reported as intersecting when it is not.
 - [Large worlds](large-worlds.md): camera-relative transforms when the scene is far from the origin.
 - [Geometry and physics](geometry-and-physics.md): ray, box and triangle intersections, closest points.
 - [Conventions](../conventions.md): column-major matrices and multiplication order.
-- Sources: [`soa`](../../src/main/java/org/dynamisengine/vectrix/soa/),
-  [`geometry`](../../src/main/java/org/dynamisengine/vectrix/geometry/),
-  [`affine`](../../src/main/java/org/dynamisengine/vectrix/affine/).
+- Sources: [`soa`](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/soa/),
+  [`geometry`](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/geometry/),
+  [`affine`](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/affine/).

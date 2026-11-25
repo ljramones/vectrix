@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.dynamisengine</groupId>
+        <artifactId>vectrix-parent</artifactId>
+        <version>4.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <artifactId>vectrix-render</artifactId>
+    <packaging>jar</packaging>
+    <name>Vectrix render</name>
+    <description>Vectrix rendering math: color, BRDFs, optics, atmosphere, spherical harmonics, sampling, cameras, GPU encodings (module org.dynamisengine.vectrix.render)</description>
+
+    <properties>
+        <vectrix.root>${project.basedir}/..</vectrix.root>
+        <vectrix.module.name>org.dynamisengine.vectrix.render</vectrix.module.name>
+        <vectrix.module.requires>org.dynamisengine.vectrix</vectrix.module.requires>
+        <vectrix.title>Vectrix render</vectrix.title>
+        <vectrix.osgi.exports>org.dynamisengine.vectrix.atmosphere,org.dynamisengine.vectrix.brdf,org.dynamisengine.vectrix.camera,org.dynamisengine.vectrix.color,org.dynamisengine.vectrix.gpu,org.dynamisengine.vectrix.ltc,org.dynamisengine.vectrix.optics,org.dynamisengine.vectrix.renderingmath,org.dynamisengine.vectrix.sampling,org.dynamisengine.vectrix.sh,org.dynamisengine.vectrix.spherical</vectrix.osgi.exports>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>vectrix-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.dynamisengine</groupId>
+            <artifactId>vectrix-core</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.igormaznitsa</groupId>
+                <artifactId>jcp</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <executions>
+                    <!-- The simd pass (default profile) on the simd classes of every jar this one uses, not their
+                         scalar jars -->
+                    <execution>
+                        <id>test-simd</id>
+                        <configuration>
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExclude>org.dynamisengine:vectrix-core</classpathDependencyExclude>
+                            </classpathDependencyExcludes>
+                            <additionalClasspathElements>
+                                <additionalClasspathElement>${vectrix.root}/vectrix-core/target/classes-simd</additionalClasspathElement>
+                                <additionalClasspathElement>${vectrix.root}/vectrix-core/target/test-classes</additionalClasspathElement>
+                            </additionalClasspathElements>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

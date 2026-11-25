@@ -6,12 +6,50 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+Vectrix 4.0 splits the library into four jars and removes the GPU layout classes deprecated in 3.3.
+[Migrating to 4.0](docs/migrating-to-4.0.md) covers both.
+
 ### Changed
+- **Four jars, four modules.** The packages are unchanged; they ship as:
+  - `vectrix-core` (module `org.dynamisengine.vectrix`): `core`, `simd`, `affine`, `animation`, `curve`, `easing`,
+    `hash`, `ik`, `linalg`, `physics`, `sdf`, `soa`, `world`, `geometry`, `blas`;
+  - `vectrix-render` (`org.dynamisengine.vectrix.render`): `color`, `brdf`, `optics`, `atmosphere`, `renderingmath`,
+    `ltc`, `sh`, `spherical`, `sampling`, `camera`, `gpu`;
+  - `vectrix-signal` (`org.dynamisengine.vectrix.signal`): `fft`, `dsp`;
+  - `vectrix-ml` (`org.dynamisengine.vectrix.ml`): `nn`.
+
+  - **Dependencies:** the last three depend on `vectrix-core`, and their modules require it transitively.
+  - **The whole library:** the `vectrix` artifact now holds no classes and depends on all four, so a 3.x class-path
+    build only bumps the version.
+  - **Classifiers:** `simd` and `experimental` are per jar; `vectrix` has neither.
+  - **Module path:** a module requires the Vectrix modules whose packages it uses.
+  - **OSGi:** four bundles, named after the modules.
+- **The build is a Maven reactor** (`vectrix-parent`):
+  - **Modules:** the four jars, `vectrix`, `vectrix-tests` (the tests that span the jars, and the benchmarks) and
+    `examples`.
+  - **Examples:** built and tested in the same `mvn verify` against the packaged jars. They keep their own POM, so they
+    still use the jars as an application does.
+  - **Coverage gate:** over all the jars together, because the cross-jar tests cover every jar. The floors are
+    unchanged.
+  - **New check:** `PackageDependencyTest` also checks that each package depends only on its own jar and
+    `vectrix-core`.
 - **vectrix-gpu builds its kernels with DynamisGPU's shader build.** `scripts/build-kernels.sh` runs `ShaderBuild`
   from `dynamis-gpu-shaders`, and the kernels are listed in `src/main/slang/kernels.list` and `src/test/slang/kernels.list`.
   It replaces `scripts/build-kernels.py`, of which `ShaderBuild` is a port. Every compiled kernel is byte-identical;
   only the manifests' header line changed.
 - **vectrix-gpu loads its kernels through DynamisGPU's `KernelLibrary`,** in place of its own manifest reader.
+- **vectrix-gpu runs on DynamisGPU 1.12.1's kit and runtime:** each pipeline's parameter fields are checked against the
+  compiled kernel, and its dispatches are labelled `vectrix.<kernel>` for DynamisGPU's timings.
+
+### Added
+- **`BlockQuant`** (`nn`): llama.cpp's block quantization formats (Q8_0, Q4_0, Q4_1, Q4_K, Q5_K and Q6_K).
+  - **Exactness:** decoding matches gguf-py bit for bit on blocks it wrote.
+  - **Encoding:** nearest codes, without allocating.
+
+### Removed
+- **The GPU layout classes deprecated in 3.3,** which have lived in DynamisGPU since its 1.2.0: `gpu.ShaderLayout`,
+  `gpu.VertexLayout`, `gpu.VertexAttribute`, `gpu.VertexAttributeFormat`, `gpu.GpuTransformLayout`,
+  `gpu.GpuTransformWriteKernels` and `gpu.InstanceSubmissionPipeline`. The numeric encodings stay in `gpu`.
 
 ## [3.3.0] - 2026-11-24
 New in this release:

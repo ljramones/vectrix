@@ -275,5 +275,5 @@ the measurements up to that step. For smoothing a signal, `Smoothers` has:
 - [Machine-learning kernels](machine-learning.md): `hash.Philox` and `ReproducibleMath` in more detail.
 - [Signal processing](signal-processing.md): the rest of the `dsp` package (filters, spectra, resampling).
 - Example: [KalmanTracking](../../examples/src/main/java/org/dynamisengine/vectrix/examples/KalmanTracking.java).
-- Source: [dsp](../../src/main/java/org/dynamisengine/vectrix/dsp/),
-  [hash](../../src/main/java/org/dynamisengine/vectrix/hash/).
+- Source: [dsp](../../vectrix-signal/src/main/java/org/dynamisengine/vectrix/dsp/),
+  [hash](../../vectrix-core/src/main/java/org/dynamisengine/vectrix/hash/).

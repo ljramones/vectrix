@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Runnable, tested examples for Vectrix. A separate project, not a module of the library build: nothing here can
-  reach the published jar, and the examples use Vectrix exactly as an application does (module path, exported API
-  only). Not deployed.
+  Runnable, tested examples for Vectrix. A module of the library's reactor (4.0) but not a child of its parent POM:
+  nothing here can reach the published jars, and the examples use Vectrix exactly as an application does (their own
+  build, module path, exported API only). Not deployed.
 
-  Build the library first, then the examples:
+  Build and test them with the library (in the repository root):
+    mvn verify
+  or on their own, against an installed library:
     mvn install -DskipTests          (in the repository root)
-    mvn -f examples/pom.xml verify   (compiles and tests every example)
+    mvn -f examples/pom.xml verify
   Run one:
     java -p examples/target/lib:examples/target/vectrix-examples.jar -m org.dynamisengine.vectrix.examples culling
 -->
@@ -17,12 +19,12 @@
 
     <groupId>org.dynamisengine</groupId>
     <artifactId>vectrix-examples</artifactId>
-    <version>3.3.0</version>
+    <version>4.0.0-SNAPSHOT</version>
     <name>Vectrix examples</name>
 
     <properties>
         <!-- Kept equal to the library version by ExamplesVersionTest in the library build. -->
-        <vectrix.version>3.3.0</vectrix.version>
+        <vectrix.version>4.0.0-SNAPSHOT</vectrix.version>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.10.3</junit.version>
@@ -79,7 +81,7 @@
                 </configuration>
             </plugin>
             <plugin>
-                <!-- Copies the Vectrix jar to target/lib for the run command above. -->
+                <!-- Copies the Vectrix jars to target/lib for the run command above. -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>3.8.1</version>

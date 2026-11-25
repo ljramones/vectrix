@@ -11,12 +11,20 @@
     </parent>
 
     <groupId>org.dynamisengine</groupId>
-    <artifactId>vectrix</artifactId>
-    <version>3.3.0</version>
-    <packaging>jar</packaging>
-
-    <name>Vectrix</name>
-    <description>Java rendering math library</description>
+    <artifactId>vectrix-parent</artifactId>
+    <version>4.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Vectrix (parent)</name>
+    <description>Java rendering math library: the parent of its jars (4.0: vectrix-core, -render, -signal, -ml, and
+        vectrix, which depends on all four)</description>
+    <modules>
+        <module>vectrix-core</module>
+        <module>vectrix-render</module>
+        <module>vectrix-signal</module>
+        <module>vectrix-ml</module>
+        <module>vectrix</module>
+        <module>vectrix-tests</module>
+    </modules>
     <url>https://github.com/ljramones/vectrix</url>
 
     <licenses>
@@ -68,6 +76,16 @@
         <jcp.version>7.3.0</jcp.version>
         <!-- Extra JVM arguments for test runs, e.g. -Dvectrix.test.jvmArgs=-Djoml.forceFfm=true -->
         <vectrix.test.jvmArgs></vectrix.test.jvmArgs>
+        <!-- Per module (4.0): the repository root, the JPMS module name and the Vectrix modules it requires, the
+             OSGi exports and the manifest title. -->
+        <vectrix.root>${project.basedir}</vectrix.root>
+        <vectrix.module.name>org.dynamisengine.vectrix</vectrix.module.name>
+        <vectrix.module.requires></vectrix.module.requires>
+        <vectrix.osgi.exports></vectrix.osgi.exports>
+        <vectrix.title>Vectrix</vectrix.title>
+        <!-- The whole-library coverage gate (vectrix-tests). JaCoCo runs in the default profile only. -->
+        <vectrix.coverage.skip>true</vectrix.coverage.skip>
+        <jacoco.skip>false</jacoco.skip>
     </properties>
 
     <dependencies>
@@ -89,7 +107,7 @@
         <!-- LICENSE and NOTICE travel in every jar: NOTICE carries the CC BY-SA attribution of the CIE data -->
         <resources>
             <resource>
-                <directory>${project.basedir}</directory>
+                <directory>${vectrix.root}</directory>
                 <targetPath>META-INF</targetPath>
                 <includes>
                     <include>LICENSE</include>
@@ -97,7 +115,39 @@
                 </includes>
             </resource>
         </resources>
+        <pluginManagement>
         <plugins>
+            <!-- 4.0: every plugin the modules list has its version here, whichever profiles are active -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.8.1</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.5.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.6.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.14</version>
+            </plugin>
             <!-- Fail fast on JDKs older than the supported minimum -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -162,9 +212,9 @@
                         <arg>--add-modules</arg>
                         <arg>jdk.unsupported</arg>
                         <arg>--add-reads</arg>
-                        <arg>org.dynamisengine.vectrix=ALL-UNNAMED</arg>
+                        <arg>${vectrix.module.name}=ALL-UNNAMED</arg>
                         <arg>--add-reads</arg>
-                        <arg>org.dynamisengine.vectrix=jdk.unsupported</arg>
+                        <arg>${vectrix.module.name}=jdk.unsupported</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -206,15 +256,15 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Implementation-Title>Vectrix</Implementation-Title>
+                            <Implementation-Title>${vectrix.title}</Implementation-Title>
                             <Implementation-Version>${project.version}</Implementation-Version>
                             <Implementation-Vendor>Dynamis Engine</Implementation-Vendor>
                             <Implementation-Build>${git.commit.id.full}</Implementation-Build>
                             <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
-                            <Bundle-Name>Vectrix</Bundle-Name>
-                            <Bundle-SymbolicName>org.dynamisengine.vectrix</Bundle-SymbolicName>
+                            <Bundle-Name>${vectrix.title}</Bundle-Name>
+                            <Bundle-SymbolicName>${vectrix.module.name}</Bundle-SymbolicName>
                             <Bundle-Version>${project.version}</Bundle-Version>
-                            <Export-Package>org.dynamisengine.vectrix.core,org.dynamisengine.vectrix.affine,org.dynamisengine.vectrix.animation,org.dynamisengine.vectrix.atmosphere,org.dynamisengine.vectrix.brdf,org.dynamisengine.vectrix.camera,org.dynamisengine.vectrix.spherical,org.dynamisengine.vectrix.color,org.dynamisengine.vectrix.curve,org.dynamisengine.vectrix.curve.scalar,org.dynamisengine.vectrix.curve.vec2,org.dynamisengine.vectrix.curve.vec3,org.dynamisengine.vectrix.curve.vec4,org.dynamisengine.vectrix.easing,org.dynamisengine.vectrix.geometry,org.dynamisengine.vectrix.sampling,org.dynamisengine.vectrix.hash,org.dynamisengine.vectrix.ik,org.dynamisengine.vectrix.sdf,org.dynamisengine.vectrix.gpu,org.dynamisengine.vectrix.renderingmath,org.dynamisengine.vectrix.optics,org.dynamisengine.vectrix.linalg,org.dynamisengine.vectrix.ltc,org.dynamisengine.vectrix.sh,org.dynamisengine.vectrix.fft,org.dynamisengine.vectrix.dsp,org.dynamisengine.vectrix.blas,org.dynamisengine.vectrix.nn,org.dynamisengine.vectrix.simd,org.dynamisengine.vectrix.soa,org.dynamisengine.vectrix.world,org.dynamisengine.vectrix.physics</Export-Package>
+                            <Export-Package>${vectrix.osgi.exports}</Export-Package>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -252,6 +302,9 @@
                     <!-- Every public and protected element is documented: a missing comment, @param, @return or @throws,
                          a broken reference or bad HTML fails the build. -->
                     <doclint>all</doclint>
+                    <!-- 4.0: classpath mode. The jars' module-info.class files are generated after compiling, and
+                         javadoc's module mode found no sources for them. -->
+                    <legacyMode>true</legacyMode>
                     <failOnWarnings>true</failOnWarnings>
                     <additionalDependencies>
                         <additionalDependency>
@@ -264,9 +317,9 @@
                         <additionalJOption>--add-modules</additionalJOption>
                         <additionalJOption>jdk.unsupported</additionalJOption>
                         <additionalJOption>--add-reads</additionalJOption>
-                        <additionalJOption>org.dynamisengine.vectrix=ALL-UNNAMED</additionalJOption>
+                        <additionalJOption>${vectrix.module.name}=ALL-UNNAMED</additionalJOption>
                         <additionalJOption>--add-reads</additionalJOption>
-                        <additionalJOption>org.dynamisengine.vectrix=jdk.unsupported</additionalJOption>
+                        <additionalJOption>${vectrix.module.name}=jdk.unsupported</additionalJOption>
                     </additionalJOptions>
                 </configuration>
             </plugin>
@@ -286,8 +339,8 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <configLocation>${project.basedir}/config/checkstyle.xml</configLocation>
-                    <propertyExpansion>config_loc=${project.basedir}/config</propertyExpansion>
+                    <configLocation>${vectrix.root}/config/checkstyle.xml</configLocation>
+                    <propertyExpansion>config_loc=${vectrix.root}/config</propertyExpansion>
                     <sourceDirectories>
                         <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
                     </sourceDirectories>
@@ -303,7 +356,7 @@
                 <configuration>
                     <effort>Max</effort>
                     <threshold>Low</threshold>
-                    <excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
+                    <excludeFilterFile>${vectrix.root}/spotbugs-exclude.xml</excludeFilterFile>
                     <maxHeap>2048</maxHeap>
                     <failOnError>true</failOnError>
                 </configuration>
@@ -319,6 +372,13 @@
             </plugin>
 
         </plugins>
+        </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+            </plugin>
+        </plugins>
     </build>
 
     <profiles>
@@ -328,7 +388,17 @@
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
+            <!-- The examples need the jars' module descriptors, which only this profile generates. They are built in
+                 this reactor against the jars it packages, but are not a child of this POM: they use Vectrix exactly
+                 as an application does (their own build, module path, exported API only). -->
+            <modules>
+                <module>examples</module>
+            </modules>
+            <properties>
+                <vectrix.coverage.skip>false</vectrix.coverage.skip>
+            </properties>
             <build>
+                <pluginManagement>
                 <plugins>
                     <!-- JCP vars for default profile -->
                     <plugin>
@@ -385,32 +455,6 @@
                                     <goal>report</goal>
                                 </goals>
                             </execution>
-                            <execution>
-                                <id>jacoco-check</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>check</goal>
-                                </goals>
-                                <configuration>
-                                    <rules>
-                                        <rule>
-                                            <element>BUNDLE</element>
-                                            <limits>
-                                                <limit>
-                                                    <counter>LINE</counter>
-                                                    <value>COVEREDRATIO</value>
-                                                    <minimum>${vectrix.coverage.line.min}</minimum>
-                                                </limit>
-                                                <limit>
-                                                    <counter>BRANCH</counter>
-                                                    <value>COVEREDRATIO</value>
-                                                    <minimum>${vectrix.coverage.branch.min}</minimum>
-                                                </limit>
-                                            </limits>
-                                        </rule>
-                                    </rules>
-                                </configuration>
-                            </execution>
                         </executions>
                     </plugin>
 
@@ -460,7 +504,7 @@
                                         <argument>${project.build.directory}/buildhelper-lib/asm-${asm.version}.jar</argument>
                                         <argument>-d</argument>
                                         <argument>${project.build.directory}/buildhelper-classes</argument>
-                                        <argument>${project.basedir}/buildhelper/ModuleInfoGenerator.java</argument>
+                                        <argument>${vectrix.root}/buildhelper/ModuleInfoGenerator.java</argument>
                                     </arguments>
                                 </configuration>
                             </execution>
@@ -479,6 +523,8 @@
                                         <argument>ModuleInfoGenerator</argument>
                                         <argument>${project.build.directory}/classes</argument>
                                         <argument>${project.version}</argument>
+                                        <argument>${vectrix.module.name}</argument>
+                                        <argument>${vectrix.module.requires}</argument>
                                     </arguments>
                                 </configuration>
                             </execution>
@@ -498,6 +544,8 @@
                                         <argument>ModuleInfoGenerator</argument>
                                         <argument>${project.build.directory}/classes-simd</argument>
                                         <argument>${project.version}</argument>
+                                        <argument>${vectrix.module.name}</argument>
+                                        <argument>${vectrix.module.requires}</argument>
                                     </arguments>
                                 </configuration>
                             </execution>
@@ -528,11 +576,11 @@
                                         <arg>--add-modules</arg>
                                         <arg>jdk.unsupported,jdk.incubator.vector</arg>
                                         <arg>--add-reads</arg>
-                                        <arg>org.dynamisengine.vectrix=ALL-UNNAMED</arg>
+                                        <arg>${vectrix.module.name}=ALL-UNNAMED</arg>
                                         <arg>--add-reads</arg>
-                                        <arg>org.dynamisengine.vectrix=jdk.unsupported</arg>
+                                        <arg>${vectrix.module.name}=jdk.unsupported</arg>
                                         <arg>--add-reads</arg>
-                                        <arg>org.dynamisengine.vectrix=jdk.incubator.vector</arg>
+                                        <arg>${vectrix.module.name}=jdk.incubator.vector</arg>
                                     </compilerArgs>
                                 </configuration>
                             </execution>
@@ -561,6 +609,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-resources-plugin</artifactId>
+                        <version>3.5.0</version>
                         <executions>
                             <execution>
                                 <id>simd-license-notice</id>
@@ -572,7 +621,7 @@
                                     <outputDirectory>${project.build.directory}/classes-simd/META-INF</outputDirectory>
                                     <resources>
                                         <resource>
-                                            <directory>${project.basedir}</directory>
+                                            <directory>${vectrix.root}</directory>
                                             <includes>
                                                 <include>LICENSE</include>
                                                 <include>NOTICE</include>
@@ -601,6 +650,7 @@
                         </executions>
                     </plugin>
                 </plugins>
+                </pluginManagement>
             </build>
         </profile>
 
@@ -633,6 +683,7 @@
                 </dependency>
             </dependencies>
             <build>
+                <pluginManagement>
                 <plugins>
                     <!-- JCP vars for experimental profile -->
                     <plugin>
@@ -682,13 +733,13 @@
                                 <arg>--add-exports</arg>
                                 <arg>jdk.internal.vm.ci/jdk.vm.ci.amd64=org.dynamisengine.vectrix,ALL-UNNAMED</arg>
                                 <arg>--add-reads</arg>
-                                <arg>org.dynamisengine.vectrix=ALL-UNNAMED</arg>
+                                <arg>${vectrix.module.name}=ALL-UNNAMED</arg>
                                 <arg>--add-reads</arg>
-                                <arg>org.dynamisengine.vectrix=jdk.internal.vm.ci</arg>
+                                <arg>${vectrix.module.name}=jdk.internal.vm.ci</arg>
                                 <arg>--add-reads</arg>
-                                <arg>org.dynamisengine.vectrix=jdk.incubator.vector</arg>
+                                <arg>${vectrix.module.name}=jdk.incubator.vector</arg>
                                 <arg>--add-reads</arg>
-                                <arg>org.dynamisengine.vectrix=jdk.unsupported</arg>
+                                <arg>${vectrix.module.name}=jdk.unsupported</arg>
                             </compilerArgs>
                         </configuration>
                     </plugin>
@@ -742,11 +793,18 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-jar-plugin</artifactId>
-                        <configuration>
-                            <classifier>experimental</classifier>
-                        </configuration>
+                        <executions>
+                            <!-- the main jar only: vectrix-core's test-jar keeps its tests classifier -->
+                            <execution>
+                                <id>default-jar</id>
+                                <configuration>
+                                    <classifier>experimental</classifier>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
+                </pluginManagement>
             </build>
         </profile>
 
@@ -771,6 +829,7 @@
                 </dependency>
             </dependencies>
             <build>
+                <pluginManagement>
                 <plugins>
                     <!-- JCP vars for bench profile -->
                     <plugin>
@@ -799,11 +858,11 @@
                                 <arg>--add-modules</arg>
                                 <arg>jdk.incubator.vector,jdk.unsupported</arg>
                                 <arg>--add-reads</arg>
-                                <arg>org.dynamisengine.vectrix=ALL-UNNAMED</arg>
+                                <arg>${vectrix.module.name}=ALL-UNNAMED</arg>
                                 <arg>--add-reads</arg>
-                                <arg>org.dynamisengine.vectrix=jdk.incubator.vector</arg>
+                                <arg>${vectrix.module.name}=jdk.incubator.vector</arg>
                                 <arg>--add-reads</arg>
-                                <arg>org.dynamisengine.vectrix=jdk.unsupported</arg>
+                                <arg>${vectrix.module.name}=jdk.unsupported</arg>
                             </compilerArgs>
                             <annotationProcessorPaths>
                                 <path>
@@ -871,6 +930,7 @@
                         </executions>
                     </plugin>
                 </plugins>
+                </pluginManagement>
             </build>
         </profile>
 
