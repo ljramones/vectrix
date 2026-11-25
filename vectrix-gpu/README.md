@@ -61,10 +61,10 @@ and fuse `fma`; see [Where the GPU can differ](#where-the-gpu-can-differ-from-th
 
 ## Using it
 
-Coordinates: `org.dynamisengine:vectrix-gpu:4.0.0` (module `org.dynamisengine.vectrix.compute`), with
-`dynamis-gpu-metal` or `dynamis-gpu-vulkan` at runtime. Neither is on Maven Central: install vectrix-gpu from this
-repository (`mvn -f vectrix-gpu/pom.xml install`) and DynamisGPU from its GitHub Release (see
-[Building](#building)).
+Coordinates: `org.dynamisengine:vectrix-gpu:4.0.1` (module `org.dynamisengine.vectrix.compute`), with
+`dynamis-gpu-metal` or `dynamis-gpu-vulkan` at runtime. Neither is on Maven Central. Since 4.0.1 vectrix-gpu is in
+the Vectrix release's Maven repository ZIP (`vectrix-X-maven.zip`, with the library); install DynamisGPU from its
+GitHub Release (see [Building](#building)).
 
 <!-- snippet: UsageExampleTest#usage -->
 ```java
@@ -139,8 +139,8 @@ mvn -f vectrix-gpu/pom.xml verify
 DynamisGPU comes from its GitHub Release when it isn't already in your local repository:
 
 ```bash
-curl -fsSLO https://github.com/ljramones/DynamicGPU/releases/download/v1.12.1/dynamisgpu-1.12.1-maven.zip
-unzip -q dynamisgpu-1.12.1-maven.zip && cp -R dynamisgpu-1.12.1/repository/. ~/.m2/repository/
+curl -fsSLO https://github.com/ljramones/DynamicGPU/releases/download/v1.13.0/dynamisgpu-1.13.0-maven.zip
+unzip -q dynamisgpu-1.13.0-maven.zip && cp -R dynamisgpu-1.13.0/repository/. ~/.m2/repository/
 ```
 
 ## Testing

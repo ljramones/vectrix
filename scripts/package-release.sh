@@ -8,4 +8,7 @@ version=$(python3 -c 'import xml.etree.ElementTree as E; print(E.parse("pom.xml"
 repository="$repo/target/release/repository"
 rm -rf "$repo/target/release"
 mvn clean deploy -DdeployAtEnd=true "-DaltDeploymentRepository=github-release::file://$repository" "$@"
+# vectrix-gpu is a separate project built against the library just installed (deploy includes install) and
+# DynamisGPU from the local repository; its tests run on the reference backend here, on hardware before a release.
+mvn -f vectrix-gpu/pom.xml clean deploy "-DaltDeploymentRepository=github-release::file://$repository" "$@"
 python3 scripts/package-release.py "$version" "$repository"

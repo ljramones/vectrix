@@ -41,19 +41,18 @@ Maven Central limits releases to 7 a month per account. When the quota is used u
 to Central later:
 
 ```bash
-scripts/package-release.sh        # verify, then stage the Maven repository in target/release and zip it
-mvn clean install                 # into the local repository, for the components that depend on Vectrix
-mvn -f vectrix-gpu/pom.xml clean install
+scripts/package-release.sh        # verify the library and vectrix-gpu, stage both in target/release, zip them
+                                  # (deploy includes install: the local repository gets the release too)
 git push origin main vX.Y.Z
 gh release create vX.Y.Z --title "Vectrix vX.Y.Z" --notes-file <the CHANGELOG section> \
-    target/release/vectrix-X.Y.Z-maven.zip target/release/SHA256SUMS target/release/*.jar \
-    vectrix-gpu/target/vectrix-gpu-X.Y.Z.jar vectrix-gpu/target/vectrix-gpu-X.Y.Z-sources.jar
+    target/release/vectrix-X.Y.Z-maven.zip target/release/SHA256SUMS target/release/*.jar
 ```
 
 The ZIP is a Maven repository with every module's POM (the parent's included) and jars, and an `install.sh` that
 copies it into the local repository: since 4.0 a jar alone is not enough, because each jar's POM names its parent and
 dependencies. `package-release.py` checks that every artifact is there, has the release version and, for the four
-jars, a module descriptor, and that `vectrix-tests` and the examples are not published.
+jars, a module descriptor, and that `vectrix-tests` and the examples are not published. Since 4.0.1 the ZIP also holds
+vectrix-gpu (built against DynamisGPU from the local repository, which must hold the version its POM names).
 
 vectrix-gpu is never deployed to Central: it depends on DynamisGPU, which is distributed only through its GitHub
 Releases.

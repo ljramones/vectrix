@@ -12,14 +12,14 @@ Maven:
 <dependency>
     <groupId>org.dynamisengine</groupId>
     <artifactId>vectrix</artifactId>
-    <version>4.0.0</version>
+    <version>4.0.1</version>
 </dependency>
 ```
 
 Gradle:
 
 ```kotlin
-implementation("org.dynamisengine:vectrix:4.0.0")
+implementation("org.dynamisengine:vectrix:4.0.1")
 ```
 
 **The jars.** `vectrix` holds no classes: it brings the library's four jars, which you can also depend on one by one.
@@ -41,7 +41,7 @@ and for every Vectrix jar you use (`vectrix` itself has no `simd` classifier):
 <dependency>
     <groupId>org.dynamisengine</groupId>
     <artifactId>vectrix-core</artifactId>
-    <version>4.0.0</version>
+    <version>4.0.1</version>
     <classifier>simd</classifier>
 </dependency>
 ```

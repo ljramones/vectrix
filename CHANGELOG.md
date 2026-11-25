@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-11-25
+A packaging release: no library code changes, and the results are unchanged.
+
+### Changed
+- **vectrix-gpu is in the release's Maven repository ZIP.** In 4.0.0 it was attached only as loose jars, with no POM,
+  so a clean consumer could not resolve it. `scripts/package-release.sh` now deploys it into the staged repository
+  next to the library, and `package-release.py` checks it.
+- **vectrix-gpu is built on DynamisGPU 1.13.0** (was 1.12.1). The `dynamis-gpu-api` it uses is unchanged in 1.13.0.
+  The GPU kernels CI job installs 1.13.0.
+
 ## [4.0.0] - 2026-11-25
 New in this release:
 - **Four jars.** The library ships as `vectrix-core`, `vectrix-render`, `vectrix-signal` and `vectrix-ml`, each its

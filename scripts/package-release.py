@@ -13,6 +13,7 @@ out = repository.parent
 JARS = ["vectrix-core", "vectrix-render", "vectrix-signal", "vectrix-ml"]
 ARTIFACTS = {"vectrix-parent": [], "vectrix": ["", "-sources", "-javadoc"]}
 ARTIFACTS.update({jar: ["", "-simd", "-sources", "-javadoc"] for jar in JARS})
+ARTIFACTS["vectrix-gpu"] = ["", "-sources"]  # since 4.0.1; depends on DynamisGPU's dynamis-gpu-api
 
 
 
@@ -48,6 +49,9 @@ for jar in JARS:
         if "module-info.class" not in z.namelist():
             raise SystemExit(f"{path.name} has no module descriptor; package in the default profile")
 
+gpu_pom = ET.parse(staged("vectrix-gpu", "", "pom")).getroot()
+dynamisgpu = gpu_pom.find("{*}properties/{*}dynamisgpu.version").text
+
 readme = f"""Vectrix {version}
 
 This Maven repository bundle is distributed through GitHub, not Maven Central. Requires JDK 25.
@@ -58,6 +62,8 @@ Install it into your local Maven repository (~/.m2/repository, or $MAVEN_REPOSIT
 
 Then depend on org.dynamisengine:vectrix:{version} for the whole library, or on the jars you use:
 vectrix-core, vectrix-render, vectrix-signal and vectrix-ml (each also with the simd classifier).
+vectrix-gpu (the GPU twins of the kernels) is here too; it needs DynamisGPU {dynamisgpu}'s dynamis-gpu-api,
+from the DynamisGPU GitHub release, and dynamis-gpu-metal or dynamis-gpu-vulkan at runtime.
 See docs/migrating-to-4.0.md in tag v{version}.
 
 Alternatively configure this directory's repository/ folder as a Maven file repository. The parent
@@ -89,6 +95,11 @@ for jar in JARS:
         destination = out / f"{jar}-{version}{suffix}.jar"
         shutil.copy2(source, destination)
         assets.append(destination)
+for suffix in ("", "-sources"):
+    source = staged("vectrix-gpu", suffix, "jar")
+    destination = out / f"vectrix-gpu-{version}{suffix}.jar"
+    shutil.copy2(source, destination)
+    assets.append(destination)
 (out / "SHA256SUMS").write_text("".join(
     f"{hashlib.sha256(f.read_bytes()).hexdigest()}  {f.name}\n" for f in assets))
 print(f"Packaged {archive}")
