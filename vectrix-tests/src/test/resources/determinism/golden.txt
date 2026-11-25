@@ -8881,6 +8881,8 @@ nn.BlockQuant.nearest(float,float) 5b62ee01a8384ae4
 nn.BlockQuant.nearestCode(float,float,int,int) f1475481fd56adb8
 nn.Conv2d.of(int,int,int,int,int,int,int,int,int,int) 6f9b5e99d6e6bffd
 nn.Conv2d.of(int,int,int,int,int,int,int,int,int,int,int,int,int) 3f971e328f8ebf27
+nn.Embedding.gather(float[],int,int,int,int[],int,int,float[],int) 668053a31b64648b
+nn.Embedding.scatterAdd(float[],int,int[],int,int,int,float[],int,int) 9a1ab13dd49aff06
 nn.Formats.toE4M3(float,boolean) 5419d77a1d1f23ba
 nn.Formats.toE5M2(float,boolean) 0cbb5aa493284e04
 nn.Formats.toBf16(float) 82c1c6fce97a54b7
@@ -8893,6 +8895,17 @@ nn.Norms.rmsNormBackward(float[],int,float[],int,float[],int,float[],int,float[]
 nn.Optim.clipFactor(double,double) 53434eb0746ad9b4
 nn.Optim.adamW(float[],int,float[],int,float[],int,float[],int,int,float,float,float,float,float,long) 5dc6b79c2d4a1387
 nn.Optim.sgd(float[],int,float[],int,float[],int,int,float,float,float,boolean) a77a3f4deead471a
+nn.Pointwise.add(float[],int,float[],int,float[],int,int) 686d79f5d6e1e614
+nn.Pointwise.div(float[],int,float[],int,float[],int,int) c58ebe069887f593
+nn.Pointwise.exp(float[],int,float[],int,int) 2ef2798f1ee16c03
+nn.Pointwise.log(float[],int,float[],int,int) ab8c1153c801c963
+nn.Pointwise.max(float[],int,float[],int,float[],int,int) 4c6ac4b430e272d6
+nn.Pointwise.min(float[],int,float[],int,float[],int,int) 2e5f2905493d35ae
+nn.Pointwise.mul(float[],int,float[],int,float[],int,int) ecfc49fac2ea95fb
+nn.Pointwise.neg(float[],int,float[],int,int) 61ec0f90a6952208
+nn.Pointwise.sqrt(float[],int,float[],int,int) e729c91e4f6a22fa
+nn.Pointwise.square(float[],int,float[],int,int) 396159788c74acc1
+nn.Pointwise.sub(float[],int,float[],int,float[],int,int) 435b1cfad0cb5d4b
 nn.Pool2d.of(int,int,int,int,int,int) 3f971e328f8ebf27
 nn.Rope.plan(double[],Layout) ef203179b943802b
 nn.Rope.plan(int,double,Layout) 3f971e328f8ebf27
