@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.dynamisengine</groupId>
         <artifactId>vectrix-parent</artifactId>
-        <version>4.0.0-SNAPSHOT</version>
+        <version>4.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <!-- 4.0: the tests that span the jars (the determinism golden, doc references, twin parity, aliasing, allocation,

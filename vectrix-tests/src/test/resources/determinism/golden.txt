@@ -8875,6 +8875,10 @@ nn.Attention.backward(float[],int,int,float[],int,int,float[],int,int,int,int,fl
 nn.Attention.forward(float[],int,int,float[],int,int,float[],int,int,int,int,float,float[],int,float[],int,float[],int,float[],int) 3f971e328f8ebf27
 nn.Attention.groupedQuery(float[],int,int,int,float[],int,float[],int,int,int,int,float,float[],int,float[],int,float[],int,float[],int) 0e6d63274f9b5d56
 nn.Attention.groupedQueryBackward(float[],int,int,int,float[],int,float[],int,int,int,int,float,float[],int,float[],int,float[],int,float[],int,float[],int,float[],int) 3f971e328f8ebf27
+nn.BlockQuant.decode(Format,int,float,float) 660fd970747afbeb
+nn.BlockQuant.decodeK(Format,int,float,float,int,int) c5cfed533e6a9b96
+nn.BlockQuant.nearest(float,float) 5b62ee01a8384ae4
+nn.BlockQuant.nearestCode(float,float,int,int) f1475481fd56adb8
 nn.Conv2d.of(int,int,int,int,int,int,int,int,int,int) 6f9b5e99d6e6bffd
 nn.Conv2d.of(int,int,int,int,int,int,int,int,int,int,int,int,int) 3f971e328f8ebf27
 nn.Formats.toE4M3(float,boolean) 5419d77a1d1f23ba

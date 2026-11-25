@@ -88,7 +88,7 @@ Methods added after the golden was recorded are reported, not failed. After an i
 re-record the file:
 
 ```
-mvn test -pl vectrix-tests -am -Dtest=CrossPlatformDeterminismTest -Dsurefire.failIfNoSpecifiedTests=false \
+mvn clean test -pl vectrix-tests -am -Dtest=CrossPlatformDeterminismTest -Dsurefire.failIfNoSpecifiedTests=false \
     -Dvectrix.determinism.write=$PWD/vectrix-tests/src/test/resources/determinism/golden.txt
 ```
 

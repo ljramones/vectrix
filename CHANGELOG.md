@@ -6,8 +6,16 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
-Vectrix 4.0 splits the library into four jars and removes the GPU layout classes deprecated in 3.3.
-[Migrating to 4.0](docs/migrating-to-4.0.md) covers both.
+## [4.0.0] - 2026-11-25
+New in this release:
+- **Four jars.** The library ships as `vectrix-core`, `vectrix-render`, `vectrix-signal` and `vectrix-ml`, each its
+  own JPMS module; packages are unchanged. The `vectrix` artifact depends on all four, so a 3.x class-path build only
+  bumps the version. Module-path builds require the modules they use, and the `simd` classifier is per jar.
+- **The GPU layout classes deprecated in 3.3 are removed.** They have lived in DynamisGPU since its 1.2.0.
+- **`BlockQuant`:** llama.cpp's block quantization formats, bit for bit with gguf-py.
+- **Distributed as a Maven repository ZIP** on the GitHub release, since each jar's POM now names a parent.
+
+[Migrating to 4.0](docs/migrating-to-4.0.md) covers the changes for consumers.
 
 ### Changed
 - **Four jars, four modules.** The packages are unchanged; they ship as:
@@ -45,6 +53,7 @@ Vectrix 4.0 splits the library into four jars and removes the GPU layout classes
 - **`BlockQuant`** (`nn`): llama.cpp's block quantization formats (Q8_0, Q4_0, Q4_1, Q4_K, Q5_K and Q6_K).
   - **Exactness:** decoding matches gguf-py bit for bit on blocks it wrote.
   - **Encoding:** nearest codes, without allocating.
+  - **Determinism golden:** gains `BlockQuant`'s four scalar methods; no other entry changed.
 
 ### Removed
 - **The GPU layout classes deprecated in 3.3,** which have lived in DynamisGPU since its 1.2.0: `gpu.ShaderLayout`,
