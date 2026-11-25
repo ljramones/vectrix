@@ -71,6 +71,15 @@ void softmaxRow(RWStructuredBuffer<float> x, uint xBase, RWStructuredBuffer<floa
     }
     GroupMemoryBarrierWithGroupSync();
     float m = rowMax;
+    if (m == asfloat(0xFF800000u))
+    {
+        // every element is -inf (fully masked): zeros, as Softmax.softmax (4.1). m is the same for the whole group.
+        for (uint i = t; i < n; i += GROUP)
+        {
+            y[yBase + i] = 0.0f;
+        }
+        return;
+    }
 
     uint blocks = (n + BLOCK - 1) / BLOCK;
     uint lane = t % 8;
@@ -271,6 +280,15 @@ float logSumExpRow(RWStructuredBuffer<float> x, uint xBase, uint n, uint t)
 void logSoftmaxRow(RWStructuredBuffer<float> x, uint xBase, RWStructuredBuffer<float> y, uint yBase, uint n, uint t)
 {
     float m = groupRowMax(x, xBase, n, t);
+    if (m == asfloat(0xFF800000u))
+    {
+        // every element is -inf (fully masked): -inf, as Softmax.logSoftmax (4.1)
+        for (uint i = t; i < n; i += GROUP)
+        {
+            y[yBase + i] = m;
+        }
+        return;
+    }
     ExpShiftedSum f;
     f.x = x;
     f.xBase = xBase;
@@ -321,15 +339,21 @@ void crossEntropyBackwardRow(RWStructuredBuffer<float> x, uint xBase, int target
         RWStructuredBuffer<float> dx, uint dxBase, uint n, uint t)
 {
     float m = groupRowMax(x, xBase, n, t);
-    ExpShiftedSum f;
-    f.x = x;
-    f.xBase = xBase;
-    f.m = m;
-    float s = groupSum(f, n, t, 0);
+    // logits all -inf (fully masked): Softmax.softmax gives zeros (4.1), so v is 0 before the one-hot
+    bool masked = m == asfloat(0xFF800000u);
+    float s = 1.0f;
+    if (!masked)
+    {
+        ExpShiftedSum f;
+        f.x = x;
+        f.xBase = xBase;
+        f.m = m;
+        s = groupSum(f, n, t, 0);
+    }
     bool valid = target >= 0 && uint(target) < n;
     for (uint i = t; i < n; i += GROUP)
     {
-        float v = expShifted(x[xBase + i], m) / s;
+        float v = masked ? 0.0f : expShifted(x[xBase + i], m) / s;
         if (i == uint(target))
         {
             v = v - 1.0f;

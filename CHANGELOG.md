@@ -22,6 +22,19 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   device with `INT64`, at any position. `GpuRope.Layout` mirrors `Rope.Layout`, because vectrix-gpu's main code
   depends only on `dynamis-gpu-api`.
 - **`Rope.inverseFrequencies()` and `Rope.layout()`:** read-only accessors of a plan, for GPU twins and serializers.
+- **`Pointwise`** (`nn`): element-wise `add`, `sub`, `mul`, `div`, `max`, `min`, `exp`, `log`, `sqrt`, `neg` and
+  `square` over float arrays, one Java operation per element (exp and log from `ReproducibleMath`). It is the
+  reference for frameworks that compose tensor programs around the other kernels. GPU twin: `GpuPointwise`.
+- **`Embedding`** (`nn`): `gather` (rows by integer index) and `scatterAdd` (the gradient summed into the rows in
+  token order, so repeated indices sum the same way every run). Indices are checked before anything is written. GPU
+  twin: `GpuEmbedding`, whose scatter-add follows a host-built `Plan` of each row's tokens and needs no atomics.
+
+### Changed
+- **Fully masked rows.** `Softmax.softmax` of a row whose every element is `-∞` now gives zeros, and
+  `Softmax.logSoftmax` gives `-∞`; both gave NaN before. So attention over a fully masked row outputs zero and passes
+  zero gradients, and `Loss.crossEntropyBackward` of all `-∞` logits gives `-dLoss` at the target and 0 elsewhere.
+  The GPU twins (`GpuSoftmax`, `GpuAttention`, `GpuLoss`) follow the same rule. Rows with any finite element are
+  unchanged.
 
 ## [4.0.1] - 2026-11-25
 A packaging release: no library code changes, and the results are unchanged.

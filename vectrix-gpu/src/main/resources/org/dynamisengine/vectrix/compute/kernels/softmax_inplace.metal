@@ -203,7 +203,8 @@ float pairwiseBlocks_0(SharedBlocks_0 thread* source_0, uint blocks_0, KernelCon
 
 void softmaxRow_0(float device* x_2, uint xBase_0, float device* y_0, uint yBase_0, uint n_1, uint t_0, KernelContext_0 thread* kernelContext_2)
 {
-    float mx_0 = (as_type<float>((4286578688U)));
+    float _S8 = (as_type<float>((4286578688U)));
+    float mx_0 = _S8;
     uint i_0 = t_0;
     for(;;)
     {
@@ -214,9 +215,9 @@ void softmaxRow_0(float device* x_2, uint xBase_0, float device* y_0, uint yBase
         {
             break;
         }
-        float _S8 = jmax_0(mx_0, *(x_2+(xBase_0 + i_0)));
+        float _S9 = jmax_0(mx_0, *(x_2+(xBase_0 + i_0)));
         uint i_1 = i_0 + 256U;
-        mx_0 = _S8;
+        mx_0 = _S9;
         i_0 = i_1;
     }
     (*kernelContext_2->shared_0)[t_0] = mx_0;
@@ -238,16 +239,34 @@ void softmaxRow_0(float device* x_2, uint xBase_0, float device* y_0, uint yBase
         threadgroup_barrier(mem_flags::mem_threadgroup);
         stride_0 = stride_0 >> 1U;
     }
-    bool _S9 = t_0 == 0U;
-    if(_S9)
+    bool _S10 = t_0 == 0U;
+    if(_S10)
     {
         *kernelContext_2->rowMax_0 = (*kernelContext_2->shared_0)[int(0)];
     }
-    uint j_0;
     threadgroup_barrier(mem_flags::mem_threadgroup);
-    float _S10 = *kernelContext_2->rowMax_0;
+    float threadgroup* _S11 = kernelContext_2->rowMax_0;
+    float m_1 = *_S11;
+    if((*_S11) == _S8)
+    {
+        i_0 = t_0;
+        for(;;)
+        {
+            if(i_0 < n_1)
+            {
+            }
+            else
+            {
+                break;
+            }
+            *(y_0+(yBase_0 + i_0)) = 0.0;
+            i_0 = i_0 + 256U;
+        }
+        return;
+    }
+    uint j_0;
     uint blocks_1 = (n_1 + 256U - 1U) / 256U;
-    uint _S11 = t_0 % 8U;
+    uint _S12 = t_0 % 8U;
     uint b0_0 = 0U;
     for(;;)
     {
@@ -259,28 +278,28 @@ void softmaxRow_0(float device* x_2, uint xBase_0, float device* y_0, uint yBase
             break;
         }
         uint b_2 = b0_0 + t_0 / 8U;
-        bool _S12 = b_2 < blocks_1;
+        bool _S13 = b_2 < blocks_1;
         float acc_0;
-        if(_S12)
+        if(_S13)
         {
             uint base_0 = b_2 * 256U;
-            uint _S13 = min(256U, n_1 - base_0);
+            uint _S14 = min(256U, n_1 - base_0);
             acc_0 = 0.0;
-            j_0 = _S11;
+            j_0 = _S12;
             for(;;)
             {
-                if(j_0 < _S13)
+                if(j_0 < _S14)
                 {
                 }
                 else
                 {
                     break;
                 }
-                float e_1 = expShifted_0(*(x_2+(xBase_0 + base_0 + j_0)), _S10);
+                float e_1 = expShifted_0(*(x_2+(xBase_0 + base_0 + j_0)), m_1);
                 *(y_0+(yBase_0 + base_0 + j_0)) = e_1;
-                float _S14 = acc_0 + e_1;
+                float _S15 = acc_0 + e_1;
                 uint j_1 = j_0 + 8U;
-                acc_0 = _S14;
+                acc_0 = _S15;
                 j_0 = j_1;
             }
         }
@@ -290,31 +309,31 @@ void softmaxRow_0(float device* x_2, uint xBase_0, float device* y_0, uint yBase
         }
         (*kernelContext_2->shared_0)[t_0] = acc_0;
         threadgroup_barrier(mem_flags::mem_threadgroup);
-        bool _S15;
-        if(_S11 == 0U)
+        bool _S16;
+        if(_S12 == 0U)
         {
-            _S15 = _S12;
+            _S16 = _S13;
         }
         else
         {
-            _S15 = false;
+            _S16 = false;
         }
-        if(_S15)
+        if(_S16)
         {
             (*kernelContext_2->blockSums_0)[b_2] = combineLanes_0((*kernelContext_2->shared_0)[t_0], (*kernelContext_2->shared_0)[t_0 + 1U], (*kernelContext_2->shared_0)[t_0 + 2U], (*kernelContext_2->shared_0)[t_0 + 3U], (*kernelContext_2->shared_0)[t_0 + 4U], (*kernelContext_2->shared_0)[t_0 + 5U], (*kernelContext_2->shared_0)[t_0 + 6U], (*kernelContext_2->shared_0)[t_0 + 7U]);
         }
         threadgroup_barrier(mem_flags::mem_threadgroup);
         b0_0 = b0_0 + 32U;
     }
-    if(_S9)
+    if(_S10)
     {
         thread SharedBlocks_0 source_1;
         (&source_1)->next_0 = 0U;
-        float _S16 = pairwiseBlocks_0(&source_1, blocks_1, kernelContext_2);
-        *kernelContext_2->total_0 = _S16;
+        float _S17 = pairwiseBlocks_0(&source_1, blocks_1, kernelContext_2);
+        *kernelContext_2->total_0 = _S17;
     }
     threadgroup_barrier(mem_flags::mem_threadgroup);
-    float _S17 = *kernelContext_2->total_0;
+    float _S18 = *kernelContext_2->total_0;
     b0_0 = 0U;
     for(;;)
     {
@@ -329,19 +348,19 @@ void softmaxRow_0(float device* x_2, uint xBase_0, float device* y_0, uint yBase
         if(b_3 < blocks_1)
         {
             uint base_1 = b_3 * 256U;
-            uint _S18 = min(256U, n_1 - base_1);
-            j_0 = _S11;
+            uint _S19 = min(256U, n_1 - base_1);
+            j_0 = _S12;
             for(;;)
             {
-                if(j_0 < _S18)
+                if(j_0 < _S19)
                 {
                 }
                 else
                 {
                     break;
                 }
-                uint _S19 = yBase_0 + base_1 + j_0;
-                *(y_0+_S19) = *(y_0+_S19) / _S17;
+                uint _S20 = yBase_0 + base_1 + j_0;
+                *(y_0+_S20) = *(y_0+_S20) / _S18;
                 j_0 = j_0 + 8U;
             }
         }

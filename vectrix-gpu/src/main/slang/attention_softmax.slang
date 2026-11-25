@@ -77,6 +77,15 @@ void attentionSoftmax(uint3 group : SV_GroupID, uint3 local : SV_GroupThreadID)
     }
     GroupMemoryBarrierWithGroupSync();
     float m = rowMax;
+    if (m == asfloat(0xFF800000u))
+    {
+        // every score is -inf (fully masked): zero probabilities, as Softmax.softmax (4.1)
+        for (uint i = t; i < n; i += GROUP)
+        {
+            probs[base + i] = 0.0f;
+        }
+        return;
+    }
 
     uint blocks = (n + ATTENTION_BLOCK - 1) / ATTENTION_BLOCK;
     uint lane = t % 8;

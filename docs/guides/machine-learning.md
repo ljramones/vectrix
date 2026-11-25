@@ -17,12 +17,14 @@ return, every kernel gives the same bits on every platform, and the kernels do n
 | Dot product, sums, norm, `y += a·x`, scaling | `Blasf`, `Blasd` | Arrays or `MemorySegment`s; fixed reduction order |
 | Matrix × matrix, matrix × vector | `Gemmf`, `Gemmd` | Row-major with row strides; optional transposes; caller scratch |
 | ReLU, sigmoid, tanh, SiLU, GELU, softplus, dropout | `Activations` | Element-wise, forward and backward |
-| Softmax, log-softmax, log-sum-exp | `Softmax` | One row per call, forward and backward |
+| Element-wise add, subtract, multiply, divide, max, min, exp, log, sqrt | `Pointwise` | One Java operation per element (4.1) |
+| Softmax, log-softmax, log-sum-exp | `Softmax` | One row per call, forward and backward; a fully masked row (all `-∞`) gives zeros (4.1) |
 | Layer norm, RMS norm | `Norms` | One row per call; the forward returns the statistics the backward needs |
 | Cross-entropy loss | `Loss` | One row of logits per call |
 | AdamW, SGD with momentum, gradient clipping | `Optim` | Element-wise over a parameter range |
 | Scaled dot-product attention, grouped-query attention | `Attention` | One query against cached keys and values |
 | Rotary position embeddings | `Rope` | Immutable plan; angles in double |
+| Embedding lookup and its gradient | `Embedding` | Row gather; scatter-add in token order (4.1) |
 | 2D convolution (also 1D, depthwise, grouped) | `Conv2d` | Immutable shape; im2col plus `Gemmf` |
 | Max and average pooling | `Pool2d` | Immutable shape |
 | Pick a token from logits | `Sampler` | Greedy, temperature, top-k, top-p |

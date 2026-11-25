@@ -342,11 +342,21 @@ float groupSum_0(const ExpShiftedSum_0 thread* f_0, float device* f_x_0, uint n_
 void crossEntropyBackwardRow_0(float device* x_2, uint xBase_2, int target_0, float dLoss_1, float device* dx_0, uint dxBase_0, uint n_3, uint t_2, KernelContext_0 thread* kernelContext_4)
 {
     float _S15 = groupRowMax_0(x_2, xBase_2, n_3, t_2, kernelContext_4);
-    thread ExpShiftedSum_0 f_1;
-    (&f_1)->xBase_1 = xBase_2;
-    (&f_1)->m_0 = _S15;
-    thread ExpShiftedSum_0 _S16 = f_1;
-    float _S17 = groupSum_0(&_S16, x_2, n_3, t_2, 0U, kernelContext_4);
+    bool masked_0 = _S15 == (as_type<float>((4286578688U)));
+    float s_1;
+    if(!masked_0)
+    {
+        thread ExpShiftedSum_0 f_1;
+        (&f_1)->xBase_1 = xBase_2;
+        (&f_1)->m_0 = _S15;
+        thread ExpShiftedSum_0 _S16 = f_1;
+        float _S17 = groupSum_0(&_S16, x_2, n_3, t_2, 0U, kernelContext_4);
+        s_1 = _S17;
+    }
+    else
+    {
+        s_1 = 1.0;
+    }
     bool _S18;
     if(target_0 >= int(0))
     {
@@ -366,7 +376,15 @@ void crossEntropyBackwardRow_0(float device* x_2, uint xBase_2, int target_0, fl
         {
             break;
         }
-        float v_1 = expShifted_0(*(x_2+(xBase_2 + i_2)), _S15) / _S17;
+        float v_1;
+        if(masked_0)
+        {
+            v_1 = 0.0;
+        }
+        else
+        {
+            v_1 = expShifted_0(*(x_2+(xBase_2 + i_2)), _S15) / s_1;
+        }
         float v_2;
         if(i_2 == uint(target_0))
         {

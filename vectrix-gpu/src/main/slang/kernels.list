@@ -60,3 +60,8 @@ norm_backward norm_backward.slang normBackward
 norm_backward_inplace norm_backward_inplace.slang normBackwardInPlace
 norm_param_grads norm_param_grads.slang normParamGrads
 rope rope.slang rope
+pointwise pointwise.slang pointwise
+pointwise_inplace pointwise_inplace.slang pointwiseInPlace
+pointwise_self pointwise_self.slang pointwiseSelf
+embedding_gather embedding_gather.slang embeddingGather
+embedding_scatter_add embedding_scatter_add.slang embeddingScatterAdd

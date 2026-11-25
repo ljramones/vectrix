@@ -63,6 +63,11 @@ class KernelManifestTest {
         assertParams("gelu_inplace", GpuActivations.PARAMS_IN_PLACE);
         assertParams("gelu_self", GpuActivations.PARAMS_SELF);
         assertParams("rope", GpuRope.PARAMS);
+        assertParams("pointwise", GpuPointwise.PARAMS);
+        assertParams("pointwise_inplace", GpuPointwise.PARAMS_IN_PLACE);
+        assertParams("pointwise_self", GpuPointwise.PARAMS_SELF);
+        assertParams("embedding_gather", GpuEmbedding.PARAMS_GATHER);
+        assertParams("embedding_scatter_add", GpuEmbedding.PARAMS_SCATTER);
         assertParams("dropout", GpuActivations.PARAMS_DROPOUT);
         assertParams("dropout_inplace", GpuActivations.PARAMS_DROPOUT_IN_PLACE);
         assertParams("adamw", GpuOptim.PARAMS_ADAMW);
@@ -173,6 +178,11 @@ class KernelManifestTest {
         assertEquals("dest:0,other:1", Manifest.get("gelu_inplace.buffers"));
         assertEquals("x:0", Manifest.get("gelu_self.buffers"));
         assertEquals("x:0,invFreq:1,positions:2", Manifest.get("rope.buffers"));
+        assertEquals("a:0,b:1,dest:2", Manifest.get("pointwise.buffers"));
+        assertEquals("dest:0,other:1", Manifest.get("pointwise_inplace.buffers"));
+        assertEquals("x:0", Manifest.get("pointwise_self.buffers"));
+        assertEquals("table:0,idx:1,out:2", Manifest.get("embedding_gather.buffers"));
+        assertEquals("dOut:0,plan:1,dTable:2", Manifest.get("embedding_scatter_add.buffers"));
         assertEquals("64,1,1", Manifest.get("rope.local"));
         for (String k : new String[] {"gelu", "gelu_inplace", "gelu_self"}) {
             assertEquals("256,1,1", Manifest.get(k + ".local"), k);

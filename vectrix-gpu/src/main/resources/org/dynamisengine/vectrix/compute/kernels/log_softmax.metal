@@ -411,13 +411,31 @@ float reproducibleLog_0(float x_3)
 void logSoftmaxRow_0(float device* x_4, uint xBase_2, float device* y_1, uint yBase_0, uint n_3, uint t_2, KernelContext_0 thread* kernelContext_4)
 {
     float _S17 = groupRowMax_0(x_4, xBase_2, n_3, t_2, kernelContext_4);
+    uint i_2;
+    if(_S17 == (as_type<float>((4286578688U))))
+    {
+        i_2 = t_2;
+        for(;;)
+        {
+            if(i_2 < n_3)
+            {
+            }
+            else
+            {
+                break;
+            }
+            *(y_1+(yBase_0 + i_2)) = _S17;
+            i_2 = i_2 + 256U;
+        }
+        return;
+    }
     thread ExpShiftedSum_0 f_2;
     (&f_2)->xBase_1 = xBase_2;
     (&f_2)->m_0 = _S17;
     thread ExpShiftedSum_0 _S18 = f_2;
     float _S19 = groupSum_0(&_S18, x_4, n_3, t_2, 0U, kernelContext_4);
     float _S20 = reproducibleLog_0(_S19);
-    uint i_2 = t_2;
+    i_2 = t_2;
     for(;;)
     {
         if(i_2 < n_3)

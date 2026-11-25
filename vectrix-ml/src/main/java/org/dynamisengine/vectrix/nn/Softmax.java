@@ -50,7 +50,9 @@ public final class Softmax {
     }
 
     /**
-     * Softmax: {@code y[i] = e^(x[i] - m) / Σ e^(x[j] - m)}, {@code m = max x}. An empty row writes nothing.
+     * Softmax: {@code y[i] = e^(x[i] - m) / Σ e^(x[j] - m)}, {@code m = max x}. An empty row writes nothing. A row
+     * whose every element is {@code -∞} (fully masked) gives zeros (since 4.1.0; NaN before), so attention over a
+     * fully masked row outputs zero and passes zero gradients.
      *
      * @param x the row
      * @param xOff the offset in {@code x}
@@ -66,6 +68,10 @@ public final class Softmax {
             return;
         }
         float m = max(x, xOff, n);
+        if (m == Float.NEGATIVE_INFINITY) {
+            java.util.Arrays.fill(y, yOff, yOff + n, 0f); // every element masked: no probability anywhere
+            return;
+        }
         expShifted(x, xOff, y, yOff, n, m);
         float s = Blasf.sum(y, yOff, n);
         for (int i = 0; i < n; i++) {
@@ -74,7 +80,8 @@ public final class Softmax {
     }
 
     /**
-     * Log-softmax: {@code y[i] = x[i] - m - log Σ e^(x[j] - m)}, without forming the probabilities.
+     * Log-softmax: {@code y[i] = x[i] - m - log Σ e^(x[j] - m)}, without forming the probabilities. A row whose
+     * every element is {@code -∞} gives {@code -∞} everywhere (since 4.1.0; NaN before).
      *
      * @param x the row
      * @param xOff the offset in {@code x}
@@ -93,6 +100,10 @@ public final class Softmax {
             return;
         }
         float m = max(x, xOff, n);
+        if (m == Float.NEGATIVE_INFINITY) {
+            java.util.Arrays.fill(y, yOff, yOff + n, Float.NEGATIVE_INFINITY); // every element masked
+            return;
+        }
         expShifted(x, xOff, scratch, scratchOff, n, m);
         float lse = ReproducibleMath.log(Blasf.sum(scratch, scratchOff, n));
         for (int i = 0; i < n; i++) {

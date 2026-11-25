@@ -53,7 +53,7 @@ only on packages in its own jar or in `vectrix-core`.
 | 3 | `camera` | render | Projections for every depth range, depth conversion, jitter, shadow cascades, cluster grids | `sampling` |
 | 3 | `dsp` | signal | Windows, FIR/IIR filters, spectra, transforms, Wiener filtering, Kalman and particle filters | `fft`, `hash` |
 | 3 | `geometry` | core | Intersections, closest points, contacts, bounding volumes, frustum culling | `linalg`, `simd`, `soa` |
-| 3 | `nn` | ml | Neural-network kernels: activations, softmax, norms, attention, convolution, block quantization, losses, optimizers | `blas`, `hash`, `simd` |
+| 3 | `nn` | ml | Neural-network kernels: element-wise arithmetic, activations, softmax, norms, attention, embeddings, convolution, block quantization, losses, optimizers | `blas`, `hash`, `simd` |
 | 4 | `gpu` | render | GPU data encodings: half floats, packed unorm/snorm and float formats, octahedral normals, quaternion compression, meshlet normal cones | `color`, `geometry` |
 
 ## Where to start
